@@ -53,6 +53,14 @@ cp .env.example .env
 
 至少修改 `DJANGO_SECRET_KEY` 与 `POSTGRES_PASSWORD`。所有数据库时间以 UTC 保存；`DEFAULT_TIMEZONE` 使用 IANA 名称。任何密钥都不得放进 `VITE_*`，因为 Vite 变量会进入浏览器产物。
 
+默认 PostgreSQL 镜像为官方的 `postgres:17-alpine`。如果所在网络无法稳定访问 Docker Hub，可在本地 `.env` 中覆盖镜像地址，例如：
+
+```text
+POSTGRES_IMAGE=docker.1ms.run/library/postgres:17-alpine
+```
+
+镜像加速源属于部署环境配置，仓库不强制绑定某个第三方服务。团队或生产环境应使用可信的企业镜像仓库，并可进一步按 digest 固定镜像。
+
 ## Docker 启动
 
 ```bash
@@ -182,4 +190,3 @@ development settings 允许本地调试，production settings 强制提供安全
 ## 下一步
 
 只建议进入一个任务：**实现 UserPreference 模型与统一时间工具。**
-

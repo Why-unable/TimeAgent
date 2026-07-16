@@ -19,7 +19,7 @@ x-backend: &backend
 
 services:
   postgres:
-    image: postgres:17-alpine
+    image: ${POSTGRES_IMAGE:-postgres:17-alpine}
     env_file:
       - .env
     volumes:
