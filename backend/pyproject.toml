@@ -1,0 +1,52 @@
+[project]
+name = "time-agent-backend"
+version = "0.1.0"
+description = "Time Agent Django backend"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "celery[redis]>=5.4,<6",
+    "django>=5.2,<5.3",
+    "djangorestframework>=3.15,<4",
+    "drf-spectacular>=0.28,<1",
+    "psycopg[binary]>=3.2,<4",
+    "redis>=5.2,<7",
+]
+
+[dependency-groups]
+dev = [
+    "django-stubs>=5.2,<6",
+    "djangorestframework-stubs>=3.15,<4",
+    "mypy>=1.15,<2",
+    "pytest>=8.3,<9",
+    "pytest-django>=4.10,<5",
+    "ruff>=0.11,<1",
+]
+
+[tool.uv]
+default-groups = ["dev"]
+
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "config.settings.test"
+python_files = ["test_*.py"]
+testpaths = ["tests"]
+addopts = "-ra"
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "DJ"]
+
+[tool.mypy]
+python_version = "3.12"
+plugins = ["mypy_django_plugin.main", "mypy_drf_plugin.main"]
+strict = true
+exclude = ["migrations"]
+
+[[tool.mypy.overrides]]
+module = ["celery.*", "redis.*"]
+ignore_missing_imports = true
+
+[tool.django-stubs]
+django_settings_module = "config.settings.test"

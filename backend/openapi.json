@@ -1,0 +1,157 @@
+{
+    "openapi": "3.0.3",
+    "info": {
+        "title": "Time Agent API",
+        "version": "0.1.0",
+        "description": "Time Agent backend contract"
+    },
+    "paths": {
+        "/health/live": {
+            "get": {
+                "operationId": "health_live_retrieve",
+                "tags": [
+                    "health"
+                ],
+                "security": [
+                    {
+                        "cookieAuth": []
+                    },
+                    {
+                        "basicAuth": []
+                    },
+                    {}
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/LiveResponse"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/health/ready": {
+            "get": {
+                "operationId": "health_ready_retrieve",
+                "tags": [
+                    "health"
+                ],
+                "security": [
+                    {
+                        "cookieAuth": []
+                    },
+                    {
+                        "basicAuth": []
+                    },
+                    {}
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ReadyResponse"
+                                }
+                            }
+                        },
+                        "description": ""
+                    },
+                    "503": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ReadyResponse"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        }
+    },
+    "components": {
+        "schemas": {
+            "DependencyChecks": {
+                "type": "object",
+                "properties": {
+                    "database": {
+                        "$ref": "#/components/schemas/DependencyStatusEnum"
+                    },
+                    "redis": {
+                        "$ref": "#/components/schemas/DependencyStatusEnum"
+                    }
+                },
+                "required": [
+                    "database",
+                    "redis"
+                ]
+            },
+            "DependencyStatusEnum": {
+                "enum": [
+                    "ok",
+                    "error"
+                ],
+                "type": "string",
+                "description": "* `ok` - OK\n* `error` - Error"
+            },
+            "LiveResponse": {
+                "type": "object",
+                "properties": {
+                    "status": {
+                        "$ref": "#/components/schemas/LiveResponseStatusEnum"
+                    }
+                },
+                "required": [
+                    "status"
+                ]
+            },
+            "LiveResponseStatusEnum": {
+                "enum": [
+                    "alive"
+                ],
+                "type": "string",
+                "description": "* `alive` - alive"
+            },
+            "ReadyResponse": {
+                "type": "object",
+                "properties": {
+                    "status": {
+                        "$ref": "#/components/schemas/ReadyResponseStatusEnum"
+                    },
+                    "checks": {
+                        "$ref": "#/components/schemas/DependencyChecks"
+                    }
+                },
+                "required": [
+                    "checks",
+                    "status"
+                ]
+            },
+            "ReadyResponseStatusEnum": {
+                "enum": [
+                    "ready",
+                    "not_ready"
+                ],
+                "type": "string",
+                "description": "* `ready` - ready\n* `not_ready` - not_ready"
+            }
+        },
+        "securitySchemes": {
+            "basicAuth": {
+                "type": "http",
+                "scheme": "basic"
+            },
+            "cookieAuth": {
+                "type": "apiKey",
+                "in": "cookie",
+                "name": "sessionid"
+            }
+        }
+    }
+}
