@@ -1,8 +1,8 @@
 # Time Agent
 
-Time Agent 是以时间为核心的个人智能事务管理系统。本仓库当前只完成 **Phase 0 工程骨架**，用于支撑后续可靠地开发时间偏好、提醒、日程、任务、Agent 与简报。
+Time Agent 是以时间为核心的个人智能事务管理系统。本仓库当前已完成 **Phase 1：UserPreference 与时间基础**。
 
-> 当前仅完成 Phase 0 工程骨架，尚未实现提醒、日程、任务、Agent 和简报业务。
+> 当前已完成工程骨架、用户时间偏好和统一时区工具，尚未实现提醒、日程、任务、Agent 和简报业务。
 
 ## 当前能力
 
@@ -13,7 +13,10 @@ Time Agent 是以时间为核心的个人智能事务管理系统。本仓库当
 - 响应式基础 Layout、系统状态页、全局错误边界和统一 API Client；
 - Docker Compose 与 Nginx 入口代理；
 - drf-spectacular → openapi-typescript 契约生成；
-- pytest、Ruff、mypy、Vitest、RTL 和 Playwright 基础配置。
+- pytest、Ruff、mypy、Vitest、RTL 和 Playwright 基础配置；
+- UserPreference 模型、迁移、Application Service 和认证 API；
+- IANA 时区校验、UTC 转换以及 DST 歧义/不存在时间检测；
+- 时间偏好页面、统一前端时间工具和用户时区展示。
 
 ## 技术栈
 
@@ -170,10 +173,21 @@ npx playwright install chromium
 npm run test:e2e
 ```
 
+## 用户时间偏好 API
+
+当前用户偏好端点：
+
+```text
+GET   /api/v1/preferences/me/
+PATCH /api/v1/preferences/me/
+```
+
+端点使用 Django Session 或 DRF 支持的认证方式。写操作由 `UserPreferenceService` 执行，API Serializer 不直接保存 ORM 对象。前端入口为 `/settings/time`。
+
 ## 尚未实现
 
-- UserPreference、CalendarEvent、Task、Reminder 等领域模型；
-- Application Service 与正式业务 REST API；
+- CalendarEvent、Task、Reminder 等事务领域模型；
+- 对应事务 Application Service 与业务 REST API；
 - Reminder Dispatcher 与真实通知渠道；
 - LangGraph 基础设施和 Time Steward Agent；
 - ActionProposal、HITL 与 Agent SSE；
@@ -183,10 +197,10 @@ npm run test:e2e
 
 ## 规范关系与注意事项
 
-`PROJECT_SPEC.md` 描述完整后端和 Agent 架构，`FRONTEND_SPEC.md` 描述完整工作台体验；本阶段只抽取两者共同要求的工程基础。两份规范对职责边界没有实质冲突，路线图以开发指南给出的 Phase 0–10 编号统一后续交付。
+`PROJECT_SPEC.md` 描述完整后端和 Agent 架构，`FRONTEND_SPEC.md` 描述完整工作台体验。当前实现保持 PostgreSQL 权威数据、Application Service 写入、UTC 存储和 IANA 时区展示等边界。两份规范对职责边界没有实质冲突，路线图以开发指南给出的 Phase 0–10 编号统一后续交付。
 
 development settings 允许本地调试，production settings 强制提供安全密钥；生产环境仍需进一步限制 Host、Cookie、TLS、静态文件与日志策略。Docker 构建依赖外部镜像和 Python/npm 包仓库。
 
 ## 下一步
 
-只建议进入一个任务：**实现 UserPreference 模型与统一时间工具。**
+只建议进入一个任务：**实现 Reminder 模型与状态机。**

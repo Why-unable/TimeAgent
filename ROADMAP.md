@@ -2,8 +2,11 @@
 
 每个阶段必须可独立验收；未列入阶段目标的功能不应顺带实现。
 
+当前进度：Phase 0 与 Phase 1 已完成；下一项为 T019。
+
 ## Phase 0：工程骨架
 
+- 状态：已完成。
 - 目标：建立可运行、可测试、可生成契约的 Monorepo。
 - 后端：Django 三套 settings、PostgreSQL、Redis、Celery、健康检查、OpenAPI。
 - 前端：React/Vite、路由、布局、状态页、统一 API Client、全局错误边界。
@@ -13,6 +16,7 @@
 
 ## Phase 1：UserPreference 与时间基础
 
+- 状态：已完成。
 - 目标：建立全系统统一的用户时区和时间处理基础。
 - 后端：UserPreference、IANA 时区校验、UTC 转换工具、Application Service。
 - 前端：时区读取与展示、最小时间偏好表单、统一时间工具。
@@ -129,4 +133,3 @@
 | T020 | 实现 ReminderService 与幂等创建 | Phase 2 |
 | T021 | 实现 Reminder Dispatcher 与 Console Provider | Phase 2 |
 | T022 | 实现提醒 REST API 与前端列表 | Phase 2 |
-

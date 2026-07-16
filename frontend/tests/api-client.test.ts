@@ -13,13 +13,11 @@ describe("apiRequest", () => {
     vi.stubGlobal("fetch", fetchMock);
 
     await expect(apiRequest("/health/live")).resolves.toEqual({ status: "alive" });
-    expect(fetchMock).toHaveBeenCalledWith(
-      "/health/live",
-      expect.objectContaining({
-        credentials: "same-origin",
-        headers: expect.objectContaining({ "X-Request-ID": expect.any(String) }),
-      }),
-    );
+    const [, request] = fetchMock.mock.calls[0] as [string, RequestInit];
+    const headers = request.headers as Headers;
+    expect(request.credentials).toBe("same-origin");
+    expect(headers.get("X-Request-ID")).toEqual(expect.any(String));
+    expect(headers.get("Accept")).toBe("application/json");
   });
 
   it("maps non-success responses to ApiError", async () => {
@@ -27,5 +25,28 @@ describe("apiRequest", () => {
 
     await expect(apiRequest("/health/ready")).rejects.toBeInstanceOf(ApiError);
   });
-});
 
+  it("adds JSON and CSRF headers to write requests", async () => {
+    Object.defineProperty(document, "cookie", {
+      configurable: true,
+      value: "csrftoken=phase1-token",
+    });
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ timezone: "Asia/Shanghai" }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    await apiRequest("/api/v1/preferences/me/", {
+      method: "PATCH",
+      body: JSON.stringify({ timezone: "Asia/Shanghai" }),
+    });
+
+    const [, request] = fetchMock.mock.calls[0] as [string, RequestInit];
+    const headers = request.headers as Headers;
+    expect(headers.get("Content-Type")).toBe("application/json");
+    expect(headers.get("X-CSRFToken")).toBe("phase1-token");
+  });
+});

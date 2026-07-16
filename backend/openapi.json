@@ -6,6 +6,79 @@
         "description": "Time Agent backend contract"
     },
     "paths": {
+        "/api/v1/preferences/me/": {
+            "get": {
+                "operationId": "api_v1_preferences_me_retrieve",
+                "tags": [
+                    "api"
+                ],
+                "security": [
+                    {
+                        "cookieAuth": []
+                    },
+                    {
+                        "basicAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/UserPreference"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            },
+            "patch": {
+                "operationId": "api_v1_preferences_me_partial_update",
+                "tags": [
+                    "api"
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/PatchedUserPreference"
+                            }
+                        },
+                        "application/x-www-form-urlencoded": {
+                            "schema": {
+                                "$ref": "#/components/schemas/PatchedUserPreference"
+                            }
+                        },
+                        "multipart/form-data": {
+                            "schema": {
+                                "$ref": "#/components/schemas/PatchedUserPreference"
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "cookieAuth": []
+                    },
+                    {
+                        "basicAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/UserPreference"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
         "/health/live": {
             "get": {
                 "operationId": "health_live_retrieve",
@@ -118,6 +191,58 @@
                 "type": "string",
                 "description": "* `alive` - alive"
             },
+            "PatchedUserPreference": {
+                "type": "object",
+                "properties": {
+                    "timezone": {
+                        "type": "string",
+                        "maxLength": 64
+                    },
+                    "locale": {
+                        "type": "string",
+                        "maxLength": 35
+                    },
+                    "workday_start": {
+                        "type": "string",
+                        "format": "time"
+                    },
+                    "workday_end": {
+                        "type": "string",
+                        "format": "time"
+                    },
+                    "sleep_start": {
+                        "type": "string",
+                        "format": "time"
+                    },
+                    "sleep_end": {
+                        "type": "string",
+                        "format": "time"
+                    },
+                    "default_event_duration_minutes": {
+                        "type": "integer",
+                        "maximum": 9223372036854775807,
+                        "minimum": 0,
+                        "format": "int64"
+                    },
+                    "preferred_focus_periods": {},
+                    "default_reminder_offsets": {},
+                    "weather_location": {
+                        "type": "string",
+                        "maxLength": 255
+                    },
+                    "news_topics": {},
+                    "briefing_time": {
+                        "type": "string",
+                        "format": "time"
+                    },
+                    "planning_rules": {},
+                    "updated_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "readOnly": true
+                    }
+                }
+            },
             "ReadyResponse": {
                 "type": "object",
                 "properties": {
@@ -140,6 +265,61 @@
                 ],
                 "type": "string",
                 "description": "* `ready` - ready\n* `not_ready` - not_ready"
+            },
+            "UserPreference": {
+                "type": "object",
+                "properties": {
+                    "timezone": {
+                        "type": "string",
+                        "maxLength": 64
+                    },
+                    "locale": {
+                        "type": "string",
+                        "maxLength": 35
+                    },
+                    "workday_start": {
+                        "type": "string",
+                        "format": "time"
+                    },
+                    "workday_end": {
+                        "type": "string",
+                        "format": "time"
+                    },
+                    "sleep_start": {
+                        "type": "string",
+                        "format": "time"
+                    },
+                    "sleep_end": {
+                        "type": "string",
+                        "format": "time"
+                    },
+                    "default_event_duration_minutes": {
+                        "type": "integer",
+                        "maximum": 9223372036854775807,
+                        "minimum": 0,
+                        "format": "int64"
+                    },
+                    "preferred_focus_periods": {},
+                    "default_reminder_offsets": {},
+                    "weather_location": {
+                        "type": "string",
+                        "maxLength": 255
+                    },
+                    "news_topics": {},
+                    "briefing_time": {
+                        "type": "string",
+                        "format": "time"
+                    },
+                    "planning_rules": {},
+                    "updated_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "readOnly": true
+                    }
+                },
+                "required": [
+                    "updated_at"
+                ]
             }
         },
         "securitySchemes": {

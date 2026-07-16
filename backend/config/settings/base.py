@@ -21,6 +21,7 @@ INSTALLED_APPS = [
     "rest_framework",
     "drf_spectacular",
     "apps.health",
+    "apps.preferences",
 ]
 
 MIDDLEWARE = [
@@ -76,6 +77,8 @@ LANGUAGE_CODE = os.getenv("DEFAULT_LOCALE", "zh-hans")
 TIME_ZONE = "UTC"
 USE_I18N = True
 USE_TZ = True
+DEFAULT_USER_TIMEZONE = os.getenv("DEFAULT_TIMEZONE", "Asia/Shanghai")
+DEFAULT_USER_LOCALE = os.getenv("DEFAULT_LOCALE", "zh-CN")
 
 STATIC_URL = "/static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"

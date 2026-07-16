@@ -1,6 +1,14 @@
-import { CalendarDays, CheckSquare, Clock3, MessageSquare, MonitorCog } from "lucide-react";
+import {
+  CalendarDays,
+  CheckSquare,
+  Clock3,
+  MessageSquare,
+  MonitorCog,
+  Settings,
+} from "lucide-react";
 import { NavLink, Outlet } from "react-router-dom";
 
+import { useCurrentUserPreference } from "../features/preferences/hooks";
 import { MobileNavigation } from "./mobile-navigation";
 
 const navigation = [
@@ -9,15 +17,21 @@ const navigation = [
   { to: "/chat", label: "聊天", icon: MessageSquare },
   { to: "/calendar", label: "日历", icon: CalendarDays },
   { to: "/tasks", label: "任务", icon: CheckSquare },
+  { to: "/settings/time", label: "时间偏好", icon: Settings },
 ];
 
 export function AppLayout() {
+  const preference = useCurrentUserPreference();
+  const timezone =
+    preference.data?.timezone ?? import.meta.env.VITE_DEFAULT_TIMEZONE ?? "Asia/Shanghai";
+
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100">
       <aside className="fixed inset-y-0 left-0 hidden w-64 border-r border-white/10 bg-slate-900/80 p-6 backdrop-blur md:block">
         <div className="mb-10">
           <p className="text-xs uppercase tracking-[0.28em] text-cyan-300">Time Agent</p>
           <h1 className="mt-2 text-xl font-semibold">时间工作台</h1>
+          <p className="mt-3 text-xs text-slate-500">当前时区：{timezone}</p>
         </div>
         <nav className="space-y-2" aria-label="主导航">
           {navigation.map(({ to, label, icon: Icon }) => (
@@ -46,4 +60,3 @@ export function AppLayout() {
     </div>
   );
 }
-

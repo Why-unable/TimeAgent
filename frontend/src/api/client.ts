@@ -12,20 +12,36 @@ export class ApiError extends Error {
 const baseUrl = import.meta.env.VITE_API_BASE_URL ?? "";
 const timeoutMs = Number(import.meta.env.VITE_REQUEST_TIMEOUT_MS ?? 5000);
 
+function getCookie(name: string): string | undefined {
+  return document.cookie
+    .split(";")
+    .map((cookie) => cookie.trim())
+    .find((cookie) => cookie.startsWith(`${name}=`))
+    ?.slice(name.length + 1);
+}
+
 export async function apiRequest<T>(path: string, init: RequestInit = {}): Promise<T> {
   const controller = new AbortController();
   const timeout = window.setTimeout(() => controller.abort(), timeoutMs);
   const requestId = crypto.randomUUID();
+  const headers = new Headers(init.headers);
+  headers.set("Accept", "application/json");
+  headers.set("X-Request-ID", requestId);
+
+  if (init.body && !headers.has("Content-Type")) {
+    headers.set("Content-Type", "application/json");
+  }
+
+  const csrfToken = getCookie("csrftoken");
+  if (csrfToken && !["GET", "HEAD", "OPTIONS"].includes(init.method?.toUpperCase() ?? "GET")) {
+    headers.set("X-CSRFToken", decodeURIComponent(csrfToken));
+  }
 
   try {
     const response = await fetch(`${baseUrl}${path}`, {
       ...init,
       credentials: "same-origin",
-      headers: {
-        Accept: "application/json",
-        "X-Request-ID": requestId,
-        ...init.headers,
-      },
+      headers,
       signal: init.signal ?? controller.signal,
     });
 
@@ -42,4 +58,3 @@ export async function apiRequest<T>(path: string, init: RequestInit = {}): Promi
     window.clearTimeout(timeout);
   }
 }
-

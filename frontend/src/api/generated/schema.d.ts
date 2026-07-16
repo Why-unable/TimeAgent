@@ -4,6 +4,22 @@
  */
 
 export interface paths {
+    "/api/v1/preferences/me/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["api_v1_preferences_me_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch: operations["api_v1_preferences_me_partial_update"];
+        trace?: never;
+    };
     "/health/live": {
         parameters: {
             query?: never;
@@ -58,6 +74,29 @@ export interface components {
          * @enum {string}
          */
         LiveResponseStatusEnum: "alive";
+        PatchedUserPreference: {
+            timezone?: string;
+            locale?: string;
+            /** Format: time */
+            workday_start?: string;
+            /** Format: time */
+            workday_end?: string;
+            /** Format: time */
+            sleep_start?: string;
+            /** Format: time */
+            sleep_end?: string;
+            /** Format: int64 */
+            default_event_duration_minutes?: number;
+            preferred_focus_periods?: unknown;
+            default_reminder_offsets?: unknown;
+            weather_location?: string;
+            news_topics?: unknown;
+            /** Format: time */
+            briefing_time?: string;
+            planning_rules?: unknown;
+            /** Format: date-time */
+            readonly updated_at?: string;
+        };
         ReadyResponse: {
             status: components["schemas"]["ReadyResponseStatusEnum"];
             checks: components["schemas"]["DependencyChecks"];
@@ -68,6 +107,29 @@ export interface components {
          * @enum {string}
          */
         ReadyResponseStatusEnum: "ready" | "not_ready";
+        UserPreference: {
+            timezone?: string;
+            locale?: string;
+            /** Format: time */
+            workday_start?: string;
+            /** Format: time */
+            workday_end?: string;
+            /** Format: time */
+            sleep_start?: string;
+            /** Format: time */
+            sleep_end?: string;
+            /** Format: int64 */
+            default_event_duration_minutes?: number;
+            preferred_focus_periods?: unknown;
+            default_reminder_offsets?: unknown;
+            weather_location?: string;
+            news_topics?: unknown;
+            /** Format: time */
+            briefing_time?: string;
+            planning_rules?: unknown;
+            /** Format: date-time */
+            readonly updated_at: string;
+        };
     };
     responses: never;
     parameters: never;
@@ -77,6 +139,50 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    api_v1_preferences_me_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserPreference"];
+                };
+            };
+        };
+    };
+    api_v1_preferences_me_partial_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PatchedUserPreference"];
+                "application/x-www-form-urlencoded": components["schemas"]["PatchedUserPreference"];
+                "multipart/form-data": components["schemas"]["PatchedUserPreference"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserPreference"];
+                };
+            };
+        };
+    };
     health_live_retrieve: {
         parameters: {
             query?: never;
