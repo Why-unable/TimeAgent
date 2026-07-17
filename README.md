@@ -1,8 +1,8 @@
 # Time Agent
 
-Time Agent 是以时间为核心的个人智能事务管理系统。本仓库当前已完成 **Phase 2**，具备从提醒创建到 Console 确定性投递的完整闭环。
+Time Agent 是以时间为核心的个人智能事务管理系统。本仓库当前已完成 **Phase 3**，具备提醒闭环、结构化日程与任务管理，以及每日工作台。
 
-> 当前已完成工程骨架、用户时间偏好、统一时区工具和提醒闭环，尚未实现日程、任务、Agent 和简报业务。
+> 当前已完成工程骨架、用户时间偏好、统一时区工具、提醒闭环、日程、任务和 Today 汇总；Agent 与简报业务将在后续阶段实现。
 
 ## 当前能力
 
@@ -21,10 +21,17 @@ Time Agent 是以时间为核心的个人智能事务管理系统。本仓库当
 - ReminderService、创建命令以及并发安全的幂等创建；
 - 基于 Celery Beat 的到期扫描、幂等发送、失败重试和 Console Provider；
 - 认证隔离的提醒 REST API，以及提醒列表、创建、取消和状态展示页面。
+- CalendarEvent 模型、UTC/IANA 时间校验、外部身份约束、版本号和时间查询索引。
+- Task 模型、父子层级、截止/计划时间区分、标签校验和确定性状态机。
+- EventService 与 TaskService，包含用户隔离、事务锁、事件乐观锁、任务完成和重排。
+- 半开区间日程冲突检测，以及结合用户工作时段、事件和计划任务的空闲候选搜索。
+- 认证隔离的 CalendarEvent/Task REST API、事件版本冲突响应与任务完成端点。
+- FullCalendar 月/周/日界面、日程创建/编辑/取消，以及任务分类、分组、编辑和完成界面。
+- 按用户 IANA 时区生成的 Today 汇总 API 与每日工作台，包含时间线、任务分桶、提醒、冲突和下一日程。
 
 ## 技术栈
 
-后端使用 Python 3.12、Django、Django REST Framework、PostgreSQL、Redis、Celery 与 `uv`。前端使用 React、TypeScript、Vite、React Router、TanStack Query、Zustand、Tailwind、Vitest 和 Playwright。部署基础为 Docker Compose 与 Nginx。
+后端使用 Python 3.12、Django、Django REST Framework、PostgreSQL、Redis、Celery 与 `uv`。前端使用 React、TypeScript、Vite、React Router、TanStack Query、Zustand、Tailwind、FullCalendar、Vitest 和 Playwright。部署基础为 Docker Compose 与 Nginx。
 
 ## 目录
 
@@ -198,15 +205,25 @@ DELETE /api/v1/reminders/{id}/
 
 删除操作执行状态机取消，不会物理删除提醒。前端入口为 `/reminders`。
 
+日程与任务端点：
+
+```text
+GET|POST          /api/v1/events/
+GET|PATCH|DELETE  /api/v1/events/{id}/
+GET|POST          /api/v1/tasks/
+GET|PATCH         /api/v1/tasks/{id}/
+POST              /api/v1/tasks/{id}/complete/
+GET               /api/v1/today/
+```
+
+事件 PATCH/DELETE 需要 `expected_version` 查询参数；DELETE 执行取消而非物理删除。
+
 ## 尚未实现
 
-- CalendarEvent、Task 等事务领域模型；
-- 对应事务 Application Service 与业务 REST API；
 - Email、Telegram、Browser 等真实通知渠道；
 - LangGraph 基础设施和 Time Steward Agent；
 - ActionProposal、HITL 与 Agent SSE；
 - Briefing Workflow、天气、新闻和外部日历；
-- Today、Calendar、Tasks 等正式业务页面；
 - 生产 TLS、完整监控、备份和发布流水线。
 
 ## 规范关系与注意事项
@@ -217,4 +234,4 @@ development settings 允许本地调试，production settings 强制提供安全
 
 ## 下一步
 
-下一步进入 **Phase 3：CalendarEvent、Task 与 Today 页面**，应先拆分首个独立任务。
+下一阶段为 **Phase 4：LangGraph 基础设施**；开始前应先在路线图中拆分并确认对应的独立 Txxx 子任务。

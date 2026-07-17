@@ -2,7 +2,7 @@
 
 每个阶段必须可独立验收；未列入阶段目标的功能不应顺带实现。
 
-当前进度：Phase 0、Phase 1 与 Phase 2 已完成；下一步进入 Phase 3 任务拆分。
+当前进度：Phase 0、Phase 1、Phase 2、Phase 3 已完成；下一阶段为 Phase 4。
 
 ## Phase 0：工程骨架
 
@@ -36,6 +36,7 @@
 
 ## Phase 3：CalendarEvent、Task 与 Today 页面
 
+- 状态：已完成。
 - 目标：提供结构化事务管理和每日视图。
 - 后端：CalendarEvent、Task、Services、冲突检查、REST API、Today 汇总。
 - 前端：Today、Calendar 和 Tasks 的最小 CRUD 界面。
@@ -134,3 +135,10 @@
 | T020 | 实现 ReminderService 与幂等创建（已完成） | Phase 2 |
 | T021 | 实现 Reminder Dispatcher 与 Console Provider（已完成） | Phase 2 |
 | T022 | 实现提醒 REST API 与前端列表（已完成） | Phase 2 |
+| T023 | 实现 CalendarEvent 模型、迁移与模型测试（已完成） | Phase 3 |
+| T024 | 实现 Task 模型、状态机与模型测试（已完成） | Phase 3 |
+| T025 | 实现 EventService 与 TaskService（已完成） | Phase 3 |
+| T026 | 实现日程冲突检测与空闲时间搜索（已完成） | Phase 3 |
+| T027 | 实现 CalendarEvent 与 Task REST API（已完成） | Phase 3 |
+| T028 | 实现 Calendar 与 Tasks 前端页面（已完成） | Phase 3 |
+| T029 | 实现 Today 汇总 API 与前端页面（已完成） | Phase 3 |

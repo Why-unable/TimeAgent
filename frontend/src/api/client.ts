@@ -46,8 +46,20 @@ export async function apiRequest<T>(path: string, init: RequestInit = {}): Promi
     });
 
     if (!response.ok) {
+      let message = `Request failed with status ${response.status}`;
+      try {
+        const body = (await response.clone().json()) as Record<string, unknown>;
+        if (typeof body.detail === "string") {
+          message = body.detail;
+        } else {
+          const firstMessage = Object.values(body).flat().find((value) => typeof value === "string");
+          if (typeof firstMessage === "string") message = firstMessage;
+        }
+      } catch {
+        // The status-based fallback remains useful for non-JSON responses.
+      }
       throw new ApiError(
-        `Request failed with status ${response.status}`,
+        message,
         response.status,
         response.headers.get("X-Request-ID") ?? requestId,
       );

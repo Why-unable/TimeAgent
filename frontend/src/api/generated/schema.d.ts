@@ -4,6 +4,38 @@
  */
 
 export interface paths {
+    "/api/v1/events/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["api_v1_events_list"];
+        put?: never;
+        post: operations["api_v1_events_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/events/{event_id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["api_v1_events_retrieve"];
+        put?: never;
+        post?: never;
+        delete: operations["api_v1_events_destroy"];
+        options?: never;
+        head?: never;
+        patch: operations["api_v1_events_partial_update"];
+        trace?: never;
+    };
     "/api/v1/preferences/me/": {
         parameters: {
             query?: never;
@@ -52,6 +84,70 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/tasks/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["api_v1_tasks_list"];
+        put?: never;
+        post: operations["api_v1_tasks_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tasks/{task_id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["api_v1_tasks_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch: operations["api_v1_tasks_partial_update"];
+        trace?: never;
+    };
+    "/api/v1/tasks/{task_id}/complete/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["api_v1_tasks_complete_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/today/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["api_v1_today_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/health/live": {
         parameters: {
             query?: never;
@@ -88,6 +184,37 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        CalendarEvent: {
+            /** Format: uuid */
+            readonly id: string;
+            title: string;
+            description?: string;
+            /** Format: date-time */
+            start_at: string;
+            /** Format: date-time */
+            end_at: string;
+            timezone: string;
+            location?: string;
+            status?: components["schemas"]["CalendarEventStatusEnum"];
+            visibility?: components["schemas"]["VisibilityEnum"];
+            recurrence_rule?: string;
+            source?: string;
+            external_id?: string;
+            created_by?: number | null;
+            /** Format: int64 */
+            version?: number;
+            /** Format: date-time */
+            readonly created_at: string;
+            /** Format: date-time */
+            readonly updated_at: string;
+        };
+        /**
+         * @description * `tentative` - Tentative
+         *     * `confirmed` - Confirmed
+         *     * `cancelled` - Cancelled
+         * @enum {string}
+         */
+        CalendarEventStatusEnum: "tentative" | "confirmed" | "cancelled";
         /**
          * @description * `console` - Console
          *     * `email` - Email
@@ -96,6 +223,21 @@ export interface components {
          * @enum {string}
          */
         ChannelEnum: "console" | "email" | "telegram" | "browser";
+        CreateCalendarEvent: {
+            title: string;
+            description?: string;
+            /** Format: date-time */
+            start_at: string;
+            /** Format: date-time */
+            end_at: string;
+            timezone: string;
+            location?: string;
+            status?: components["schemas"]["CalendarEventStatusEnum"];
+            visibility?: components["schemas"]["VisibilityEnum"];
+            recurrence_rule?: string;
+            source?: string;
+            external_id?: string;
+        };
         CreateReminder: {
             target_type?: components["schemas"]["TargetTypeEnum"];
             /** Format: uuid */
@@ -107,6 +249,23 @@ export interface components {
             channel?: components["schemas"]["ChannelEnum"];
             deduplication_key: string;
         };
+        CreateTask: {
+            project?: string;
+            /** Format: uuid */
+            parent_task?: string | null;
+            title: string;
+            description?: string;
+            priority?: components["schemas"]["PriorityEnum"];
+            /** Format: date-time */
+            due_at?: string | null;
+            estimated_minutes?: number | null;
+            /** Format: date-time */
+            planned_start_at?: string | null;
+            /** Format: date-time */
+            planned_end_at?: string | null;
+            source?: string;
+            tags?: string[];
+        };
         DependencyChecks: {
             database: components["schemas"]["DependencyStatusEnum"];
             redis: components["schemas"]["DependencyStatusEnum"];
@@ -117,6 +276,15 @@ export interface components {
          * @enum {string}
          */
         DependencyStatusEnum: "ok" | "error";
+        ErrorResponse: {
+            detail: string;
+        };
+        /**
+         * @description * `event` - event
+         *     * `task` - task
+         * @enum {string}
+         */
+        KindEnum: "event" | "task";
         LiveResponse: {
             status: components["schemas"]["LiveResponseStatusEnum"];
         };
@@ -125,6 +293,38 @@ export interface components {
          * @enum {string}
          */
         LiveResponseStatusEnum: "alive";
+        PatchedUpdateCalendarEvent: {
+            title?: string;
+            description?: string;
+            /** Format: date-time */
+            start_at?: string;
+            /** Format: date-time */
+            end_at?: string;
+            timezone?: string;
+            location?: string;
+            status?: components["schemas"]["CalendarEventStatusEnum"];
+            visibility?: components["schemas"]["VisibilityEnum"];
+            recurrence_rule?: string;
+            source?: string;
+            external_id?: string;
+        };
+        PatchedUpdateTask: {
+            project?: string;
+            /** Format: uuid */
+            parent_task?: string | null;
+            title?: string;
+            description?: string;
+            priority?: components["schemas"]["PriorityEnum"];
+            /** Format: date-time */
+            due_at?: string | null;
+            estimated_minutes?: number | null;
+            /** Format: date-time */
+            planned_start_at?: string | null;
+            /** Format: date-time */
+            planned_end_at?: string | null;
+            source?: string;
+            tags?: string[];
+        };
         PatchedUserPreference: {
             timezone?: string;
             locale?: string;
@@ -148,6 +348,14 @@ export interface components {
             /** Format: date-time */
             readonly updated_at?: string;
         };
+        /**
+         * @description * `low` - Low
+         *     * `medium` - Medium
+         *     * `high` - High
+         *     * `urgent` - Urgent
+         * @enum {string}
+         */
+        PriorityEnum: "low" | "medium" | "high" | "urgent";
         ReadyResponse: {
             status: components["schemas"]["ReadyResponseStatusEnum"];
             checks: components["schemas"]["DependencyChecks"];
@@ -193,6 +401,24 @@ export interface components {
          * @enum {string}
          */
         ReminderStatusEnum: "pending" | "queued" | "sending" | "sent" | "failed" | "cancelled";
+        ScheduleConflict: {
+            first: components["schemas"]["ScheduleItem"];
+            second: components["schemas"]["ScheduleItem"];
+            /** Format: date-time */
+            overlap_start_at: string;
+            /** Format: date-time */
+            overlap_end_at: string;
+        };
+        ScheduleItem: {
+            kind: components["schemas"]["KindEnum"];
+            /** Format: uuid */
+            id: string;
+            title: string;
+            /** Format: date-time */
+            start_at: string;
+            /** Format: date-time */
+            end_at: string;
+        };
         /**
          * @description * `custom` - Custom
          *     * `calendar_event` - Calendar event
@@ -200,6 +426,62 @@ export interface components {
          * @enum {string}
          */
         TargetTypeEnum: "custom" | "calendar_event" | "task";
+        Task: {
+            /** Format: uuid */
+            readonly id: string;
+            project?: string;
+            /** Format: uuid */
+            parent_task?: string | null;
+            title: string;
+            description?: string;
+            status?: components["schemas"]["TaskStatusEnum"];
+            priority?: components["schemas"]["PriorityEnum"];
+            /** Format: date-time */
+            due_at?: string | null;
+            /** Format: int64 */
+            estimated_minutes?: number | null;
+            /** Format: date-time */
+            planned_start_at?: string | null;
+            /** Format: date-time */
+            planned_end_at?: string | null;
+            /** Format: date-time */
+            actual_started_at?: string | null;
+            /** Format: date-time */
+            completed_at?: string | null;
+            source?: string;
+            tags?: unknown;
+            /** Format: date-time */
+            readonly created_at: string;
+            /** Format: date-time */
+            readonly updated_at: string;
+        };
+        /**
+         * @description * `pending` - Pending
+         *     * `in_progress` - In progress
+         *     * `completed` - Completed
+         *     * `cancelled` - Cancelled
+         * @enum {string}
+         */
+        TaskStatusEnum: "pending" | "in_progress" | "completed" | "cancelled";
+        TodaySummary: {
+            /** Format: date */
+            date: string;
+            timezone: string;
+            /** Format: date-time */
+            generated_at: string;
+            /** Format: date-time */
+            day_start_at: string;
+            /** Format: date-time */
+            day_end_at: string;
+            events: components["schemas"]["CalendarEvent"][];
+            planned_tasks: components["schemas"]["Task"][];
+            due_tasks: components["schemas"]["Task"][];
+            overdue_tasks: components["schemas"]["Task"][];
+            pending_reminders: components["schemas"]["Reminder"][];
+            conflicts: components["schemas"]["ScheduleConflict"][];
+            next_event: components["schemas"]["CalendarEvent"] | null;
+            minutes_until_next_event: number | null;
+        };
         UserPreference: {
             timezone?: string;
             locale?: string;
@@ -223,6 +505,12 @@ export interface components {
             /** Format: date-time */
             readonly updated_at: string;
         };
+        /**
+         * @description * `private` - Private
+         *     * `public` - Public
+         * @enum {string}
+         */
+        VisibilityEnum: "private" | "public";
     };
     responses: never;
     parameters: never;
@@ -232,6 +520,142 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    api_v1_events_list: {
+        parameters: {
+            query?: {
+                ends_after?: string;
+                starts_before?: string;
+                status?: ("tentative" | "confirmed" | "cancelled")[];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CalendarEvent"][];
+                };
+            };
+        };
+    };
+    api_v1_events_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateCalendarEvent"];
+                "application/x-www-form-urlencoded": components["schemas"]["CreateCalendarEvent"];
+                "multipart/form-data": components["schemas"]["CreateCalendarEvent"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CalendarEvent"];
+                };
+            };
+        };
+    };
+    api_v1_events_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                event_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CalendarEvent"];
+                };
+            };
+        };
+    };
+    api_v1_events_destroy: {
+        parameters: {
+            query: {
+                expected_version: number;
+            };
+            header?: never;
+            path: {
+                event_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    api_v1_events_partial_update: {
+        parameters: {
+            query: {
+                expected_version: number;
+            };
+            header?: never;
+            path: {
+                event_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PatchedUpdateCalendarEvent"];
+                "application/x-www-form-urlencoded": components["schemas"]["PatchedUpdateCalendarEvent"];
+                "multipart/form-data": components["schemas"]["PatchedUpdateCalendarEvent"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CalendarEvent"];
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
     api_v1_preferences_me_retrieve: {
         parameters: {
             query?: never;
@@ -344,6 +768,151 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    api_v1_tasks_list: {
+        parameters: {
+            query?: {
+                due_before?: string;
+                planned_ends_after?: string;
+                planned_starts_before?: string;
+                status?: ("pending" | "in_progress" | "completed" | "cancelled")[];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Task"][];
+                };
+            };
+        };
+    };
+    api_v1_tasks_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateTask"];
+                "application/x-www-form-urlencoded": components["schemas"]["CreateTask"];
+                "multipart/form-data": components["schemas"]["CreateTask"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Task"];
+                };
+            };
+        };
+    };
+    api_v1_tasks_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                task_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Task"];
+                };
+            };
+        };
+    };
+    api_v1_tasks_partial_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                task_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PatchedUpdateTask"];
+                "application/x-www-form-urlencoded": components["schemas"]["PatchedUpdateTask"];
+                "multipart/form-data": components["schemas"]["PatchedUpdateTask"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Task"];
+                };
+            };
+        };
+    };
+    api_v1_tasks_complete_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                task_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Task"];
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    api_v1_today_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TodaySummary"];
+                };
             };
         };
     };

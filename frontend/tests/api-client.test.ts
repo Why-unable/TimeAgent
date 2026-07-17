@@ -26,6 +26,23 @@ describe("apiRequest", () => {
     await expect(apiRequest("/health/ready")).rejects.toBeInstanceOf(ApiError);
   });
 
+  it("preserves a structured API error detail", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        new Response(JSON.stringify({ detail: "Event version conflict" }), {
+          status: 409,
+          headers: { "Content-Type": "application/json" },
+        }),
+      ),
+    );
+
+    await expect(apiRequest("/api/v1/events/example/")).rejects.toMatchObject({
+      message: "Event version conflict",
+      status: 409,
+    });
+  });
+
   it("adds JSON and CSRF headers to write requests", async () => {
     Object.defineProperty(document, "cookie", {
       configurable: true,

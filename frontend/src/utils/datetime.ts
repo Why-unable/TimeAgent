@@ -30,12 +30,48 @@ export function formatInUserTimezone(
   }).format(date);
 }
 
+export function formatTimeInUserTimezone(
+  value: string | Date,
+  timezone: string,
+  locale = "zh-CN",
+): string {
+  const date = typeof value === "string" ? parseApiDateTime(value) : value;
+  return new Intl.DateTimeFormat(locale, {
+    timeZone: timezone,
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  }).format(date);
+}
+
+export function formatDateKey(dateKey: string, locale = "zh-CN"): string {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dateKey);
+  if (!match) throw new Error("Date key must use YYYY-MM-DD");
+  const date = new Date(Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3])));
+  return new Intl.DateTimeFormat(locale, {
+    timeZone: "UTC",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+    weekday: "long",
+  }).format(date);
+}
+
 export function toUtcISOString(localDateTime: string, timezone: string): string {
   return fromZonedTime(localDateTime, timezone).toISOString();
+}
+
+export function toDateTimeLocalValue(value: string | Date, timezone: string): string {
+  const date = typeof value === "string" ? parseApiDateTime(value) : value;
+  return formatInTimeZone(date, timezone, "yyyy-MM-dd'T'HH:mm");
+}
+
+export function getLocalDateKey(value: string | Date, timezone: string): string {
+  const date = typeof value === "string" ? parseApiDateTime(value) : value;
+  return formatInTimeZone(date, timezone, "yyyy-MM-dd");
 }
 
 export function getTimezoneLabel(timezone: string, now = new Date()): string {
   const offset = formatInTimeZone(now, timezone, "XXX");
   return `${timezone} (UTC${offset === "Z" ? "+00:00" : offset})`;
 }
-

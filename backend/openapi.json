@@ -6,6 +6,280 @@
         "description": "Time Agent backend contract"
     },
     "paths": {
+        "/api/v1/events/": {
+            "get": {
+                "operationId": "api_v1_events_list",
+                "parameters": [
+                    {
+                        "in": "query",
+                        "name": "ends_after",
+                        "schema": {
+                            "type": "string",
+                            "format": "date-time"
+                        }
+                    },
+                    {
+                        "in": "query",
+                        "name": "starts_before",
+                        "schema": {
+                            "type": "string",
+                            "format": "date-time"
+                        }
+                    },
+                    {
+                        "in": "query",
+                        "name": "status",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "enum": [
+                                    "tentative",
+                                    "confirmed",
+                                    "cancelled"
+                                ],
+                                "type": "string",
+                                "description": "* `tentative` - Tentative\n* `confirmed` - Confirmed\n* `cancelled` - Cancelled"
+                            }
+                        }
+                    }
+                ],
+                "tags": [
+                    "api"
+                ],
+                "security": [
+                    {
+                        "cookieAuth": []
+                    },
+                    {
+                        "basicAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/CalendarEvent"
+                                    }
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            },
+            "post": {
+                "operationId": "api_v1_events_create",
+                "tags": [
+                    "api"
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/CreateCalendarEvent"
+                            }
+                        },
+                        "application/x-www-form-urlencoded": {
+                            "schema": {
+                                "$ref": "#/components/schemas/CreateCalendarEvent"
+                            }
+                        },
+                        "multipart/form-data": {
+                            "schema": {
+                                "$ref": "#/components/schemas/CreateCalendarEvent"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "security": [
+                    {
+                        "cookieAuth": []
+                    },
+                    {
+                        "basicAuth": []
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/CalendarEvent"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/api/v1/events/{event_id}/": {
+            "get": {
+                "operationId": "api_v1_events_retrieve",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "event_id",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "api"
+                ],
+                "security": [
+                    {
+                        "cookieAuth": []
+                    },
+                    {
+                        "basicAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/CalendarEvent"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            },
+            "patch": {
+                "operationId": "api_v1_events_partial_update",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "event_id",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "required": true
+                    },
+                    {
+                        "in": "query",
+                        "name": "expected_version",
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1
+                        },
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "api"
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/PatchedUpdateCalendarEvent"
+                            }
+                        },
+                        "application/x-www-form-urlencoded": {
+                            "schema": {
+                                "$ref": "#/components/schemas/PatchedUpdateCalendarEvent"
+                            }
+                        },
+                        "multipart/form-data": {
+                            "schema": {
+                                "$ref": "#/components/schemas/PatchedUpdateCalendarEvent"
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "cookieAuth": []
+                    },
+                    {
+                        "basicAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/CalendarEvent"
+                                }
+                            }
+                        },
+                        "description": ""
+                    },
+                    "409": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            },
+            "delete": {
+                "operationId": "api_v1_events_destroy",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "event_id",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "required": true
+                    },
+                    {
+                        "in": "query",
+                        "name": "expected_version",
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1
+                        },
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "api"
+                ],
+                "security": [
+                    {
+                        "cookieAuth": []
+                    },
+                    {
+                        "basicAuth": []
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No response body"
+                    },
+                    "409": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
         "/api/v1/preferences/me/": {
             "get": {
                 "operationId": "api_v1_preferences_me_retrieve",
@@ -191,6 +465,298 @@
                 }
             }
         },
+        "/api/v1/tasks/": {
+            "get": {
+                "operationId": "api_v1_tasks_list",
+                "parameters": [
+                    {
+                        "in": "query",
+                        "name": "due_before",
+                        "schema": {
+                            "type": "string",
+                            "format": "date-time"
+                        }
+                    },
+                    {
+                        "in": "query",
+                        "name": "planned_ends_after",
+                        "schema": {
+                            "type": "string",
+                            "format": "date-time"
+                        }
+                    },
+                    {
+                        "in": "query",
+                        "name": "planned_starts_before",
+                        "schema": {
+                            "type": "string",
+                            "format": "date-time"
+                        }
+                    },
+                    {
+                        "in": "query",
+                        "name": "status",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "enum": [
+                                    "pending",
+                                    "in_progress",
+                                    "completed",
+                                    "cancelled"
+                                ],
+                                "type": "string",
+                                "description": "* `pending` - Pending\n* `in_progress` - In progress\n* `completed` - Completed\n* `cancelled` - Cancelled"
+                            }
+                        }
+                    }
+                ],
+                "tags": [
+                    "api"
+                ],
+                "security": [
+                    {
+                        "cookieAuth": []
+                    },
+                    {
+                        "basicAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/Task"
+                                    }
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            },
+            "post": {
+                "operationId": "api_v1_tasks_create",
+                "tags": [
+                    "api"
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/CreateTask"
+                            }
+                        },
+                        "application/x-www-form-urlencoded": {
+                            "schema": {
+                                "$ref": "#/components/schemas/CreateTask"
+                            }
+                        },
+                        "multipart/form-data": {
+                            "schema": {
+                                "$ref": "#/components/schemas/CreateTask"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "security": [
+                    {
+                        "cookieAuth": []
+                    },
+                    {
+                        "basicAuth": []
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Task"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/api/v1/tasks/{task_id}/": {
+            "get": {
+                "operationId": "api_v1_tasks_retrieve",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "task_id",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "api"
+                ],
+                "security": [
+                    {
+                        "cookieAuth": []
+                    },
+                    {
+                        "basicAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Task"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            },
+            "patch": {
+                "operationId": "api_v1_tasks_partial_update",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "task_id",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "api"
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/PatchedUpdateTask"
+                            }
+                        },
+                        "application/x-www-form-urlencoded": {
+                            "schema": {
+                                "$ref": "#/components/schemas/PatchedUpdateTask"
+                            }
+                        },
+                        "multipart/form-data": {
+                            "schema": {
+                                "$ref": "#/components/schemas/PatchedUpdateTask"
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "cookieAuth": []
+                    },
+                    {
+                        "basicAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Task"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/api/v1/tasks/{task_id}/complete/": {
+            "post": {
+                "operationId": "api_v1_tasks_complete_create",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "task_id",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "api"
+                ],
+                "security": [
+                    {
+                        "cookieAuth": []
+                    },
+                    {
+                        "basicAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Task"
+                                }
+                            }
+                        },
+                        "description": ""
+                    },
+                    "409": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/api/v1/today/": {
+            "get": {
+                "operationId": "api_v1_today_retrieve",
+                "tags": [
+                    "api"
+                ],
+                "security": [
+                    {
+                        "cookieAuth": []
+                    },
+                    {
+                        "basicAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/TodaySummary"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
         "/health/live": {
             "get": {
                 "operationId": "health_live_retrieve",
@@ -262,6 +828,94 @@
     },
     "components": {
         "schemas": {
+            "CalendarEvent": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "format": "uuid",
+                        "readOnly": true
+                    },
+                    "title": {
+                        "type": "string",
+                        "maxLength": 255
+                    },
+                    "description": {
+                        "type": "string"
+                    },
+                    "start_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "end_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "timezone": {
+                        "type": "string",
+                        "maxLength": 64
+                    },
+                    "location": {
+                        "type": "string",
+                        "maxLength": 255
+                    },
+                    "status": {
+                        "$ref": "#/components/schemas/CalendarEventStatusEnum"
+                    },
+                    "visibility": {
+                        "$ref": "#/components/schemas/VisibilityEnum"
+                    },
+                    "recurrence_rule": {
+                        "type": "string"
+                    },
+                    "source": {
+                        "type": "string",
+                        "maxLength": 64
+                    },
+                    "external_id": {
+                        "type": "string",
+                        "maxLength": 255
+                    },
+                    "created_by": {
+                        "type": "integer",
+                        "nullable": true
+                    },
+                    "version": {
+                        "type": "integer",
+                        "maximum": 9223372036854775807,
+                        "minimum": 1,
+                        "format": "int64"
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "readOnly": true
+                    },
+                    "updated_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "readOnly": true
+                    }
+                },
+                "required": [
+                    "created_at",
+                    "end_at",
+                    "id",
+                    "start_at",
+                    "timezone",
+                    "title",
+                    "updated_at"
+                ]
+            },
+            "CalendarEventStatusEnum": {
+                "enum": [
+                    "tentative",
+                    "confirmed",
+                    "cancelled"
+                ],
+                "type": "string",
+                "description": "* `tentative` - Tentative\n* `confirmed` - Confirmed\n* `cancelled` - Cancelled"
+            },
             "ChannelEnum": {
                 "enum": [
                     "console",
@@ -271,6 +925,57 @@
                 ],
                 "type": "string",
                 "description": "* `console` - Console\n* `email` - Email\n* `telegram` - Telegram\n* `browser` - Browser"
+            },
+            "CreateCalendarEvent": {
+                "type": "object",
+                "properties": {
+                    "title": {
+                        "type": "string",
+                        "maxLength": 255
+                    },
+                    "description": {
+                        "type": "string"
+                    },
+                    "start_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "end_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "timezone": {
+                        "type": "string",
+                        "maxLength": 64
+                    },
+                    "location": {
+                        "type": "string",
+                        "maxLength": 255
+                    },
+                    "status": {
+                        "$ref": "#/components/schemas/CalendarEventStatusEnum"
+                    },
+                    "visibility": {
+                        "$ref": "#/components/schemas/VisibilityEnum"
+                    },
+                    "recurrence_rule": {
+                        "type": "string"
+                    },
+                    "source": {
+                        "type": "string",
+                        "maxLength": 64
+                    },
+                    "external_id": {
+                        "type": "string",
+                        "maxLength": 255
+                    }
+                },
+                "required": [
+                    "end_at",
+                    "start_at",
+                    "timezone",
+                    "title"
+                ]
             },
             "CreateReminder": {
                 "type": "object",
@@ -310,6 +1015,63 @@
                     "trigger_at"
                 ]
             },
+            "CreateTask": {
+                "type": "object",
+                "properties": {
+                    "project": {
+                        "type": "string",
+                        "maxLength": 255
+                    },
+                    "parent_task": {
+                        "type": "string",
+                        "format": "uuid",
+                        "nullable": true
+                    },
+                    "title": {
+                        "type": "string",
+                        "maxLength": 255
+                    },
+                    "description": {
+                        "type": "string"
+                    },
+                    "priority": {
+                        "$ref": "#/components/schemas/PriorityEnum"
+                    },
+                    "due_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "nullable": true
+                    },
+                    "estimated_minutes": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "nullable": true
+                    },
+                    "planned_start_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "nullable": true
+                    },
+                    "planned_end_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "nullable": true
+                    },
+                    "source": {
+                        "type": "string",
+                        "maxLength": 64
+                    },
+                    "tags": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    }
+                },
+                "required": [
+                    "title"
+                ]
+            },
             "DependencyChecks": {
                 "type": "object",
                 "properties": {
@@ -333,6 +1095,25 @@
                 "type": "string",
                 "description": "* `ok` - OK\n* `error` - Error"
             },
+            "ErrorResponse": {
+                "type": "object",
+                "properties": {
+                    "detail": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "detail"
+                ]
+            },
+            "KindEnum": {
+                "enum": [
+                    "event",
+                    "task"
+                ],
+                "type": "string",
+                "description": "* `event` - event\n* `task` - task"
+            },
             "LiveResponse": {
                 "type": "object",
                 "properties": {
@@ -350,6 +1131,105 @@
                 ],
                 "type": "string",
                 "description": "* `alive` - alive"
+            },
+            "PatchedUpdateCalendarEvent": {
+                "type": "object",
+                "properties": {
+                    "title": {
+                        "type": "string",
+                        "maxLength": 255
+                    },
+                    "description": {
+                        "type": "string"
+                    },
+                    "start_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "end_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "timezone": {
+                        "type": "string",
+                        "maxLength": 64
+                    },
+                    "location": {
+                        "type": "string",
+                        "maxLength": 255
+                    },
+                    "status": {
+                        "$ref": "#/components/schemas/CalendarEventStatusEnum"
+                    },
+                    "visibility": {
+                        "$ref": "#/components/schemas/VisibilityEnum"
+                    },
+                    "recurrence_rule": {
+                        "type": "string"
+                    },
+                    "source": {
+                        "type": "string",
+                        "maxLength": 64
+                    },
+                    "external_id": {
+                        "type": "string",
+                        "maxLength": 255
+                    }
+                }
+            },
+            "PatchedUpdateTask": {
+                "type": "object",
+                "properties": {
+                    "project": {
+                        "type": "string",
+                        "maxLength": 255
+                    },
+                    "parent_task": {
+                        "type": "string",
+                        "format": "uuid",
+                        "nullable": true
+                    },
+                    "title": {
+                        "type": "string",
+                        "maxLength": 255
+                    },
+                    "description": {
+                        "type": "string"
+                    },
+                    "priority": {
+                        "$ref": "#/components/schemas/PriorityEnum"
+                    },
+                    "due_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "nullable": true
+                    },
+                    "estimated_minutes": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "nullable": true
+                    },
+                    "planned_start_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "nullable": true
+                    },
+                    "planned_end_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "nullable": true
+                    },
+                    "source": {
+                        "type": "string",
+                        "maxLength": 64
+                    },
+                    "tags": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    }
+                }
             },
             "PatchedUserPreference": {
                 "type": "object",
@@ -402,6 +1282,16 @@
                         "readOnly": true
                     }
                 }
+            },
+            "PriorityEnum": {
+                "enum": [
+                    "low",
+                    "medium",
+                    "high",
+                    "urgent"
+                ],
+                "type": "string",
+                "description": "* `low` - Low\n* `medium` - Medium\n* `high` - High\n* `urgent` - Urgent"
             },
             "ReadyResponse": {
                 "type": "object",
@@ -516,6 +1406,61 @@
                 "type": "string",
                 "description": "* `pending` - Pending\n* `queued` - Queued\n* `sending` - Sending\n* `sent` - Sent\n* `failed` - Failed\n* `cancelled` - Cancelled"
             },
+            "ScheduleConflict": {
+                "type": "object",
+                "properties": {
+                    "first": {
+                        "$ref": "#/components/schemas/ScheduleItem"
+                    },
+                    "second": {
+                        "$ref": "#/components/schemas/ScheduleItem"
+                    },
+                    "overlap_start_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "overlap_end_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    }
+                },
+                "required": [
+                    "first",
+                    "overlap_end_at",
+                    "overlap_start_at",
+                    "second"
+                ]
+            },
+            "ScheduleItem": {
+                "type": "object",
+                "properties": {
+                    "kind": {
+                        "$ref": "#/components/schemas/KindEnum"
+                    },
+                    "id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "title": {
+                        "type": "string"
+                    },
+                    "start_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "end_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    }
+                },
+                "required": [
+                    "end_at",
+                    "id",
+                    "kind",
+                    "start_at",
+                    "title"
+                ]
+            },
             "TargetTypeEnum": {
                 "enum": [
                     "custom",
@@ -524,6 +1469,189 @@
                 ],
                 "type": "string",
                 "description": "* `custom` - Custom\n* `calendar_event` - Calendar event\n* `task` - Task"
+            },
+            "Task": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "format": "uuid",
+                        "readOnly": true
+                    },
+                    "project": {
+                        "type": "string",
+                        "maxLength": 255
+                    },
+                    "parent_task": {
+                        "type": "string",
+                        "format": "uuid",
+                        "nullable": true
+                    },
+                    "title": {
+                        "type": "string",
+                        "maxLength": 255
+                    },
+                    "description": {
+                        "type": "string"
+                    },
+                    "status": {
+                        "$ref": "#/components/schemas/TaskStatusEnum"
+                    },
+                    "priority": {
+                        "$ref": "#/components/schemas/PriorityEnum"
+                    },
+                    "due_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "nullable": true
+                    },
+                    "estimated_minutes": {
+                        "type": "integer",
+                        "maximum": 9223372036854775807,
+                        "minimum": 1,
+                        "format": "int64",
+                        "nullable": true
+                    },
+                    "planned_start_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "nullable": true
+                    },
+                    "planned_end_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "nullable": true
+                    },
+                    "actual_started_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "nullable": true
+                    },
+                    "completed_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "nullable": true
+                    },
+                    "source": {
+                        "type": "string",
+                        "maxLength": 64
+                    },
+                    "tags": {},
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "readOnly": true
+                    },
+                    "updated_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "readOnly": true
+                    }
+                },
+                "required": [
+                    "created_at",
+                    "id",
+                    "title",
+                    "updated_at"
+                ]
+            },
+            "TaskStatusEnum": {
+                "enum": [
+                    "pending",
+                    "in_progress",
+                    "completed",
+                    "cancelled"
+                ],
+                "type": "string",
+                "description": "* `pending` - Pending\n* `in_progress` - In progress\n* `completed` - Completed\n* `cancelled` - Cancelled"
+            },
+            "TodaySummary": {
+                "type": "object",
+                "properties": {
+                    "date": {
+                        "type": "string",
+                        "format": "date"
+                    },
+                    "timezone": {
+                        "type": "string"
+                    },
+                    "generated_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "day_start_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "day_end_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "events": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/CalendarEvent"
+                        }
+                    },
+                    "planned_tasks": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/Task"
+                        }
+                    },
+                    "due_tasks": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/Task"
+                        }
+                    },
+                    "overdue_tasks": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/Task"
+                        }
+                    },
+                    "pending_reminders": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/Reminder"
+                        }
+                    },
+                    "conflicts": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/ScheduleConflict"
+                        }
+                    },
+                    "next_event": {
+                        "allOf": [
+                            {
+                                "$ref": "#/components/schemas/CalendarEvent"
+                            }
+                        ],
+                        "nullable": true
+                    },
+                    "minutes_until_next_event": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "nullable": true
+                    }
+                },
+                "required": [
+                    "conflicts",
+                    "date",
+                    "day_end_at",
+                    "day_start_at",
+                    "due_tasks",
+                    "events",
+                    "generated_at",
+                    "minutes_until_next_event",
+                    "next_event",
+                    "overdue_tasks",
+                    "pending_reminders",
+                    "planned_tasks",
+                    "timezone"
+                ]
             },
             "UserPreference": {
                 "type": "object",
@@ -579,6 +1707,14 @@
                 "required": [
                     "updated_at"
                 ]
+            },
+            "VisibilityEnum": {
+                "enum": [
+                    "private",
+                    "public"
+                ],
+                "type": "string",
+                "description": "* `private` - Private\n* `public` - Public"
             }
         },
         "securitySchemes": {

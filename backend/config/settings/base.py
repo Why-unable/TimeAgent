@@ -23,6 +23,10 @@ INSTALLED_APPS = [
     "apps.health",
     "apps.preferences",
     "apps.reminders",
+    "apps.events",
+    "apps.tasks",
+    "apps.planning",
+    "apps.today",
 ]
 
 MIDDLEWARE = [
@@ -97,6 +101,9 @@ SPECTACULAR_SETTINGS = {
     "SERVE_INCLUDE_SCHEMA": False,
     "ENUM_NAME_OVERRIDES": {
         "DependencyStatusEnum": "apps.health.serializers.DependencyStatus",
+        "CalendarEventStatusEnum": "apps.events.models.CalendarEventStatus",
+        "TaskStatusEnum": "apps.tasks.models.TaskStatus",
+        "ReminderStatusEnum": "apps.reminders.models.ReminderStatus",
     },
 }
 

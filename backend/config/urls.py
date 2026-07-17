@@ -11,4 +11,7 @@ urlpatterns = [
     path("api/schema/", SpectacularAPIView.as_view(), name="api-schema"),
     path("api/v1/preferences/", include("apps.preferences.urls")),
     path("api/v1/reminders/", include("apps.reminders.urls")),
+    path("api/v1/events/", include("apps.events.urls")),
+    path("api/v1/tasks/", include("apps.tasks.urls")),
+    path("api/v1/today/", include("apps.today.urls")),
 ]

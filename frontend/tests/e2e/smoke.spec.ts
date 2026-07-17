@@ -51,3 +51,33 @@ test("reads and updates time preferences", async ({ page }) => {
   await expect(page.getByRole("status")).toHaveText("时间偏好已保存。");
   expect(timezone).toBe("Europe/London");
 });
+
+test("renders the Today workspace from the summary API", async ({ page }) => {
+  await page.route("**/api/v1/preferences/me/", async (route) => {
+    await route.fulfill({ status: 403, json: { detail: "Not authenticated." } });
+  });
+  await page.route("**/api/v1/today/", async (route) => {
+    await route.fulfill({
+      json: {
+        date: "2026-07-20",
+        timezone: "Asia/Shanghai",
+        generated_at: "2026-07-20T04:00:00Z",
+        day_start_at: "2026-07-19T16:00:00Z",
+        day_end_at: "2026-07-20T16:00:00Z",
+        events: [],
+        planned_tasks: [],
+        due_tasks: [],
+        overdue_tasks: [],
+        pending_reminders: [],
+        conflicts: [],
+        next_event: null,
+        minutes_until_next_event: null,
+      },
+    });
+  });
+
+  await page.goto("/today");
+  await expect(page.getByRole("heading", { name: "今天" })).toBeVisible();
+  await expect(page.getByText("今天没有后续日程")).toBeVisible();
+  await expect(page.getByText("今日安排没有检测到冲突。")).toBeVisible();
+});

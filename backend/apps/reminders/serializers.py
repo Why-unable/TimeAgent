@@ -1,4 +1,3 @@
-import re
 from typing import Any
 
 from django.contrib.auth.models import User
@@ -11,15 +10,7 @@ from apps.reminders.services import (
     ReminderIdempotencyConflictError,
     ReminderService,
 )
-
-EXPLICIT_OFFSET_PATTERN = re.compile(r"(?:Z|[+-]\d{2}:\d{2})$")
-
-
-class ExplicitTimezoneDateTimeField(serializers.DateTimeField):
-    def to_internal_value(self, value: Any) -> Any:
-        if not isinstance(value, str) or not EXPLICIT_OFFSET_PATTERN.search(value):
-            raise serializers.ValidationError("Datetime must include an explicit UTC offset")
-        return super().to_internal_value(value)
+from common.serializers import ExplicitTimezoneDateTimeField
 
 
 class ReminderSerializer(serializers.ModelSerializer[Reminder]):

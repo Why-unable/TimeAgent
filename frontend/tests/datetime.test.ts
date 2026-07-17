@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  formatDateKey,
   formatInUserTimezone,
+  formatTimeInUserTimezone,
   getTimezoneLabel,
   parseApiDateTime,
   toUtcISOString,
@@ -25,6 +27,10 @@ describe("datetime utilities", () => {
         "zh-CN",
       ),
     ).toContain("15:00");
+    expect(
+      formatTimeInUserTimezone("2026-07-17T07:00:00Z", "Asia/Shanghai"),
+    ).toBe("15:00");
+    expect(formatDateKey("2026-07-20")).toContain("2026年7月20日");
   });
 
   it("converts a local time and IANA timezone to UTC", () => {
