@@ -1,8 +1,8 @@
 # Time Agent
 
-Time Agent 是以时间为核心的个人智能事务管理系统。本仓库当前已完成 **Phase 1：UserPreference 与时间基础**。
+Time Agent 是以时间为核心的个人智能事务管理系统。本仓库当前已完成 **Phase 2**，具备从提醒创建到 Console 确定性投递的完整闭环。
 
-> 当前已完成工程骨架、用户时间偏好和统一时区工具，尚未实现提醒、日程、任务、Agent 和简报业务。
+> 当前已完成工程骨架、用户时间偏好、统一时区工具和提醒闭环，尚未实现日程、任务、Agent 和简报业务。
 
 ## 当前能力
 
@@ -16,7 +16,11 @@ Time Agent 是以时间为核心的个人智能事务管理系统。本仓库当
 - pytest、Ruff、mypy、Vitest、RTL 和 Playwright 基础配置；
 - UserPreference 模型、迁移、Application Service 和认证 API；
 - IANA 时区校验、UTC 转换以及 DST 歧义/不存在时间检测；
-- 时间偏好页面、统一前端时间工具和用户时区展示。
+- 时间偏好页面、统一前端时间工具和用户时区展示；
+- Reminder 模型、幂等约束、调度索引和确定性状态机；
+- ReminderService、创建命令以及并发安全的幂等创建；
+- 基于 Celery Beat 的到期扫描、幂等发送、失败重试和 Console Provider；
+- 认证隔离的提醒 REST API，以及提醒列表、创建、取消和状态展示页面。
 
 ## 技术栈
 
@@ -184,15 +188,25 @@ PATCH /api/v1/preferences/me/
 
 端点使用 Django Session 或 DRF 支持的认证方式。写操作由 `UserPreferenceService` 执行，API Serializer 不直接保存 ORM 对象。前端入口为 `/settings/time`。
 
+提醒端点：
+
+```text
+GET    /api/v1/reminders/
+POST   /api/v1/reminders/
+DELETE /api/v1/reminders/{id}/
+```
+
+删除操作执行状态机取消，不会物理删除提醒。前端入口为 `/reminders`。
+
 ## 尚未实现
 
-- CalendarEvent、Task、Reminder 等事务领域模型；
+- CalendarEvent、Task 等事务领域模型；
 - 对应事务 Application Service 与业务 REST API；
-- Reminder Dispatcher 与真实通知渠道；
+- Email、Telegram、Browser 等真实通知渠道；
 - LangGraph 基础设施和 Time Steward Agent；
 - ActionProposal、HITL 与 Agent SSE；
 - Briefing Workflow、天气、新闻和外部日历；
-- Today、Calendar、Tasks、Reminders 等正式业务页面；
+- Today、Calendar、Tasks 等正式业务页面；
 - 生产 TLS、完整监控、备份和发布流水线。
 
 ## 规范关系与注意事项
@@ -203,4 +217,4 @@ development settings 允许本地调试，production settings 强制提供安全
 
 ## 下一步
 
-只建议进入一个任务：**实现 Reminder 模型与状态机。**
+下一步进入 **Phase 3：CalendarEvent、Task 与 Today 页面**，应先拆分首个独立任务。

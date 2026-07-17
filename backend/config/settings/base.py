@@ -22,6 +22,7 @@ INSTALLED_APPS = [
     "drf_spectacular",
     "apps.health",
     "apps.preferences",
+    "apps.reminders",
 ]
 
 MIDDLEWARE = [
@@ -105,6 +106,12 @@ CELERY_RESULT_BACKEND = os.getenv("CELERY_RESULT_BACKEND", REDIS_URL)
 CELERY_TASK_TRACK_STARTED = True
 CELERY_TASK_TIME_LIMIT = 300
 CELERY_TIMEZONE = "UTC"
+CELERY_BEAT_SCHEDULE = {
+    "dispatch-due-reminders": {
+        "task": "reminders.dispatch_due",
+        "schedule": 30.0,
+    }
+}
 
 LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
 LOGGING = {

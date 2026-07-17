@@ -1,5 +1,6 @@
 import {
   CalendarDays,
+  Bell,
   CheckSquare,
   Clock3,
   MessageSquare,
@@ -17,6 +18,7 @@ const navigation = [
   { to: "/chat", label: "聊天", icon: MessageSquare },
   { to: "/calendar", label: "日历", icon: CalendarDays },
   { to: "/tasks", label: "任务", icon: CheckSquare },
+  { to: "/reminders", label: "提醒", icon: Bell },
   { to: "/settings/time", label: "时间偏好", icon: Settings },
 ];
 

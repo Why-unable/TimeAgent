@@ -10,4 +10,5 @@ urlpatterns = [
     path("health/ready", ready, name="health-ready"),
     path("api/schema/", SpectacularAPIView.as_view(), name="api-schema"),
     path("api/v1/preferences/", include("apps.preferences.urls")),
+    path("api/v1/reminders/", include("apps.reminders.urls")),
 ]

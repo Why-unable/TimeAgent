@@ -7,6 +7,10 @@
 ```text
 GET   /api/v1/preferences/me/
 PATCH /api/v1/preferences/me/
+GET   /api/v1/reminders/
+POST  /api/v1/reminders/
+DELETE /api/v1/reminders/{id}/
 ```
 
-该端点要求认证，更新操作必须经过 `UserPreferenceService`。
+这些端点要求认证，写操作必须经过对应 Application Service。提醒 DELETE 表示取消，
+不会物理删除记录；创建请求的时间必须包含明确 UTC 偏移，并携带用户范围内的幂等键。

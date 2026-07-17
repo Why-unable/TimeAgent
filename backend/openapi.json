@@ -79,6 +79,118 @@
                 }
             }
         },
+        "/api/v1/reminders/": {
+            "get": {
+                "operationId": "api_v1_reminders_list",
+                "tags": [
+                    "api"
+                ],
+                "security": [
+                    {
+                        "cookieAuth": []
+                    },
+                    {
+                        "basicAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/Reminder"
+                                    }
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            },
+            "post": {
+                "operationId": "api_v1_reminders_create",
+                "tags": [
+                    "api"
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/CreateReminder"
+                            }
+                        },
+                        "application/x-www-form-urlencoded": {
+                            "schema": {
+                                "$ref": "#/components/schemas/CreateReminder"
+                            }
+                        },
+                        "multipart/form-data": {
+                            "schema": {
+                                "$ref": "#/components/schemas/CreateReminder"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "security": [
+                    {
+                        "cookieAuth": []
+                    },
+                    {
+                        "basicAuth": []
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Reminder"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/api/v1/reminders/{reminder_id}/": {
+            "delete": {
+                "operationId": "api_v1_reminders_destroy",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "reminder_id",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "api"
+                ],
+                "security": [
+                    {
+                        "cookieAuth": []
+                    },
+                    {
+                        "basicAuth": []
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No response body"
+                    },
+                    "409": {
+                        "description": "Reminder can no longer be cancelled"
+                    }
+                }
+            }
+        },
         "/health/live": {
             "get": {
                 "operationId": "health_live_retrieve",
@@ -150,6 +262,54 @@
     },
     "components": {
         "schemas": {
+            "ChannelEnum": {
+                "enum": [
+                    "console",
+                    "email",
+                    "telegram",
+                    "browser"
+                ],
+                "type": "string",
+                "description": "* `console` - Console\n* `email` - Email\n* `telegram` - Telegram\n* `browser` - Browser"
+            },
+            "CreateReminder": {
+                "type": "object",
+                "properties": {
+                    "target_type": {
+                        "$ref": "#/components/schemas/TargetTypeEnum"
+                    },
+                    "target_id": {
+                        "type": "string",
+                        "format": "uuid",
+                        "nullable": true
+                    },
+                    "title": {
+                        "type": "string",
+                        "maxLength": 255
+                    },
+                    "trigger_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "timezone": {
+                        "type": "string",
+                        "maxLength": 64
+                    },
+                    "channel": {
+                        "$ref": "#/components/schemas/ChannelEnum"
+                    },
+                    "deduplication_key": {
+                        "type": "string",
+                        "maxLength": 128
+                    }
+                },
+                "required": [
+                    "deduplication_key",
+                    "timezone",
+                    "title",
+                    "trigger_at"
+                ]
+            },
             "DependencyChecks": {
                 "type": "object",
                 "properties": {
@@ -265,6 +425,105 @@
                 ],
                 "type": "string",
                 "description": "* `ready` - ready\n* `not_ready` - not_ready"
+            },
+            "Reminder": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "format": "uuid",
+                        "readOnly": true
+                    },
+                    "target_type": {
+                        "$ref": "#/components/schemas/TargetTypeEnum"
+                    },
+                    "target_id": {
+                        "type": "string",
+                        "format": "uuid",
+                        "nullable": true
+                    },
+                    "title": {
+                        "type": "string",
+                        "maxLength": 255
+                    },
+                    "trigger_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "timezone": {
+                        "type": "string",
+                        "maxLength": 64
+                    },
+                    "channel": {
+                        "$ref": "#/components/schemas/ChannelEnum"
+                    },
+                    "status": {
+                        "$ref": "#/components/schemas/ReminderStatusEnum"
+                    },
+                    "deduplication_key": {
+                        "type": "string",
+                        "maxLength": 128
+                    },
+                    "queued_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "nullable": true
+                    },
+                    "sent_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "nullable": true
+                    },
+                    "retry_count": {
+                        "type": "integer",
+                        "maximum": 9223372036854775807,
+                        "minimum": 0,
+                        "format": "int64"
+                    },
+                    "failure_reason": {
+                        "type": "string"
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "readOnly": true
+                    },
+                    "updated_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "readOnly": true
+                    }
+                },
+                "required": [
+                    "created_at",
+                    "deduplication_key",
+                    "id",
+                    "timezone",
+                    "title",
+                    "trigger_at",
+                    "updated_at"
+                ]
+            },
+            "ReminderStatusEnum": {
+                "enum": [
+                    "pending",
+                    "queued",
+                    "sending",
+                    "sent",
+                    "failed",
+                    "cancelled"
+                ],
+                "type": "string",
+                "description": "* `pending` - Pending\n* `queued` - Queued\n* `sending` - Sending\n* `sent` - Sent\n* `failed` - Failed\n* `cancelled` - Cancelled"
+            },
+            "TargetTypeEnum": {
+                "enum": [
+                    "custom",
+                    "calendar_event",
+                    "task"
+                ],
+                "type": "string",
+                "description": "* `custom` - Custom\n* `calendar_event` - Calendar event\n* `task` - Task"
             },
             "UserPreference": {
                 "type": "object",

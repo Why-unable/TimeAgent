@@ -20,6 +20,38 @@ export interface paths {
         patch: operations["api_v1_preferences_me_partial_update"];
         trace?: never;
     };
+    "/api/v1/reminders/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["api_v1_reminders_list"];
+        put?: never;
+        post: operations["api_v1_reminders_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/reminders/{reminder_id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: operations["api_v1_reminders_destroy"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/health/live": {
         parameters: {
             query?: never;
@@ -56,6 +88,25 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /**
+         * @description * `console` - Console
+         *     * `email` - Email
+         *     * `telegram` - Telegram
+         *     * `browser` - Browser
+         * @enum {string}
+         */
+        ChannelEnum: "console" | "email" | "telegram" | "browser";
+        CreateReminder: {
+            target_type?: components["schemas"]["TargetTypeEnum"];
+            /** Format: uuid */
+            target_id?: string | null;
+            title: string;
+            /** Format: date-time */
+            trigger_at: string;
+            timezone: string;
+            channel?: components["schemas"]["ChannelEnum"];
+            deduplication_key: string;
+        };
         DependencyChecks: {
             database: components["schemas"]["DependencyStatusEnum"];
             redis: components["schemas"]["DependencyStatusEnum"];
@@ -107,6 +158,48 @@ export interface components {
          * @enum {string}
          */
         ReadyResponseStatusEnum: "ready" | "not_ready";
+        Reminder: {
+            /** Format: uuid */
+            readonly id: string;
+            target_type?: components["schemas"]["TargetTypeEnum"];
+            /** Format: uuid */
+            target_id?: string | null;
+            title: string;
+            /** Format: date-time */
+            trigger_at: string;
+            timezone: string;
+            channel?: components["schemas"]["ChannelEnum"];
+            status?: components["schemas"]["ReminderStatusEnum"];
+            deduplication_key: string;
+            /** Format: date-time */
+            queued_at?: string | null;
+            /** Format: date-time */
+            sent_at?: string | null;
+            /** Format: int64 */
+            retry_count?: number;
+            failure_reason?: string;
+            /** Format: date-time */
+            readonly created_at: string;
+            /** Format: date-time */
+            readonly updated_at: string;
+        };
+        /**
+         * @description * `pending` - Pending
+         *     * `queued` - Queued
+         *     * `sending` - Sending
+         *     * `sent` - Sent
+         *     * `failed` - Failed
+         *     * `cancelled` - Cancelled
+         * @enum {string}
+         */
+        ReminderStatusEnum: "pending" | "queued" | "sending" | "sent" | "failed" | "cancelled";
+        /**
+         * @description * `custom` - Custom
+         *     * `calendar_event` - Calendar event
+         *     * `task` - Task
+         * @enum {string}
+         */
+        TargetTypeEnum: "custom" | "calendar_event" | "task";
         UserPreference: {
             timezone?: string;
             locale?: string;
@@ -180,6 +273,77 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["UserPreference"];
                 };
+            };
+        };
+    };
+    api_v1_reminders_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Reminder"][];
+                };
+            };
+        };
+    };
+    api_v1_reminders_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateReminder"];
+                "application/x-www-form-urlencoded": components["schemas"]["CreateReminder"];
+                "multipart/form-data": components["schemas"]["CreateReminder"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Reminder"];
+                };
+            };
+        };
+    };
+    api_v1_reminders_destroy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                reminder_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Reminder can no longer be cancelled */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };

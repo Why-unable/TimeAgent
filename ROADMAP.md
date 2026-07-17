@@ -2,7 +2,7 @@
 
 每个阶段必须可独立验收；未列入阶段目标的功能不应顺带实现。
 
-当前进度：Phase 0 与 Phase 1 已完成；下一项为 T019。
+当前进度：Phase 0、Phase 1 与 Phase 2 已完成；下一步进入 Phase 3 任务拆分。
 
 ## Phase 0：工程骨架
 
@@ -26,6 +26,7 @@
 
 ## Phase 2：提醒完整闭环
 
+- 状态：已完成。
 - 目标：从提醒创建到确定性投递形成可靠闭环。
 - 后端：Reminder、ReminderService、Dispatcher、Celery 重试、幂等、Console Provider。
 - 前端：提醒列表、创建与取消、状态和失败原因展示。
@@ -129,7 +130,7 @@
 | T016 | 实现统一 UTC/IANA 时间工具 | Phase 1 |
 | T017 | 实现 UserPreference Service 与 API | Phase 1 |
 | T018 | 实现前端用户时区读取与展示 | Phase 1 |
-| T019 | 实现 Reminder 模型与状态机 | Phase 2 |
-| T020 | 实现 ReminderService 与幂等创建 | Phase 2 |
-| T021 | 实现 Reminder Dispatcher 与 Console Provider | Phase 2 |
-| T022 | 实现提醒 REST API 与前端列表 | Phase 2 |
+| T019 | 实现 Reminder 模型与状态机（已完成） | Phase 2 |
+| T020 | 实现 ReminderService 与幂等创建（已完成） | Phase 2 |
+| T021 | 实现 Reminder Dispatcher 与 Console Provider（已完成） | Phase 2 |
+| T022 | 实现提醒 REST API 与前端列表（已完成） | Phase 2 |
