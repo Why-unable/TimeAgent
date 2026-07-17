@@ -2,7 +2,7 @@
 
 每个阶段必须可独立验收；未列入阶段目标的功能不应顺带实现。
 
-当前进度：Phase 0、Phase 1、Phase 2、Phase 3 已完成；下一阶段为 Phase 4。
+当前进度：Phase 0、Phase 1、Phase 2、Phase 3、Phase 4 已完成；下一阶段为 Phase 5。
 
 ## Phase 0：工程骨架
 
@@ -46,6 +46,7 @@
 
 ## Phase 4：LangGraph 基础设施
 
+- 状态：已完成。
 - 目标：建立可持久化、可路由、可恢复的触发框架。
 - 后端：TriggerEnvelope、RuntimeContext、AppState、Checkpointer、Store、Outer Graph。
 - 前端：仅预留运行状态类型，不实现聊天业务。
@@ -142,3 +143,9 @@
 | T027 | 实现 CalendarEvent 与 Task REST API（已完成） | Phase 3 |
 | T028 | 实现 Calendar 与 Tasks 前端页面（已完成） | Phase 3 |
 | T029 | 实现 Today 汇总 API 与前端页面（已完成） | Phase 3 |
+| T030 | 锁定 LangChain/LangGraph v1 依赖基线并记录 ADR（已完成） | Phase 4 |
+| T031 | 实现 TriggerEnvelope、RuntimeContext 与 AppState（已完成） | Phase 4 |
+| T032 | 接入 PostgreSQL Checkpointer 与 Store（已完成） | Phase 4 |
+| T033 | 实现 Outer Graph 与确定性 Trigger Router（已完成） | Phase 4 |
+| T034 | 实现中断恢复与 Graph 调用限制基础设施（已完成） | Phase 4 |
+| T035 | 预留前端运行状态类型并完成 Phase 4 集成验收（已完成） | Phase 4 |

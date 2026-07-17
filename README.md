@@ -1,8 +1,8 @@
 # Time Agent
 
-Time Agent 是以时间为核心的个人智能事务管理系统。本仓库当前已完成 **Phase 3**，具备提醒闭环、结构化日程与任务管理，以及每日工作台。
+Time Agent 是以时间为核心的个人智能事务管理系统。本仓库当前已完成 **Phase 4**，具备提醒闭环、结构化日程与任务管理、每日工作台，以及可持久化、可路由、可恢复的 LangGraph 运行时基础设施。
 
-> 当前已完成工程骨架、用户时间偏好、统一时区工具、提醒闭环、日程、任务和 Today 汇总；Agent 与简报业务将在后续阶段实现。
+> 当前已完成工程骨架、用户时间偏好、统一时区工具、提醒闭环、日程、任务、Today 汇总和 Outer Graph；Time Steward Agent 与简报业务将在后续阶段实现。
 
 ## 当前能力
 
@@ -31,7 +31,7 @@ Time Agent 是以时间为核心的个人智能事务管理系统。本仓库当
 
 ## 技术栈
 
-后端使用 Python 3.12、Django、Django REST Framework、PostgreSQL、Redis、Celery 与 `uv`。前端使用 React、TypeScript、Vite、React Router、TanStack Query、Zustand、Tailwind、FullCalendar、Vitest 和 Playwright。部署基础为 Docker Compose 与 Nginx。
+后端使用 Python 3.12、Django、Django REST Framework、PostgreSQL、Redis、Celery、LangChain v1、LangGraph v1 与 `uv`。前端使用 React、TypeScript、Vite、React Router、TanStack Query、Zustand、Tailwind、FullCalendar、Vitest 和 Playwright。部署基础为 Docker Compose 与 Nginx。
 
 ## 目录
 
@@ -87,10 +87,11 @@ docker compose up --build
 docker compose down
 ```
 
-首次启动后执行迁移：
+首次启动后执行 Django 和 LangGraph 持久化迁移：
 
 ```bash
 docker compose exec django python manage.py migrate
+docker compose exec django python manage.py setup_langgraph
 ```
 
 ## 本地启动
@@ -107,6 +108,7 @@ docker compose up -d postgres redis
 cd backend
 uv sync
 uv run python manage.py migrate
+uv run python manage.py setup_langgraph
 uv run python manage.py runserver
 ```
 
@@ -221,7 +223,7 @@ GET               /api/v1/today/
 ## 尚未实现
 
 - Email、Telegram、Browser 等真实通知渠道；
-- LangGraph 基础设施和 Time Steward Agent；
+- Time Steward Agent、Briefing Workflow 和外部日历同步；
 - ActionProposal、HITL 与 Agent SSE；
 - Briefing Workflow、天气、新闻和外部日历；
 - 生产 TLS、完整监控、备份和发布流水线。
@@ -234,4 +236,4 @@ development settings 允许本地调试，production settings 强制提供安全
 
 ## 下一步
 
-下一阶段为 **Phase 4：LangGraph 基础设施**；开始前应先在路线图中拆分并确认对应的独立 Txxx 子任务。
+Phase 4 已完成；下一阶段为 **Phase 5：使用 LangChain `create_agent()` 与内置 Middleware 实现受限的 Time Steward Agent**。

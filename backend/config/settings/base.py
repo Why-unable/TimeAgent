@@ -20,6 +20,7 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "rest_framework",
     "drf_spectacular",
+    "apps.agents",
     "apps.health",
     "apps.preferences",
     "apps.reminders",
@@ -70,6 +71,16 @@ DATABASES = {
         "CONN_MAX_AGE": 60,
     }
 }
+
+LANGGRAPH_DATABASE_URL = os.getenv("LANGGRAPH_DATABASE_URL", "")
+LANGGRAPH_DATABASE_ALIAS = os.getenv("LANGGRAPH_DATABASE_ALIAS", "default")
+LANGGRAPH_POSTGRES_CONNECT_TIMEOUT = int(
+    os.getenv("LANGGRAPH_POSTGRES_CONNECT_TIMEOUT", "10")
+)
+LANGGRAPH_STORE_POOL_MIN_SIZE = int(os.getenv("LANGGRAPH_STORE_POOL_MIN_SIZE", "1"))
+LANGGRAPH_STORE_POOL_MAX_SIZE = int(os.getenv("LANGGRAPH_STORE_POOL_MAX_SIZE", "10"))
+LANGGRAPH_RECURSION_LIMIT = int(os.getenv("LANGGRAPH_RECURSION_LIMIT", "50"))
+LANGGRAPH_MAX_CONCURRENCY = int(os.getenv("LANGGRAPH_MAX_CONCURRENCY", "4"))
 
 AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
