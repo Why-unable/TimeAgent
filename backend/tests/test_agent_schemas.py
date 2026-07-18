@@ -3,6 +3,7 @@ from typing import Any
 from uuid import uuid4
 
 import pytest
+from django.contrib.auth.models import User
 from langchain.agents import AgentState
 from langchain_core.messages import AIMessage, HumanMessage, ToolMessage
 from langchain_core.runnables import RunnableLambda
@@ -11,6 +12,7 @@ from langgraph.runtime import Runtime
 from pydantic import ValidationError
 
 from apps.agents.context import RuntimeContext
+from apps.agents.routing import runtime_context_from_trigger
 from apps.agents.state import AppState
 from apps.agents.triggers import TriggerEnvelope
 from common.time import InvalidTimezoneError, NaiveDateTimeError
@@ -32,7 +34,7 @@ def test_trigger_envelope_validates_and_serializes_transport_data() -> None:
         }
     )
 
-    assert envelope.user_id == user_id
+    assert envelope.user_id == str(user_id)
     assert envelope.operation_id == operation_id
     assert envelope.conversation_id == conversation_id
     assert envelope.triggered_at == datetime(2026, 7, 15, tzinfo=UTC)
@@ -43,7 +45,7 @@ def test_trigger_envelope_validates_and_serializes_transport_data() -> None:
     ("field", "value"),
     [
         ("trigger_type", "unknown"),
-        ("user_id", "not-a-uuid"),
+        ("user_id", "   "),
         ("triggered_at", "2026-07-15T00:00:00"),
     ],
 )
@@ -113,6 +115,41 @@ def test_runtime_context_validates_timezone_and_normalizes_current_time() -> Non
             locale="en-US",
             current_datetime=datetime(2026, 7, 15),
             trigger_type="user_message",
+        )
+
+
+@pytest.mark.django_db
+def test_runtime_context_injects_a_trusted_actor_without_checkpoint_state() -> None:
+    actor = User.objects.create_user(username="phase5-actor")
+    envelope = TriggerEnvelope(
+        trigger_type="user_message",
+        user_id=str(actor.pk),
+        operation_id=uuid4(),
+        conversation_id=uuid4(),
+        payload={"message": "hello"},
+        triggered_at=datetime(2026, 7, 15, tzinfo=UTC),
+    )
+
+    context = runtime_context_from_trigger(
+        envelope,
+        request_id=str(uuid4()),
+        timezone="UTC",
+        locale="en-US",
+        actor=actor,
+    )
+
+    assert context.actor is actor
+    assert context.user_id == str(actor.pk)
+    assert "actor" not in AppState.__annotations__
+
+    envelope_with_wrong_actor = envelope.model_copy(update={"user_id": "different"})
+    with pytest.raises(ValueError, match="must match user_id"):
+        runtime_context_from_trigger(
+            envelope_with_wrong_actor,
+            request_id=str(uuid4()),
+            timezone="UTC",
+            locale="en-US",
+            actor=actor,
         )
 
 

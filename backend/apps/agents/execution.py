@@ -1,8 +1,9 @@
 from dataclasses import dataclass
 
-from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
 from langchain_core.runnables import RunnableConfig
+
+from apps.agents.configuration import get_agent_config
 
 
 @dataclass(frozen=True, slots=True)
@@ -32,9 +33,10 @@ class GraphStepLimitExceededError(RuntimeError):
 
 def get_graph_execution_limits() -> GraphExecutionLimits:
     try:
+        graph = get_agent_config().graph
         return GraphExecutionLimits(
-            recursion_limit=int(settings.LANGGRAPH_RECURSION_LIMIT),
-            max_concurrency=int(settings.LANGGRAPH_MAX_CONCURRENCY),
+            recursion_limit=int(graph.recursion_limit),
+            max_concurrency=int(graph.max_concurrency),
         )
     except (TypeError, ValueError) as exc:
         raise ImproperlyConfigured("Invalid LangGraph execution limit settings") from exc

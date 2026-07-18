@@ -10,6 +10,12 @@ ALLOWED_HOSTS = [
     for host in os.getenv("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1").split(",")
     if host.strip()
 ]
+CSRF_TRUSTED_ORIGINS = [
+    origin.strip()
+    for origin in os.getenv("DJANGO_CSRF_TRUSTED_ORIGINS", "").split(",")
+    if origin.strip()
+]
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -21,6 +27,7 @@ INSTALLED_APPS = [
     "rest_framework",
     "drf_spectacular",
     "apps.agents",
+    "apps.conversations",
     "apps.health",
     "apps.preferences",
     "apps.reminders",
@@ -74,13 +81,9 @@ DATABASES = {
 
 LANGGRAPH_DATABASE_URL = os.getenv("LANGGRAPH_DATABASE_URL", "")
 LANGGRAPH_DATABASE_ALIAS = os.getenv("LANGGRAPH_DATABASE_ALIAS", "default")
-LANGGRAPH_POSTGRES_CONNECT_TIMEOUT = int(
-    os.getenv("LANGGRAPH_POSTGRES_CONNECT_TIMEOUT", "10")
-)
+LANGGRAPH_POSTGRES_CONNECT_TIMEOUT = int(os.getenv("LANGGRAPH_POSTGRES_CONNECT_TIMEOUT", "10"))
 LANGGRAPH_STORE_POOL_MIN_SIZE = int(os.getenv("LANGGRAPH_STORE_POOL_MIN_SIZE", "1"))
 LANGGRAPH_STORE_POOL_MAX_SIZE = int(os.getenv("LANGGRAPH_STORE_POOL_MAX_SIZE", "10"))
-LANGGRAPH_RECURSION_LIMIT = int(os.getenv("LANGGRAPH_RECURSION_LIMIT", "50"))
-LANGGRAPH_MAX_CONCURRENCY = int(os.getenv("LANGGRAPH_MAX_CONCURRENCY", "4"))
 
 AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},

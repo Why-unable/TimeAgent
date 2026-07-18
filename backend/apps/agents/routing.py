@@ -1,5 +1,6 @@
 from uuid import UUID
 
+from django.contrib.auth.models import User
 from langchain_core.messages import AnyMessage, HumanMessage
 from langchain_core.runnables import RunnableConfig
 from langgraph.types import Command
@@ -66,6 +67,8 @@ def runtime_context_from_trigger(
     timezone: str,
     locale: str,
     read_only: bool = False,
+    actor: User | None = None,
+    agent_run_id: str | None = None,
 ) -> RuntimeContext:
     return RuntimeContext(
         user_id=str(envelope.user_id),
@@ -77,7 +80,9 @@ def runtime_context_from_trigger(
         conversation_id=(
             str(envelope.conversation_id) if envelope.conversation_id is not None else None
         ),
+        agent_run_id=agent_run_id,
         read_only=read_only,
+        actor=actor,
     )
 
 

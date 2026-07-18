@@ -2,7 +2,7 @@
 
 每个阶段必须可独立验收；未列入阶段目标的功能不应顺带实现。
 
-当前进度：Phase 0、Phase 1、Phase 2、Phase 3、Phase 4 已完成；下一阶段为 Phase 5。
+当前进度：Phase 0、Phase 1、Phase 2、Phase 3、Phase 4、Phase 5 已完成；下一阶段为 Phase 6。
 
 ## Phase 0：工程骨架
 
@@ -56,6 +56,7 @@
 
 ## Phase 5：Time Steward Agent
 
+- 状态：已完成。
 - 目标：用 `create_agent()` 实现受限的主 Agent 查询与低风险操作。
 - 后端：只读 Tool、受控写 Tool、Middleware、审计、流式事件。
 - 前端：最小 Chat、统一 SSE Client、Tool 状态和错误展示。
@@ -149,3 +150,13 @@
 | T033 | 实现 Outer Graph 与确定性 Trigger Router（已完成） | Phase 4 |
 | T034 | 实现中断恢复与 Graph 调用限制基础设施（已完成） | Phase 4 |
 | T035 | 预留前端运行状态类型并完成 Phase 4 集成验收（已完成） | Phase 4 |
+| T036 | 建立可信 Actor Runtime Context 与 Phase 5 架构决策（已完成） | Phase 5 |
+| T037 | 实现 Time Steward 只读 Tool 套件（已完成） | Phase 5 |
+| T038 | 实现低风险写入 Tool、幂等与风险策略（已完成） | Phase 5 |
+| T039 | 使用 `create_agent()` 实现 Time Steward 并接入 Outer Graph（已完成） | Phase 5 |
+| T040 | 接入调用限制、重试、摘要与动态 Tool Policy Middleware（已完成） | Phase 5 |
+| T041 | 实现 Conversation、AgentRun 与审计闭环（已完成） | Phase 5 |
+| T042 | 实现 Chat REST API 与 Agent Run 生命周期（已完成） | Phase 5 |
+| T043 | 实现统一流事件协议、SSE 游标恢复与取消（已完成） | Phase 5 |
+| T044 | 实现最小 Chat、统一 SSE Client 与 Tool 状态 UI（已完成） | Phase 5 |
+| T045 | 建立固定 Agent 评测集并完成 Phase 5 集成验收（已完成） | Phase 5 |

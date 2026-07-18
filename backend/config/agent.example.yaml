@@ -1,0 +1,67 @@
+# Time Agent runtime configuration.
+#
+# Non-secret model and Agent behavior belongs here. Secrets remain environment
+# variables and are referenced using a complete `$NAME` or `${NAME}` value.
+# To customize without changing this template, copy it to `config/agent.yaml`
+# and set TIME_AGENT_CONFIG_PATH=config/agent.yaml.
+
+config_version: 1
+
+agent:
+  default_model: primary
+  # Tried in order after the primary model exhausts ModelRetryMiddleware.
+  fallback_models: []
+
+models:
+  primary:
+    provider: openai_compatible
+    model: gpt-4.1-mini
+    api_key: $AGENT_API_KEY
+    base_url: $AGENT_BASE_URL
+    timeout_seconds: 120
+    provider_max_retries: 0
+    temperature: 0
+    streaming: true
+    max_completion_tokens: null
+    reasoning_effort: null
+    extra_body: {}
+  deepseek:
+    provider: openai_compatible
+    model: deepseek-v4-flash
+    api_key: $AGENT_DEEPSEEK_API_KEY
+    base_url: $AGENT_DEEPSEEK_BASE_URL
+    timeout_seconds: 120
+    provider_max_retries: 0
+    temperature: 0
+    streaming: true
+    max_completion_tokens: null
+    reasoning_effort: null
+    extra_body: {}
+  claude:
+    provider: anthropic
+    model: claude-opus-4-6
+    api_key: $AGENT_CLAUDE_API_KEY
+    # Anthropic SDK appends /v1/messages, so use the API root without /v1.
+    base_url: $AGENT_CLAUDE_BASE_URL
+    timeout_seconds: 120
+    provider_max_retries: 0
+    temperature: 0
+    streaming: true
+    # Some Anthropic-compatible relays send non-standard usage metadata at the
+    # end of streams. Disable streaming usage while preserving token streaming.
+    stream_usage: false
+    max_tokens: 2048
+
+graph:
+  recursion_limit: 50
+  max_concurrency: 4
+
+middleware:
+  model_call_limit: 8
+  tool_call_limit: 16
+  model_retry_limit: 2
+  tool_retry_limit: 2
+  summarization:
+    enabled: true
+    trigger_messages: 24
+    keep_messages: 12

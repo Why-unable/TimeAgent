@@ -33,7 +33,31 @@ class CreateReminderCommand:
     target_id: UUID | None = None
 
 
+@dataclass(frozen=True, slots=True)
+class ReminderQuery:
+    user: User
+    statuses: tuple[ReminderStatus | str, ...] = ()
+    trigger_before: datetime | None = None
+
+
 class ReminderService:
+    @staticmethod
+    def list_reminders(query: ReminderQuery) -> list[Reminder]:
+        if query.user.pk is None:
+            raise ValueError("Reminder user must be persisted")
+        reminders = Reminder.objects.filter(user=query.user)
+        if query.statuses:
+            reminders = reminders.filter(status__in=query.statuses)
+        if query.trigger_before is not None:
+            reminders = reminders.filter(trigger_at__lte=query.trigger_before)
+        return list(reminders)
+
+    @staticmethod
+    def get_reminder(*, user: User, reminder_id: UUID) -> Reminder:
+        if user.pk is None:
+            raise ValueError("Reminder user must be persisted")
+        return Reminder.objects.get(pk=reminder_id, user=user)
+
     @staticmethod
     @transaction.atomic
     def create_reminder(command: CreateReminderCommand) -> Reminder:

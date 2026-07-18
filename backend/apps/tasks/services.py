@@ -145,6 +145,11 @@ class TaskService:
         return list(tasks)
 
     @staticmethod
+    def get_task(*, user: User, task_id: UUID) -> Task:
+        TaskService._ensure_persisted_user(user)
+        return Task.objects.get(pk=task_id, user=user)
+
+    @staticmethod
     def _validate_changes(changes: Mapping[str, Any]) -> None:
         unsupported_fields = set(changes) - TaskService.UPDATE_FIELDS
         if unsupported_fields:

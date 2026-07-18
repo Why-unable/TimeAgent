@@ -23,3 +23,7 @@ class AppState(AgentState[None]):
     active_workflow: NotRequired[WorkflowName]
     workflow_result: NotRequired[dict[str, JsonValue]]
     remaining_steps: NotRequired[RemainingSteps]
+
+
+class TimeStewardState(AgentState[None]):
+    """Agent-loop state; managed outer-graph channels intentionally stay outside it."""

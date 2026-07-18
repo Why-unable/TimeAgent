@@ -1,4 +1,4 @@
-from collections.abc import Callable
+from collections.abc import Callable, Iterator, Sequence
 from dataclasses import dataclass
 from typing import Any, cast
 
@@ -101,6 +101,33 @@ class OuterGraphRuntime:
             config=graph_config_from_trigger(envelope, context, limits=self.limits),
             context=context,
         )
+
+    def stream(
+        self,
+        envelope: TriggerEnvelope,
+        context: RuntimeContext,
+        *,
+        stream_mode: str | Sequence[str] = ("messages", "values", "custom"),
+        subgraphs: bool = True,
+    ) -> Iterator[Any]:
+        """Stream native LangGraph modes while preserving trigger and limit checks."""
+
+        ensure_context_matches_trigger(envelope, context)
+        graph = (
+            self.stateless_graph
+            if envelope.trigger_type == "reminder_due"
+            else self.persistent_graph
+        )
+        try:
+            yield from graph.stream(
+                state_from_trigger(envelope),
+                config=graph_config_from_trigger(envelope, context, limits=self.limits),
+                context=context,
+                stream_mode=stream_mode,  # type: ignore[arg-type]
+                subgraphs=subgraphs,
+            )
+        except GraphRecursionError as exc:
+            raise GraphStepLimitExceededError(self.limits.recursion_limit) from exc
 
     def pending_interrupts(self, thread_id: str) -> tuple[Interrupt, ...]:
         config = graph_config_for_thread(thread_id, request_id="state-inspection")

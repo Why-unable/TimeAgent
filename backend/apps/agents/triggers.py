@@ -21,11 +21,19 @@ class TriggerEnvelope(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     trigger_type: TriggerType
-    user_id: UUID
+    user_id: str
     operation_id: UUID
     conversation_id: UUID | None = None
     payload: dict[str, JsonValue]
     triggered_at: datetime
+
+    @field_validator("user_id")
+    @classmethod
+    def normalize_user_id(cls, value: str) -> str:
+        normalized = value.strip()
+        if not normalized:
+            raise ValueError("user_id cannot be empty")
+        return normalized
 
     @field_validator("triggered_at")
     @classmethod

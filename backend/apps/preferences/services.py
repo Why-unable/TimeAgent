@@ -1,7 +1,7 @@
 from collections.abc import Mapping
 from typing import Any
 
-from django.contrib.auth.models import AbstractBaseUser
+from django.contrib.auth.models import AbstractBaseUser, User
 from django.db import transaction
 
 from apps.preferences.models import UserPreference
@@ -25,6 +25,12 @@ class UserPreferenceService:
             "planning_rules",
         }
     )
+
+    @staticmethod
+    def get_for_user(user: User) -> UserPreference | None:
+        if user.pk is None:
+            raise ValueError("Preference user must be persisted")
+        return UserPreference.objects.filter(user=user).first()
 
     @staticmethod
     @transaction.atomic

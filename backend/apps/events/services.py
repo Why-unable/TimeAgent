@@ -146,6 +146,11 @@ class EventService:
         return list(events)
 
     @staticmethod
+    def get_event(*, user: User, event_id: UUID) -> CalendarEvent:
+        EventService._ensure_persisted_user(user)
+        return CalendarEvent.objects.get(pk=event_id, user=user)
+
+    @staticmethod
     def detect_conflicts(
         *,
         user: User,

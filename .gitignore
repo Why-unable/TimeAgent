@@ -1,4 +1,5 @@
 .env
+backend/config/agent.yaml
 .venv/
 __pycache__/
 *.py[cod]

@@ -1,11 +1,12 @@
 import asyncio
 from datetime import UTC, datetime
+from types import SimpleNamespace
 from typing import Literal
+from unittest.mock import patch
 from uuid import uuid4
 
 import pytest
 from django.core.exceptions import ImproperlyConfigured
-from django.test import override_settings
 from langchain_core.messages import AIMessage
 from langgraph.checkpoint.memory import InMemorySaver
 from langgraph.graph import START, StateGraph
@@ -35,7 +36,7 @@ from apps.agents.triggers import TriggerEnvelope
 def make_user_envelope() -> TriggerEnvelope:
     return TriggerEnvelope(
         trigger_type="user_message",
-        user_id=uuid4(),
+        user_id=str(uuid4()),
         operation_id=uuid4(),
         conversation_id=uuid4(),
         payload={"message": "pause this run"},
@@ -159,7 +160,7 @@ def test_async_interrupt_inspection_and_resume_use_native_async_api() -> None:
 def test_reminder_runs_cannot_enter_resume_path() -> None:
     envelope = TriggerEnvelope(
         trigger_type="reminder_due",
-        user_id=uuid4(),
+        user_id=str(uuid4()),
         operation_id=uuid4(),
         payload={"reminder_id": str(uuid4())},
         triggered_at=datetime(2026, 7, 17, 8, tzinfo=UTC),
@@ -263,9 +264,11 @@ def test_graph_limits_are_top_level_config_and_validate_settings() -> None:
     with pytest.raises(ValueError, match="recursion_limit"):
         GraphExecutionLimits(recursion_limit=0, max_concurrency=1)
 
-    with override_settings(
-        LANGGRAPH_RECURSION_LIMIT="invalid",
-        LANGGRAPH_MAX_CONCURRENCY=1,
+    invalid_config = SimpleNamespace(
+        graph=SimpleNamespace(recursion_limit="invalid", max_concurrency=1)
+    )
+    with (
+        patch("apps.agents.execution.get_agent_config", return_value=invalid_config),
+        pytest.raises(ImproperlyConfigured, match="execution limit"),
     ):
-        with pytest.raises(ImproperlyConfigured, match="execution limit"):
-            get_graph_execution_limits()
+        get_graph_execution_limits()
