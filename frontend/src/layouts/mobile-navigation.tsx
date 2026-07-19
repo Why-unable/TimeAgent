@@ -1,13 +1,13 @@
-import { Bell, CalendarDays, CheckSquare, Clock3, MessageSquare, ShieldCheck } from "lucide-react";
+import { Bell, CalendarDays, CheckSquare, Clock3, MessageSquare, Newspaper } from "lucide-react";
 import { NavLink } from "react-router-dom";
 
 const items = [
   { to: "/today", label: "今天", icon: Clock3 },
   { to: "/chat", label: "聊天", icon: MessageSquare },
+  { to: "/briefings", label: "简报", icon: Newspaper },
   { to: "/calendar", label: "日历", icon: CalendarDays },
   { to: "/tasks", label: "任务", icon: CheckSquare },
   { to: "/reminders", label: "提醒", icon: Bell },
-  { to: "/approvals", label: "审批", icon: ShieldCheck },
 ];
 
 export function MobileNavigation() {

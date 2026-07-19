@@ -6,6 +6,7 @@ import {
   LoaderCircle,
   Menu,
   MessageSquare,
+  Newspaper,
   Plus,
   Send,
   UserRound,
@@ -51,14 +52,15 @@ type ChatEntry =
   | { id: string; kind: "approval"; proposal: ActionProposal };
 
 type ConversationGroup = { label: string; conversations: Conversation[] };
+type ConversationKind = Conversation["kind"];
 
 const ACTIVE_RUN_STATUSES = new Set(["pending", "running"]);
 
 function entriesFromRuns(runs: AgentRun[]): ChatEntry[] {
   return runs.flatMap((run) => {
-    const entries: ChatEntry[] = [
-      { id: `user-${run.id}`, kind: "user", content: run.input_message, timestamp: run.created_at },
-    ];
+    const entries: ChatEntry[] = run.synthetic_input
+      ? [{ id: `trigger-${run.id}`, kind: "notice", content: run.input_message, tone: "muted" }]
+      : [{ id: `user-${run.id}`, kind: "user", content: run.input_message, timestamp: run.created_at }];
     if (run.final_response) {
       entries.push({
         id: `assistant-${run.id}`,
@@ -114,6 +116,7 @@ export function ChatPage() {
   const [loadingHistory, setLoadingHistory] = useState(false);
   const [loadingConversations, setLoadingConversations] = useState(true);
   const [historyOpen, setHistoryOpen] = useState(false);
+  const [historyKind, setHistoryKind] = useState<ConversationKind>("chat");
   const [error, setError] = useState("");
   const controller = useRef<AbortController | null>(null);
   const runCursors = useRef(new Map<string, string>());
@@ -159,6 +162,18 @@ export function ChatPage() {
           ? { ...entry, status: event.type === "tool.completed" ? "completed" : "failed" }
           : entry,
       ));
+    } else if (event.type === "briefing.section.started") {
+      const section = String(event.data.section ?? "section");
+      const id = `briefing-section-${section}`;
+      setEntries((current) => current.some((entry) => entry.kind === "tool" && entry.id === id)
+        ? current
+        : [...current, { id, kind: "tool", name: `简报 · ${section === "calendar" ? "日程" : "任务"}`, status: "running" }]);
+    } else if (event.type === "briefing.section.completed") {
+      const section = String(event.data.section ?? "section");
+      const id = `briefing-section-${section}`;
+      setEntries((current) => current.map((entry) => entry.kind === "tool" && entry.id === id
+        ? { ...entry, status: event.data.status === "completed" ? "completed" : "failed" }
+        : entry));
     } else if (event.type === "message.delta") {
       const delta = String(event.data.content ?? "");
       setEntries((current) => {
@@ -286,8 +301,15 @@ export function ChatPage() {
     messagesEnd.current?.scrollIntoView?.({ behavior: entries.length > 2 ? "smooth" : "auto" });
   }, [entries, busy]);
 
-  const groups = useMemo(() => groupConversations(conversations), [conversations]);
+  const groups = useMemo(
+    () => groupConversations(conversations.filter((item) => item.kind === historyKind)),
+    [conversations, historyKind],
+  );
   const activeConversation = conversations.find((conversation) => conversation.id === conversationId);
+
+  useEffect(() => {
+    if (activeConversation) setHistoryKind(activeConversation.kind);
+  }, [activeConversation]);
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
@@ -354,6 +376,7 @@ export function ChatPage() {
   const startNewChat = () => {
     if (busy) controller.current?.abort();
     navigate("/chat");
+    setHistoryKind("chat");
   };
 
   const handleComposerKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
@@ -374,9 +397,25 @@ export function ChatPage() {
           <Plus size={17} /> 新建聊天
         </button>
       </div>
+      <div className="grid grid-cols-3 gap-1 px-3 pb-2" aria-label="会话类型">
+        {([
+          ["chat", "聊天"],
+          ["manual_briefing", "手动简报"],
+          ["scheduled_briefing", "自动简报"],
+        ] as const).map(([kind, label]) => (
+          <button
+            type="button"
+            key={kind}
+            onClick={() => setHistoryKind(kind)}
+            className={`rounded-lg px-2 py-2 text-[11px] ${historyKind === kind ? "bg-cyan-400/15 text-cyan-200" : "text-slate-500 hover:bg-white/5"}`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
       <nav aria-label="对话历史" className="min-h-0 flex-1 overflow-y-auto px-2 pb-3">
         {loadingConversations && <p className="px-3 py-4 text-xs text-slate-500">正在加载历史对话…</p>}
-        {!loadingConversations && conversations.length === 0 && <p className="px-3 py-4 text-xs leading-5 text-slate-500">发送第一条消息后，对话会出现在这里。</p>}
+        {!loadingConversations && groups.length === 0 && <p className="px-3 py-4 text-xs leading-5 text-slate-500">此分类下还没有会话。</p>}
         {groups.map((group) => (
           <div key={group.label} className="mt-3 first:mt-0">
             <p className="px-3 pb-1 text-[11px] font-medium uppercase tracking-wider text-slate-500">{group.label}</p>
@@ -389,7 +428,7 @@ export function ChatPage() {
                   aria-current={conversation.id === conversationId ? "page" : undefined}
                   className={`group flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm transition ${conversation.id === conversationId ? "bg-cyan-400/10 text-cyan-100" : "text-slate-300 hover:bg-white/5 hover:text-white"}`}
                 >
-                  <MessageSquare size={15} className="shrink-0 opacity-60" />
+                  {conversation.kind === "chat" ? <MessageSquare size={15} className="shrink-0 opacity-60" /> : <Newspaper size={15} className="shrink-0 opacity-60" />}
                   <span className="min-w-0 flex-1 truncate">{conversation.title || "新对话"}</span>
                   {conversation.id === conversationId && <ChevronRight size={14} className="shrink-0 text-cyan-300" />}
                 </button>
@@ -417,7 +456,7 @@ export function ChatPage() {
           <Bot className="shrink-0 text-cyan-300" size={20} />
           <div className="min-w-0">
             <h2 className="truncate text-sm font-semibold text-slate-100">{activeConversation?.title || "智能时间助理"}</h2>
-            <p className="text-xs text-slate-500">Time Steward</p>
+            <p className="text-xs text-slate-500">{activeConversation?.kind === "manual_briefing" ? "用户手动简报" : activeConversation?.kind === "scheduled_briefing" ? "自动简报" : "Time Steward"}</p>
           </div>
           {conversationId && <button type="button" onClick={startNewChat} className="ml-auto hidden items-center gap-2 rounded-lg border border-white/10 px-3 py-2 text-xs text-slate-300 hover:bg-white/5 sm:flex"><Plus size={15} /> 新建聊天</button>}
         </header>

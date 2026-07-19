@@ -12,6 +12,7 @@ from apps.conversations.models import (
     AgentRun,
     AgentRunStatus,
     Conversation,
+    ConversationKind,
     ToolCallAudit,
     ToolCallStatus,
 )
@@ -27,14 +28,24 @@ class StartRunCommand:
     operation_id: UUID
     request_id: str
     message: str
+    trigger_type: str = "user_message"
+    trigger_payload: dict[str, Any] | None = None
+    synthetic_input: bool = False
 
 
 class ConversationService:
     @staticmethod
-    def create(*, user: User, title: str = "") -> Conversation:
+    def create(
+        *,
+        user: User,
+        title: str = "",
+        kind: str = ConversationKind.CHAT,
+    ) -> Conversation:
         if user.pk is None:
             raise ValueError("Conversation user must be persisted")
-        return Conversation.objects.create(user=user, title=title.strip())
+        if kind not in ConversationKind.values:
+            raise ValueError("Unknown conversation kind")
+        return Conversation.objects.create(user=user, title=title.strip(), kind=kind)
 
     @staticmethod
     def get(*, user: User, conversation_id: UUID) -> Conversation:
@@ -72,9 +83,18 @@ class AgentRunService:
                 "conversation": command.conversation,
                 "request_id": request_id,
                 "input_message": message,
+                "trigger_type": command.trigger_type,
+                "trigger_payload": command.trigger_payload or {},
+                "synthetic_input": command.synthetic_input,
             },
         )
-        if run.conversation_id != command.conversation.pk or run.input_message != message:
+        if (
+            run.conversation_id != command.conversation.pk
+            or run.input_message != message
+            or run.trigger_type != command.trigger_type
+            or run.trigger_payload != (command.trigger_payload or {})
+            or run.synthetic_input != command.synthetic_input
+        ):
             raise ValueError("operation_id already belongs to a different run")
         if created:
             conversation = Conversation.objects.select_for_update().get(pk=command.conversation.pk)

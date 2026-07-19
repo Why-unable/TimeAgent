@@ -15,6 +15,7 @@ from apps.agents.outer_graph import OuterGraphNodes, build_outer_graph_runtime
 from apps.agents.routing import runtime_context_from_trigger
 from apps.agents.state import AppState
 from apps.agents.triggers import TriggerEnvelope
+from apps.briefings.workflow import briefing_workflow_node
 from apps.conversations.models import AgentRun, AgentRunStatus
 from apps.conversations.services import AgentRunService
 from apps.preferences.services import UserPreferenceService
@@ -58,12 +59,17 @@ def execute_agent_run(
     timezone_name = preference.timezone if preference else settings.DEFAULT_USER_TIMEZONE
     locale = preference.locale if preference else settings.DEFAULT_USER_LOCALE
     current_time = (now or timezone.now()).astimezone(UTC)
+    payload: dict[str, JsonValue] = cast(dict[str, JsonValue], dict(run.trigger_payload))
+    if run.trigger_type == "user_message":
+        payload["message"] = run.input_message
+    elif run.synthetic_input:
+        payload["synthetic_message"] = run.input_message
     envelope = TriggerEnvelope(
-        trigger_type="user_message",
+        trigger_type=cast(Any, run.trigger_type),
         user_id=str(actor.pk),
         operation_id=run.operation_id,
         conversation_id=run.conversation_id,
-        payload={"message": run.input_message},
+        payload=payload,
         triggered_at=current_time,
     )
     context = runtime_context_from_trigger(
@@ -81,7 +87,9 @@ def execute_agent_run(
             runtime = build_outer_graph_runtime(
                 OuterGraphNodes(
                     time_steward_agent=agent,
-                    briefing_workflow=_unavailable_workflow,
+                    briefing_workflow=(
+                        lambda state, runtime: briefing_workflow_node(state, runtime, model=model)
+                    ),
                     calendar_sync_workflow=_unavailable_workflow,
                 ),
                 checkpointer=persistence.checkpointer,
@@ -142,7 +150,9 @@ def resume_agent_run(
             runtime = build_outer_graph_runtime(
                 OuterGraphNodes(
                     time_steward_agent=agent,
-                    briefing_workflow=_unavailable_workflow,
+                    briefing_workflow=(
+                        lambda state, runtime: briefing_workflow_node(state, runtime, model=model)
+                    ),
                     calendar_sync_workflow=_unavailable_workflow,
                 ),
                 checkpointer=persistence.checkpointer,
@@ -237,6 +247,8 @@ def _consume_stream(stream: Any, run: AgentRun) -> tuple[AppState, bool]:
             payload = data.get("payload", {})
             if isinstance(event_type, str) and isinstance(payload, dict):
                 AgentRunService.append_event(run, event_type, payload)
+                if event_type == "message.delta" and payload.get("content"):
+                    emitted_delta = True
     if latest is None:
         raise RuntimeError("Time Steward stream completed without a final state")
     return latest, emitted_delta

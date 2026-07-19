@@ -9,6 +9,7 @@ config_version: 1
 
 agent:
   default_model: primary
+  briefing_editor_model: primary
   # Tried in order after the primary model exhausts ModelRetryMiddleware.
   fallback_models: []
 

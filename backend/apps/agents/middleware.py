@@ -30,6 +30,7 @@ from apps.agents.configuration import get_agent_config
 from apps.agents.context import RuntimeContext
 from apps.agents.state import AppState
 from apps.agents.tools import READ_ONLY_TOOLS, WRITE_TOOLS
+from apps.agents.tools.handoff_tools import HANDOFF_TOOLS
 from apps.conversations.models import ToolCallStatus
 from apps.conversations.services import AgentRunService, ToolAuditService
 
@@ -37,6 +38,7 @@ PROMPT_PATH = Path(__file__).with_name("prompts") / "time_steward.md"
 BASE_SYSTEM_PROMPT = PROMPT_PATH.read_text(encoding="utf-8").strip()
 READ_ONLY_NAMES = frozenset(tool.name for tool in READ_ONLY_TOOLS)
 WRITE_NAMES = frozenset(tool.name for tool in WRITE_TOOLS)
+HANDOFF_NAMES = frozenset(tool.name for tool in HANDOFF_TOOLS)
 
 
 @dynamic_prompt
@@ -88,6 +90,8 @@ class ToolAuditMiddleware(AgentMiddleware[AppState, RuntimeContext, Any]):
     def _details(request: ToolCallRequest) -> tuple[RuntimeContext, str] | None:
         context = request.runtime.context
         tool_call_id = str(request.tool_call.get("id", "")).strip()
+        if request.tool_call.get("name") in HANDOFF_NAMES:
+            return None
         if (
             not isinstance(context, RuntimeContext)
             or context.actor is None

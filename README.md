@@ -1,8 +1,8 @@
 # Time Agent
 
-Time Agent 是以时间为核心的个人智能事务管理系统。本仓库当前已完成 **Phase 6**，具备提醒闭环、结构化事务管理、每日工作台、可恢复的 Time Steward Agent，以及高风险操作审批闭环。
+Time Agent 是以时间为核心的个人智能事务管理系统。本仓库当前已完成 **Phase 7**，具备提醒闭环、结构化事务管理、每日工作台、可恢复的 Time Steward Agent、高风险操作审批，以及可追溯的手动简报工作流。
 
-> Time Steward 使用 LangChain `create_agent()`、LangGraph PostgreSQL 持久化和官方 Middleware；高风险写入通过 ActionProposal/HITL 审批，Briefing Workflow 仍在后续阶段。
+> Time Steward 使用 LangChain `create_agent()`、LangGraph PostgreSQL 持久化和官方 Middleware；高风险写入通过 ActionProposal/HITL 审批；Briefing Workflow 使用确定性并行 Section、受限 Editor 和结构化输出。
 
 ## 当前能力
 
@@ -38,6 +38,10 @@ Time Agent 是以时间为核心的个人智能事务管理系统。本仓库当
 - `create_event` 支持批准、编辑后批准或拒绝；`cancel_event`、`cancel_reminder`、`cancel_task` 仅支持批准或拒绝，且未经审批都不会进入 Tool/Application Service。
 - 审批 REST API、`/approvals` 集中列表、Chat 内结构化审批卡片、冲突信息和过期/失败状态。
 - Celery Beat 自动过期审批，并以安全拒绝语义恢复暂停的 AgentRun。
+- BriefingDefinition、BriefingRun 与逐 Section 运行记录，保留配置快照、来源、警告、模型配置和最终结构化结果。
+- Calendar/Task Section 并行收集、单 Section 失败降级、结构化 Briefing Editor、确定性 Markdown 渲染和 SSE 分块发布。
+- Time Steward 通过 `Command.PARENT` Handoff 转交自然语言简报请求；最终消息序列保持有效的 AI tool call、ToolMessage 和简报 AIMessage。
+- `/briefings` 支持配置、手动运行、结果、来源和“在聊天中继续”；聊天历史按普通聊天、手动简报和自动简报分类。
 
 ## 技术栈
 
@@ -91,6 +95,9 @@ Messages API），不会从 YAML 动态导入任意 Python 对象。Anthropic-co
 `base_url` 应填写 API root，不要带尾部 `/v1`；如中转站返回非标准 usage stream，可设置
 `stream_usage: false`，保留 token 流式输出。详见
 `docs/architecture/agent-configuration.md`。
+
+Briefing Editor 的模型由 `agent.briefing_editor_model` 指定；未设置时继承
+`agent.default_model`。它不拥有业务写入 Tool，只能编辑工作流已收集并附有来源的数据。
 
 可以在启动前验证配置（不会输出 API Key）：
 
@@ -312,6 +319,10 @@ GET               /api/v1/action-proposals/{id}/
 POST              /api/v1/action-proposals/{id}/approve/
 POST              /api/v1/action-proposals/{id}/edit/
 POST              /api/v1/action-proposals/{id}/reject/
+GET|POST          /api/v1/briefings/definitions/
+GET|PATCH         /api/v1/briefings/definitions/{id}/
+GET|POST          /api/v1/briefings/runs/
+GET               /api/v1/briefings/runs/{id}/
 ```
 
 事件 PATCH/DELETE 需要 `expected_version` 查询参数；DELETE 执行取消而非物理删除。
@@ -319,8 +330,7 @@ POST              /api/v1/action-proposals/{id}/reject/
 ## 尚未实现
 
 - Email、Telegram、Browser 等真实通知渠道；
-- Briefing Workflow 和外部日历同步；
-- Briefing Workflow、天气、新闻和外部日历；
+- 天气、新闻、定时自动简报和外部日历；
 - 生产 TLS、完整监控、备份和发布流水线。
 
 ## 规范关系与注意事项
@@ -331,4 +341,4 @@ development settings 允许本地调试，production settings 强制提供安全
 
 ## 下一步
 
-Phase 6 已完成；下一阶段为 **Phase 7：Briefing Workflow**。
+Phase 7 已完成；下一阶段为 **Phase 8：天气与新闻**。

@@ -19,6 +19,12 @@ class ToolCallStatus(models.TextChoices):
     FAILED = "failed", "Failed"
 
 
+class ConversationKind(models.TextChoices):
+    CHAT = "chat", "Chat"
+    MANUAL_BRIEFING = "manual_briefing", "Manual briefing"
+    SCHEDULED_BRIEFING = "scheduled_briefing", "Scheduled briefing"
+
+
 class Conversation(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     user = models.ForeignKey(
@@ -27,6 +33,11 @@ class Conversation(models.Model):
         related_name="agent_conversations",
     )
     title = models.CharField(max_length=255, blank=True)
+    kind = models.CharField(
+        max_length=24,
+        choices=ConversationKind.choices,
+        default=ConversationKind.CHAT,
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -47,6 +58,9 @@ class AgentRun(models.Model):
     )
     operation_id = models.UUIDField(unique=True)
     request_id = models.CharField(max_length=128)
+    trigger_type = models.CharField(max_length=32, default="user_message")
+    trigger_payload = models.JSONField(default=dict)
+    synthetic_input = models.BooleanField(default=False)
     execution_task_id = models.CharField(max_length=255, blank=True, db_index=True)
     status = models.CharField(
         max_length=16,

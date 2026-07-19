@@ -28,6 +28,7 @@ INSTALLED_APPS = [
     "drf_spectacular",
     "apps.action_proposals",
     "apps.agents",
+    "apps.briefings",
     "apps.conversations",
     "apps.health",
     "apps.preferences",
@@ -122,6 +123,7 @@ SPECTACULAR_SETTINGS = {
         "ReminderStatusEnum": "apps.reminders.models.ReminderStatus",
         "ActionProposalStatusEnum": "apps.action_proposals.models.ActionProposalStatus",
         "RiskLevelEnum": "apps.action_proposals.models.RiskLevel",
+        "ConversationKindEnum": "apps.conversations.models.ConversationKind",
     },
 }
 

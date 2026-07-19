@@ -12,6 +12,7 @@ vi.mock("../src/features/preferences/hooks", () => ({
 const conversation = {
   id: "11111111-1111-4111-8111-111111111111",
   title: "",
+  kind: "chat",
   created_at: "2026-07-17T08:00:00Z",
   updated_at: "2026-07-17T08:00:00Z",
 };
@@ -21,6 +22,9 @@ const run = {
   conversation_id: conversation.id,
   operation_id: "33333333-3333-4333-8333-333333333333",
   request_id: "request-1",
+  trigger_type: "user_message",
+  trigger_payload: {},
+  synthetic_input: false,
   status: "pending",
   input_message: "今天有什么安排？",
   final_response: "",
@@ -118,6 +122,35 @@ describe("ChatPage", () => {
     expect(timestamps[0]).toHaveAttribute("datetime", completedRun.created_at);
     expect(timestamps[1]).toHaveAttribute("datetime", completedRun.completed_at);
     expect(timestamps.every((timestamp) => timestamp.textContent?.includes("16:00"))).toBe(true);
+  });
+
+  it("separates chat, manual briefing, and scheduled briefing history", async () => {
+    const conversations = [
+      { ...conversation, title: "普通聊天", kind: "chat" },
+      { ...conversation, id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", title: "手动晨间简报", kind: "manual_briefing" },
+      { ...conversation, id: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb", title: "自动晨间简报", kind: "scheduled_briefing" },
+    ];
+    vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url.endsWith("/conversations/")) {
+        return new Response(JSON.stringify(conversations));
+      }
+      if (url.endsWith("/api/v1/action-proposals/")) {
+        return new Response(JSON.stringify([]));
+      }
+      throw new Error(`Unexpected request: ${url}`);
+    }));
+
+    renderChatPage();
+
+    expect(await screen.findByRole("button", { name: "普通聊天" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "手动晨间简报" })).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "手动简报" }));
+    expect(await screen.findByRole("button", { name: "手动晨间简报" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "自动晨间简报" })).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "自动简报" }));
+    expect(await screen.findByRole("button", { name: "自动晨间简报" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "普通聊天" })).not.toBeInTheDocument();
   });
 
   it("shows a run failure returned by the API", async () => {

@@ -2,7 +2,7 @@ from collections.abc import Callable, Iterator, Sequence
 from dataclasses import dataclass
 from typing import Any, cast
 
-from langchain_core.runnables import Runnable, RunnableConfig, RunnableLambda
+from langchain_core.runnables import Runnable, RunnableConfig
 from langgraph.checkpoint.base import BaseCheckpointSaver
 from langgraph.errors import GraphRecursionError
 from langgraph.graph import END, START, StateGraph
@@ -30,7 +30,7 @@ from apps.agents.state import AppState
 from apps.agents.triggers import TriggerEnvelope
 from apps.reminders.dispatcher import ReminderDispatcher
 
-type OuterGraphNode = Runnable[AppState, Any] | Callable[[AppState], Any]
+type OuterGraphNode = Runnable[AppState, Any] | Callable[..., Any]
 type CompiledOuterGraph = CompiledStateGraph[
     AppState,
     RuntimeContext,
@@ -353,7 +353,6 @@ def build_outer_graph_runtime(
     )
 
 
-def _as_runnable(node: OuterGraphNode) -> Runnable[AppState, Any]:
-    if isinstance(node, Runnable):
-        return node
-    return RunnableLambda(node)
+def _as_runnable(node: OuterGraphNode) -> Any:
+    # Keep plain graph-node callables plain so LangGraph can inject Runtime by signature.
+    return node

@@ -407,3 +407,62 @@ test("continues the chat stream after approving an interrupted run", async ({ pa
   await expect(page.getByText("日程已创建。")).toBeVisible();
   expect(cursors).toEqual(["0", "3"]);
 });
+
+test("launches a manual briefing into its own conversation", async ({ page }) => {
+  const conversationId = "99999999-9999-4999-8999-999999999999";
+  const runId = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
+  const conversation = {
+    id: conversationId,
+    title: "E2E Manual Briefing",
+    kind: "manual_briefing",
+    created_at: "2026-07-19T00:00:00Z",
+    updated_at: "2026-07-19T00:00:01Z",
+  };
+  const run = {
+    id: runId,
+    conversation_id: conversationId,
+    operation_id: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+    request_id: "briefing-e2e-request",
+    trigger_type: "manual_briefing",
+    trigger_payload: { target_date: "2026-07-19" },
+    synthetic_input: true,
+    status: "completed",
+    input_message: "Generate the daily briefing for 2026-07-19.",
+    final_response: "# E2E Briefing\n\nNo events or tasks today.",
+    error: "",
+    started_at: "2026-07-19T00:00:00Z",
+    completed_at: "2026-07-19T00:00:01Z",
+    created_at: "2026-07-19T00:00:00Z",
+  };
+
+  await page.route("**/api/v1/preferences/me/", async (route) => {
+    await route.fulfill({ status: 403, json: { detail: "Not authenticated." } });
+  });
+  await page.route("**/api/v1/briefings/definitions/", async (route) => {
+    await route.fulfill({ json: [] });
+  });
+  await page.route("**/api/v1/briefings/runs/", async (route) => {
+    if (route.request().method() === "POST") {
+      await route.fulfill({ status: 202, json: { conversation, agent_run: { ...run, status: "pending", final_response: "", completed_at: null } } });
+      return;
+    }
+    await route.fulfill({ json: [] });
+  });
+  await page.route("**/api/v1/chat/conversations/", async (route) => {
+    await route.fulfill({ json: [conversation] });
+  });
+  await page.route(`**/api/v1/chat/conversations/${conversationId}/`, async (route) => {
+    await route.fulfill({ json: { ...conversation, runs: [run] } });
+  });
+  await page.route("**/api/v1/action-proposals/", async (route) => {
+    await route.fulfill({ json: [] });
+  });
+
+  await page.goto("/briefings");
+  await expect(page.getByText("Briefing Workflow")).toBeVisible();
+  await page.locator("section button").first().click();
+
+  await expect(page).toHaveURL(new RegExp(`/chat/${conversationId}$`));
+  await expect(page.getByRole("heading", { name: "E2E Manual Briefing" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "E2E Briefing" })).toBeVisible();
+});

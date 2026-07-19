@@ -2,7 +2,7 @@
 
 每个阶段必须可独立验收；未列入阶段目标的功能不应顺带实现。
 
-当前进度：Phase 0 至 Phase 6 已完成；下一阶段为 Phase 7。
+当前进度：Phase 0 至 Phase 7 已完成；下一阶段为 Phase 8。
 
 ## Phase 0：工程骨架
 
@@ -76,6 +76,7 @@
 
 ## Phase 7：Briefing Workflow
 
+- 状态：已完成。
 - 目标：建立确定性收集与 Agent 编辑相结合的简报流程。
 - 后端：BriefingDefinition/Run、Registry、日历/任务 Section、Editor Agent、Handoff。
 - 前端：简报配置、手动运行、结果与来源展示。
@@ -167,3 +168,11 @@
 | T049 | 实现 Command 恢复、Celery 执行和成功/失败审计（已完成） | Phase 6 |
 | T050 | 实现审批列表、Chat 审批卡片和编辑后批准（已完成） | Phase 6 |
 | T051 | 完成 OpenAPI、测试、ADR 与 Compose/E2E 验收（已完成） | Phase 6 |
+| T052 | 实现 BriefingDefinition、BriefingRun、SectionRun 与迁移（已完成） | Phase 7 |
+| T053 | 实现 Briefing Registry 与 Calendar/Task Section（已完成） | Phase 7 |
+| T054 | 实现 Section 并行收集、部分失败和确定性降级（已完成） | Phase 7 |
+| T055 | 实现结构化 Briefing Editor 与 Markdown 发布（已完成） | Phase 7 |
+| T056 | 实现 Time Steward `Command.PARENT` Handoff 与消息协议（已完成） | Phase 7 |
+| T057 | 实现简报配置、手动运行、结果与来源 API/页面（已完成） | Phase 7 |
+| T058 | 实现普通聊天、手动简报和自动简报会话分类（已完成） | Phase 7 |
+| T059 | 完成 OpenAPI、测试、ADR 与 Phase 7 验收（已完成） | Phase 7 |

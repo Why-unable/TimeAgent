@@ -3,6 +3,7 @@ import { apiRequest } from "./client";
 export interface Conversation {
   id: string;
   title: string;
+  kind: "chat" | "manual_briefing" | "scheduled_briefing";
   created_at: string;
   updated_at: string;
 }
@@ -14,6 +15,9 @@ export interface AgentRun {
   conversation_id: string;
   operation_id: string;
   request_id: string;
+  trigger_type: string;
+  trigger_payload: Record<string, unknown>;
+  synthetic_input: boolean;
   status: PersistedRunStatus;
   input_message: string;
   final_response: string;

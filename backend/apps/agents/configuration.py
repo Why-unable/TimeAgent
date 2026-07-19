@@ -60,17 +60,13 @@ class ModelDefinition(StrictConfigModel):
     def validate_provider_options(self) -> Self:
         if self.provider == "anthropic":
             if self.max_completion_tokens is not None:
-                raise ValueError(
-                    "anthropic models use max_tokens, not max_completion_tokens"
-                )
+                raise ValueError("anthropic models use max_tokens, not max_completion_tokens")
             if self.reasoning_effort is not None:
                 raise ValueError("anthropic models do not support reasoning_effort")
             if self.extra_body:
                 raise ValueError("anthropic models do not accept extra_body")
             if self.base_url and self.base_url.rstrip("/").endswith("/v1"):
-                raise ValueError(
-                    "anthropic base_url should be the API root without a trailing /v1"
-                )
+                raise ValueError("anthropic base_url should be the API root without a trailing /v1")
         if self.provider == "openai_compatible" and self.max_tokens is not None:
             raise ValueError(
                 "openai_compatible models use max_completion_tokens or extra_body, not max_tokens"
@@ -81,6 +77,7 @@ class ModelDefinition(StrictConfigModel):
 class AgentDefinition(StrictConfigModel):
     default_model: str
     fallback_models: list[str] = Field(default_factory=list)
+    briefing_editor_model: str | None = None
 
 
 class GraphDefinition(StrictConfigModel):
@@ -136,6 +133,11 @@ class TimeAgentConfig(StrictConfigModel):
         if unknown_fallbacks:
             names = ", ".join(sorted(unknown_fallbacks))
             raise ValueError(f"agent.fallback_models reference unknown model aliases: {names}")
+        if (
+            self.agent.briefing_editor_model is not None
+            and self.agent.briefing_editor_model not in self.models
+        ):
+            raise ValueError("agent.briefing_editor_model must reference a configured model alias")
         return self
 
     def selected_model(self, name: str | None = None) -> ModelDefinition:

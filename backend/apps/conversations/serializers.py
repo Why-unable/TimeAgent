@@ -8,7 +8,7 @@ from apps.conversations.models import AgentEvent, AgentRun, Conversation
 class ConversationSerializer(serializers.ModelSerializer[Conversation]):
     class Meta:
         model = Conversation
-        fields = ["id", "title", "created_at", "updated_at"]
+        fields = ["id", "title", "kind", "created_at", "updated_at"]
         read_only_fields = fields
 
 
@@ -32,6 +32,9 @@ class AgentRunSerializer(serializers.ModelSerializer[AgentRun]):
             "conversation_id",
             "operation_id",
             "request_id",
+            "trigger_type",
+            "trigger_payload",
+            "synthetic_input",
             "status",
             "input_message",
             "final_response",
@@ -48,7 +51,7 @@ class ConversationDetailSerializer(serializers.ModelSerializer[Conversation]):
 
     class Meta:
         model = Conversation
-        fields = ["id", "title", "created_at", "updated_at", "runs"]
+        fields = ["id", "title", "kind", "created_at", "updated_at", "runs"]
         read_only_fields = fields
 
 

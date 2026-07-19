@@ -44,6 +44,18 @@ def state_from_trigger(envelope: TriggerEnvelope) -> AppState:
     messages: list[AnyMessage] = []
     if envelope.trigger_type == "user_message":
         messages = [HumanMessage(content=required_payload_string(envelope.payload, "message"))]
+    elif envelope.trigger_type in {"manual_briefing", "scheduled_briefing"}:
+        synthetic_message = envelope.payload.get("synthetic_message")
+        if isinstance(synthetic_message, str) and synthetic_message.strip():
+            messages = [
+                HumanMessage(
+                    content=synthetic_message.strip(),
+                    additional_kwargs={
+                        "synthetic": True,
+                        "source": envelope.trigger_type,
+                    },
+                )
+            ]
 
     state: AppState = {
         "messages": messages,

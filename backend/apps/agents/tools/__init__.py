@@ -1,4 +1,5 @@
 from apps.agents.tools.event_tools import EVENT_TOOLS
+from apps.agents.tools.handoff_tools import HANDOFF_TOOLS
 from apps.agents.tools.planning_tools import PLANNING_TOOLS
 from apps.agents.tools.preference_tools import PREFERENCE_TOOLS
 from apps.agents.tools.reminder_tools import REMINDER_TOOLS
@@ -12,8 +13,9 @@ READ_ONLY_TOOLS = [
     *TASK_TOOLS[:2],
     *REMINDER_TOOLS[:2],
     *PLANNING_TOOLS,
+    *HANDOFF_TOOLS,
 ]
 WRITE_TOOLS = [*EVENT_TOOLS[3:], *TASK_TOOLS[2:], *REMINDER_TOOLS[2:]]
 TIME_STEWARD_TOOLS = [*READ_ONLY_TOOLS, *WRITE_TOOLS]
 
-__all__ = ["READ_ONLY_TOOLS", "TIME_STEWARD_TOOLS", "WRITE_TOOLS"]
+__all__ = ["HANDOFF_TOOLS", "READ_ONLY_TOOLS", "TIME_STEWARD_TOOLS", "WRITE_TOOLS"]

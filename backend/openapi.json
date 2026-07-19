@@ -1,2716 +1,2298 @@
-{
-    "openapi": "3.0.3",
-    "info": {
-        "title": "Time Agent API",
-        "version": "0.1.0",
-        "description": "Time Agent backend contract"
-    },
-    "paths": {
-        "/api/v1/action-proposals/": {
-            "get": {
-                "operationId": "api_v1_action_proposals_list",
-                "parameters": [
-                    {
-                        "in": "query",
-                        "name": "status",
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                ],
-                "tags": [
-                    "api"
-                ],
-                "security": [
-                    {
-                        "cookieAuth": []
-                    },
-                    {
-                        "basicAuth": []
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "array",
-                                    "items": {
-                                        "$ref": "#/components/schemas/ActionProposal"
-                                    }
-                                }
-                            }
-                        },
-                        "description": ""
-                    }
-                }
-            }
-        },
-        "/api/v1/action-proposals/{proposal_id}/": {
-            "get": {
-                "operationId": "api_v1_action_proposals_retrieve",
-                "parameters": [
-                    {
-                        "in": "path",
-                        "name": "proposal_id",
-                        "schema": {
-                            "type": "string",
-                            "format": "uuid"
-                        },
-                        "required": true
-                    }
-                ],
-                "tags": [
-                    "api"
-                ],
-                "security": [
-                    {
-                        "cookieAuth": []
-                    },
-                    {
-                        "basicAuth": []
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/ActionProposal"
-                                }
-                            }
-                        },
-                        "description": ""
-                    }
-                }
-            }
-        },
-        "/api/v1/action-proposals/{proposal_id}/approve/": {
-            "post": {
-                "operationId": "api_v1_action_proposals_approve_create",
-                "parameters": [
-                    {
-                        "in": "path",
-                        "name": "proposal_id",
-                        "schema": {
-                            "type": "string",
-                            "format": "uuid"
-                        },
-                        "required": true
-                    }
-                ],
-                "tags": [
-                    "api"
-                ],
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "$ref": "#/components/schemas/ProposalDecision"
-                            }
-                        },
-                        "application/x-www-form-urlencoded": {
-                            "schema": {
-                                "$ref": "#/components/schemas/ProposalDecision"
-                            }
-                        },
-                        "multipart/form-data": {
-                            "schema": {
-                                "$ref": "#/components/schemas/ProposalDecision"
-                            }
-                        }
-                    },
-                    "required": true
-                },
-                "security": [
-                    {
-                        "cookieAuth": []
-                    },
-                    {
-                        "basicAuth": []
-                    }
-                ],
-                "responses": {
-                    "202": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/ProposalDecisionResponse"
-                                }
-                            }
-                        },
-                        "description": ""
-                    },
-                    "200": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/ProposalDecisionResponse"
-                                }
-                            }
-                        },
-                        "description": ""
-                    },
-                    "409": {
-                        "description": "No response body"
-                    }
-                }
-            }
-        },
-        "/api/v1/action-proposals/{proposal_id}/edit/": {
-            "post": {
-                "operationId": "api_v1_action_proposals_edit_create",
-                "parameters": [
-                    {
-                        "in": "path",
-                        "name": "proposal_id",
-                        "schema": {
-                            "type": "string",
-                            "format": "uuid"
-                        },
-                        "required": true
-                    }
-                ],
-                "tags": [
-                    "api"
-                ],
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "$ref": "#/components/schemas/ProposalEditDecision"
-                            }
-                        },
-                        "application/x-www-form-urlencoded": {
-                            "schema": {
-                                "$ref": "#/components/schemas/ProposalEditDecision"
-                            }
-                        },
-                        "multipart/form-data": {
-                            "schema": {
-                                "$ref": "#/components/schemas/ProposalEditDecision"
-                            }
-                        }
-                    },
-                    "required": true
-                },
-                "security": [
-                    {
-                        "cookieAuth": []
-                    },
-                    {
-                        "basicAuth": []
-                    }
-                ],
-                "responses": {
-                    "202": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/ProposalDecisionResponse"
-                                }
-                            }
-                        },
-                        "description": ""
-                    },
-                    "200": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/ProposalDecisionResponse"
-                                }
-                            }
-                        },
-                        "description": ""
-                    },
-                    "409": {
-                        "description": "No response body"
-                    }
-                }
-            }
-        },
-        "/api/v1/action-proposals/{proposal_id}/reject/": {
-            "post": {
-                "operationId": "api_v1_action_proposals_reject_create",
-                "parameters": [
-                    {
-                        "in": "path",
-                        "name": "proposal_id",
-                        "schema": {
-                            "type": "string",
-                            "format": "uuid"
-                        },
-                        "required": true
-                    }
-                ],
-                "tags": [
-                    "api"
-                ],
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "$ref": "#/components/schemas/ProposalDecision"
-                            }
-                        },
-                        "application/x-www-form-urlencoded": {
-                            "schema": {
-                                "$ref": "#/components/schemas/ProposalDecision"
-                            }
-                        },
-                        "multipart/form-data": {
-                            "schema": {
-                                "$ref": "#/components/schemas/ProposalDecision"
-                            }
-                        }
-                    },
-                    "required": true
-                },
-                "security": [
-                    {
-                        "cookieAuth": []
-                    },
-                    {
-                        "basicAuth": []
-                    }
-                ],
-                "responses": {
-                    "202": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/ProposalDecisionResponse"
-                                }
-                            }
-                        },
-                        "description": ""
-                    },
-                    "200": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/ProposalDecisionResponse"
-                                }
-                            }
-                        },
-                        "description": ""
-                    },
-                    "409": {
-                        "description": "No response body"
-                    }
-                }
-            }
-        },
-        "/api/v1/chat/conversations/": {
-            "get": {
-                "operationId": "api_v1_chat_conversations_list",
-                "tags": [
-                    "api"
-                ],
-                "security": [
-                    {
-                        "cookieAuth": []
-                    },
-                    {
-                        "basicAuth": []
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "array",
-                                    "items": {
-                                        "$ref": "#/components/schemas/Conversation"
-                                    }
-                                }
-                            }
-                        },
-                        "description": ""
-                    }
-                }
-            },
-            "post": {
-                "operationId": "api_v1_chat_conversations_create",
-                "tags": [
-                    "api"
-                ],
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "$ref": "#/components/schemas/CreateConversation"
-                            }
-                        },
-                        "application/x-www-form-urlencoded": {
-                            "schema": {
-                                "$ref": "#/components/schemas/CreateConversation"
-                            }
-                        },
-                        "multipart/form-data": {
-                            "schema": {
-                                "$ref": "#/components/schemas/CreateConversation"
-                            }
-                        }
-                    }
-                },
-                "security": [
-                    {
-                        "cookieAuth": []
-                    },
-                    {
-                        "basicAuth": []
-                    }
-                ],
-                "responses": {
-                    "201": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/Conversation"
-                                }
-                            }
-                        },
-                        "description": ""
-                    }
-                }
-            }
-        },
-        "/api/v1/chat/conversations/{conversation_id}/": {
-            "get": {
-                "operationId": "api_v1_chat_conversations_retrieve",
-                "parameters": [
-                    {
-                        "in": "path",
-                        "name": "conversation_id",
-                        "schema": {
-                            "type": "string",
-                            "format": "uuid"
-                        },
-                        "required": true
-                    }
-                ],
-                "tags": [
-                    "api"
-                ],
-                "security": [
-                    {
-                        "cookieAuth": []
-                    },
-                    {
-                        "basicAuth": []
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/ConversationDetail"
-                                }
-                            }
-                        },
-                        "description": ""
-                    }
-                }
-            }
-        },
-        "/api/v1/chat/messages/": {
-            "post": {
-                "operationId": "api_v1_chat_messages_create",
-                "tags": [
-                    "api"
-                ],
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "$ref": "#/components/schemas/CreateMessage"
-                            }
-                        },
-                        "application/x-www-form-urlencoded": {
-                            "schema": {
-                                "$ref": "#/components/schemas/CreateMessage"
-                            }
-                        },
-                        "multipart/form-data": {
-                            "schema": {
-                                "$ref": "#/components/schemas/CreateMessage"
-                            }
-                        }
-                    },
-                    "required": true
-                },
-                "security": [
-                    {
-                        "cookieAuth": []
-                    },
-                    {
-                        "basicAuth": []
-                    }
-                ],
-                "responses": {
-                    "202": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/AgentRun"
-                                }
-                            }
-                        },
-                        "description": ""
-                    }
-                }
-            }
-        },
-        "/api/v1/chat/runs/{run_id}/": {
-            "get": {
-                "operationId": "api_v1_chat_runs_retrieve",
-                "parameters": [
-                    {
-                        "in": "path",
-                        "name": "run_id",
-                        "schema": {
-                            "type": "string",
-                            "format": "uuid"
-                        },
-                        "required": true
-                    }
-                ],
-                "tags": [
-                    "api"
-                ],
-                "security": [
-                    {
-                        "cookieAuth": []
-                    },
-                    {
-                        "basicAuth": []
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/AgentRun"
-                                }
-                            }
-                        },
-                        "description": ""
-                    }
-                }
-            }
-        },
-        "/api/v1/chat/runs/{run_id}/cancel/": {
-            "post": {
-                "operationId": "api_v1_chat_runs_cancel_create",
-                "parameters": [
-                    {
-                        "in": "path",
-                        "name": "run_id",
-                        "schema": {
-                            "type": "string",
-                            "format": "uuid"
-                        },
-                        "required": true
-                    }
-                ],
-                "tags": [
-                    "api"
-                ],
-                "security": [
-                    {
-                        "cookieAuth": []
-                    },
-                    {
-                        "basicAuth": []
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/AgentRun"
-                                }
-                            }
-                        },
-                        "description": ""
-                    },
-                    "409": {
-                        "description": "No response body"
-                    }
-                }
-            }
-        },
-        "/api/v1/chat/runs/{run_id}/events/": {
-            "get": {
-                "operationId": "api_v1_chat_runs_events_retrieve",
-                "parameters": [
-                    {
-                        "in": "path",
-                        "name": "run_id",
-                        "schema": {
-                            "type": "string",
-                            "format": "uuid"
-                        },
-                        "required": true
-                    }
-                ],
-                "tags": [
-                    "api"
-                ],
-                "security": [
-                    {
-                        "cookieAuth": []
-                    },
-                    {
-                        "basicAuth": []
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "SSE stream"
-                    }
-                }
-            }
-        },
-        "/api/v1/events/": {
-            "get": {
-                "operationId": "api_v1_events_list",
-                "parameters": [
-                    {
-                        "in": "query",
-                        "name": "ends_after",
-                        "schema": {
-                            "type": "string",
-                            "format": "date-time"
-                        }
-                    },
-                    {
-                        "in": "query",
-                        "name": "starts_before",
-                        "schema": {
-                            "type": "string",
-                            "format": "date-time"
-                        }
-                    },
-                    {
-                        "in": "query",
-                        "name": "status",
-                        "schema": {
-                            "type": "array",
-                            "items": {
-                                "enum": [
-                                    "tentative",
-                                    "confirmed",
-                                    "cancelled"
-                                ],
-                                "type": "string",
-                                "description": "* `tentative` - Tentative\n* `confirmed` - Confirmed\n* `cancelled` - Cancelled"
-                            }
-                        }
-                    }
-                ],
-                "tags": [
-                    "api"
-                ],
-                "security": [
-                    {
-                        "cookieAuth": []
-                    },
-                    {
-                        "basicAuth": []
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "array",
-                                    "items": {
-                                        "$ref": "#/components/schemas/CalendarEvent"
-                                    }
-                                }
-                            }
-                        },
-                        "description": ""
-                    }
-                }
-            },
-            "post": {
-                "operationId": "api_v1_events_create",
-                "tags": [
-                    "api"
-                ],
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "$ref": "#/components/schemas/CreateCalendarEvent"
-                            }
-                        },
-                        "application/x-www-form-urlencoded": {
-                            "schema": {
-                                "$ref": "#/components/schemas/CreateCalendarEvent"
-                            }
-                        },
-                        "multipart/form-data": {
-                            "schema": {
-                                "$ref": "#/components/schemas/CreateCalendarEvent"
-                            }
-                        }
-                    },
-                    "required": true
-                },
-                "security": [
-                    {
-                        "cookieAuth": []
-                    },
-                    {
-                        "basicAuth": []
-                    }
-                ],
-                "responses": {
-                    "201": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/CalendarEvent"
-                                }
-                            }
-                        },
-                        "description": ""
-                    }
-                }
-            }
-        },
-        "/api/v1/events/{event_id}/": {
-            "get": {
-                "operationId": "api_v1_events_retrieve",
-                "parameters": [
-                    {
-                        "in": "path",
-                        "name": "event_id",
-                        "schema": {
-                            "type": "string",
-                            "format": "uuid"
-                        },
-                        "required": true
-                    }
-                ],
-                "tags": [
-                    "api"
-                ],
-                "security": [
-                    {
-                        "cookieAuth": []
-                    },
-                    {
-                        "basicAuth": []
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/CalendarEvent"
-                                }
-                            }
-                        },
-                        "description": ""
-                    }
-                }
-            },
-            "patch": {
-                "operationId": "api_v1_events_partial_update",
-                "parameters": [
-                    {
-                        "in": "path",
-                        "name": "event_id",
-                        "schema": {
-                            "type": "string",
-                            "format": "uuid"
-                        },
-                        "required": true
-                    },
-                    {
-                        "in": "query",
-                        "name": "expected_version",
-                        "schema": {
-                            "type": "integer",
-                            "minimum": 1
-                        },
-                        "required": true
-                    }
-                ],
-                "tags": [
-                    "api"
-                ],
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "$ref": "#/components/schemas/PatchedUpdateCalendarEvent"
-                            }
-                        },
-                        "application/x-www-form-urlencoded": {
-                            "schema": {
-                                "$ref": "#/components/schemas/PatchedUpdateCalendarEvent"
-                            }
-                        },
-                        "multipart/form-data": {
-                            "schema": {
-                                "$ref": "#/components/schemas/PatchedUpdateCalendarEvent"
-                            }
-                        }
-                    }
-                },
-                "security": [
-                    {
-                        "cookieAuth": []
-                    },
-                    {
-                        "basicAuth": []
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/CalendarEvent"
-                                }
-                            }
-                        },
-                        "description": ""
-                    },
-                    "409": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/ErrorResponse"
-                                }
-                            }
-                        },
-                        "description": ""
-                    }
-                }
-            },
-            "delete": {
-                "operationId": "api_v1_events_destroy",
-                "parameters": [
-                    {
-                        "in": "path",
-                        "name": "event_id",
-                        "schema": {
-                            "type": "string",
-                            "format": "uuid"
-                        },
-                        "required": true
-                    },
-                    {
-                        "in": "query",
-                        "name": "expected_version",
-                        "schema": {
-                            "type": "integer",
-                            "minimum": 1
-                        },
-                        "required": true
-                    }
-                ],
-                "tags": [
-                    "api"
-                ],
-                "security": [
-                    {
-                        "cookieAuth": []
-                    },
-                    {
-                        "basicAuth": []
-                    }
-                ],
-                "responses": {
-                    "204": {
-                        "description": "No response body"
-                    },
-                    "409": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/ErrorResponse"
-                                }
-                            }
-                        },
-                        "description": ""
-                    }
-                }
-            }
-        },
-        "/api/v1/preferences/me/": {
-            "get": {
-                "operationId": "api_v1_preferences_me_retrieve",
-                "tags": [
-                    "api"
-                ],
-                "security": [
-                    {
-                        "cookieAuth": []
-                    },
-                    {
-                        "basicAuth": []
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/UserPreference"
-                                }
-                            }
-                        },
-                        "description": ""
-                    }
-                }
-            },
-            "patch": {
-                "operationId": "api_v1_preferences_me_partial_update",
-                "tags": [
-                    "api"
-                ],
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "$ref": "#/components/schemas/PatchedUserPreference"
-                            }
-                        },
-                        "application/x-www-form-urlencoded": {
-                            "schema": {
-                                "$ref": "#/components/schemas/PatchedUserPreference"
-                            }
-                        },
-                        "multipart/form-data": {
-                            "schema": {
-                                "$ref": "#/components/schemas/PatchedUserPreference"
-                            }
-                        }
-                    }
-                },
-                "security": [
-                    {
-                        "cookieAuth": []
-                    },
-                    {
-                        "basicAuth": []
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/UserPreference"
-                                }
-                            }
-                        },
-                        "description": ""
-                    }
-                }
-            }
-        },
-        "/api/v1/reminders/": {
-            "get": {
-                "operationId": "api_v1_reminders_list",
-                "tags": [
-                    "api"
-                ],
-                "security": [
-                    {
-                        "cookieAuth": []
-                    },
-                    {
-                        "basicAuth": []
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "array",
-                                    "items": {
-                                        "$ref": "#/components/schemas/Reminder"
-                                    }
-                                }
-                            }
-                        },
-                        "description": ""
-                    }
-                }
-            },
-            "post": {
-                "operationId": "api_v1_reminders_create",
-                "tags": [
-                    "api"
-                ],
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "$ref": "#/components/schemas/CreateReminder"
-                            }
-                        },
-                        "application/x-www-form-urlencoded": {
-                            "schema": {
-                                "$ref": "#/components/schemas/CreateReminder"
-                            }
-                        },
-                        "multipart/form-data": {
-                            "schema": {
-                                "$ref": "#/components/schemas/CreateReminder"
-                            }
-                        }
-                    },
-                    "required": true
-                },
-                "security": [
-                    {
-                        "cookieAuth": []
-                    },
-                    {
-                        "basicAuth": []
-                    }
-                ],
-                "responses": {
-                    "201": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/Reminder"
-                                }
-                            }
-                        },
-                        "description": ""
-                    }
-                }
-            }
-        },
-        "/api/v1/reminders/{reminder_id}/": {
-            "delete": {
-                "operationId": "api_v1_reminders_destroy",
-                "parameters": [
-                    {
-                        "in": "path",
-                        "name": "reminder_id",
-                        "schema": {
-                            "type": "string",
-                            "format": "uuid"
-                        },
-                        "required": true
-                    }
-                ],
-                "tags": [
-                    "api"
-                ],
-                "security": [
-                    {
-                        "cookieAuth": []
-                    },
-                    {
-                        "basicAuth": []
-                    }
-                ],
-                "responses": {
-                    "204": {
-                        "description": "No response body"
-                    },
-                    "409": {
-                        "description": "Reminder can no longer be cancelled"
-                    }
-                }
-            }
-        },
-        "/api/v1/tasks/": {
-            "get": {
-                "operationId": "api_v1_tasks_list",
-                "parameters": [
-                    {
-                        "in": "query",
-                        "name": "due_before",
-                        "schema": {
-                            "type": "string",
-                            "format": "date-time"
-                        }
-                    },
-                    {
-                        "in": "query",
-                        "name": "planned_ends_after",
-                        "schema": {
-                            "type": "string",
-                            "format": "date-time"
-                        }
-                    },
-                    {
-                        "in": "query",
-                        "name": "planned_starts_before",
-                        "schema": {
-                            "type": "string",
-                            "format": "date-time"
-                        }
-                    },
-                    {
-                        "in": "query",
-                        "name": "status",
-                        "schema": {
-                            "type": "array",
-                            "items": {
-                                "enum": [
-                                    "pending",
-                                    "in_progress",
-                                    "completed",
-                                    "cancelled"
-                                ],
-                                "type": "string",
-                                "description": "* `pending` - Pending\n* `in_progress` - In progress\n* `completed` - Completed\n* `cancelled` - Cancelled"
-                            }
-                        }
-                    }
-                ],
-                "tags": [
-                    "api"
-                ],
-                "security": [
-                    {
-                        "cookieAuth": []
-                    },
-                    {
-                        "basicAuth": []
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "array",
-                                    "items": {
-                                        "$ref": "#/components/schemas/Task"
-                                    }
-                                }
-                            }
-                        },
-                        "description": ""
-                    }
-                }
-            },
-            "post": {
-                "operationId": "api_v1_tasks_create",
-                "tags": [
-                    "api"
-                ],
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "$ref": "#/components/schemas/CreateTask"
-                            }
-                        },
-                        "application/x-www-form-urlencoded": {
-                            "schema": {
-                                "$ref": "#/components/schemas/CreateTask"
-                            }
-                        },
-                        "multipart/form-data": {
-                            "schema": {
-                                "$ref": "#/components/schemas/CreateTask"
-                            }
-                        }
-                    },
-                    "required": true
-                },
-                "security": [
-                    {
-                        "cookieAuth": []
-                    },
-                    {
-                        "basicAuth": []
-                    }
-                ],
-                "responses": {
-                    "201": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/Task"
-                                }
-                            }
-                        },
-                        "description": ""
-                    }
-                }
-            }
-        },
-        "/api/v1/tasks/{task_id}/": {
-            "get": {
-                "operationId": "api_v1_tasks_retrieve",
-                "parameters": [
-                    {
-                        "in": "path",
-                        "name": "task_id",
-                        "schema": {
-                            "type": "string",
-                            "format": "uuid"
-                        },
-                        "required": true
-                    }
-                ],
-                "tags": [
-                    "api"
-                ],
-                "security": [
-                    {
-                        "cookieAuth": []
-                    },
-                    {
-                        "basicAuth": []
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/Task"
-                                }
-                            }
-                        },
-                        "description": ""
-                    }
-                }
-            },
-            "patch": {
-                "operationId": "api_v1_tasks_partial_update",
-                "parameters": [
-                    {
-                        "in": "path",
-                        "name": "task_id",
-                        "schema": {
-                            "type": "string",
-                            "format": "uuid"
-                        },
-                        "required": true
-                    }
-                ],
-                "tags": [
-                    "api"
-                ],
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "$ref": "#/components/schemas/PatchedUpdateTask"
-                            }
-                        },
-                        "application/x-www-form-urlencoded": {
-                            "schema": {
-                                "$ref": "#/components/schemas/PatchedUpdateTask"
-                            }
-                        },
-                        "multipart/form-data": {
-                            "schema": {
-                                "$ref": "#/components/schemas/PatchedUpdateTask"
-                            }
-                        }
-                    }
-                },
-                "security": [
-                    {
-                        "cookieAuth": []
-                    },
-                    {
-                        "basicAuth": []
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/Task"
-                                }
-                            }
-                        },
-                        "description": ""
-                    }
-                }
-            }
-        },
-        "/api/v1/tasks/{task_id}/complete/": {
-            "post": {
-                "operationId": "api_v1_tasks_complete_create",
-                "parameters": [
-                    {
-                        "in": "path",
-                        "name": "task_id",
-                        "schema": {
-                            "type": "string",
-                            "format": "uuid"
-                        },
-                        "required": true
-                    }
-                ],
-                "tags": [
-                    "api"
-                ],
-                "security": [
-                    {
-                        "cookieAuth": []
-                    },
-                    {
-                        "basicAuth": []
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/Task"
-                                }
-                            }
-                        },
-                        "description": ""
-                    },
-                    "409": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/ErrorResponse"
-                                }
-                            }
-                        },
-                        "description": ""
-                    }
-                }
-            }
-        },
-        "/api/v1/today/": {
-            "get": {
-                "operationId": "api_v1_today_retrieve",
-                "tags": [
-                    "api"
-                ],
-                "security": [
-                    {
-                        "cookieAuth": []
-                    },
-                    {
-                        "basicAuth": []
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/TodaySummary"
-                                }
-                            }
-                        },
-                        "description": ""
-                    }
-                }
-            }
-        },
-        "/health/live": {
-            "get": {
-                "operationId": "health_live_retrieve",
-                "tags": [
-                    "health"
-                ],
-                "security": [
-                    {
-                        "cookieAuth": []
-                    },
-                    {
-                        "basicAuth": []
-                    },
-                    {}
-                ],
-                "responses": {
-                    "200": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/LiveResponse"
-                                }
-                            }
-                        },
-                        "description": ""
-                    }
-                }
-            }
-        },
-        "/health/ready": {
-            "get": {
-                "operationId": "health_ready_retrieve",
-                "tags": [
-                    "health"
-                ],
-                "security": [
-                    {
-                        "cookieAuth": []
-                    },
-                    {
-                        "basicAuth": []
-                    },
-                    {}
-                ],
-                "responses": {
-                    "200": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/ReadyResponse"
-                                }
-                            }
-                        },
-                        "description": ""
-                    },
-                    "503": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/ReadyResponse"
-                                }
-                            }
-                        },
-                        "description": ""
-                    }
-                }
-            }
-        }
-    },
-    "components": {
-        "schemas": {
-            "ActionProposal": {
-                "type": "object",
-                "properties": {
-                    "id": {
-                        "type": "string",
-                        "format": "uuid",
-                        "readOnly": true
-                    },
-                    "conversation_id": {
-                        "type": "string",
-                        "format": "uuid",
-                        "readOnly": true
-                    },
-                    "agent_run_id": {
-                        "type": "string",
-                        "format": "uuid",
-                        "readOnly": true
-                    },
-                    "original_request": {
-                        "type": "string",
-                        "readOnly": true
-                    },
-                    "explanation": {
-                        "type": "string",
-                        "readOnly": true
-                    },
-                    "action_type": {
-                        "type": "string",
-                        "readOnly": true
-                    },
-                    "action_payload": {
-                        "readOnly": true
-                    },
-                    "original_payload": {
-                        "readOnly": true
-                    },
-                    "display_context": {
-                        "readOnly": true
-                    },
-                    "risk_level": {
-                        "allOf": [
-                            {
-                                "$ref": "#/components/schemas/RiskLevelEnum"
-                            }
-                        ],
-                        "readOnly": true
-                    },
-                    "status": {
-                        "allOf": [
-                            {
-                                "$ref": "#/components/schemas/ActionProposalStatusEnum"
-                            }
-                        ],
-                        "readOnly": true
-                    },
-                    "requires_approval": {
-                        "type": "boolean",
-                        "readOnly": true
-                    },
-                    "version": {
-                        "type": "integer",
-                        "readOnly": true
-                    },
-                    "expires_at": {
-                        "type": "string",
-                        "format": "date-time",
-                        "readOnly": true
-                    },
-                    "decided_at": {
-                        "type": "string",
-                        "format": "date-time",
-                        "readOnly": true,
-                        "nullable": true
-                    },
-                    "approved_at": {
-                        "type": "string",
-                        "format": "date-time",
-                        "readOnly": true,
-                        "nullable": true
-                    },
-                    "resumed_at": {
-                        "type": "string",
-                        "format": "date-time",
-                        "readOnly": true,
-                        "nullable": true
-                    },
-                    "executed_at": {
-                        "type": "string",
-                        "format": "date-time",
-                        "readOnly": true,
-                        "nullable": true
-                    },
-                    "decision_reason": {
-                        "type": "string",
-                        "readOnly": true
-                    },
-                    "execution_result": {
-                        "readOnly": true,
-                        "nullable": true
-                    },
-                    "error": {
-                        "type": "string",
-                        "readOnly": true
-                    },
-                    "created_at": {
-                        "type": "string",
-                        "format": "date-time",
-                        "readOnly": true
-                    },
-                    "updated_at": {
-                        "type": "string",
-                        "format": "date-time",
-                        "readOnly": true
-                    }
-                },
-                "required": [
-                    "action_payload",
-                    "action_type",
-                    "agent_run_id",
-                    "approved_at",
-                    "conversation_id",
-                    "created_at",
-                    "decided_at",
-                    "decision_reason",
-                    "display_context",
-                    "error",
-                    "executed_at",
-                    "execution_result",
-                    "expires_at",
-                    "explanation",
-                    "id",
-                    "original_payload",
-                    "original_request",
-                    "requires_approval",
-                    "resumed_at",
-                    "risk_level",
-                    "status",
-                    "updated_at",
-                    "version"
-                ]
-            },
-            "ActionProposalStatusEnum": {
-                "enum": [
-                    "awaiting_approval",
-                    "approved",
-                    "rejected",
-                    "executing",
-                    "executed",
-                    "failed",
-                    "expired"
-                ],
-                "type": "string",
-                "description": "* `awaiting_approval` - Awaiting approval\n* `approved` - Approved\n* `rejected` - Rejected\n* `executing` - Executing\n* `executed` - Executed\n* `failed` - Failed\n* `expired` - Expired"
-            },
-            "AgentRun": {
-                "type": "object",
-                "properties": {
-                    "id": {
-                        "type": "string",
-                        "format": "uuid",
-                        "readOnly": true
-                    },
-                    "conversation_id": {
-                        "type": "string",
-                        "format": "uuid",
-                        "readOnly": true
-                    },
-                    "operation_id": {
-                        "type": "string",
-                        "format": "uuid",
-                        "readOnly": true
-                    },
-                    "request_id": {
-                        "type": "string",
-                        "readOnly": true
-                    },
-                    "status": {
-                        "allOf": [
-                            {
-                                "$ref": "#/components/schemas/AgentRunStatusEnum"
-                            }
-                        ],
-                        "readOnly": true
-                    },
-                    "input_message": {
-                        "type": "string",
-                        "readOnly": true
-                    },
-                    "final_response": {
-                        "type": "string",
-                        "readOnly": true
-                    },
-                    "error": {
-                        "type": "string",
-                        "readOnly": true
-                    },
-                    "started_at": {
-                        "type": "string",
-                        "format": "date-time",
-                        "readOnly": true,
-                        "nullable": true
-                    },
-                    "completed_at": {
-                        "type": "string",
-                        "format": "date-time",
-                        "readOnly": true,
-                        "nullable": true
-                    },
-                    "created_at": {
-                        "type": "string",
-                        "format": "date-time",
-                        "readOnly": true
-                    }
-                },
-                "required": [
-                    "completed_at",
-                    "conversation_id",
-                    "created_at",
-                    "error",
-                    "final_response",
-                    "id",
-                    "input_message",
-                    "operation_id",
-                    "request_id",
-                    "started_at",
-                    "status"
-                ]
-            },
-            "AgentRunStatusEnum": {
-                "enum": [
-                    "pending",
-                    "running",
-                    "waiting_approval",
-                    "completed",
-                    "failed",
-                    "cancelled"
-                ],
-                "type": "string",
-                "description": "* `pending` - Pending\n* `running` - Running\n* `waiting_approval` - Waiting for approval\n* `completed` - Completed\n* `failed` - Failed\n* `cancelled` - Cancelled"
-            },
-            "CalendarEvent": {
-                "type": "object",
-                "properties": {
-                    "id": {
-                        "type": "string",
-                        "format": "uuid",
-                        "readOnly": true
-                    },
-                    "title": {
-                        "type": "string",
-                        "maxLength": 255
-                    },
-                    "description": {
-                        "type": "string"
-                    },
-                    "start_at": {
-                        "type": "string",
-                        "format": "date-time"
-                    },
-                    "end_at": {
-                        "type": "string",
-                        "format": "date-time"
-                    },
-                    "timezone": {
-                        "type": "string",
-                        "maxLength": 64
-                    },
-                    "location": {
-                        "type": "string",
-                        "maxLength": 255
-                    },
-                    "status": {
-                        "$ref": "#/components/schemas/CalendarEventStatusEnum"
-                    },
-                    "visibility": {
-                        "$ref": "#/components/schemas/VisibilityEnum"
-                    },
-                    "recurrence_rule": {
-                        "type": "string"
-                    },
-                    "source": {
-                        "type": "string",
-                        "maxLength": 64
-                    },
-                    "external_id": {
-                        "type": "string",
-                        "maxLength": 255
-                    },
-                    "created_by": {
-                        "type": "integer",
-                        "nullable": true
-                    },
-                    "version": {
-                        "type": "integer",
-                        "maximum": 9223372036854775807,
-                        "minimum": 1,
-                        "format": "int64"
-                    },
-                    "created_at": {
-                        "type": "string",
-                        "format": "date-time",
-                        "readOnly": true
-                    },
-                    "updated_at": {
-                        "type": "string",
-                        "format": "date-time",
-                        "readOnly": true
-                    }
-                },
-                "required": [
-                    "created_at",
-                    "end_at",
-                    "id",
-                    "start_at",
-                    "timezone",
-                    "title",
-                    "updated_at"
-                ]
-            },
-            "CalendarEventStatusEnum": {
-                "enum": [
-                    "tentative",
-                    "confirmed",
-                    "cancelled"
-                ],
-                "type": "string",
-                "description": "* `tentative` - Tentative\n* `confirmed` - Confirmed\n* `cancelled` - Cancelled"
-            },
-            "ChannelEnum": {
-                "enum": [
-                    "console",
-                    "email",
-                    "telegram",
-                    "browser"
-                ],
-                "type": "string",
-                "description": "* `console` - Console\n* `email` - Email\n* `telegram` - Telegram\n* `browser` - Browser"
-            },
-            "Conversation": {
-                "type": "object",
-                "properties": {
-                    "id": {
-                        "type": "string",
-                        "format": "uuid",
-                        "readOnly": true
-                    },
-                    "title": {
-                        "type": "string",
-                        "readOnly": true
-                    },
-                    "created_at": {
-                        "type": "string",
-                        "format": "date-time",
-                        "readOnly": true
-                    },
-                    "updated_at": {
-                        "type": "string",
-                        "format": "date-time",
-                        "readOnly": true
-                    }
-                },
-                "required": [
-                    "created_at",
-                    "id",
-                    "title",
-                    "updated_at"
-                ]
-            },
-            "ConversationDetail": {
-                "type": "object",
-                "properties": {
-                    "id": {
-                        "type": "string",
-                        "format": "uuid",
-                        "readOnly": true
-                    },
-                    "title": {
-                        "type": "string",
-                        "readOnly": true
-                    },
-                    "created_at": {
-                        "type": "string",
-                        "format": "date-time",
-                        "readOnly": true
-                    },
-                    "updated_at": {
-                        "type": "string",
-                        "format": "date-time",
-                        "readOnly": true
-                    },
-                    "runs": {
-                        "type": "array",
-                        "items": {
-                            "$ref": "#/components/schemas/AgentRun"
-                        },
-                        "readOnly": true
-                    }
-                },
-                "required": [
-                    "created_at",
-                    "id",
-                    "runs",
-                    "title",
-                    "updated_at"
-                ]
-            },
-            "CreateCalendarEvent": {
-                "type": "object",
-                "properties": {
-                    "title": {
-                        "type": "string",
-                        "maxLength": 255
-                    },
-                    "description": {
-                        "type": "string"
-                    },
-                    "start_at": {
-                        "type": "string",
-                        "format": "date-time"
-                    },
-                    "end_at": {
-                        "type": "string",
-                        "format": "date-time"
-                    },
-                    "timezone": {
-                        "type": "string",
-                        "maxLength": 64
-                    },
-                    "location": {
-                        "type": "string",
-                        "maxLength": 255
-                    },
-                    "status": {
-                        "$ref": "#/components/schemas/CalendarEventStatusEnum"
-                    },
-                    "visibility": {
-                        "$ref": "#/components/schemas/VisibilityEnum"
-                    },
-                    "recurrence_rule": {
-                        "type": "string"
-                    },
-                    "source": {
-                        "type": "string",
-                        "maxLength": 64
-                    },
-                    "external_id": {
-                        "type": "string",
-                        "maxLength": 255
-                    }
-                },
-                "required": [
-                    "end_at",
-                    "start_at",
-                    "timezone",
-                    "title"
-                ]
-            },
-            "CreateConversation": {
-                "type": "object",
-                "properties": {
-                    "title": {
-                        "type": "string",
-                        "default": "",
-                        "maxLength": 255
-                    }
-                }
-            },
-            "CreateMessage": {
-                "type": "object",
-                "properties": {
-                    "conversation_id": {
-                        "type": "string",
-                        "format": "uuid"
-                    },
-                    "message": {
-                        "type": "string",
-                        "maxLength": 10000
-                    },
-                    "operation_id": {
-                        "type": "string",
-                        "format": "uuid"
-                    }
-                },
-                "required": [
-                    "conversation_id",
-                    "message"
-                ]
-            },
-            "CreateReminder": {
-                "type": "object",
-                "properties": {
-                    "target_type": {
-                        "$ref": "#/components/schemas/TargetTypeEnum"
-                    },
-                    "target_id": {
-                        "type": "string",
-                        "format": "uuid",
-                        "nullable": true
-                    },
-                    "title": {
-                        "type": "string",
-                        "maxLength": 255
-                    },
-                    "trigger_at": {
-                        "type": "string",
-                        "format": "date-time"
-                    },
-                    "timezone": {
-                        "type": "string",
-                        "maxLength": 64
-                    },
-                    "channel": {
-                        "$ref": "#/components/schemas/ChannelEnum"
-                    },
-                    "deduplication_key": {
-                        "type": "string",
-                        "maxLength": 128
-                    }
-                },
-                "required": [
-                    "deduplication_key",
-                    "timezone",
-                    "title",
-                    "trigger_at"
-                ]
-            },
-            "CreateTask": {
-                "type": "object",
-                "properties": {
-                    "project": {
-                        "type": "string",
-                        "maxLength": 255
-                    },
-                    "parent_task": {
-                        "type": "string",
-                        "format": "uuid",
-                        "nullable": true
-                    },
-                    "title": {
-                        "type": "string",
-                        "maxLength": 255
-                    },
-                    "description": {
-                        "type": "string"
-                    },
-                    "priority": {
-                        "$ref": "#/components/schemas/PriorityEnum"
-                    },
-                    "due_at": {
-                        "type": "string",
-                        "format": "date-time",
-                        "nullable": true
-                    },
-                    "estimated_minutes": {
-                        "type": "integer",
-                        "minimum": 1,
-                        "nullable": true
-                    },
-                    "planned_start_at": {
-                        "type": "string",
-                        "format": "date-time",
-                        "nullable": true
-                    },
-                    "planned_end_at": {
-                        "type": "string",
-                        "format": "date-time",
-                        "nullable": true
-                    },
-                    "source": {
-                        "type": "string",
-                        "maxLength": 64
-                    },
-                    "tags": {
-                        "type": "array",
-                        "items": {
-                            "type": "string"
-                        }
-                    }
-                },
-                "required": [
-                    "title"
-                ]
-            },
-            "DependencyChecks": {
-                "type": "object",
-                "properties": {
-                    "database": {
-                        "$ref": "#/components/schemas/DependencyStatusEnum"
-                    },
-                    "redis": {
-                        "$ref": "#/components/schemas/DependencyStatusEnum"
-                    }
-                },
-                "required": [
-                    "database",
-                    "redis"
-                ]
-            },
-            "DependencyStatusEnum": {
-                "enum": [
-                    "ok",
-                    "error"
-                ],
-                "type": "string",
-                "description": "* `ok` - OK\n* `error` - Error"
-            },
-            "ErrorResponse": {
-                "type": "object",
-                "properties": {
-                    "detail": {
-                        "type": "string"
-                    }
-                },
-                "required": [
-                    "detail"
-                ]
-            },
-            "KindEnum": {
-                "enum": [
-                    "event",
-                    "task"
-                ],
-                "type": "string",
-                "description": "* `event` - event\n* `task` - task"
-            },
-            "LiveResponse": {
-                "type": "object",
-                "properties": {
-                    "status": {
-                        "$ref": "#/components/schemas/LiveResponseStatusEnum"
-                    }
-                },
-                "required": [
-                    "status"
-                ]
-            },
-            "LiveResponseStatusEnum": {
-                "enum": [
-                    "alive"
-                ],
-                "type": "string",
-                "description": "* `alive` - alive"
-            },
-            "PatchedUpdateCalendarEvent": {
-                "type": "object",
-                "properties": {
-                    "title": {
-                        "type": "string",
-                        "maxLength": 255
-                    },
-                    "description": {
-                        "type": "string"
-                    },
-                    "start_at": {
-                        "type": "string",
-                        "format": "date-time"
-                    },
-                    "end_at": {
-                        "type": "string",
-                        "format": "date-time"
-                    },
-                    "timezone": {
-                        "type": "string",
-                        "maxLength": 64
-                    },
-                    "location": {
-                        "type": "string",
-                        "maxLength": 255
-                    },
-                    "status": {
-                        "$ref": "#/components/schemas/CalendarEventStatusEnum"
-                    },
-                    "visibility": {
-                        "$ref": "#/components/schemas/VisibilityEnum"
-                    },
-                    "recurrence_rule": {
-                        "type": "string"
-                    },
-                    "source": {
-                        "type": "string",
-                        "maxLength": 64
-                    },
-                    "external_id": {
-                        "type": "string",
-                        "maxLength": 255
-                    }
-                }
-            },
-            "PatchedUpdateTask": {
-                "type": "object",
-                "properties": {
-                    "project": {
-                        "type": "string",
-                        "maxLength": 255
-                    },
-                    "parent_task": {
-                        "type": "string",
-                        "format": "uuid",
-                        "nullable": true
-                    },
-                    "title": {
-                        "type": "string",
-                        "maxLength": 255
-                    },
-                    "description": {
-                        "type": "string"
-                    },
-                    "priority": {
-                        "$ref": "#/components/schemas/PriorityEnum"
-                    },
-                    "due_at": {
-                        "type": "string",
-                        "format": "date-time",
-                        "nullable": true
-                    },
-                    "estimated_minutes": {
-                        "type": "integer",
-                        "minimum": 1,
-                        "nullable": true
-                    },
-                    "planned_start_at": {
-                        "type": "string",
-                        "format": "date-time",
-                        "nullable": true
-                    },
-                    "planned_end_at": {
-                        "type": "string",
-                        "format": "date-time",
-                        "nullable": true
-                    },
-                    "source": {
-                        "type": "string",
-                        "maxLength": 64
-                    },
-                    "tags": {
-                        "type": "array",
-                        "items": {
-                            "type": "string"
-                        }
-                    }
-                }
-            },
-            "PatchedUserPreference": {
-                "type": "object",
-                "properties": {
-                    "timezone": {
-                        "type": "string",
-                        "maxLength": 64
-                    },
-                    "locale": {
-                        "type": "string",
-                        "maxLength": 35
-                    },
-                    "workday_start": {
-                        "type": "string",
-                        "format": "time"
-                    },
-                    "workday_end": {
-                        "type": "string",
-                        "format": "time"
-                    },
-                    "sleep_start": {
-                        "type": "string",
-                        "format": "time"
-                    },
-                    "sleep_end": {
-                        "type": "string",
-                        "format": "time"
-                    },
-                    "default_event_duration_minutes": {
-                        "type": "integer",
-                        "maximum": 9223372036854775807,
-                        "minimum": 0,
-                        "format": "int64"
-                    },
-                    "preferred_focus_periods": {},
-                    "default_reminder_offsets": {},
-                    "weather_location": {
-                        "type": "string",
-                        "maxLength": 255
-                    },
-                    "news_topics": {},
-                    "briefing_time": {
-                        "type": "string",
-                        "format": "time"
-                    },
-                    "planning_rules": {},
-                    "updated_at": {
-                        "type": "string",
-                        "format": "date-time",
-                        "readOnly": true
-                    }
-                }
-            },
-            "PriorityEnum": {
-                "enum": [
-                    "low",
-                    "medium",
-                    "high",
-                    "urgent"
-                ],
-                "type": "string",
-                "description": "* `low` - Low\n* `medium` - Medium\n* `high` - High\n* `urgent` - Urgent"
-            },
-            "ProposalDecision": {
-                "type": "object",
-                "properties": {
-                    "expected_version": {
-                        "type": "integer",
-                        "minimum": 1
-                    },
-                    "operation_id": {
-                        "type": "string",
-                        "format": "uuid"
-                    },
-                    "reason": {
-                        "type": "string",
-                        "default": "",
-                        "maxLength": 2000
-                    }
-                },
-                "required": [
-                    "expected_version",
-                    "operation_id"
-                ]
-            },
-            "ProposalDecisionResponse": {
-                "type": "object",
-                "properties": {
-                    "proposal": {
-                        "allOf": [
-                            {
-                                "$ref": "#/components/schemas/ActionProposal"
-                            }
-                        ],
-                        "readOnly": true
-                    },
-                    "resume_queued": {
-                        "type": "boolean",
-                        "readOnly": true
-                    }
-                },
-                "required": [
-                    "proposal",
-                    "resume_queued"
-                ]
-            },
-            "ProposalEditDecision": {
-                "type": "object",
-                "properties": {
-                    "expected_version": {
-                        "type": "integer",
-                        "minimum": 1
-                    },
-                    "operation_id": {
-                        "type": "string",
-                        "format": "uuid"
-                    },
-                    "reason": {
-                        "type": "string",
-                        "default": "",
-                        "maxLength": 2000
-                    },
-                    "action_payload": {}
-                },
-                "required": [
-                    "action_payload",
-                    "expected_version",
-                    "operation_id"
-                ]
-            },
-            "ReadyResponse": {
-                "type": "object",
-                "properties": {
-                    "status": {
-                        "$ref": "#/components/schemas/ReadyResponseStatusEnum"
-                    },
-                    "checks": {
-                        "$ref": "#/components/schemas/DependencyChecks"
-                    }
-                },
-                "required": [
-                    "checks",
-                    "status"
-                ]
-            },
-            "ReadyResponseStatusEnum": {
-                "enum": [
-                    "ready",
-                    "not_ready"
-                ],
-                "type": "string",
-                "description": "* `ready` - ready\n* `not_ready` - not_ready"
-            },
-            "Reminder": {
-                "type": "object",
-                "properties": {
-                    "id": {
-                        "type": "string",
-                        "format": "uuid",
-                        "readOnly": true
-                    },
-                    "target_type": {
-                        "$ref": "#/components/schemas/TargetTypeEnum"
-                    },
-                    "target_id": {
-                        "type": "string",
-                        "format": "uuid",
-                        "nullable": true
-                    },
-                    "title": {
-                        "type": "string",
-                        "maxLength": 255
-                    },
-                    "trigger_at": {
-                        "type": "string",
-                        "format": "date-time"
-                    },
-                    "timezone": {
-                        "type": "string",
-                        "maxLength": 64
-                    },
-                    "channel": {
-                        "$ref": "#/components/schemas/ChannelEnum"
-                    },
-                    "status": {
-                        "$ref": "#/components/schemas/ReminderStatusEnum"
-                    },
-                    "deduplication_key": {
-                        "type": "string",
-                        "maxLength": 128
-                    },
-                    "queued_at": {
-                        "type": "string",
-                        "format": "date-time",
-                        "nullable": true
-                    },
-                    "sent_at": {
-                        "type": "string",
-                        "format": "date-time",
-                        "nullable": true
-                    },
-                    "retry_count": {
-                        "type": "integer",
-                        "maximum": 9223372036854775807,
-                        "minimum": 0,
-                        "format": "int64"
-                    },
-                    "failure_reason": {
-                        "type": "string"
-                    },
-                    "created_at": {
-                        "type": "string",
-                        "format": "date-time",
-                        "readOnly": true
-                    },
-                    "updated_at": {
-                        "type": "string",
-                        "format": "date-time",
-                        "readOnly": true
-                    }
-                },
-                "required": [
-                    "created_at",
-                    "deduplication_key",
-                    "id",
-                    "timezone",
-                    "title",
-                    "trigger_at",
-                    "updated_at"
-                ]
-            },
-            "ReminderStatusEnum": {
-                "enum": [
-                    "pending",
-                    "queued",
-                    "sending",
-                    "sent",
-                    "failed",
-                    "cancelled"
-                ],
-                "type": "string",
-                "description": "* `pending` - Pending\n* `queued` - Queued\n* `sending` - Sending\n* `sent` - Sent\n* `failed` - Failed\n* `cancelled` - Cancelled"
-            },
-            "RiskLevelEnum": {
-                "enum": [
-                    "high"
-                ],
-                "type": "string",
-                "description": "* `high` - High"
-            },
-            "ScheduleConflict": {
-                "type": "object",
-                "properties": {
-                    "first": {
-                        "$ref": "#/components/schemas/ScheduleItem"
-                    },
-                    "second": {
-                        "$ref": "#/components/schemas/ScheduleItem"
-                    },
-                    "overlap_start_at": {
-                        "type": "string",
-                        "format": "date-time"
-                    },
-                    "overlap_end_at": {
-                        "type": "string",
-                        "format": "date-time"
-                    }
-                },
-                "required": [
-                    "first",
-                    "overlap_end_at",
-                    "overlap_start_at",
-                    "second"
-                ]
-            },
-            "ScheduleItem": {
-                "type": "object",
-                "properties": {
-                    "kind": {
-                        "$ref": "#/components/schemas/KindEnum"
-                    },
-                    "id": {
-                        "type": "string",
-                        "format": "uuid"
-                    },
-                    "title": {
-                        "type": "string"
-                    },
-                    "start_at": {
-                        "type": "string",
-                        "format": "date-time"
-                    },
-                    "end_at": {
-                        "type": "string",
-                        "format": "date-time"
-                    }
-                },
-                "required": [
-                    "end_at",
-                    "id",
-                    "kind",
-                    "start_at",
-                    "title"
-                ]
-            },
-            "TargetTypeEnum": {
-                "enum": [
-                    "custom",
-                    "calendar_event",
-                    "task"
-                ],
-                "type": "string",
-                "description": "* `custom` - Custom\n* `calendar_event` - Calendar event\n* `task` - Task"
-            },
-            "Task": {
-                "type": "object",
-                "properties": {
-                    "id": {
-                        "type": "string",
-                        "format": "uuid",
-                        "readOnly": true
-                    },
-                    "project": {
-                        "type": "string",
-                        "maxLength": 255
-                    },
-                    "parent_task": {
-                        "type": "string",
-                        "format": "uuid",
-                        "nullable": true
-                    },
-                    "title": {
-                        "type": "string",
-                        "maxLength": 255
-                    },
-                    "description": {
-                        "type": "string"
-                    },
-                    "status": {
-                        "$ref": "#/components/schemas/TaskStatusEnum"
-                    },
-                    "priority": {
-                        "$ref": "#/components/schemas/PriorityEnum"
-                    },
-                    "due_at": {
-                        "type": "string",
-                        "format": "date-time",
-                        "nullable": true
-                    },
-                    "estimated_minutes": {
-                        "type": "integer",
-                        "maximum": 9223372036854775807,
-                        "minimum": 1,
-                        "format": "int64",
-                        "nullable": true
-                    },
-                    "planned_start_at": {
-                        "type": "string",
-                        "format": "date-time",
-                        "nullable": true
-                    },
-                    "planned_end_at": {
-                        "type": "string",
-                        "format": "date-time",
-                        "nullable": true
-                    },
-                    "actual_started_at": {
-                        "type": "string",
-                        "format": "date-time",
-                        "nullable": true
-                    },
-                    "completed_at": {
-                        "type": "string",
-                        "format": "date-time",
-                        "nullable": true
-                    },
-                    "source": {
-                        "type": "string",
-                        "maxLength": 64
-                    },
-                    "tags": {},
-                    "created_at": {
-                        "type": "string",
-                        "format": "date-time",
-                        "readOnly": true
-                    },
-                    "updated_at": {
-                        "type": "string",
-                        "format": "date-time",
-                        "readOnly": true
-                    }
-                },
-                "required": [
-                    "created_at",
-                    "id",
-                    "title",
-                    "updated_at"
-                ]
-            },
-            "TaskStatusEnum": {
-                "enum": [
-                    "pending",
-                    "in_progress",
-                    "completed",
-                    "cancelled"
-                ],
-                "type": "string",
-                "description": "* `pending` - Pending\n* `in_progress` - In progress\n* `completed` - Completed\n* `cancelled` - Cancelled"
-            },
-            "TodaySummary": {
-                "type": "object",
-                "properties": {
-                    "date": {
-                        "type": "string",
-                        "format": "date"
-                    },
-                    "timezone": {
-                        "type": "string"
-                    },
-                    "generated_at": {
-                        "type": "string",
-                        "format": "date-time"
-                    },
-                    "day_start_at": {
-                        "type": "string",
-                        "format": "date-time"
-                    },
-                    "day_end_at": {
-                        "type": "string",
-                        "format": "date-time"
-                    },
-                    "events": {
-                        "type": "array",
-                        "items": {
-                            "$ref": "#/components/schemas/CalendarEvent"
-                        }
-                    },
-                    "planned_tasks": {
-                        "type": "array",
-                        "items": {
-                            "$ref": "#/components/schemas/Task"
-                        }
-                    },
-                    "due_tasks": {
-                        "type": "array",
-                        "items": {
-                            "$ref": "#/components/schemas/Task"
-                        }
-                    },
-                    "overdue_tasks": {
-                        "type": "array",
-                        "items": {
-                            "$ref": "#/components/schemas/Task"
-                        }
-                    },
-                    "pending_reminders": {
-                        "type": "array",
-                        "items": {
-                            "$ref": "#/components/schemas/Reminder"
-                        }
-                    },
-                    "conflicts": {
-                        "type": "array",
-                        "items": {
-                            "$ref": "#/components/schemas/ScheduleConflict"
-                        }
-                    },
-                    "next_event": {
-                        "allOf": [
-                            {
-                                "$ref": "#/components/schemas/CalendarEvent"
-                            }
-                        ],
-                        "nullable": true
-                    },
-                    "minutes_until_next_event": {
-                        "type": "integer",
-                        "minimum": 0,
-                        "nullable": true
-                    }
-                },
-                "required": [
-                    "conflicts",
-                    "date",
-                    "day_end_at",
-                    "day_start_at",
-                    "due_tasks",
-                    "events",
-                    "generated_at",
-                    "minutes_until_next_event",
-                    "next_event",
-                    "overdue_tasks",
-                    "pending_reminders",
-                    "planned_tasks",
-                    "timezone"
-                ]
-            },
-            "UserPreference": {
-                "type": "object",
-                "properties": {
-                    "timezone": {
-                        "type": "string",
-                        "maxLength": 64
-                    },
-                    "locale": {
-                        "type": "string",
-                        "maxLength": 35
-                    },
-                    "workday_start": {
-                        "type": "string",
-                        "format": "time"
-                    },
-                    "workday_end": {
-                        "type": "string",
-                        "format": "time"
-                    },
-                    "sleep_start": {
-                        "type": "string",
-                        "format": "time"
-                    },
-                    "sleep_end": {
-                        "type": "string",
-                        "format": "time"
-                    },
-                    "default_event_duration_minutes": {
-                        "type": "integer",
-                        "maximum": 9223372036854775807,
-                        "minimum": 0,
-                        "format": "int64"
-                    },
-                    "preferred_focus_periods": {},
-                    "default_reminder_offsets": {},
-                    "weather_location": {
-                        "type": "string",
-                        "maxLength": 255
-                    },
-                    "news_topics": {},
-                    "briefing_time": {
-                        "type": "string",
-                        "format": "time"
-                    },
-                    "planning_rules": {},
-                    "updated_at": {
-                        "type": "string",
-                        "format": "date-time",
-                        "readOnly": true
-                    }
-                },
-                "required": [
-                    "updated_at"
-                ]
-            },
-            "VisibilityEnum": {
-                "enum": [
-                    "private",
-                    "public"
-                ],
-                "type": "string",
-                "description": "* `private` - Private\n* `public` - Public"
-            }
-        },
-        "securitySchemes": {
-            "basicAuth": {
-                "type": "http",
-                "scheme": "basic"
-            },
-            "cookieAuth": {
-                "type": "apiKey",
-                "in": "cookie",
-                "name": "sessionid"
-            }
-        }
-    }
-}
+openapi: 3.0.3
+info:
+  title: Time Agent API
+  version: 0.1.0
+  description: Time Agent backend contract
+paths:
+  /api/v1/action-proposals/:
+    get:
+      operationId: api_v1_action_proposals_list
+      parameters:
+      - in: query
+        name: status
+        schema:
+          type: string
+      tags:
+      - api
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ActionProposal'
+          description: ''
+  /api/v1/action-proposals/{proposal_id}/:
+    get:
+      operationId: api_v1_action_proposals_retrieve
+      parameters:
+      - in: path
+        name: proposal_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - api
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ActionProposal'
+          description: ''
+  /api/v1/action-proposals/{proposal_id}/approve/:
+    post:
+      operationId: api_v1_action_proposals_approve_create
+      parameters:
+      - in: path
+        name: proposal_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProposalDecision'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ProposalDecision'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ProposalDecision'
+        required: true
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      responses:
+        '202':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProposalDecisionResponse'
+          description: ''
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProposalDecisionResponse'
+          description: ''
+        '409':
+          description: No response body
+  /api/v1/action-proposals/{proposal_id}/edit/:
+    post:
+      operationId: api_v1_action_proposals_edit_create
+      parameters:
+      - in: path
+        name: proposal_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProposalEditDecision'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ProposalEditDecision'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ProposalEditDecision'
+        required: true
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      responses:
+        '202':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProposalDecisionResponse'
+          description: ''
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProposalDecisionResponse'
+          description: ''
+        '409':
+          description: No response body
+  /api/v1/action-proposals/{proposal_id}/reject/:
+    post:
+      operationId: api_v1_action_proposals_reject_create
+      parameters:
+      - in: path
+        name: proposal_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProposalDecision'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ProposalDecision'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ProposalDecision'
+        required: true
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      responses:
+        '202':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProposalDecisionResponse'
+          description: ''
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProposalDecisionResponse'
+          description: ''
+        '409':
+          description: No response body
+  /api/v1/briefings/definitions/:
+    get:
+      operationId: api_v1_briefings_definitions_list
+      tags:
+      - api
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/BriefingDefinition'
+          description: ''
+    post:
+      operationId: api_v1_briefings_definitions_create
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BriefingDefinition'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/BriefingDefinition'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/BriefingDefinition'
+        required: true
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BriefingDefinition'
+          description: ''
+  /api/v1/briefings/definitions/{definition_id}/:
+    get:
+      operationId: api_v1_briefings_definitions_retrieve
+      parameters:
+      - in: path
+        name: definition_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - api
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BriefingDefinition'
+          description: ''
+    patch:
+      operationId: api_v1_briefings_definitions_partial_update
+      parameters:
+      - in: path
+        name: definition_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedBriefingDefinition'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedBriefingDefinition'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedBriefingDefinition'
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BriefingDefinition'
+          description: ''
+  /api/v1/briefings/runs/:
+    get:
+      operationId: api_v1_briefings_runs_list
+      tags:
+      - api
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/BriefingRun'
+          description: ''
+    post:
+      operationId: api_v1_briefings_runs_create
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LaunchBriefing'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/LaunchBriefing'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/LaunchBriefing'
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      responses:
+        '202':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LaunchBriefingResponse'
+          description: ''
+  /api/v1/briefings/runs/{run_id}/:
+    get:
+      operationId: api_v1_briefings_runs_retrieve
+      parameters:
+      - in: path
+        name: run_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - api
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BriefingRun'
+          description: ''
+  /api/v1/chat/conversations/:
+    get:
+      operationId: api_v1_chat_conversations_list
+      tags:
+      - api
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Conversation'
+          description: ''
+    post:
+      operationId: api_v1_chat_conversations_create
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateConversation'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/CreateConversation'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/CreateConversation'
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Conversation'
+          description: ''
+  /api/v1/chat/conversations/{conversation_id}/:
+    get:
+      operationId: api_v1_chat_conversations_retrieve
+      parameters:
+      - in: path
+        name: conversation_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - api
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConversationDetail'
+          description: ''
+  /api/v1/chat/messages/:
+    post:
+      operationId: api_v1_chat_messages_create
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateMessage'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/CreateMessage'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/CreateMessage'
+        required: true
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      responses:
+        '202':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgentRun'
+          description: ''
+  /api/v1/chat/runs/{run_id}/:
+    get:
+      operationId: api_v1_chat_runs_retrieve
+      parameters:
+      - in: path
+        name: run_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - api
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgentRun'
+          description: ''
+  /api/v1/chat/runs/{run_id}/cancel/:
+    post:
+      operationId: api_v1_chat_runs_cancel_create
+      parameters:
+      - in: path
+        name: run_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - api
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgentRun'
+          description: ''
+        '409':
+          description: No response body
+  /api/v1/chat/runs/{run_id}/events/:
+    get:
+      operationId: api_v1_chat_runs_events_retrieve
+      parameters:
+      - in: path
+        name: run_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - api
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      responses:
+        '200':
+          description: SSE stream
+  /api/v1/events/:
+    get:
+      operationId: api_v1_events_list
+      parameters:
+      - in: query
+        name: ends_after
+        schema:
+          type: string
+          format: date-time
+      - in: query
+        name: starts_before
+        schema:
+          type: string
+          format: date-time
+      - in: query
+        name: status
+        schema:
+          type: array
+          items:
+            enum:
+            - tentative
+            - confirmed
+            - cancelled
+            type: string
+            description: |-
+              * `tentative` - Tentative
+              * `confirmed` - Confirmed
+              * `cancelled` - Cancelled
+      tags:
+      - api
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/CalendarEvent'
+          description: ''
+    post:
+      operationId: api_v1_events_create
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateCalendarEvent'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/CreateCalendarEvent'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/CreateCalendarEvent'
+        required: true
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CalendarEvent'
+          description: ''
+  /api/v1/events/{event_id}/:
+    get:
+      operationId: api_v1_events_retrieve
+      parameters:
+      - in: path
+        name: event_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - api
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CalendarEvent'
+          description: ''
+    patch:
+      operationId: api_v1_events_partial_update
+      parameters:
+      - in: path
+        name: event_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      - in: query
+        name: expected_version
+        schema:
+          type: integer
+          minimum: 1
+        required: true
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedUpdateCalendarEvent'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedUpdateCalendarEvent'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedUpdateCalendarEvent'
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CalendarEvent'
+          description: ''
+        '409':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: ''
+    delete:
+      operationId: api_v1_events_destroy
+      parameters:
+      - in: path
+        name: event_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      - in: query
+        name: expected_version
+        schema:
+          type: integer
+          minimum: 1
+        required: true
+      tags:
+      - api
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      responses:
+        '204':
+          description: No response body
+        '409':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: ''
+  /api/v1/preferences/me/:
+    get:
+      operationId: api_v1_preferences_me_retrieve
+      tags:
+      - api
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserPreference'
+          description: ''
+    patch:
+      operationId: api_v1_preferences_me_partial_update
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedUserPreference'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedUserPreference'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedUserPreference'
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserPreference'
+          description: ''
+  /api/v1/reminders/:
+    get:
+      operationId: api_v1_reminders_list
+      tags:
+      - api
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Reminder'
+          description: ''
+    post:
+      operationId: api_v1_reminders_create
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateReminder'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/CreateReminder'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/CreateReminder'
+        required: true
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Reminder'
+          description: ''
+  /api/v1/reminders/{reminder_id}/:
+    delete:
+      operationId: api_v1_reminders_destroy
+      parameters:
+      - in: path
+        name: reminder_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - api
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      responses:
+        '204':
+          description: No response body
+        '409':
+          description: Reminder can no longer be cancelled
+  /api/v1/tasks/:
+    get:
+      operationId: api_v1_tasks_list
+      parameters:
+      - in: query
+        name: due_before
+        schema:
+          type: string
+          format: date-time
+      - in: query
+        name: planned_ends_after
+        schema:
+          type: string
+          format: date-time
+      - in: query
+        name: planned_starts_before
+        schema:
+          type: string
+          format: date-time
+      - in: query
+        name: status
+        schema:
+          type: array
+          items:
+            enum:
+            - pending
+            - in_progress
+            - completed
+            - cancelled
+            type: string
+            description: |-
+              * `pending` - Pending
+              * `in_progress` - In progress
+              * `completed` - Completed
+              * `cancelled` - Cancelled
+      tags:
+      - api
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Task'
+          description: ''
+    post:
+      operationId: api_v1_tasks_create
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTask'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/CreateTask'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/CreateTask'
+        required: true
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Task'
+          description: ''
+  /api/v1/tasks/{task_id}/:
+    get:
+      operationId: api_v1_tasks_retrieve
+      parameters:
+      - in: path
+        name: task_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - api
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Task'
+          description: ''
+    patch:
+      operationId: api_v1_tasks_partial_update
+      parameters:
+      - in: path
+        name: task_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedUpdateTask'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedUpdateTask'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedUpdateTask'
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Task'
+          description: ''
+  /api/v1/tasks/{task_id}/complete/:
+    post:
+      operationId: api_v1_tasks_complete_create
+      parameters:
+      - in: path
+        name: task_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - api
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Task'
+          description: ''
+        '409':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: ''
+  /api/v1/today/:
+    get:
+      operationId: api_v1_today_retrieve
+      tags:
+      - api
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TodaySummary'
+          description: ''
+  /health/live:
+    get:
+      operationId: health_live_retrieve
+      tags:
+      - health
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LiveResponse'
+          description: ''
+  /health/ready:
+    get:
+      operationId: health_ready_retrieve
+      tags:
+      - health
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReadyResponse'
+          description: ''
+        '503':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReadyResponse'
+          description: ''
+components:
+  schemas:
+    ActionProposal:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        conversation_id:
+          type: string
+          format: uuid
+          readOnly: true
+        agent_run_id:
+          type: string
+          format: uuid
+          readOnly: true
+        original_request:
+          type: string
+          readOnly: true
+        explanation:
+          type: string
+          readOnly: true
+        action_type:
+          type: string
+          readOnly: true
+        action_payload:
+          readOnly: true
+        original_payload:
+          readOnly: true
+        display_context:
+          readOnly: true
+        risk_level:
+          allOf:
+          - $ref: '#/components/schemas/RiskLevelEnum'
+          readOnly: true
+        status:
+          allOf:
+          - $ref: '#/components/schemas/ActionProposalStatusEnum'
+          readOnly: true
+        requires_approval:
+          type: boolean
+          readOnly: true
+        version:
+          type: integer
+          readOnly: true
+        expires_at:
+          type: string
+          format: date-time
+          readOnly: true
+        decided_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        approved_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        resumed_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        executed_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        decision_reason:
+          type: string
+          readOnly: true
+        execution_result:
+          readOnly: true
+          nullable: true
+        error:
+          type: string
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - action_payload
+      - action_type
+      - agent_run_id
+      - approved_at
+      - conversation_id
+      - created_at
+      - decided_at
+      - decision_reason
+      - display_context
+      - error
+      - executed_at
+      - execution_result
+      - expires_at
+      - explanation
+      - id
+      - original_payload
+      - original_request
+      - requires_approval
+      - resumed_at
+      - risk_level
+      - status
+      - updated_at
+      - version
+    ActionProposalStatusEnum:
+      enum:
+      - awaiting_approval
+      - approved
+      - rejected
+      - executing
+      - executed
+      - failed
+      - expired
+      type: string
+      description: |-
+        * `awaiting_approval` - Awaiting approval
+        * `approved` - Approved
+        * `rejected` - Rejected
+        * `executing` - Executing
+        * `executed` - Executed
+        * `failed` - Failed
+        * `expired` - Expired
+    AgentRun:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        conversation_id:
+          type: string
+          format: uuid
+          readOnly: true
+        operation_id:
+          type: string
+          format: uuid
+          readOnly: true
+        request_id:
+          type: string
+          readOnly: true
+        trigger_type:
+          type: string
+          readOnly: true
+        trigger_payload:
+          readOnly: true
+        synthetic_input:
+          type: boolean
+          readOnly: true
+        status:
+          allOf:
+          - $ref: '#/components/schemas/AgentRunStatusEnum'
+          readOnly: true
+        input_message:
+          type: string
+          readOnly: true
+        final_response:
+          type: string
+          readOnly: true
+        error:
+          type: string
+          readOnly: true
+        started_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        completed_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - completed_at
+      - conversation_id
+      - created_at
+      - error
+      - final_response
+      - id
+      - input_message
+      - operation_id
+      - request_id
+      - started_at
+      - status
+      - synthetic_input
+      - trigger_payload
+      - trigger_type
+    AgentRunStatusEnum:
+      enum:
+      - pending
+      - running
+      - waiting_approval
+      - completed
+      - failed
+      - cancelled
+      type: string
+      description: |-
+        * `pending` - Pending
+        * `running` - Running
+        * `waiting_approval` - Waiting for approval
+        * `completed` - Completed
+        * `failed` - Failed
+        * `cancelled` - Cancelled
+    BriefingDefinition:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        name:
+          type: string
+          maxLength: 120
+        enabled_sections: {}
+        locale:
+          type: string
+          maxLength: 32
+        timezone:
+          type: string
+          maxLength: 64
+        style:
+          $ref: '#/components/schemas/StyleEnum'
+        include_empty_sections:
+          type: boolean
+        is_active:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - created_at
+      - id
+      - name
+      - updated_at
+    BriefingRun:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        definition_id:
+          type: string
+          format: uuid
+          readOnly: true
+        conversation_id:
+          type: string
+          format: uuid
+          readOnly: true
+          nullable: true
+        agent_run_id:
+          type: string
+          format: uuid
+          readOnly: true
+          nullable: true
+        operation_id:
+          type: string
+          format: uuid
+          readOnly: true
+        trigger_type:
+          type: string
+          readOnly: true
+        target_date:
+          type: string
+          format: date
+          readOnly: true
+        timezone:
+          type: string
+          readOnly: true
+        status:
+          allOf:
+          - $ref: '#/components/schemas/BriefingRunStatusEnum'
+          readOnly: true
+        definition_snapshot:
+          readOnly: true
+        structured_result:
+          readOnly: true
+        rendered_markdown:
+          type: string
+          readOnly: true
+        warnings:
+          readOnly: true
+        model_config_snapshot:
+          readOnly: true
+        prompt_version:
+          type: string
+          readOnly: true
+        failure_code:
+          type: string
+          readOnly: true
+        failure_message:
+          type: string
+          readOnly: true
+        started_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        completed_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        section_runs:
+          type: array
+          items:
+            $ref: '#/components/schemas/BriefingSectionRun'
+          readOnly: true
+      required:
+      - agent_run_id
+      - completed_at
+      - conversation_id
+      - created_at
+      - definition_id
+      - definition_snapshot
+      - failure_code
+      - failure_message
+      - id
+      - model_config_snapshot
+      - operation_id
+      - prompt_version
+      - rendered_markdown
+      - section_runs
+      - started_at
+      - status
+      - structured_result
+      - target_date
+      - timezone
+      - trigger_type
+      - warnings
+    BriefingRunStatusEnum:
+      enum:
+      - pending
+      - running
+      - completed
+      - partial
+      - failed
+      type: string
+      description: |-
+        * `pending` - Pending
+        * `running` - Running
+        * `completed` - Completed
+        * `partial` - Partial
+        * `failed` - Failed
+    BriefingSectionRun:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        section_key:
+          type: string
+          readOnly: true
+        status:
+          allOf:
+          - $ref: '#/components/schemas/BriefingSectionRunStatusEnum'
+          readOnly: true
+        source_snapshot:
+          readOnly: true
+        source_references:
+          readOnly: true
+        warning:
+          type: string
+          readOnly: true
+        error_code:
+          type: string
+          readOnly: true
+        started_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        completed_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+      required:
+      - completed_at
+      - error_code
+      - id
+      - section_key
+      - source_references
+      - source_snapshot
+      - started_at
+      - status
+      - warning
+    BriefingSectionRunStatusEnum:
+      enum:
+      - pending
+      - running
+      - completed
+      - failed
+      type: string
+      description: |-
+        * `pending` - Pending
+        * `running` - Running
+        * `completed` - Completed
+        * `failed` - Failed
+    CalendarEvent:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        title:
+          type: string
+          maxLength: 255
+        description:
+          type: string
+        start_at:
+          type: string
+          format: date-time
+        end_at:
+          type: string
+          format: date-time
+        timezone:
+          type: string
+          maxLength: 64
+        location:
+          type: string
+          maxLength: 255
+        status:
+          $ref: '#/components/schemas/CalendarEventStatusEnum'
+        visibility:
+          $ref: '#/components/schemas/VisibilityEnum'
+        recurrence_rule:
+          type: string
+        source:
+          type: string
+          maxLength: 64
+        external_id:
+          type: string
+          maxLength: 255
+        created_by:
+          type: integer
+          nullable: true
+        version:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 1
+          format: int64
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - created_at
+      - end_at
+      - id
+      - start_at
+      - timezone
+      - title
+      - updated_at
+    CalendarEventStatusEnum:
+      enum:
+      - tentative
+      - confirmed
+      - cancelled
+      type: string
+      description: |-
+        * `tentative` - Tentative
+        * `confirmed` - Confirmed
+        * `cancelled` - Cancelled
+    ChannelEnum:
+      enum:
+      - console
+      - email
+      - telegram
+      - browser
+      type: string
+      description: |-
+        * `console` - Console
+        * `email` - Email
+        * `telegram` - Telegram
+        * `browser` - Browser
+    Conversation:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        title:
+          type: string
+          readOnly: true
+        kind:
+          allOf:
+          - $ref: '#/components/schemas/ConversationKindEnum'
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - created_at
+      - id
+      - kind
+      - title
+      - updated_at
+    ConversationDetail:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        title:
+          type: string
+          readOnly: true
+        kind:
+          allOf:
+          - $ref: '#/components/schemas/ConversationKindEnum'
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+        runs:
+          type: array
+          items:
+            $ref: '#/components/schemas/AgentRun'
+          readOnly: true
+      required:
+      - created_at
+      - id
+      - kind
+      - runs
+      - title
+      - updated_at
+    ConversationKindEnum:
+      enum:
+      - chat
+      - manual_briefing
+      - scheduled_briefing
+      type: string
+      description: |-
+        * `chat` - Chat
+        * `manual_briefing` - Manual briefing
+        * `scheduled_briefing` - Scheduled briefing
+    CreateCalendarEvent:
+      type: object
+      properties:
+        title:
+          type: string
+          maxLength: 255
+        description:
+          type: string
+        start_at:
+          type: string
+          format: date-time
+        end_at:
+          type: string
+          format: date-time
+        timezone:
+          type: string
+          maxLength: 64
+        location:
+          type: string
+          maxLength: 255
+        status:
+          $ref: '#/components/schemas/CalendarEventStatusEnum'
+        visibility:
+          $ref: '#/components/schemas/VisibilityEnum'
+        recurrence_rule:
+          type: string
+        source:
+          type: string
+          maxLength: 64
+        external_id:
+          type: string
+          maxLength: 255
+      required:
+      - end_at
+      - start_at
+      - timezone
+      - title
+    CreateConversation:
+      type: object
+      properties:
+        title:
+          type: string
+          default: ''
+          maxLength: 255
+    CreateMessage:
+      type: object
+      properties:
+        conversation_id:
+          type: string
+          format: uuid
+        message:
+          type: string
+          maxLength: 10000
+        operation_id:
+          type: string
+          format: uuid
+      required:
+      - conversation_id
+      - message
+    CreateReminder:
+      type: object
+      properties:
+        target_type:
+          $ref: '#/components/schemas/TargetTypeEnum'
+        target_id:
+          type: string
+          format: uuid
+          nullable: true
+        title:
+          type: string
+          maxLength: 255
+        trigger_at:
+          type: string
+          format: date-time
+        timezone:
+          type: string
+          maxLength: 64
+        channel:
+          $ref: '#/components/schemas/ChannelEnum'
+        deduplication_key:
+          type: string
+          maxLength: 128
+      required:
+      - deduplication_key
+      - timezone
+      - title
+      - trigger_at
+    CreateTask:
+      type: object
+      properties:
+        project:
+          type: string
+          maxLength: 255
+        parent_task:
+          type: string
+          format: uuid
+          nullable: true
+        title:
+          type: string
+          maxLength: 255
+        description:
+          type: string
+        priority:
+          $ref: '#/components/schemas/PriorityEnum'
+        due_at:
+          type: string
+          format: date-time
+          nullable: true
+        estimated_minutes:
+          type: integer
+          minimum: 1
+          nullable: true
+        planned_start_at:
+          type: string
+          format: date-time
+          nullable: true
+        planned_end_at:
+          type: string
+          format: date-time
+          nullable: true
+        source:
+          type: string
+          maxLength: 64
+        tags:
+          type: array
+          items:
+            type: string
+      required:
+      - title
+    DependencyChecks:
+      type: object
+      properties:
+        database:
+          $ref: '#/components/schemas/DependencyStatusEnum'
+        redis:
+          $ref: '#/components/schemas/DependencyStatusEnum'
+      required:
+      - database
+      - redis
+    DependencyStatusEnum:
+      enum:
+      - ok
+      - error
+      type: string
+      description: |-
+        * `ok` - OK
+        * `error` - Error
+    ErrorResponse:
+      type: object
+      properties:
+        detail:
+          type: string
+      required:
+      - detail
+    LaunchBriefing:
+      type: object
+      properties:
+        definition_id:
+          type: string
+          format: uuid
+          nullable: true
+        target_date:
+          type: string
+          format: date
+        operation_id:
+          type: string
+          format: uuid
+    LaunchBriefingResponse:
+      type: object
+      properties:
+        conversation:
+          $ref: '#/components/schemas/Conversation'
+        agent_run:
+          $ref: '#/components/schemas/AgentRun'
+      required:
+      - agent_run
+      - conversation
+    LiveResponse:
+      type: object
+      properties:
+        status:
+          $ref: '#/components/schemas/LiveResponseStatusEnum'
+      required:
+      - status
+    LiveResponseStatusEnum:
+      enum:
+      - alive
+      type: string
+      description: '* `alive` - alive'
+    PatchedBriefingDefinition:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        name:
+          type: string
+          maxLength: 120
+        enabled_sections: {}
+        locale:
+          type: string
+          maxLength: 32
+        timezone:
+          type: string
+          maxLength: 64
+        style:
+          $ref: '#/components/schemas/StyleEnum'
+        include_empty_sections:
+          type: boolean
+        is_active:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+    PatchedUpdateCalendarEvent:
+      type: object
+      properties:
+        title:
+          type: string
+          maxLength: 255
+        description:
+          type: string
+        start_at:
+          type: string
+          format: date-time
+        end_at:
+          type: string
+          format: date-time
+        timezone:
+          type: string
+          maxLength: 64
+        location:
+          type: string
+          maxLength: 255
+        status:
+          $ref: '#/components/schemas/CalendarEventStatusEnum'
+        visibility:
+          $ref: '#/components/schemas/VisibilityEnum'
+        recurrence_rule:
+          type: string
+        source:
+          type: string
+          maxLength: 64
+        external_id:
+          type: string
+          maxLength: 255
+    PatchedUpdateTask:
+      type: object
+      properties:
+        project:
+          type: string
+          maxLength: 255
+        parent_task:
+          type: string
+          format: uuid
+          nullable: true
+        title:
+          type: string
+          maxLength: 255
+        description:
+          type: string
+        priority:
+          $ref: '#/components/schemas/PriorityEnum'
+        due_at:
+          type: string
+          format: date-time
+          nullable: true
+        estimated_minutes:
+          type: integer
+          minimum: 1
+          nullable: true
+        planned_start_at:
+          type: string
+          format: date-time
+          nullable: true
+        planned_end_at:
+          type: string
+          format: date-time
+          nullable: true
+        source:
+          type: string
+          maxLength: 64
+        tags:
+          type: array
+          items:
+            type: string
+    PatchedUserPreference:
+      type: object
+      properties:
+        timezone:
+          type: string
+          maxLength: 64
+        locale:
+          type: string
+          maxLength: 35
+        workday_start:
+          type: string
+          format: time
+        workday_end:
+          type: string
+          format: time
+        sleep_start:
+          type: string
+          format: time
+        sleep_end:
+          type: string
+          format: time
+        default_event_duration_minutes:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+        preferred_focus_periods: {}
+        default_reminder_offsets: {}
+        weather_location:
+          type: string
+          maxLength: 255
+        news_topics: {}
+        briefing_time:
+          type: string
+          format: time
+        planning_rules: {}
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+    PriorityEnum:
+      enum:
+      - low
+      - medium
+      - high
+      - urgent
+      type: string
+      description: |-
+        * `low` - Low
+        * `medium` - Medium
+        * `high` - High
+        * `urgent` - Urgent
+    ProposalDecision:
+      type: object
+      properties:
+        expected_version:
+          type: integer
+          minimum: 1
+        operation_id:
+          type: string
+          format: uuid
+        reason:
+          type: string
+          default: ''
+          maxLength: 2000
+      required:
+      - expected_version
+      - operation_id
+    ProposalDecisionResponse:
+      type: object
+      properties:
+        proposal:
+          allOf:
+          - $ref: '#/components/schemas/ActionProposal'
+          readOnly: true
+        resume_queued:
+          type: boolean
+          readOnly: true
+      required:
+      - proposal
+      - resume_queued
+    ProposalEditDecision:
+      type: object
+      properties:
+        expected_version:
+          type: integer
+          minimum: 1
+        operation_id:
+          type: string
+          format: uuid
+        reason:
+          type: string
+          default: ''
+          maxLength: 2000
+        action_payload: {}
+      required:
+      - action_payload
+      - expected_version
+      - operation_id
+    ReadyResponse:
+      type: object
+      properties:
+        status:
+          $ref: '#/components/schemas/ReadyResponseStatusEnum'
+        checks:
+          $ref: '#/components/schemas/DependencyChecks'
+      required:
+      - checks
+      - status
+    ReadyResponseStatusEnum:
+      enum:
+      - ready
+      - not_ready
+      type: string
+      description: |-
+        * `ready` - ready
+        * `not_ready` - not_ready
+    Reminder:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        target_type:
+          $ref: '#/components/schemas/TargetTypeEnum'
+        target_id:
+          type: string
+          format: uuid
+          nullable: true
+        title:
+          type: string
+          maxLength: 255
+        trigger_at:
+          type: string
+          format: date-time
+        timezone:
+          type: string
+          maxLength: 64
+        channel:
+          $ref: '#/components/schemas/ChannelEnum'
+        status:
+          $ref: '#/components/schemas/ReminderStatusEnum'
+        deduplication_key:
+          type: string
+          maxLength: 128
+        queued_at:
+          type: string
+          format: date-time
+          nullable: true
+        sent_at:
+          type: string
+          format: date-time
+          nullable: true
+        retry_count:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+        failure_reason:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - created_at
+      - deduplication_key
+      - id
+      - timezone
+      - title
+      - trigger_at
+      - updated_at
+    ReminderStatusEnum:
+      enum:
+      - pending
+      - queued
+      - sending
+      - sent
+      - failed
+      - cancelled
+      type: string
+      description: |-
+        * `pending` - Pending
+        * `queued` - Queued
+        * `sending` - Sending
+        * `sent` - Sent
+        * `failed` - Failed
+        * `cancelled` - Cancelled
+    RiskLevelEnum:
+      enum:
+      - high
+      type: string
+      description: '* `high` - High'
+    ScheduleConflict:
+      type: object
+      properties:
+        first:
+          $ref: '#/components/schemas/ScheduleItem'
+        second:
+          $ref: '#/components/schemas/ScheduleItem'
+        overlap_start_at:
+          type: string
+          format: date-time
+        overlap_end_at:
+          type: string
+          format: date-time
+      required:
+      - first
+      - overlap_end_at
+      - overlap_start_at
+      - second
+    ScheduleItem:
+      type: object
+      properties:
+        kind:
+          $ref: '#/components/schemas/ScheduleItemKindEnum'
+        id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        start_at:
+          type: string
+          format: date-time
+        end_at:
+          type: string
+          format: date-time
+      required:
+      - end_at
+      - id
+      - kind
+      - start_at
+      - title
+    ScheduleItemKindEnum:
+      enum:
+      - event
+      - task
+      type: string
+      description: |-
+        * `event` - event
+        * `task` - task
+    StyleEnum:
+      enum:
+      - concise
+      - balanced
+      - detailed
+      type: string
+      description: |-
+        * `concise` - Concise
+        * `balanced` - Balanced
+        * `detailed` - Detailed
+    TargetTypeEnum:
+      enum:
+      - custom
+      - calendar_event
+      - task
+      type: string
+      description: |-
+        * `custom` - Custom
+        * `calendar_event` - Calendar event
+        * `task` - Task
+    Task:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        project:
+          type: string
+          maxLength: 255
+        parent_task:
+          type: string
+          format: uuid
+          nullable: true
+        title:
+          type: string
+          maxLength: 255
+        description:
+          type: string
+        status:
+          $ref: '#/components/schemas/TaskStatusEnum'
+        priority:
+          $ref: '#/components/schemas/PriorityEnum'
+        due_at:
+          type: string
+          format: date-time
+          nullable: true
+        estimated_minutes:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 1
+          format: int64
+          nullable: true
+        planned_start_at:
+          type: string
+          format: date-time
+          nullable: true
+        planned_end_at:
+          type: string
+          format: date-time
+          nullable: true
+        actual_started_at:
+          type: string
+          format: date-time
+          nullable: true
+        completed_at:
+          type: string
+          format: date-time
+          nullable: true
+        source:
+          type: string
+          maxLength: 64
+        tags: {}
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - created_at
+      - id
+      - title
+      - updated_at
+    TaskStatusEnum:
+      enum:
+      - pending
+      - in_progress
+      - completed
+      - cancelled
+      type: string
+      description: |-
+        * `pending` - Pending
+        * `in_progress` - In progress
+        * `completed` - Completed
+        * `cancelled` - Cancelled
+    TodaySummary:
+      type: object
+      properties:
+        date:
+          type: string
+          format: date
+        timezone:
+          type: string
+        generated_at:
+          type: string
+          format: date-time
+        day_start_at:
+          type: string
+          format: date-time
+        day_end_at:
+          type: string
+          format: date-time
+        events:
+          type: array
+          items:
+            $ref: '#/components/schemas/CalendarEvent'
+        planned_tasks:
+          type: array
+          items:
+            $ref: '#/components/schemas/Task'
+        due_tasks:
+          type: array
+          items:
+            $ref: '#/components/schemas/Task'
+        overdue_tasks:
+          type: array
+          items:
+            $ref: '#/components/schemas/Task'
+        pending_reminders:
+          type: array
+          items:
+            $ref: '#/components/schemas/Reminder'
+        conflicts:
+          type: array
+          items:
+            $ref: '#/components/schemas/ScheduleConflict'
+        next_event:
+          allOf:
+          - $ref: '#/components/schemas/CalendarEvent'
+          nullable: true
+        minutes_until_next_event:
+          type: integer
+          minimum: 0
+          nullable: true
+      required:
+      - conflicts
+      - date
+      - day_end_at
+      - day_start_at
+      - due_tasks
+      - events
+      - generated_at
+      - minutes_until_next_event
+      - next_event
+      - overdue_tasks
+      - pending_reminders
+      - planned_tasks
+      - timezone
+    UserPreference:
+      type: object
+      properties:
+        timezone:
+          type: string
+          maxLength: 64
+        locale:
+          type: string
+          maxLength: 35
+        workday_start:
+          type: string
+          format: time
+        workday_end:
+          type: string
+          format: time
+        sleep_start:
+          type: string
+          format: time
+        sleep_end:
+          type: string
+          format: time
+        default_event_duration_minutes:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+        preferred_focus_periods: {}
+        default_reminder_offsets: {}
+        weather_location:
+          type: string
+          maxLength: 255
+        news_topics: {}
+        briefing_time:
+          type: string
+          format: time
+        planning_rules: {}
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - updated_at
+    VisibilityEnum:
+      enum:
+      - private
+      - public
+      type: string
+      description: |-
+        * `private` - Private
+        * `public` - Public
+  securitySchemes:
+    basicAuth:
+      type: http
+      scheme: basic
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: sessionid

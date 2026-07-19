@@ -84,6 +84,70 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/briefings/definitions/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["api_v1_briefings_definitions_list"];
+        put?: never;
+        post: operations["api_v1_briefings_definitions_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/briefings/definitions/{definition_id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["api_v1_briefings_definitions_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch: operations["api_v1_briefings_definitions_partial_update"];
+        trace?: never;
+    };
+    "/api/v1/briefings/runs/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["api_v1_briefings_runs_list"];
+        put?: never;
+        post: operations["api_v1_briefings_runs_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/briefings/runs/{run_id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["api_v1_briefings_runs_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/chat/conversations/": {
         parameters: {
             query?: never;
@@ -414,6 +478,9 @@ export interface components {
             /** Format: uuid */
             readonly operation_id: string;
             readonly request_id: string;
+            readonly trigger_type: string;
+            readonly trigger_payload: unknown;
+            readonly synthetic_input: boolean;
             readonly status: components["schemas"]["AgentRunStatusEnum"];
             readonly input_message: string;
             readonly final_response: string;
@@ -435,6 +502,84 @@ export interface components {
          * @enum {string}
          */
         AgentRunStatusEnum: "pending" | "running" | "waiting_approval" | "completed" | "failed" | "cancelled";
+        BriefingDefinition: {
+            /** Format: uuid */
+            readonly id: string;
+            name: string;
+            enabled_sections?: unknown;
+            locale?: string;
+            timezone?: string;
+            style?: components["schemas"]["StyleEnum"];
+            include_empty_sections?: boolean;
+            is_active?: boolean;
+            /** Format: date-time */
+            readonly created_at: string;
+            /** Format: date-time */
+            readonly updated_at: string;
+        };
+        BriefingRun: {
+            /** Format: uuid */
+            readonly id: string;
+            /** Format: uuid */
+            readonly definition_id: string;
+            /** Format: uuid */
+            readonly conversation_id: string | null;
+            /** Format: uuid */
+            readonly agent_run_id: string | null;
+            /** Format: uuid */
+            readonly operation_id: string;
+            readonly trigger_type: string;
+            /** Format: date */
+            readonly target_date: string;
+            readonly timezone: string;
+            readonly status: components["schemas"]["BriefingRunStatusEnum"];
+            readonly definition_snapshot: unknown;
+            readonly structured_result: unknown;
+            readonly rendered_markdown: string;
+            readonly warnings: unknown;
+            readonly model_config_snapshot: unknown;
+            readonly prompt_version: string;
+            readonly failure_code: string;
+            readonly failure_message: string;
+            /** Format: date-time */
+            readonly started_at: string | null;
+            /** Format: date-time */
+            readonly completed_at: string | null;
+            /** Format: date-time */
+            readonly created_at: string;
+            readonly section_runs: components["schemas"]["BriefingSectionRun"][];
+        };
+        /**
+         * @description * `pending` - Pending
+         *     * `running` - Running
+         *     * `completed` - Completed
+         *     * `partial` - Partial
+         *     * `failed` - Failed
+         * @enum {string}
+         */
+        BriefingRunStatusEnum: "pending" | "running" | "completed" | "partial" | "failed";
+        BriefingSectionRun: {
+            /** Format: uuid */
+            readonly id: string;
+            readonly section_key: string;
+            readonly status: components["schemas"]["BriefingSectionRunStatusEnum"];
+            readonly source_snapshot: unknown;
+            readonly source_references: unknown;
+            readonly warning: string;
+            readonly error_code: string;
+            /** Format: date-time */
+            readonly started_at: string | null;
+            /** Format: date-time */
+            readonly completed_at: string | null;
+        };
+        /**
+         * @description * `pending` - Pending
+         *     * `running` - Running
+         *     * `completed` - Completed
+         *     * `failed` - Failed
+         * @enum {string}
+         */
+        BriefingSectionRunStatusEnum: "pending" | "running" | "completed" | "failed";
         CalendarEvent: {
             /** Format: uuid */
             readonly id: string;
@@ -478,6 +623,7 @@ export interface components {
             /** Format: uuid */
             readonly id: string;
             readonly title: string;
+            readonly kind: components["schemas"]["ConversationKindEnum"];
             /** Format: date-time */
             readonly created_at: string;
             /** Format: date-time */
@@ -487,12 +633,20 @@ export interface components {
             /** Format: uuid */
             readonly id: string;
             readonly title: string;
+            readonly kind: components["schemas"]["ConversationKindEnum"];
             /** Format: date-time */
             readonly created_at: string;
             /** Format: date-time */
             readonly updated_at: string;
             readonly runs: components["schemas"]["AgentRun"][];
         };
+        /**
+         * @description * `chat` - Chat
+         *     * `manual_briefing` - Manual briefing
+         *     * `scheduled_briefing` - Scheduled briefing
+         * @enum {string}
+         */
+        ConversationKindEnum: "chat" | "manual_briefing" | "scheduled_briefing";
         CreateCalendarEvent: {
             title: string;
             description?: string;
@@ -560,12 +714,18 @@ export interface components {
         ErrorResponse: {
             detail: string;
         };
-        /**
-         * @description * `event` - event
-         *     * `task` - task
-         * @enum {string}
-         */
-        KindEnum: "event" | "task";
+        LaunchBriefing: {
+            /** Format: uuid */
+            definition_id?: string | null;
+            /** Format: date */
+            target_date?: string;
+            /** Format: uuid */
+            operation_id?: string;
+        };
+        LaunchBriefingResponse: {
+            conversation: components["schemas"]["Conversation"];
+            agent_run: components["schemas"]["AgentRun"];
+        };
         LiveResponse: {
             status: components["schemas"]["LiveResponseStatusEnum"];
         };
@@ -574,6 +734,21 @@ export interface components {
          * @enum {string}
          */
         LiveResponseStatusEnum: "alive";
+        PatchedBriefingDefinition: {
+            /** Format: uuid */
+            readonly id?: string;
+            name?: string;
+            enabled_sections?: unknown;
+            locale?: string;
+            timezone?: string;
+            style?: components["schemas"]["StyleEnum"];
+            include_empty_sections?: boolean;
+            is_active?: boolean;
+            /** Format: date-time */
+            readonly created_at?: string;
+            /** Format: date-time */
+            readonly updated_at?: string;
+        };
         PatchedUpdateCalendarEvent: {
             title?: string;
             description?: string;
@@ -715,7 +890,7 @@ export interface components {
             overlap_end_at: string;
         };
         ScheduleItem: {
-            kind: components["schemas"]["KindEnum"];
+            kind: components["schemas"]["ScheduleItemKindEnum"];
             /** Format: uuid */
             id: string;
             title: string;
@@ -724,6 +899,19 @@ export interface components {
             /** Format: date-time */
             end_at: string;
         };
+        /**
+         * @description * `event` - event
+         *     * `task` - task
+         * @enum {string}
+         */
+        ScheduleItemKindEnum: "event" | "task";
+        /**
+         * @description * `concise` - Concise
+         *     * `balanced` - Balanced
+         *     * `detailed` - Detailed
+         * @enum {string}
+         */
+        StyleEnum: "concise" | "balanced" | "detailed";
         /**
          * @description * `custom` - Custom
          *     * `calendar_event` - Calendar event
@@ -990,6 +1178,163 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    api_v1_briefings_definitions_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BriefingDefinition"][];
+                };
+            };
+        };
+    };
+    api_v1_briefings_definitions_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BriefingDefinition"];
+                "application/x-www-form-urlencoded": components["schemas"]["BriefingDefinition"];
+                "multipart/form-data": components["schemas"]["BriefingDefinition"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BriefingDefinition"];
+                };
+            };
+        };
+    };
+    api_v1_briefings_definitions_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                definition_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BriefingDefinition"];
+                };
+            };
+        };
+    };
+    api_v1_briefings_definitions_partial_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                definition_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PatchedBriefingDefinition"];
+                "application/x-www-form-urlencoded": components["schemas"]["PatchedBriefingDefinition"];
+                "multipart/form-data": components["schemas"]["PatchedBriefingDefinition"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BriefingDefinition"];
+                };
+            };
+        };
+    };
+    api_v1_briefings_runs_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BriefingRun"][];
+                };
+            };
+        };
+    };
+    api_v1_briefings_runs_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["LaunchBriefing"];
+                "application/x-www-form-urlencoded": components["schemas"]["LaunchBriefing"];
+                "multipart/form-data": components["schemas"]["LaunchBriefing"];
+            };
+        };
+        responses: {
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LaunchBriefingResponse"];
+                };
+            };
+        };
+    };
+    api_v1_briefings_runs_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                run_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BriefingRun"];
+                };
             };
         };
     };
