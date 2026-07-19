@@ -77,9 +77,7 @@ class AgentRunService:
         if run.conversation_id != command.conversation.pk or run.input_message != message:
             raise ValueError("operation_id already belongs to a different run")
         if created:
-            conversation = Conversation.objects.select_for_update().get(
-                pk=command.conversation.pk
-            )
+            conversation = Conversation.objects.select_for_update().get(pk=command.conversation.pk)
             if not conversation.title:
                 conversation.title = message[:80]
             conversation.updated_at = timezone.now()
@@ -109,6 +107,53 @@ class AgentRunService:
         if locked.status == AgentRunStatus.PENDING and locked.execution_task_id == task_id:
             locked.execution_task_id = ""
             locked.save(update_fields=["execution_task_id"])
+
+    @staticmethod
+    @transaction.atomic
+    def wait_for_approval(run: AgentRun) -> AgentRun:
+        locked = AgentRun.objects.select_for_update().get(pk=run.pk)
+        if locked.status == AgentRunStatus.CANCELLED:
+            return locked
+        locked.status = AgentRunStatus.WAITING_APPROVAL
+        locked.execution_task_id = ""
+        locked.save(update_fields=["status", "execution_task_id"])
+        return locked
+
+    @staticmethod
+    @transaction.atomic
+    def reserve_resume_task(run: AgentRun, task_id: str) -> bool:
+        normalized_task_id = task_id.strip()
+        if not normalized_task_id:
+            raise ValueError("task_id cannot be empty")
+        locked = AgentRun.objects.select_for_update().get(pk=run.pk)
+        if locked.status != AgentRunStatus.WAITING_APPROVAL:
+            return False
+        if locked.execution_task_id and locked.execution_task_id != normalized_task_id:
+            return False
+        locked.execution_task_id = normalized_task_id
+        locked.save(update_fields=["execution_task_id"])
+        return True
+
+    @staticmethod
+    @transaction.atomic
+    def release_resume_task(run: AgentRun, task_id: str) -> None:
+        locked = AgentRun.objects.select_for_update().get(pk=run.pk)
+        if locked.status == AgentRunStatus.WAITING_APPROVAL and locked.execution_task_id == task_id:
+            locked.execution_task_id = ""
+            locked.save(update_fields=["execution_task_id"])
+
+    @staticmethod
+    @transaction.atomic
+    def claim_for_resume(run: AgentRun, *, task_id: str) -> AgentRun | None:
+        locked = AgentRun.objects.select_for_update().get(pk=run.pk)
+        if locked.status != AgentRunStatus.WAITING_APPROVAL:
+            return None
+        if locked.execution_task_id != task_id.strip():
+            return None
+        locked.status = AgentRunStatus.RUNNING
+        locked.save(update_fields=["status"])
+        AgentRunService.append_event(locked, "agent.resumed", {"run_id": str(locked.pk)})
+        return locked
 
     @staticmethod
     @transaction.atomic

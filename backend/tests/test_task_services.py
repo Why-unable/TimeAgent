@@ -88,6 +88,35 @@ def test_complete_task_records_time_and_is_idempotent() -> None:
     assert repeated.completed_at == FIXED_NOW
 
 
+def test_cancel_task_is_idempotent_and_rejects_completed_task() -> None:
+    user = create_user()
+    task = create_task(user)
+
+    cancelled = TaskService.cancel_task(
+        task_id=task.id,
+        user=user,
+        occurred_at=FIXED_NOW,
+    )
+    repeated = TaskService.cancel_task(
+        task_id=task.id,
+        user=user,
+        occurred_at=PLANNED_END,
+    )
+
+    assert cancelled.status == TaskStatus.CANCELLED
+    assert repeated.pk == task.pk
+    assert Task.objects.filter(pk=task.pk, status=TaskStatus.CANCELLED).exists()
+
+    completed = create_task(user, title="Already completed")
+    TaskService.complete_task(task_id=completed.id, user=user, occurred_at=FIXED_NOW)
+    with pytest.raises(ValueError, match="Cannot transition"):
+        TaskService.cancel_task(
+            task_id=completed.id,
+            user=user,
+            occurred_at=PLANNED_END,
+        )
+
+
 def test_reschedule_task_validates_and_normalizes_range() -> None:
     user = create_user()
     task = create_task(user)

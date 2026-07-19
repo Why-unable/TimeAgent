@@ -97,6 +97,9 @@ test("loads a previous conversation from its stable URL", async ({ page }) => {
       }],
     });
   });
+  await page.route("**/api/v1/action-proposals/", async (route) => {
+    await route.fulfill({ json: [] });
+  });
   await page.route(`**/api/v1/chat/conversations/${conversationId}/`, async (route) => {
     await route.fulfill({
       json: {
@@ -159,6 +162,9 @@ test("creates a new chat, updates the URL, and streams the reply", async ({ page
         updated_at: "2026-07-17T08:00:00Z",
       },
     });
+  });
+  await page.route("**/api/v1/action-proposals/", async (route) => {
+    await route.fulfill({ json: [] });
   });
   await page.route(`**/api/v1/chat/conversations/${conversationId}/`, async (route) => {
     await route.fulfill({
@@ -225,4 +231,179 @@ test("creates a new chat, updates the URL, and streams the reply", async ({ page
   await page.getByRole("button", { name: "新建聊天" }).first().click();
   await expect(page).toHaveURL(/\/chat$/);
   await expect(page.getByRole("heading", { name: "今天需要我帮你安排什么？" })).toBeVisible();
+});
+
+test("reviews and approves a high-risk action", async ({ page }) => {
+  let proposalStatus = "awaiting_approval";
+  const proposal = {
+    id: "44444444-4444-4444-8444-444444444444",
+    conversation_id: "11111111-1111-4111-8111-111111111111",
+    agent_run_id: "22222222-2222-4222-8222-222222222222",
+    original_request: "明天下午三点创建项目评审日程",
+    explanation: "创建正式日程会占用你的日历时间，需要确认后执行。",
+    action_type: "create_event",
+    action_payload: {
+      title: "项目评审",
+      start_at: "2026-07-20T07:00:00Z",
+      end_at: "2026-07-20T08:00:00Z",
+      timezone: "Asia/Shanghai",
+    },
+    original_payload: {},
+    display_context: {
+      allowed_decisions: ["approve", "edit", "reject"],
+      object_name: "项目评审",
+      impact_scope: "创建一个正式日程",
+      proposed_start_at: "2026-07-20T07:00:00Z",
+      proposed_end_at: "2026-07-20T08:00:00Z",
+      conflict_check: "completed",
+      conflicts: [],
+    },
+    risk_level: "high",
+    status: "awaiting_approval",
+    requires_approval: true,
+    version: 1,
+    expires_at: "2026-07-20T08:00:00Z",
+    decided_at: null,
+    approved_at: null,
+    resumed_at: null,
+    executed_at: null,
+    decision_reason: "",
+    execution_result: null,
+    error: "",
+    created_at: "2026-07-19T08:00:00Z",
+    updated_at: "2026-07-19T08:00:00Z",
+  };
+  await page.route("**/api/v1/preferences/me/", async (route) => {
+    await route.fulfill({ status: 403, json: { detail: "Not authenticated." } });
+  });
+  await page.route("**/api/v1/action-proposals/?status=awaiting_approval", async (route) => {
+    await route.fulfill({
+      json: proposalStatus === "awaiting_approval" ? [{ ...proposal, status: proposalStatus }] : [],
+    });
+  });
+  await page.route(`**/api/v1/action-proposals/${proposal.id}/approve/`, async (route) => {
+    expect(route.request().postDataJSON()).toMatchObject({ expected_version: 1 });
+    proposalStatus = "approved";
+    await route.fulfill({
+      status: 202,
+      json: {
+        proposal: { ...proposal, status: "approved", version: 2 },
+        resume_queued: true,
+      },
+    });
+  });
+
+  await page.goto("/approvals");
+  await expect(page.getByRole("heading", { name: "操作审批" })).toBeVisible();
+  await expect(page.getByText("未发现日程冲突。")).toBeVisible();
+  await page.getByRole("button", { name: "批准", exact: true }).click();
+  await expect(page.getByRole("button", { name: "批准", exact: true })).toHaveCount(0);
+});
+
+test("continues the chat stream after approving an interrupted run", async ({ page }) => {
+  const conversationId = "55555555-5555-4555-8555-555555555555";
+  const runId = "66666666-6666-4666-8666-666666666666";
+  const proposalId = "77777777-7777-4777-8777-777777777777";
+  const conversation = {
+    id: conversationId,
+    title: "创建项目评审日程",
+    created_at: "2026-07-19T08:00:00Z",
+    updated_at: "2026-07-19T08:00:00Z",
+  };
+  const run = {
+    id: runId,
+    conversation_id: conversationId,
+    operation_id: "88888888-8888-4888-8888-888888888888",
+    request_id: "approval-resume-request",
+    status: "running",
+    input_message: "明天下午三点创建项目评审日程",
+    final_response: "",
+    error: "",
+    started_at: "2026-07-19T08:00:00Z",
+    completed_at: null,
+    created_at: "2026-07-19T08:00:00Z",
+  };
+  const proposal = {
+    id: proposalId,
+    conversation_id: conversationId,
+    agent_run_id: runId,
+    original_request: run.input_message,
+    explanation: "创建正式日程会占用你的日历时间，需要确认后执行。",
+    action_type: "create_event",
+    action_payload: {
+      title: "项目评审",
+      start_at: "2026-07-20T07:00:00Z",
+      end_at: "2026-07-20T08:00:00Z",
+      timezone: "Asia/Shanghai",
+    },
+    original_payload: {},
+    display_context: {
+      allowed_decisions: ["approve", "edit", "reject"],
+      object_name: "项目评审",
+      impact_scope: "创建一个正式日程",
+    },
+    risk_level: "high",
+    status: "awaiting_approval",
+    requires_approval: true,
+    version: 1,
+    expires_at: "2026-07-20T08:00:00Z",
+    decided_at: null,
+    approved_at: null,
+    resumed_at: null,
+    executed_at: null,
+    decision_reason: "",
+    execution_result: null,
+    error: "",
+    created_at: "2026-07-19T08:00:00Z",
+    updated_at: "2026-07-19T08:00:00Z",
+  };
+  const cursors: string[] = [];
+
+  await page.route("**/api/v1/preferences/me/", async (route) => {
+    await route.fulfill({ status: 403, json: { detail: "Not authenticated." } });
+  });
+  await page.route("**/api/v1/chat/conversations/", async (route) => {
+    await route.fulfill({ json: [conversation] });
+  });
+  await page.route(`**/api/v1/chat/conversations/${conversationId}/`, async (route) => {
+    await route.fulfill({ json: { ...conversation, runs: [run] } });
+  });
+  await page.route("**/api/v1/action-proposals/", async (route) => {
+    await route.fulfill({ json: [] });
+  });
+  await page.route(`**/api/v1/action-proposals/${proposalId}/`, async (route) => {
+    await route.fulfill({ json: proposal });
+  });
+  await page.route(`**/api/v1/action-proposals/${proposalId}/approve/`, async (route) => {
+    await route.fulfill({
+      status: 202,
+      json: {
+        proposal: { ...proposal, status: "approved", version: 2 },
+        resume_queued: true,
+      },
+    });
+  });
+  await page.route(`**/api/v1/chat/runs/${runId}/events/**`, async (route) => {
+    const cursor = new URL(route.request().url()).searchParams.get("cursor") ?? "";
+    cursors.push(cursor);
+    const body = cursor === "3"
+      ? [
+          `id: 4\nevent: agent.resumed\ndata: {"run_id":"${runId}"}\n\n`,
+          'id: 5\nevent: tool.completed\ndata: {"tool_call_id":"create-1","tool_name":"create_event"}\n\n',
+          'id: 6\nevent: message.delta\ndata: {"content":"日程已创建。"}\n\n',
+          'id: 7\nevent: message.completed\ndata: {"content":"日程已创建。"}\n\n',
+        ].join("")
+      : [
+          `id: 1\nevent: agent.started\ndata: {"run_id":"${runId}"}\n\n`,
+          'id: 2\nevent: message.delta\ndata: {"content":"没有冲突。"}\n\n',
+          `id: 3\nevent: approval.required\ndata: {"proposal_id":"${proposalId}"}\n\n`,
+        ].join("");
+    await route.fulfill({ contentType: "text/event-stream", body });
+  });
+
+  await page.goto(`/chat/${conversationId}`);
+  await page.getByRole("button", { name: "批准", exact: true }).click();
+
+  await expect(page.getByText("日程已创建。")).toBeVisible();
+  expect(cursors).toEqual(["0", "3"]);
 });

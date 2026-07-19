@@ -99,4 +99,20 @@ def create_event(
     return model_dict(event, EVENT_FIELDS)
 
 
-EVENT_TOOLS = [list_events, get_event, detect_conflicts, create_event]
+@tool
+def cancel_event(
+    event_id: UUID,
+    expected_version: int,
+    runtime: ToolRuntime[RuntimeContext],
+) -> dict[str, object]:
+    """Cancel one identified event; first read it and pass its current version."""
+
+    event = EventService.cancel_event(
+        event_id=event_id,
+        user=require_writable(runtime),
+        expected_version=expected_version,
+    )
+    return model_dict(event, EVENT_FIELDS)
+
+
+EVENT_TOOLS = [list_events, get_event, detect_conflicts, create_event, cancel_event]

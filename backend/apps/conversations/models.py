@@ -7,6 +7,7 @@ from django.db import models
 class AgentRunStatus(models.TextChoices):
     PENDING = "pending", "Pending"
     RUNNING = "running", "Running"
+    WAITING_APPROVAL = "waiting_approval", "Waiting for approval"
     COMPLETED = "completed", "Completed"
     FAILED = "failed", "Failed"
     CANCELLED = "cancelled", "Cancelled"

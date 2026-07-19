@@ -32,13 +32,23 @@ import {
   type AgentRun,
   type Conversation,
 } from "../api/chat";
+import {
+  decideActionProposal,
+  getActionProposal,
+  listActionProposals,
+  type ActionProposal,
+} from "../api/action-proposals";
+import { ApprovalCard } from "../components/approvals/approval-card";
 import { MarkdownMessage } from "../components/chat/markdown-message";
 import { streamAgentRun, type AgentStreamEvent } from "../features/agent-runs/sse-client";
+import { useCurrentUserPreference } from "../features/preferences/hooks";
+import { formatInUserTimezone, formatTimeInUserTimezone, getLocalDateKey } from "../utils/datetime";
 
 type ChatEntry =
-  | { id: string; kind: "user" | "assistant"; content: string }
+  | { id: string; kind: "user" | "assistant"; content: string; timestamp: string }
   | { id: string; kind: "notice"; content: string; tone: "error" | "muted" }
-  | { id: string; kind: "tool"; name: string; status: "running" | "completed" | "failed" };
+  | { id: string; kind: "tool"; name: string; status: "running" | "completed" | "failed" }
+  | { id: string; kind: "approval"; proposal: ActionProposal };
 
 type ConversationGroup = { label: string; conversations: Conversation[] };
 
@@ -47,10 +57,15 @@ const ACTIVE_RUN_STATUSES = new Set(["pending", "running"]);
 function entriesFromRuns(runs: AgentRun[]): ChatEntry[] {
   return runs.flatMap((run) => {
     const entries: ChatEntry[] = [
-      { id: `user-${run.id}`, kind: "user", content: run.input_message },
+      { id: `user-${run.id}`, kind: "user", content: run.input_message, timestamp: run.created_at },
     ];
     if (run.final_response) {
-      entries.push({ id: `assistant-${run.id}`, kind: "assistant", content: run.final_response });
+      entries.push({
+        id: `assistant-${run.id}`,
+        kind: "assistant",
+        content: run.final_response,
+        timestamp: run.completed_at ?? run.created_at,
+      });
     } else if (run.status === "failed") {
       entries.push({ id: `notice-${run.id}`, kind: "notice", content: "这次回复生成失败。", tone: "error" });
     } else if (run.status === "cancelled") {
@@ -58,6 +73,13 @@ function entriesFromRuns(runs: AgentRun[]): ChatEntry[] {
     }
     return entries;
   });
+}
+
+function formatChatTimestamp(value: string, timezone: string, now = new Date()): string {
+  if (getLocalDateKey(value, timezone) === getLocalDateKey(now, timezone)) {
+    return formatTimeInUserTimezone(value, timezone);
+  }
+  return formatInUserTimezone(value, timezone);
 }
 
 function groupConversations(conversations: Conversation[]): ConversationGroup[] {
@@ -80,6 +102,10 @@ function groupConversations(conversations: Conversation[]): ConversationGroup[] 
 export function ChatPage() {
   const { conversationId } = useParams<{ conversationId?: string }>();
   const navigate = useNavigate();
+  const preference = useCurrentUserPreference();
+  const timezone = preference.data?.timezone
+    ?? import.meta.env.VITE_DEFAULT_TIMEZONE
+    ?? "Asia/Shanghai";
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [entries, setEntries] = useState<ChatEntry[]>([]);
   const [runId, setRunId] = useState<string | null>(null);
@@ -90,6 +116,7 @@ export function ChatPage() {
   const [historyOpen, setHistoryOpen] = useState(false);
   const [error, setError] = useState("");
   const controller = useRef<AbortController | null>(null);
+  const runCursors = useRef(new Map<string, string>());
   const messagesEnd = useRef<HTMLDivElement | null>(null);
   const textarea = useRef<HTMLTextAreaElement | null>(null);
 
@@ -103,10 +130,25 @@ export function ChatPage() {
     }
   }, []);
 
+  const refreshApprovalEntries = useCallback(async (activeRunId: string) => {
+    const proposals = (await listActionProposals()).filter(
+      (proposal) => proposal.agent_run_id === activeRunId,
+    );
+    const byId = new Map(proposals.map((proposal) => [proposal.id, proposal]));
+    setEntries((current) => current.map((entry) =>
+      entry.kind === "approval" && byId.has(entry.proposal.id)
+        ? { ...entry, proposal: byId.get(entry.proposal.id)! }
+        : entry,
+    ));
+  }, []);
+
   const applyEvent = useCallback((activeRunId: string, event: AgentStreamEvent) => {
     const callId = String(event.data.tool_call_id ?? event.id);
     const toolName = String(event.data.tool_name ?? "tool");
     const assistantId = `assistant-${activeRunId}`;
+    const eventTimestamp = typeof event.data.event_created_at === "string"
+      ? event.data.event_created_at
+      : new Date().toISOString();
     if (event.type === "tool.started") {
       setEntries((current) => current.some((entry) => entry.kind === "tool" && entry.id === callId)
         ? current
@@ -121,7 +163,14 @@ export function ChatPage() {
       const delta = String(event.data.content ?? "");
       setEntries((current) => {
         const exists = current.some((entry) => entry.kind === "assistant" && entry.id === assistantId);
-        if (!exists) return [...current, { id: assistantId, kind: "assistant", content: delta }];
+        if (!exists) {
+          return [...current, {
+            id: assistantId,
+            kind: "assistant",
+            content: delta,
+            timestamp: eventTimestamp,
+          }];
+        }
         return current.map((entry) => entry.kind === "assistant" && entry.id === assistantId
           ? { ...entry, content: entry.content + delta }
           : entry);
@@ -130,11 +179,29 @@ export function ChatPage() {
       const content = String(event.data.content ?? "");
       setEntries((current) => {
         const exists = current.some((entry) => entry.kind === "assistant" && entry.id === assistantId);
-        if (!exists) return [...current, { id: assistantId, kind: "assistant", content }];
+        if (!exists) {
+          return [...current, {
+            id: assistantId,
+            kind: "assistant",
+            content,
+            timestamp: eventTimestamp,
+          }];
+        }
         return current.map((entry) => entry.kind === "assistant" && entry.id === assistantId
-          ? { ...entry, content }
+          ? { ...entry, content, timestamp: eventTimestamp }
           : entry);
       });
+    } else if (event.type === "approval.required") {
+      const proposalId = String(event.data.proposal_id ?? "");
+      if (proposalId) {
+        void getActionProposal(proposalId).then((proposal) => {
+          setEntries((current) => current.some(
+            (entry) => entry.kind === "approval" && entry.proposal.id === proposal.id,
+          ) ? current : [...current, { id: `approval-${proposal.id}`, kind: "approval", proposal }]);
+        }).catch((reason) => {
+          setError(reason instanceof Error ? reason.message : "无法加载审批操作");
+        });
+      }
     } else if (event.type === "run.failed") {
       setError(String(event.data.error ?? "Agent 运行失败"));
     } else if (event.type === "run.cancelled") {
@@ -147,8 +214,11 @@ export function ChatPage() {
     setBusy(true);
     try {
       await streamAgentRun(activeRunId, (event) => applyEvent(activeRunId, event), {
+        cursor: runCursors.current.get(activeRunId) ?? "0",
         signal: abortController.signal,
+        onCursor: (cursor) => runCursors.current.set(activeRunId, cursor),
       });
+      await refreshApprovalEntries(activeRunId);
       void refreshConversations();
     } catch (reason) {
       if (!(reason instanceof DOMException && reason.name === "AbortError")) {
@@ -161,7 +231,7 @@ export function ChatPage() {
         controller.current = null;
       }
     }
-  }, [applyEvent, refreshConversations]);
+  }, [applyEvent, refreshApprovalEntries, refreshConversations]);
 
   useEffect(() => {
     void refreshConversations();
@@ -184,10 +254,13 @@ export function ChatPage() {
 
     const loadController = new AbortController();
     setLoadingHistory(true);
-    void getConversation(conversationId)
-      .then((conversation) => {
+    void Promise.all([getConversation(conversationId), listActionProposals()])
+      .then(([conversation, proposals]) => {
         if (loadController.signal.aborted) return;
-        setEntries(entriesFromRuns(conversation.runs));
+        const approvalEntries: ChatEntry[] = proposals
+          .filter((proposal) => proposal.conversation_id === conversation.id)
+          .map((proposal) => ({ id: `approval-${proposal.id}`, kind: "approval", proposal }));
+        setEntries([...entriesFromRuns(conversation.runs), ...approvalEntries]);
         const activeRun = [...conversation.runs].reverse().find((run) => ACTIVE_RUN_STATUSES.has(run.status));
         if (activeRun) {
           const streamController = new AbortController();
@@ -237,7 +310,7 @@ export function ChatPage() {
 
       setEntries((current) => [
         ...current,
-        { id: `user-${run.id}`, kind: "user", content },
+        { id: `user-${run.id}`, kind: "user", content, timestamp: run.created_at },
       ]);
       const streamController = new AbortController();
       controller.current = streamController;
@@ -256,6 +329,26 @@ export function ChatPage() {
     setError("Agent 运行已取消");
     setBusy(false);
     setRunId(null);
+  };
+
+  const handleProposalDecision = async (
+    proposal: ActionProposal,
+    decision: "approve" | "edit" | "reject",
+    options?: { actionPayload?: Record<string, unknown>; reason?: string },
+  ) => {
+    setError("");
+    const response = await decideActionProposal(proposal, decision, options);
+    setEntries((current) => current.map((entry) =>
+      entry.kind === "approval" && entry.proposal.id === proposal.id
+        ? { ...entry, proposal: response.proposal }
+        : entry,
+    ));
+    if (response.resume_queued) {
+      const streamController = new AbortController();
+      controller.current = streamController;
+      await consumeRun(proposal.agent_run_id, streamController);
+    }
+    return response;
   };
 
   const startNewChat = () => {
@@ -339,6 +432,21 @@ export function ChatPage() {
             </div>
           )}
           {entries.map((entry) => {
+            if (entry.kind === "approval") {
+              return (
+                <div key={entry.id} className="mx-auto max-w-3xl">
+                  <ApprovalCard
+                    proposal={entry.proposal}
+                    busy={busy}
+                    onDecision={(decision, options) => handleProposalDecision(
+                      entry.proposal,
+                      decision,
+                      options,
+                    )}
+                  />
+                </div>
+              );
+            }
             if (entry.kind === "tool") {
               return (
                 <div key={entry.id} className="mx-auto flex max-w-xl items-center gap-3 rounded-xl border border-violet-300/20 bg-violet-300/5 px-4 py-3 text-sm text-violet-100">
@@ -354,10 +462,28 @@ export function ChatPage() {
               <article key={entry.id} className={`mx-auto flex max-w-3xl gap-3 ${entry.kind === "user" ? "justify-end" : "justify-start"}`}>
                 {entry.kind === "assistant" && <Bot className="mt-2 shrink-0 text-cyan-300" size={18} />}
                 {entry.kind === "user" ? (
-                  <p className="max-w-[85%] whitespace-pre-wrap rounded-2xl bg-cyan-400/15 px-4 py-3 text-sm leading-6 text-cyan-50">{entry.content}</p>
+                  <div className="max-w-[85%]">
+                    <p className="whitespace-pre-wrap rounded-2xl bg-cyan-400/15 px-4 py-3 text-sm leading-6 text-cyan-50">{entry.content}</p>
+                    <time
+                      dateTime={entry.timestamp}
+                      title={formatInUserTimezone(entry.timestamp, timezone)}
+                      className="mt-1.5 block pr-1 text-right text-[11px] text-slate-600"
+                    >
+                      {formatChatTimestamp(entry.timestamp, timezone)}
+                    </time>
+                  </div>
                 ) : (
-                  <div className="min-w-0 max-w-[85%] rounded-2xl bg-white/5 px-4 py-3">
-                    <MarkdownMessage content={entry.content} />
+                  <div className="min-w-0 max-w-[85%]">
+                    <div className="rounded-2xl bg-white/5 px-4 py-3">
+                      <MarkdownMessage content={entry.content} />
+                    </div>
+                    <time
+                      dateTime={entry.timestamp}
+                      title={formatInUserTimezone(entry.timestamp, timezone)}
+                      className="mt-1.5 block pl-1 text-[11px] text-slate-600"
+                    >
+                      {formatChatTimestamp(entry.timestamp, timezone)}
+                    </time>
                   </div>
                 )}
                 {entry.kind === "user" && <UserRound className="mt-2 shrink-0 text-slate-400" size={18} />}

@@ -35,6 +35,7 @@ TERMINAL_RUN_STATUSES = {
     AgentRunStatus.COMPLETED,
     AgentRunStatus.FAILED,
     AgentRunStatus.CANCELLED,
+    AgentRunStatus.WAITING_APPROVAL,
 }
 SSE_POLL_INTERVAL_SECONDS = 0.25
 SSE_HEARTBEAT_INTERVAL_SECONDS = 10.0
@@ -180,16 +181,23 @@ def _sse(*, user_id: int, run_id: UUID, cursor: int) -> Iterator[bytes]:
     try:
         while True:
             close_old_connections()
-            run = AgentRun.objects.only("status").get(pk=run_id, conversation__user_id=user_id)
+            run = AgentRun.objects.only("status", "execution_task_id").get(
+                pk=run_id,
+                conversation__user_id=user_id,
+            )
             events = list(run.events.filter(sequence__gt=current_cursor).order_by("sequence"))
             for event in events:
-                data = json.dumps(event.payload, ensure_ascii=False, separators=(",", ":"))
+                event_data = {
+                    **event.payload,
+                    "event_created_at": event.created_at.isoformat(),
+                }
+                data = json.dumps(event_data, ensure_ascii=False, separators=(",", ":"))
                 yield (
                     f"id: {event.sequence}\nevent: {event.event_type}\ndata: {data}\n\n".encode()
                 )
                 current_cursor = event.sequence
 
-            if run.status in TERMINAL_RUN_STATUSES:
+            if _event_stream_is_terminal(run):
                 return
 
             now = time.monotonic()
@@ -199,3 +207,11 @@ def _sse(*, user_id: int, run_id: UUID, cursor: int) -> Iterator[bytes]:
             time.sleep(SSE_POLL_INTERVAL_SECONDS)
     finally:
         close_old_connections()
+
+
+def _event_stream_is_terminal(run: AgentRun) -> bool:
+    """Keep SSE open while an approved run is reserved for Celery resume."""
+
+    if run.status == AgentRunStatus.WAITING_APPROVAL:
+        return not bool(run.execution_task_id)
+    return run.status in TERMINAL_RUN_STATUSES

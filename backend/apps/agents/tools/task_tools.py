@@ -90,6 +90,18 @@ def complete_task(task_id: UUID, runtime: ToolRuntime[RuntimeContext]) -> dict[s
 
 
 @tool
+def cancel_task(task_id: UUID, runtime: ToolRuntime[RuntimeContext]) -> dict[str, object]:
+    """Cancel one identified active task without deleting its history."""
+
+    task = TaskService.cancel_task(
+        task_id=task_id,
+        user=require_writable(runtime),
+        occurred_at=runtime.context.current_datetime,
+    )
+    return model_dict(task, TASK_FIELDS)
+
+
+@tool
 def reschedule_task(
     task_id: UUID,
     planned_start_at: datetime,
@@ -107,4 +119,11 @@ def reschedule_task(
     return model_dict(task, TASK_FIELDS)
 
 
-TASK_TOOLS = [list_tasks, get_task, create_task, complete_task, reschedule_task]
+TASK_TOOLS = [
+    list_tasks,
+    get_task,
+    create_task,
+    complete_task,
+    reschedule_task,
+    cancel_task,
+]

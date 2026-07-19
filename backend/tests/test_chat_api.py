@@ -124,6 +124,7 @@ def test_chat_run_lifecycle_and_sse_cursor(monkeypatch: pytest.MonkeyPatch) -> N
     assert b"event: tool.completed" in content
     assert b"event: message.completed" in content
     assert "你今天没有安排。".encode() in content
+    assert b'"event_created_at":' in content
 
 
 @pytest.mark.django_db
@@ -261,6 +262,48 @@ def test_sse_waits_for_events_until_run_reaches_terminal_state(
 
     assert b"event: agent.started" in content
     assert b"event: message.completed" in content
+
+
+@pytest.mark.django_db(transaction=True)
+def test_sse_stays_open_while_approved_run_waits_for_celery_resume(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from apps.conversations.models import Conversation
+    from apps.conversations.services import StartRunCommand
+    from apps.conversations.views import _sse
+
+    user = User.objects.create_user(username="resume-stream-user")
+    conversation = Conversation.objects.create(user=user)
+    run = AgentRunService.start(
+        StartRunCommand(
+            conversation=conversation,
+            operation_id=uuid4(),
+            request_id="resume-stream-request",
+            message="create an event",
+        )
+    )
+    run = AgentRunService.mark_running(run)
+    run = AgentRunService.wait_for_approval(run)
+    task_id = "reserved-resume-task"
+    assert AgentRunService.reserve_resume_task(run, task_id)
+    resumed = False
+
+    def resume_during_poll(_seconds: float) -> None:
+        nonlocal resumed
+        if resumed:
+            return
+        claimed = AgentRunService.claim_for_resume(run, task_id=task_id)
+        assert claimed is not None
+        AgentRunService.complete(claimed, "resumed reply")
+        resumed = True
+
+    monkeypatch.setattr("apps.conversations.views.time.sleep", resume_during_poll)
+
+    content = b"".join(_sse(user_id=user.pk, run_id=run.pk, cursor=0))
+
+    assert b"event: agent.resumed" in content
+    assert b"event: message.completed" in content
+    assert b"resumed reply" in content
 
 
 @pytest.mark.django_db

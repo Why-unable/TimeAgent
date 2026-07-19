@@ -7,6 +7,7 @@ from django.core.exceptions import ObjectDoesNotExist, ValidationError
 from django.db import transaction
 from langchain.agents.middleware import (
     AgentMiddleware,
+    HumanInTheLoopMiddleware,
     ModelCallLimitMiddleware,
     ModelFallbackMiddleware,
     ModelRequest,
@@ -23,6 +24,8 @@ from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_core.messages import SystemMessage, ToolMessage
 from langchain_core.tools import BaseTool
 
+from apps.action_proposals.risk_policy import hitl_interrupt_policy, policy_for_tool
+from apps.action_proposals.services import ActionProposalService
 from apps.agents.configuration import get_agent_config
 from apps.agents.context import RuntimeContext
 from apps.agents.state import AppState
@@ -39,7 +42,7 @@ WRITE_NAMES = frozenset(tool.name for tool in WRITE_TOOLS)
 @dynamic_prompt
 def runtime_system_prompt(request: ModelRequest[RuntimeContext]) -> SystemMessage:
     context = request.runtime.context
-    mode = "read-only" if context.read_only else "read/write with low-risk tools only"
+    mode = "read-only" if context.read_only else "read/write; high-risk tools require approval"
     return SystemMessage(
         content=(
             f"{BASE_SYSTEM_PROMPT}\n\n"
@@ -119,15 +122,30 @@ class ToolAuditMiddleware(AgentMiddleware[AppState, RuntimeContext, Any]):
         tool_call_id: str,
     ) -> tuple[Any, bool]:
         assert context.actor is not None
+        ActionProposalService.bind_tool_call(
+            run_id=context.agent_run_id or "",
+            tool_call_id=tool_call_id,
+            tool_name=str(request.tool_call["name"]),
+            arguments=dict(request.tool_call.get("args", {})),
+        )
         audit, created = ToolAuditService.begin(
             run_id=context.agent_run_id or "",
             user=context.actor,
             tool_call_id=tool_call_id,
             tool_name=str(request.tool_call["name"]),
             arguments=dict(request.tool_call.get("args", {})),
-            risk_level=("low" if request.tool_call["name"] in WRITE_NAMES else "read"),
+            risk_level=(
+                "high"
+                if policy_for_tool(str(request.tool_call["name"])) is not None
+                else ("low" if request.tool_call["name"] in WRITE_NAMES else "read")
+            ),
         )
         if created:
+            if policy_for_tool(audit.tool_name) is not None:
+                ActionProposalService.mark_executing(
+                    run_id=context.agent_run_id or "",
+                    tool_call_id=tool_call_id,
+                )
             AgentRunService.append_event(
                 audit.run,
                 "tool.started",
@@ -163,10 +181,20 @@ class ToolAuditMiddleware(AgentMiddleware[AppState, RuntimeContext, Any]):
             with transaction.atomic():
                 result = handler(request)
                 ToolAuditService.complete(audit, self._json_result(result))
+                ActionProposalService.mark_executed(
+                    run_id=context.agent_run_id or "",
+                    tool_call_id=tool_call_id,
+                    result=self._json_result(result),
+                )
                 self._append_event(audit, "tool.completed", tool_call_id)
                 return result
         except Exception as exc:
             ToolAuditService.fail(audit, exc)
+            ActionProposalService.mark_failed(
+                run_id=context.agent_run_id or "",
+                tool_call_id=tool_call_id,
+                error=exc,
+            )
             self._append_event(audit, "tool.failed", tool_call_id)
             raise
 
@@ -189,6 +217,11 @@ class ToolAuditMiddleware(AgentMiddleware[AppState, RuntimeContext, Any]):
         try:
             result = await handler(request)
             await sync_to_async(ToolAuditService.complete)(audit, self._json_result(result))
+            await sync_to_async(ActionProposalService.mark_executed)(
+                run_id=context.agent_run_id or "",
+                tool_call_id=tool_call_id,
+                result=self._json_result(result),
+            )
             await sync_to_async(self._append_event)(
                 audit,
                 "tool.completed",
@@ -197,6 +230,11 @@ class ToolAuditMiddleware(AgentMiddleware[AppState, RuntimeContext, Any]):
             return result
         except Exception as exc:
             await sync_to_async(ToolAuditService.fail)(audit, exc)
+            await sync_to_async(ActionProposalService.mark_failed)(
+                run_id=context.agent_run_id or "",
+                tool_call_id=tool_call_id,
+                error=exc,
+            )
             await sync_to_async(self._append_event)(
                 audit,
                 "tool.failed",
@@ -221,6 +259,7 @@ def build_time_steward_middleware(
     middleware: list[Any] = [
         runtime_system_prompt,
         ToolPolicyMiddleware(),
+        HumanInTheLoopMiddleware(interrupt_on=hitl_interrupt_policy()),
         ToolAuditMiddleware(),
         ModelCallLimitMiddleware(
             run_limit=config.model_call_limit,
@@ -233,18 +272,20 @@ def build_time_steward_middleware(
     ]
     if fallback_models:
         middleware.append(ModelFallbackMiddleware(*fallback_models))
-    middleware.extend([
-        ModelRetryMiddleware(
-            max_retries=config.model_retry_limit,
-            on_failure="error",
-        ),
-        ToolRetryMiddleware(
-            max_retries=config.tool_retry_limit,
-            tools=read_only_retry_tools,
-            on_failure="error",
-        ),
-        ToolErrorMiddleware(recoverable_tool_error),
-    ])
+    middleware.extend(
+        [
+            ModelRetryMiddleware(
+                max_retries=config.model_retry_limit,
+                on_failure="error",
+            ),
+            ToolRetryMiddleware(
+                max_retries=config.tool_retry_limit,
+                tools=read_only_retry_tools,
+                on_failure="error",
+            ),
+            ToolErrorMiddleware(recoverable_tool_error),
+        ]
+    )
     if config.summarization.enabled:
         middleware.append(
             SummarizationMiddleware(

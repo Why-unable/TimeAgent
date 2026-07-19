@@ -26,6 +26,7 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "rest_framework",
     "drf_spectacular",
+    "apps.action_proposals",
     "apps.agents",
     "apps.conversations",
     "apps.health",
@@ -98,6 +99,7 @@ USE_I18N = True
 USE_TZ = True
 DEFAULT_USER_TIMEZONE = os.getenv("DEFAULT_TIMEZONE", "Asia/Shanghai")
 DEFAULT_USER_LOCALE = os.getenv("DEFAULT_LOCALE", "zh-CN")
+ACTION_PROPOSAL_TTL_SECONDS = int(os.getenv("ACTION_PROPOSAL_TTL_SECONDS", "86400"))
 
 STATIC_URL = "/static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
@@ -118,6 +120,8 @@ SPECTACULAR_SETTINGS = {
         "CalendarEventStatusEnum": "apps.events.models.CalendarEventStatus",
         "TaskStatusEnum": "apps.tasks.models.TaskStatus",
         "ReminderStatusEnum": "apps.reminders.models.ReminderStatus",
+        "ActionProposalStatusEnum": "apps.action_proposals.models.ActionProposalStatus",
+        "RiskLevelEnum": "apps.action_proposals.models.RiskLevel",
     },
 }
 
@@ -131,7 +135,11 @@ CELERY_BEAT_SCHEDULE = {
     "dispatch-due-reminders": {
         "task": "reminders.dispatch_due",
         "schedule": 30.0,
-    }
+    },
+    "expire-action-proposals": {
+        "task": "action_proposals.expire_due",
+        "schedule": 60.0,
+    },
 }
 
 LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")

@@ -1,8 +1,8 @@
 # Time Agent
 
-Time Agent 是以时间为核心的个人智能事务管理系统。本仓库当前已完成 **Phase 5**，具备提醒闭环、结构化事务管理、每日工作台，以及受限、可审计、可恢复的 Time Steward Agent。
+Time Agent 是以时间为核心的个人智能事务管理系统。本仓库当前已完成 **Phase 6**，具备提醒闭环、结构化事务管理、每日工作台、可恢复的 Time Steward Agent，以及高风险操作审批闭环。
 
-> Time Steward 使用 LangChain `create_agent()`、LangGraph PostgreSQL 持久化和官方 Middleware；高风险写入、ActionProposal/HITL 与简报业务仍在后续阶段。
+> Time Steward 使用 LangChain `create_agent()`、LangGraph PostgreSQL 持久化和官方 Middleware；高风险写入通过 ActionProposal/HITL 审批，Briefing Workflow 仍在后续阶段。
 
 ## 当前能力
 
@@ -28,11 +28,16 @@ Time Agent 是以时间为核心的个人智能事务管理系统。本仓库当
 - 认证隔离的 CalendarEvent/Task REST API、事件版本冲突响应与任务完成端点。
 - FullCalendar 月/周/日界面、日程创建/编辑/取消，以及任务分类、分组、编辑和完成界面。
 - 按用户 IANA 时区生成的 Today 汇总 API 与每日工作台，包含时间线、任务分桶、提醒、冲突和下一日程。
-- 基于可信 Runtime Context 与 `ToolRuntime` 的 Time Steward Tool 套件，Tool 不直接访问 ORM。
+- 基于可信 Runtime Context 与 `ToolRuntime` 的 Time Steward Tool 套件，支持查询、创建、任务进度以及日程/提醒/任务的软取消，Tool 不直接访问 ORM。
 - `create_agent()` 模型—工具循环，以及调用限制、重试、错误处理、摘要、动态 Tool Policy 和审计 Middleware。
-- 低风险事件/任务/提醒写入、只读查询、冲突检测和空闲时间搜索；高风险 Tool 不注册。
+- 低风险任务/提醒创建与任务进度操作、只读查询、冲突检测和空闲时间搜索；高风险 Tool 通过显式策略注册。
 - Conversation、AgentRun、ToolCallAudit、Celery 后台 Agent 执行、统一 AgentEvent 与取消 API。
 - `/chat/:conversationId` 稳定会话 URL、历史会话列表与回载、新建聊天、实时 SSE 增量、断线游标续传、Tool 生命周期和错误状态展示。
+- ActionProposal PostgreSQL 领域模型、风险策略、有效期、版本控制、决定幂等和完整执行审计。
+- LangChain 官方 `HumanInTheLoopMiddleware`、LangGraph interrupt 与同一 thread 的 `Command(resume=...)` 恢复。
+- `create_event` 支持批准、编辑后批准或拒绝；`cancel_event`、`cancel_reminder`、`cancel_task` 仅支持批准或拒绝，且未经审批都不会进入 Tool/Application Service。
+- 审批 REST API、`/approvals` 集中列表、Chat 内结构化审批卡片、冲突信息和过期/失败状态。
+- Celery Beat 自动过期审批，并以安全拒绝语义恢复暂停的 AgentRun。
 
 ## 技术栈
 
@@ -76,6 +81,8 @@ cp .env.example .env
 `TIME_AGENT_CONFIG_PATH=config/agent.yaml`。API Key 等密钥仍只保存在 `.env`，YAML 通过
 `$AGENT_API_KEY` 引用。所有数据库时间以 UTC 保存；`DEFAULT_TIMEZONE` 使用 IANA 名称。任何
 密钥都不得放进 `VITE_*`，因为 Vite 变量会进入浏览器产物。
+
+ActionProposal 默认 24 小时过期，可用 `ACTION_PROPOSAL_TTL_SECONDS` 调整。过期只会拒绝待执行 Tool，不会自动批准或产生业务写入。
 
 Agent 配置在进程启动后缓存，修改后需要重启 Django/Celery。配置由 Pydantic 严格校验，未知
 字段、过期 `config_version`、不存在的模型别名和无效限制都会阻止 Agent 启动。当前模型适配器
@@ -300,6 +307,11 @@ POST              /api/v1/chat/messages/
 GET               /api/v1/chat/runs/{id}/
 POST              /api/v1/chat/runs/{id}/cancel/
 GET               /api/v1/chat/runs/{id}/events/
+GET               /api/v1/action-proposals/
+GET               /api/v1/action-proposals/{id}/
+POST              /api/v1/action-proposals/{id}/approve/
+POST              /api/v1/action-proposals/{id}/edit/
+POST              /api/v1/action-proposals/{id}/reject/
 ```
 
 事件 PATCH/DELETE 需要 `expected_version` 查询参数；DELETE 执行取消而非物理删除。
@@ -308,7 +320,6 @@ GET               /api/v1/chat/runs/{id}/events/
 
 - Email、Telegram、Browser 等真实通知渠道；
 - Briefing Workflow 和外部日历同步；
-- ActionProposal 与 HITL；
 - Briefing Workflow、天气、新闻和外部日历；
 - 生产 TLS、完整监控、备份和发布流水线。
 
@@ -320,4 +331,4 @@ development settings 允许本地调试，production settings 强制提供安全
 
 ## 下一步
 
-Phase 5 已完成；下一阶段为 **Phase 6：ActionProposal 与 HITL 高风险操作审批闭环**。
+Phase 6 已完成；下一阶段为 **Phase 7：Briefing Workflow**。

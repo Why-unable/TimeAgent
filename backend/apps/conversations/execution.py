@@ -6,7 +6,9 @@ from django.contrib.auth.models import User
 from django.utils import timezone
 from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_core.messages import AIMessage, AIMessageChunk
+from pydantic import JsonValue
 
+from apps.action_proposals.services import ActionProposalService
 from apps.agents.agents.time_steward import build_time_steward_agent
 from apps.agents.memory.persistence import open_langgraph_persistence
 from apps.agents.outer_graph import OuterGraphNodes, build_outer_graph_runtime
@@ -86,6 +88,8 @@ def execute_agent_run(
                 store=persistence.store,
             )
             result, emitted_delta = _consume_stream(runtime.stream(envelope, context), run)
+            if _persist_interrupt(runtime, run):
+                return AgentRunService.wait_for_approval(run)
         final_response = _last_ai_text(result)
         if not emitted_delta:
             AgentRunService.append_event(run, "message.delta", {"content": final_response})
@@ -95,6 +99,98 @@ def execute_agent_run(
     except Exception as exc:
         AgentRunService.fail(run, exc)
         raise
+
+
+def resume_agent_run(
+    run: AgentRun,
+    *,
+    actor: User,
+    task_id: str,
+    model: BaseChatModel | None = None,
+    now: datetime | None = None,
+) -> AgentRun:
+    """Resume a checkpointed HITL run after all current proposals are decided."""
+
+    claimed = AgentRunService.claim_for_resume(run, task_id=task_id)
+    if claimed is None:
+        return AgentRun.objects.get(pk=run.pk)
+    run = claimed
+    preference = UserPreferenceService.get_for_user(actor)
+    timezone_name = preference.timezone if preference else settings.DEFAULT_USER_TIMEZONE
+    locale = preference.locale if preference else settings.DEFAULT_USER_LOCALE
+    current_time = (now or timezone.now()).astimezone(UTC)
+    envelope = TriggerEnvelope(
+        trigger_type="user_message",
+        user_id=str(actor.pk),
+        operation_id=run.operation_id,
+        conversation_id=run.conversation_id,
+        payload={"message": run.input_message},
+        triggered_at=current_time,
+    )
+    context = runtime_context_from_trigger(
+        envelope,
+        request_id=run.request_id,
+        timezone=timezone_name,
+        locale=locale,
+        actor=actor,
+        agent_run_id=str(run.pk),
+    )
+    try:
+        resume_value = ActionProposalService.resume_payload(run.pk)
+        with open_langgraph_persistence() as persistence:
+            agent = build_time_steward_agent(model=model)
+            runtime = build_outer_graph_runtime(
+                OuterGraphNodes(
+                    time_steward_agent=agent,
+                    briefing_workflow=_unavailable_workflow,
+                    calendar_sync_workflow=_unavailable_workflow,
+                ),
+                checkpointer=persistence.checkpointer,
+                store=persistence.store,
+            )
+            ActionProposalService.mark_resumed(run.pk)
+            result, emitted_delta = _consume_stream(
+                runtime.stream_resume(
+                    thread_id=str(run.conversation_id),
+                    resume_value=cast(JsonValue, resume_value),
+                    context=context,
+                ),
+                run,
+            )
+            if _persist_interrupt(runtime, run):
+                return AgentRunService.wait_for_approval(run)
+        final_response = _last_ai_text(result)
+        if not emitted_delta:
+            AgentRunService.append_event(run, "message.delta", {"content": final_response})
+        return AgentRunService.complete(run, final_response)
+    except AgentRunCancelled:
+        return AgentRun.objects.get(pk=run.pk)
+    except Exception as exc:
+        AgentRunService.fail(run, exc)
+        raise
+
+
+def _persist_interrupt(runtime: Any, run: AgentRun) -> bool:
+    interrupts = runtime.pending_interrupts(str(run.conversation_id))
+    if not interrupts:
+        return False
+    proposals = ActionProposalService.create_from_interrupt(
+        run=run,
+        interrupt_value=interrupts[0].value,
+        interrupt_id=interrupts[0].id,
+    )
+    for proposal in proposals:
+        AgentRunService.append_event(
+            run,
+            "approval.required",
+            {
+                "proposal_id": str(proposal.pk),
+                "action_type": proposal.action_type,
+                "risk_level": proposal.risk_level,
+                "expires_at": proposal.expires_at.isoformat(),
+            },
+        )
+    return True
 
 
 def _last_ai_text(state: AppState) -> str:

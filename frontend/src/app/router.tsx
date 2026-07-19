@@ -19,6 +19,9 @@ const TodayPage = lazy(() =>
 const ChatPage = lazy(() =>
   import("../pages/chat-page").then((module) => ({ default: module.ChatPage })),
 );
+const ApprovalsPage = lazy(() =>
+  import("../pages/approvals-page").then((module) => ({ default: module.ApprovalsPage })),
+);
 
 function lazyPage(page: ReactNode) {
   return <Suspense fallback={<p className="text-slate-400">正在加载页面…</p>}>{page}</Suspense>;
@@ -34,6 +37,7 @@ const router = createBrowserRouter([
       { path: "/calendar", element: lazyPage(<CalendarPage />) },
       { path: "/tasks", element: lazyPage(<TasksPage />) },
       { path: "/reminders", element: <RemindersPage /> },
+      { path: "/approvals", element: lazyPage(<ApprovalsPage />) },
       { path: "/settings/time", element: <TimeSettingsPage /> },
     ],
   },

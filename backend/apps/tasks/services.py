@@ -113,6 +113,26 @@ class TaskService:
 
     @staticmethod
     @transaction.atomic
+    def cancel_task(
+        *,
+        task_id: UUID,
+        user: User,
+        occurred_at: datetime | None = None,
+    ) -> Task:
+        """Cancel an active task without deleting its audit history."""
+
+        TaskService._ensure_persisted_user(user)
+        task = Task.objects.select_for_update().get(pk=task_id, user=user)
+        if task.status == TaskStatus.CANCELLED:
+            return task
+
+        task.transition_to(TaskStatus.CANCELLED, occurred_at=occurred_at or timezone.now())
+        task.full_clean()
+        task.save()
+        return task
+
+    @staticmethod
+    @transaction.atomic
     def reschedule_task(
         *,
         task_id: UUID,
@@ -137,9 +157,7 @@ class TaskService:
         if query.due_before is not None:
             tasks = tasks.filter(due_at__lte=to_utc(query.due_before))
         if query.planned_starts_before is not None:
-            tasks = tasks.filter(
-                planned_start_at__lt=to_utc(query.planned_starts_before)
-            )
+            tasks = tasks.filter(planned_start_at__lt=to_utc(query.planned_starts_before))
         if query.planned_ends_after is not None:
             tasks = tasks.filter(planned_end_at__gt=to_utc(query.planned_ends_after))
         return list(tasks)

@@ -263,10 +263,13 @@ def test_official_middleware_and_fixed_eval_policy_cover_phase_five() -> None:
         assert set(case["forbidden_tools"]).isdisjoint(set(case["required_tools"]))
     assert write_names == {
         "create_event",
+        "cancel_event",
         "create_task",
         "complete_task",
         "reschedule_task",
+        "cancel_task",
         "create_reminder",
+        "cancel_reminder",
     }
 
 

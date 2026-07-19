@@ -2,7 +2,7 @@
 
 每个阶段必须可独立验收；未列入阶段目标的功能不应顺带实现。
 
-当前进度：Phase 0、Phase 1、Phase 2、Phase 3、Phase 4、Phase 5 已完成；下一阶段为 Phase 6。
+当前进度：Phase 0 至 Phase 6 已完成；下一阶段为 Phase 7。
 
 ## Phase 0：工程骨架
 
@@ -66,8 +66,9 @@
 
 ## Phase 6：ActionProposal 与 HITL
 
+- 状态：已完成。
 - 目标：让高风险操作透明、可编辑、可拒绝。
-- 后端：ActionProposal、风险策略、审批 API、中断与恢复、审计。
+- 后端：ActionProposal、风险策略、审批 API、中断与恢复、审计，以及日程/提醒/任务的高风险软取消 Tool。
 - 前端：审批卡片、审批列表、编辑后批准和过期状态。
 - 测试：批准、拒绝、过期、并发修改、幂等和执行失败。
 - 验收：高风险写操作未经有效审批绝不执行。
@@ -160,3 +161,9 @@
 | T043 | 实现统一流事件协议、SSE 游标恢复与取消（已完成） | Phase 5 |
 | T044 | 实现最小 Chat、统一 SSE Client 与 Tool 状态 UI（已完成） | Phase 5 |
 | T045 | 建立固定 Agent 评测集并完成 Phase 5 集成验收（已完成） | Phase 5 |
+| T046 | 实现 ActionProposal 模型、迁移与风险策略（已完成） | Phase 6 |
+| T047 | 接入 HumanInTheLoopMiddleware、中断落库与等待审批状态（已完成） | Phase 6 |
+| T048 | 实现审批 API、版本并发控制、决定幂等与过期策略（已完成） | Phase 6 |
+| T049 | 实现 Command 恢复、Celery 执行和成功/失败审计（已完成） | Phase 6 |
+| T050 | 实现审批列表、Chat 审批卡片和编辑后批准（已完成） | Phase 6 |
+| T051 | 完成 OpenAPI、测试、ADR 与 Compose/E2E 验收（已完成） | Phase 6 |

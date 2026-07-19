@@ -5,13 +5,22 @@ export interface AgentStreamEvent<T = Record<string, unknown>> {
 }
 
 const baseUrl = import.meta.env.VITE_API_BASE_URL ?? "";
-const terminalEventTypes = new Set(["message.completed", "run.failed", "run.cancelled"]);
+const terminalEventTypes = new Set([
+  "message.completed",
+  "approval.required",
+  "run.failed",
+  "run.cancelled",
+]);
 const maxReconnectAttempts = 5;
 
 export async function streamAgentRun(
   runId: string,
   onEvent: (event: AgentStreamEvent) => void,
-  options: { cursor?: string; signal?: AbortSignal } = {},
+  options: {
+    cursor?: string;
+    signal?: AbortSignal;
+    onCursor?: (cursor: string) => void;
+  } = {},
 ) {
   let cursor = options.cursor ?? "0";
   let reconnectAttempts = 0;
@@ -41,7 +50,10 @@ export async function streamAgentRun(
           const parsed = parseEvent(frame);
           if (parsed) {
             onEvent(parsed);
-            if (parsed.id) cursor = parsed.id;
+            if (parsed.id) {
+              cursor = parsed.id;
+              options.onCursor?.(cursor);
+            }
             terminal ||= terminalEventTypes.has(parsed.type);
           }
         }
@@ -51,7 +63,10 @@ export async function streamAgentRun(
         const parsed = parseEvent(buffer);
         if (parsed) {
           onEvent(parsed);
-          if (parsed.id) cursor = parsed.id;
+          if (parsed.id) {
+            cursor = parsed.id;
+            options.onCursor?.(cursor);
+          }
           terminal ||= terminalEventTypes.has(parsed.type);
         }
       }
@@ -59,7 +74,7 @@ export async function streamAgentRun(
       if (options.signal?.aborted) throw reason;
       if (reconnectAttempts >= maxReconnectAttempts) throw reason;
     }
-    if (terminal) return;
+    if (terminal) return cursor;
     if (reconnectAttempts >= maxReconnectAttempts) {
       throw new Error("Agent event stream ended before a terminal event");
     }

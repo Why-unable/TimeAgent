@@ -133,6 +133,36 @@ class OuterGraphRuntime:
         config = graph_config_for_thread(thread_id, request_id="state-inspection")
         return self.persistent_graph.get_state(config).interrupts
 
+    def stream_resume(
+        self,
+        *,
+        thread_id: str,
+        resume_value: JsonValue,
+        context: RuntimeContext,
+        stream_mode: str | Sequence[str] = ("messages", "values", "custom"),
+        subgraphs: bool = True,
+    ) -> Iterator[Any]:
+        self._validate_resume(thread_id, context)
+        if not self.pending_interrupts(thread_id):
+            raise NoPendingInterruptError(f"Thread {thread_id} has no pending interrupt")
+        config = graph_config_for_thread(
+            thread_id,
+            request_id=context.request_id,
+            user_id=context.user_id,
+            trigger_type=context.trigger_type,
+            limits=self.limits,
+        )
+        try:
+            yield from self.persistent_graph.stream(
+                Command(resume=resume_value),
+                config=config,
+                context=context,
+                stream_mode=stream_mode,  # type: ignore[arg-type]
+                subgraphs=subgraphs,
+            )
+        except GraphRecursionError as exc:
+            raise GraphStepLimitExceededError(self.limits.recursion_limit) from exc
+
     async def apending_interrupts(self, thread_id: str) -> tuple[Interrupt, ...]:
         config = graph_config_for_thread(thread_id, request_id="state-inspection")
         snapshot = await self.persistent_graph.aget_state(config)

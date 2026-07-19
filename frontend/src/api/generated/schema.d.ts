@@ -4,6 +4,86 @@
  */
 
 export interface paths {
+    "/api/v1/action-proposals/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["api_v1_action_proposals_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/action-proposals/{proposal_id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["api_v1_action_proposals_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/action-proposals/{proposal_id}/approve/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["api_v1_action_proposals_approve_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/action-proposals/{proposal_id}/edit/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["api_v1_action_proposals_edit_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/action-proposals/{proposal_id}/reject/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["api_v1_action_proposals_reject_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/chat/conversations/": {
         parameters: {
             query?: never;
@@ -280,6 +360,52 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        ActionProposal: {
+            /** Format: uuid */
+            readonly id: string;
+            /** Format: uuid */
+            readonly conversation_id: string;
+            /** Format: uuid */
+            readonly agent_run_id: string;
+            readonly original_request: string;
+            readonly explanation: string;
+            readonly action_type: string;
+            readonly action_payload: unknown;
+            readonly original_payload: unknown;
+            readonly display_context: unknown;
+            readonly risk_level: components["schemas"]["RiskLevelEnum"];
+            readonly status: components["schemas"]["ActionProposalStatusEnum"];
+            readonly requires_approval: boolean;
+            readonly version: number;
+            /** Format: date-time */
+            readonly expires_at: string;
+            /** Format: date-time */
+            readonly decided_at: string | null;
+            /** Format: date-time */
+            readonly approved_at: string | null;
+            /** Format: date-time */
+            readonly resumed_at: string | null;
+            /** Format: date-time */
+            readonly executed_at: string | null;
+            readonly decision_reason: string;
+            readonly execution_result: unknown;
+            readonly error: string;
+            /** Format: date-time */
+            readonly created_at: string;
+            /** Format: date-time */
+            readonly updated_at: string;
+        };
+        /**
+         * @description * `awaiting_approval` - Awaiting approval
+         *     * `approved` - Approved
+         *     * `rejected` - Rejected
+         *     * `executing` - Executing
+         *     * `executed` - Executed
+         *     * `failed` - Failed
+         *     * `expired` - Expired
+         * @enum {string}
+         */
+        ActionProposalStatusEnum: "awaiting_approval" | "approved" | "rejected" | "executing" | "executed" | "failed" | "expired";
         AgentRun: {
             /** Format: uuid */
             readonly id: string;
@@ -302,12 +428,13 @@ export interface components {
         /**
          * @description * `pending` - Pending
          *     * `running` - Running
+         *     * `waiting_approval` - Waiting for approval
          *     * `completed` - Completed
          *     * `failed` - Failed
          *     * `cancelled` - Cancelled
          * @enum {string}
          */
-        AgentRunStatusEnum: "pending" | "running" | "completed" | "failed" | "cancelled";
+        AgentRunStatusEnum: "pending" | "running" | "waiting_approval" | "completed" | "failed" | "cancelled";
         CalendarEvent: {
             /** Format: uuid */
             readonly id: string;
@@ -510,6 +637,25 @@ export interface components {
          * @enum {string}
          */
         PriorityEnum: "low" | "medium" | "high" | "urgent";
+        ProposalDecision: {
+            expected_version: number;
+            /** Format: uuid */
+            operation_id: string;
+            /** @default  */
+            reason: string;
+        };
+        ProposalDecisionResponse: {
+            readonly proposal: components["schemas"]["ActionProposal"];
+            readonly resume_queued: boolean;
+        };
+        ProposalEditDecision: {
+            expected_version: number;
+            /** Format: uuid */
+            operation_id: string;
+            /** @default  */
+            reason: string;
+            action_payload: unknown;
+        };
         ReadyResponse: {
             status: components["schemas"]["ReadyResponseStatusEnum"];
             checks: components["schemas"]["DependencyChecks"];
@@ -555,6 +701,11 @@ export interface components {
          * @enum {string}
          */
         ReminderStatusEnum: "pending" | "queued" | "sending" | "sent" | "failed" | "cancelled";
+        /**
+         * @description * `high` - High
+         * @enum {string}
+         */
+        RiskLevelEnum: "high";
         ScheduleConflict: {
             first: components["schemas"]["ScheduleItem"];
             second: components["schemas"]["ScheduleItem"];
@@ -674,6 +825,174 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    api_v1_action_proposals_list: {
+        parameters: {
+            query?: {
+                status?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ActionProposal"][];
+                };
+            };
+        };
+    };
+    api_v1_action_proposals_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                proposal_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ActionProposal"];
+                };
+            };
+        };
+    };
+    api_v1_action_proposals_approve_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                proposal_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProposalDecision"];
+                "application/x-www-form-urlencoded": components["schemas"]["ProposalDecision"];
+                "multipart/form-data": components["schemas"]["ProposalDecision"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProposalDecisionResponse"];
+                };
+            };
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProposalDecisionResponse"];
+                };
+            };
+            /** @description No response body */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    api_v1_action_proposals_edit_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                proposal_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProposalEditDecision"];
+                "application/x-www-form-urlencoded": components["schemas"]["ProposalEditDecision"];
+                "multipart/form-data": components["schemas"]["ProposalEditDecision"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProposalDecisionResponse"];
+                };
+            };
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProposalDecisionResponse"];
+                };
+            };
+            /** @description No response body */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    api_v1_action_proposals_reject_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                proposal_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProposalDecision"];
+                "application/x-www-form-urlencoded": components["schemas"]["ProposalDecision"];
+                "multipart/form-data": components["schemas"]["ProposalDecision"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProposalDecisionResponse"];
+                };
+            };
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProposalDecisionResponse"];
+                };
+            };
+            /** @description No response body */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     api_v1_chat_conversations_list: {
         parameters: {
             query?: never;

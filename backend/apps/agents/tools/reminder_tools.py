@@ -1,4 +1,5 @@
 from datetime import datetime
+from uuid import UUID
 
 from langchain.tools import ToolRuntime, tool
 
@@ -39,6 +40,20 @@ def list_reminders(
 
 
 @tool
+def get_reminder(
+    reminder_id: UUID,
+    runtime: ToolRuntime[RuntimeContext],
+) -> dict[str, object]:
+    """Get one reminder owned by the current user."""
+
+    reminder = ReminderService.get_reminder(
+        user=require_actor(runtime),
+        reminder_id=reminder_id,
+    )
+    return model_dict(reminder, REMINDER_FIELDS)
+
+
+@tool
 def create_reminder(
     title: str,
     trigger_at: datetime,
@@ -60,4 +75,19 @@ def create_reminder(
     return model_dict(reminder, REMINDER_FIELDS)
 
 
-REMINDER_TOOLS = [list_reminders, create_reminder]
+@tool
+def cancel_reminder(
+    reminder_id: UUID,
+    runtime: ToolRuntime[RuntimeContext],
+) -> dict[str, object]:
+    """Cancel one identified reminder if it has not started or been sent."""
+
+    reminder = ReminderService.cancel_reminder(
+        reminder_id=reminder_id,
+        user=require_writable(runtime),
+        occurred_at=runtime.context.current_datetime,
+    )
+    return model_dict(reminder, REMINDER_FIELDS)
+
+
+REMINDER_TOOLS = [list_reminders, get_reminder, create_reminder, cancel_reminder]

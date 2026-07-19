@@ -6,6 +6,301 @@
         "description": "Time Agent backend contract"
     },
     "paths": {
+        "/api/v1/action-proposals/": {
+            "get": {
+                "operationId": "api_v1_action_proposals_list",
+                "parameters": [
+                    {
+                        "in": "query",
+                        "name": "status",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "tags": [
+                    "api"
+                ],
+                "security": [
+                    {
+                        "cookieAuth": []
+                    },
+                    {
+                        "basicAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/ActionProposal"
+                                    }
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/api/v1/action-proposals/{proposal_id}/": {
+            "get": {
+                "operationId": "api_v1_action_proposals_retrieve",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "proposal_id",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "api"
+                ],
+                "security": [
+                    {
+                        "cookieAuth": []
+                    },
+                    {
+                        "basicAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ActionProposal"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/api/v1/action-proposals/{proposal_id}/approve/": {
+            "post": {
+                "operationId": "api_v1_action_proposals_approve_create",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "proposal_id",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "api"
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ProposalDecision"
+                            }
+                        },
+                        "application/x-www-form-urlencoded": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ProposalDecision"
+                            }
+                        },
+                        "multipart/form-data": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ProposalDecision"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "security": [
+                    {
+                        "cookieAuth": []
+                    },
+                    {
+                        "basicAuth": []
+                    }
+                ],
+                "responses": {
+                    "202": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ProposalDecisionResponse"
+                                }
+                            }
+                        },
+                        "description": ""
+                    },
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ProposalDecisionResponse"
+                                }
+                            }
+                        },
+                        "description": ""
+                    },
+                    "409": {
+                        "description": "No response body"
+                    }
+                }
+            }
+        },
+        "/api/v1/action-proposals/{proposal_id}/edit/": {
+            "post": {
+                "operationId": "api_v1_action_proposals_edit_create",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "proposal_id",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "api"
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ProposalEditDecision"
+                            }
+                        },
+                        "application/x-www-form-urlencoded": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ProposalEditDecision"
+                            }
+                        },
+                        "multipart/form-data": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ProposalEditDecision"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "security": [
+                    {
+                        "cookieAuth": []
+                    },
+                    {
+                        "basicAuth": []
+                    }
+                ],
+                "responses": {
+                    "202": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ProposalDecisionResponse"
+                                }
+                            }
+                        },
+                        "description": ""
+                    },
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ProposalDecisionResponse"
+                                }
+                            }
+                        },
+                        "description": ""
+                    },
+                    "409": {
+                        "description": "No response body"
+                    }
+                }
+            }
+        },
+        "/api/v1/action-proposals/{proposal_id}/reject/": {
+            "post": {
+                "operationId": "api_v1_action_proposals_reject_create",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "proposal_id",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "api"
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ProposalDecision"
+                            }
+                        },
+                        "application/x-www-form-urlencoded": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ProposalDecision"
+                            }
+                        },
+                        "multipart/form-data": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ProposalDecision"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "security": [
+                    {
+                        "cookieAuth": []
+                    },
+                    {
+                        "basicAuth": []
+                    }
+                ],
+                "responses": {
+                    "202": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ProposalDecisionResponse"
+                                }
+                            }
+                        },
+                        "description": ""
+                    },
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ProposalDecisionResponse"
+                                }
+                            }
+                        },
+                        "description": ""
+                    },
+                    "409": {
+                        "description": "No response body"
+                    }
+                }
+            }
+        },
         "/api/v1/chat/conversations/": {
             "get": {
                 "operationId": "api_v1_chat_conversations_list",
@@ -1104,6 +1399,160 @@
     },
     "components": {
         "schemas": {
+            "ActionProposal": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "format": "uuid",
+                        "readOnly": true
+                    },
+                    "conversation_id": {
+                        "type": "string",
+                        "format": "uuid",
+                        "readOnly": true
+                    },
+                    "agent_run_id": {
+                        "type": "string",
+                        "format": "uuid",
+                        "readOnly": true
+                    },
+                    "original_request": {
+                        "type": "string",
+                        "readOnly": true
+                    },
+                    "explanation": {
+                        "type": "string",
+                        "readOnly": true
+                    },
+                    "action_type": {
+                        "type": "string",
+                        "readOnly": true
+                    },
+                    "action_payload": {
+                        "readOnly": true
+                    },
+                    "original_payload": {
+                        "readOnly": true
+                    },
+                    "display_context": {
+                        "readOnly": true
+                    },
+                    "risk_level": {
+                        "allOf": [
+                            {
+                                "$ref": "#/components/schemas/RiskLevelEnum"
+                            }
+                        ],
+                        "readOnly": true
+                    },
+                    "status": {
+                        "allOf": [
+                            {
+                                "$ref": "#/components/schemas/ActionProposalStatusEnum"
+                            }
+                        ],
+                        "readOnly": true
+                    },
+                    "requires_approval": {
+                        "type": "boolean",
+                        "readOnly": true
+                    },
+                    "version": {
+                        "type": "integer",
+                        "readOnly": true
+                    },
+                    "expires_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "readOnly": true
+                    },
+                    "decided_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "readOnly": true,
+                        "nullable": true
+                    },
+                    "approved_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "readOnly": true,
+                        "nullable": true
+                    },
+                    "resumed_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "readOnly": true,
+                        "nullable": true
+                    },
+                    "executed_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "readOnly": true,
+                        "nullable": true
+                    },
+                    "decision_reason": {
+                        "type": "string",
+                        "readOnly": true
+                    },
+                    "execution_result": {
+                        "readOnly": true,
+                        "nullable": true
+                    },
+                    "error": {
+                        "type": "string",
+                        "readOnly": true
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "readOnly": true
+                    },
+                    "updated_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "readOnly": true
+                    }
+                },
+                "required": [
+                    "action_payload",
+                    "action_type",
+                    "agent_run_id",
+                    "approved_at",
+                    "conversation_id",
+                    "created_at",
+                    "decided_at",
+                    "decision_reason",
+                    "display_context",
+                    "error",
+                    "executed_at",
+                    "execution_result",
+                    "expires_at",
+                    "explanation",
+                    "id",
+                    "original_payload",
+                    "original_request",
+                    "requires_approval",
+                    "resumed_at",
+                    "risk_level",
+                    "status",
+                    "updated_at",
+                    "version"
+                ]
+            },
+            "ActionProposalStatusEnum": {
+                "enum": [
+                    "awaiting_approval",
+                    "approved",
+                    "rejected",
+                    "executing",
+                    "executed",
+                    "failed",
+                    "expired"
+                ],
+                "type": "string",
+                "description": "* `awaiting_approval` - Awaiting approval\n* `approved` - Approved\n* `rejected` - Rejected\n* `executing` - Executing\n* `executed` - Executed\n* `failed` - Failed\n* `expired` - Expired"
+            },
             "AgentRun": {
                 "type": "object",
                 "properties": {
@@ -1182,12 +1631,13 @@
                 "enum": [
                     "pending",
                     "running",
+                    "waiting_approval",
                     "completed",
                     "failed",
                     "cancelled"
                 ],
                 "type": "string",
-                "description": "* `pending` - Pending\n* `running` - Running\n* `completed` - Completed\n* `failed` - Failed\n* `cancelled` - Cancelled"
+                "description": "* `pending` - Pending\n* `running` - Running\n* `waiting_approval` - Waiting for approval\n* `completed` - Completed\n* `failed` - Failed\n* `cancelled` - Cancelled"
             },
             "CalendarEvent": {
                 "type": "object",
@@ -1753,6 +2203,73 @@
                 "type": "string",
                 "description": "* `low` - Low\n* `medium` - Medium\n* `high` - High\n* `urgent` - Urgent"
             },
+            "ProposalDecision": {
+                "type": "object",
+                "properties": {
+                    "expected_version": {
+                        "type": "integer",
+                        "minimum": 1
+                    },
+                    "operation_id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "reason": {
+                        "type": "string",
+                        "default": "",
+                        "maxLength": 2000
+                    }
+                },
+                "required": [
+                    "expected_version",
+                    "operation_id"
+                ]
+            },
+            "ProposalDecisionResponse": {
+                "type": "object",
+                "properties": {
+                    "proposal": {
+                        "allOf": [
+                            {
+                                "$ref": "#/components/schemas/ActionProposal"
+                            }
+                        ],
+                        "readOnly": true
+                    },
+                    "resume_queued": {
+                        "type": "boolean",
+                        "readOnly": true
+                    }
+                },
+                "required": [
+                    "proposal",
+                    "resume_queued"
+                ]
+            },
+            "ProposalEditDecision": {
+                "type": "object",
+                "properties": {
+                    "expected_version": {
+                        "type": "integer",
+                        "minimum": 1
+                    },
+                    "operation_id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "reason": {
+                        "type": "string",
+                        "default": "",
+                        "maxLength": 2000
+                    },
+                    "action_payload": {}
+                },
+                "required": [
+                    "action_payload",
+                    "expected_version",
+                    "operation_id"
+                ]
+            },
             "ReadyResponse": {
                 "type": "object",
                 "properties": {
@@ -1865,6 +2382,13 @@
                 ],
                 "type": "string",
                 "description": "* `pending` - Pending\n* `queued` - Queued\n* `sending` - Sending\n* `sent` - Sent\n* `failed` - Failed\n* `cancelled` - Cancelled"
+            },
+            "RiskLevelEnum": {
+                "enum": [
+                    "high"
+                ],
+                "type": "string",
+                "description": "* `high` - High"
             },
             "ScheduleConflict": {
                 "type": "object",

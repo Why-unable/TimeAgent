@@ -223,6 +223,34 @@ def test_service_rejects_invalid_command_before_writing() -> None:
     assert not Reminder.objects.filter(user=user).exists()
 
 
+def test_service_cancels_pending_reminder_idempotently() -> None:
+    user = create_user()
+    reminder = ReminderService.create_reminder(
+        CreateReminderCommand(
+            user=user,
+            title="Cancel me",
+            trigger_at=FIXED_TRIGGER,
+            timezone="Asia/Shanghai",
+            deduplication_key="cancel-reminder-service",
+        )
+    )
+
+    cancelled = ReminderService.cancel_reminder(
+        reminder_id=reminder.pk,
+        user=user,
+        occurred_at=FIXED_NOW,
+    )
+    repeated = ReminderService.cancel_reminder(
+        reminder_id=reminder.pk,
+        user=user,
+        occurred_at=FIXED_NOW,
+    )
+
+    assert cancelled.status == ReminderStatus.CANCELLED
+    assert repeated.pk == reminder.pk
+    assert Reminder.objects.filter(pk=reminder.pk, status=ReminderStatus.CANCELLED).exists()
+
+
 def test_successful_state_transition_sequence() -> None:
     reminder = build_reminder(create_user())
 

@@ -7,7 +7,7 @@ export interface Conversation {
   updated_at: string;
 }
 
-export type PersistedRunStatus = "pending" | "running" | "completed" | "failed" | "cancelled";
+export type PersistedRunStatus = "pending" | "running" | "waiting_approval" | "completed" | "failed" | "cancelled";
 
 export interface AgentRun {
   id: string;

@@ -36,7 +36,7 @@ describe("agent SSE protocol", () => {
 
     const streaming = streamAgentRun("run-1", (event) => events.push(event.type));
     await vi.advanceTimersByTimeAsync(250);
-    await streaming;
+    await expect(streaming).resolves.toBe("2");
 
     expect(events).toEqual(["agent.started", "message.completed"]);
     expect(fetchMock).toHaveBeenCalledTimes(2);
