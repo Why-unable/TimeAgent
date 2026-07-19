@@ -27,7 +27,12 @@ export function BriefingsPage() {
   const [targetDate, setTargetDate] = useState(() => getLocalDateKey(new Date(), timezone));
   const [name, setName] = useState("每日简报");
   const [style, setStyle] = useState<BriefingStyle>("balanced");
-  const [sections, setSections] = useState<BriefingSectionKey[]>(["calendar", "tasks"]);
+  const [sections, setSections] = useState<BriefingSectionKey[]>([
+    "calendar",
+    "tasks",
+    "weather",
+    "news",
+  ]);
 
   useEffect(() => {
     if (preference.data?.timezone) {
@@ -76,7 +81,7 @@ export function BriefingsPage() {
       <header>
         <p className="text-sm font-medium text-cyan-300">Briefing Workflow</p>
         <h2 className="mt-1 text-2xl font-semibold">简报</h2>
-        <p className="mt-2 text-sm text-slate-400">确定性收集日程与任务，再由受限 Editor 整理重点。</p>
+        <p className="mt-2 text-sm text-slate-400">并行收集日程、任务、天气和关注新闻，再由受限 Editor 整理重点。</p>
       </header>
 
       <div className="grid gap-6 lg:grid-cols-[22rem_1fr]">
@@ -104,7 +109,10 @@ export function BriefingsPage() {
             </label>
             <fieldset className="mt-4"><legend className="text-xs text-slate-400">数据 Section</legend>
               <div className="mt-2 flex gap-4 text-sm">
-                {(["calendar", "tasks"] as const).map((key) => <label key={key} className="flex items-center gap-2"><input type="checkbox" checked={sections.includes(key)} onChange={() => toggleSection(key)} />{key === "calendar" ? "日程" : "任务"}</label>)}
+                {(["calendar", "tasks", "weather", "news"] as const).map((key) => {
+                  const labels = { calendar: "日程", tasks: "任务", weather: "天气", news: "新闻" };
+                  return <label key={key} className="flex items-center gap-2"><input type="checkbox" checked={sections.includes(key)} onChange={() => toggleSection(key)} />{labels[key]}</label>;
+                })}
               </div>
             </fieldset>
             <label className="mt-4 block text-xs text-slate-400">表达风格
@@ -129,7 +137,13 @@ export function BriefingsPage() {
               </div>
               {run.rendered_markdown && <div className="mt-4 rounded-xl bg-slate-950/50 p-4"><MarkdownMessage content={run.rendered_markdown} /></div>}
               <div className="mt-4 flex flex-wrap gap-2">
-                {run.section_runs.flatMap((section) => section.source_references).map((source) => <span key={`${source.kind}-${source.id}`} className="rounded-lg bg-white/5 px-2 py-1 text-xs text-slate-400">{source.kind === "calendar_event" ? "日程" : "任务"} · {source.title}</span>)}
+                {run.section_runs.flatMap((section) => section.source_references).map((source) => {
+                  const labels = { calendar_event: "日程", task: "任务", weather_forecast: "天气", news_article: "新闻" };
+                  const content = <>{labels[source.kind]} · {source.title}{source.publisher ? ` · ${source.publisher}` : ""}</>;
+                  return source.url
+                    ? <a key={`${source.kind}-${source.id}`} href={source.url} target="_blank" rel="noreferrer" className="rounded-lg bg-white/5 px-2 py-1 text-xs text-cyan-300 hover:bg-white/10">{content}</a>
+                    : <span key={`${source.kind}-${source.id}`} className="rounded-lg bg-white/5 px-2 py-1 text-xs text-slate-400">{content}</span>;
+                })}
               </div>
               {run.warnings.map((warning) => <p key={warning} className="mt-2 text-xs text-amber-300">{warning}</p>)}
               {run.failure_message && <p className="mt-3 text-sm text-red-200">{run.failure_message}</p>}

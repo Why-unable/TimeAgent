@@ -170,7 +170,9 @@ def test_manual_briefing_collects_sections_persists_and_returns_ai_message() -> 
     assert briefing_run.status == BriefingRunStatus.COMPLETED
     assert {item.section_key for item in briefing_run.section_runs.all()} == {
         "calendar",
+        "news",
         "tasks",
+        "weather",
     }
     assert all(item.status == "completed" for item in briefing_run.section_runs.all())
     assert isinstance(result["messages"][-1], AIMessage)
@@ -181,6 +183,12 @@ def test_manual_briefing_collects_sections_persists_and_returns_ai_message() -> 
 def test_briefing_inherits_runtime_timezone_when_definition_has_no_override() -> None:
     user = User.objects.create_user(username="briefing-timezone-user")
     definition = BriefingDefinitionService.default_for_user(user)
+    definition = BriefingDefinitionService.save(
+        user=user,
+        definition=definition,
+        name=definition.name,
+        enabled_sections=["calendar", "tasks"],
+    )
     operation_id = uuid4()
 
     run = BriefingRunService.start(
@@ -211,6 +219,12 @@ def test_single_section_failure_produces_partial_briefing() -> None:
 
     user = User.objects.create_user(username="partial-briefing-user")
     definition = BriefingDefinitionService.default_for_user(user)
+    definition = BriefingDefinitionService.save(
+        user=user,
+        definition=definition,
+        name=definition.name,
+        enabled_sections=["calendar", "tasks"],
+    )
     conversation = ConversationService.create(user=user, kind=ConversationKind.MANUAL_BRIEFING)
     operation_id = uuid4()
     run = AgentRunService.start(

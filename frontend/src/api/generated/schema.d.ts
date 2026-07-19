@@ -292,6 +292,22 @@ export interface paths {
         patch: operations["api_v1_preferences_me_partial_update"];
         trace?: never;
     };
+    "/api/v1/providers/catalog/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["api_v1_providers_catalog_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/reminders/": {
         parameters: {
             query?: never;
@@ -830,6 +846,21 @@ export interface components {
             /** @default  */
             reason: string;
             action_payload: unknown;
+        };
+        ProviderCatalog: {
+            weather_provider: string;
+            news_provider: string;
+            news_feeds: components["schemas"]["ProviderFeed"][];
+            topic_aliases: {
+                [key: string]: string[];
+            };
+        };
+        ProviderFeed: {
+            name: string;
+            publisher: string;
+            /** Format: uri */
+            url: string;
+            topics: string[];
         };
         ReadyResponse: {
             status: components["schemas"]["ReadyResponseStatusEnum"];
@@ -1673,6 +1704,25 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["UserPreference"];
+                };
+            };
+        };
+    };
+    api_v1_providers_catalog_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProviderCatalog"];
                 };
             };
         };

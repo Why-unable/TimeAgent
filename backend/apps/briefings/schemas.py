@@ -7,10 +7,12 @@ from pydantic import BaseModel, ConfigDict, Field
 class SourceReference(BaseModel):
     model_config = ConfigDict(frozen=True)
 
-    kind: Literal["calendar_event", "task"]
+    kind: Literal["calendar_event", "task", "weather_forecast", "news_article"]
     id: str
     title: str
     occurred_at: datetime | None = None
+    url: str = ""
+    publisher: str = ""
 
 
 class SectionResult(BaseModel):
@@ -38,11 +40,34 @@ class BriefingTaskItem(BaseModel):
     source_ids: list[str] = Field(default_factory=list)
 
 
+class BriefingWeatherItem(BaseModel):
+    date: date
+    location: str
+    summary: str
+    temperature_min: float | None = None
+    temperature_max: float | None = None
+    precipitation_probability: int | None = None
+    impact: str = ""
+    source_ids: list[str] = Field(default_factory=list)
+
+
+class BriefingNewsItem(BaseModel):
+    title: str
+    summary: str
+    publisher: str
+    published_at: datetime
+    url: str
+    relevance: str = ""
+    source_ids: list[str] = Field(default_factory=list)
+
+
 class BriefingDraft(BaseModel):
     title: str
     overview: str
     agenda_items: list[BriefingAgendaItem] = Field(default_factory=list)
     task_items: list[BriefingTaskItem] = Field(default_factory=list)
+    weather_items: list[BriefingWeatherItem] = Field(default_factory=list)
+    news_items: list[BriefingNewsItem] = Field(default_factory=list)
     risks: list[str] = Field(default_factory=list)
     suggestions: list[str] = Field(default_factory=list)
 

@@ -8,6 +8,8 @@ dependencies = [
     "django>=5.2,<5.3",
     "djangorestframework>=3.15,<4",
     "drf-spectacular>=0.28,<1",
+    "feedparser>=6,<7",
+    "httpx>=0.28,<1",
     "langchain>=1,<2",
     "langchain-anthropic>=1,<2",
     "langchain-openai>=1,<2",
@@ -53,6 +55,10 @@ exclude = ["migrations"]
 
 [[tool.mypy.overrides]]
 module = ["celery.*", "redis.*"]
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = ["feedparser.*"]
 ignore_missing_imports = true
 
 [[tool.mypy.overrides]]

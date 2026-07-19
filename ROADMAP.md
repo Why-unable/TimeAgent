@@ -2,7 +2,7 @@
 
 每个阶段必须可独立验收；未列入阶段目标的功能不应顺带实现。
 
-当前进度：Phase 0 至 Phase 7 已完成；下一阶段为 Phase 8。
+当前进度：Phase 0 至 Phase 8 已完成；下一阶段为 Phase 9。
 
 ## Phase 0：工程骨架
 
@@ -86,6 +86,7 @@
 
 ## Phase 8：天气与新闻
 
+- 状态：已完成。
 - 目标：通过 Provider 扩展外部信息 Section。
 - 后端：WeatherProvider、NewsProvider、去重、来源与时间校验。
 - 前端：来源、警告、Provider 部分失败展示。
@@ -176,3 +177,9 @@
 | T057 | 实现简报配置、手动运行、结果与来源 API/页面（已完成） | Phase 7 |
 | T058 | 实现普通聊天、手动简报和自动简报会话分类（已完成） | Phase 7 |
 | T059 | 完成 OpenAPI、测试、ADR 与 Phase 7 验收（已完成） | Phase 7 |
+| T060 | 实现 Open-Meteo WeatherProvider、地点解析与天气 Section（已完成） | Phase 8 |
+| T061 | 建立可信 Feed 目录、主题别名与 RSS/Atom NewsProvider（已完成） | Phase 8 |
+| T062 | 实现新闻时间过滤、规范化、排序、去重和 PostgreSQL 来源留存（已完成） | Phase 8 |
+| T063 | 将天气与新闻纳入 Briefing Registry、Editor Schema 和确定性降级（已完成） | Phase 8 |
+| T064 | 实现天气地点、新闻主题和 Provider 目录前端配置（已完成） | Phase 8 |
+| T065 | 完成 OpenAPI、Provider Mock、超时降级、ADR 与 Phase 8 验收（已完成） | Phase 8 |

@@ -1,0 +1,102 @@
+config_version: 1
+
+weather:
+  provider: open_meteo
+  forecast_url: https://api.open-meteo.com/v1/forecast
+  geocoding_url: https://geocoding-api.open-meteo.com/v1/search
+  timeout_seconds: 8
+  forecast_days: 3
+
+news:
+  provider: rss
+  timeout_seconds: 8
+  lookback_hours: 24
+  max_items: 12
+  max_items_per_feed: 30
+  max_concurrent_feeds: 4
+  topic_aliases:
+    artificial intelligence: [ai, 人工智能, 机器学习, machine learning, llm, 大模型]
+    openai: [chatgpt, gpt, openai]
+    github: [github]
+    developer tools: [developer tools, 开发者工具, 软件工程, 编程]
+    open source: [open source, 开源]
+    python: [python, cpython, pycon]
+    world: [world, international, 国际, 全球]
+    china: [china, 中国, 国内, 国内新闻, 时政, 社会]
+    finance: [finance, 财经, 国内财经, 金融, 经济, 商业]
+    technology: [technology, tech, 科技]
+    consumer technology: [consumer technology, 数码, 消费电子]
+    startups: [startups, 创业, 创投, 初创公司]
+    space: [space, nasa, astronomy, 太空, 航天, 天文]
+    science: [science, 科学]
+  feeds:
+    - name: OpenAI News
+      url: https://openai.com/news/rss.xml
+      publisher: OpenAI
+      topics: [artificial intelligence, openai]
+      priority: 100
+    - name: GitHub Blog
+      url: https://github.blog/feed/
+      publisher: GitHub
+      topics: [github, developer tools, open source, artificial intelligence]
+      priority: 90
+    - name: GitHub Changelog
+      url: https://github.blog/changelog/feed/
+      publisher: GitHub
+      topics: [github, developer tools, open source]
+      priority: 90
+    - name: Python Insider
+      url: https://blog.python.org/rss.xml
+      publisher: Python Software Foundation
+      topics: [python, developer tools]
+      priority: 90
+    - name: BBC World
+      url: https://feeds.bbci.co.uk/news/world/rss.xml
+      publisher: BBC News
+      topics: [world]
+      priority: 70
+    - name: NASA
+      url: https://www.nasa.gov/feed/
+      publisher: NASA
+      topics: [space, science]
+      priority: 80
+    - name: China News Service Latest
+      url: https://www.chinanews.com.cn/rss/scroll-news.xml
+      publisher: 中国新闻网
+      topics: [china]
+      priority: 85
+    - name: China News Service Finance
+      url: https://www.chinanews.com.cn/rss/finance.xml
+      publisher: 中国新闻网
+      topics: [finance]
+      priority: 85
+    - name: InfoQ China
+      url: https://www.infoq.cn/feed
+      publisher: InfoQ 中文
+      topics: [artificial intelligence, developer tools, technology]
+      priority: 85
+    - name: QbitAI
+      url: https://www.qbitai.com/feed
+      publisher: 量子位
+      topics: [artificial intelligence]
+      priority: 90
+    - name: OSChina
+      url: https://www.oschina.net/news/rss
+      publisher: 开源中国
+      topics: [developer tools, open source]
+      priority: 85
+    - name: Solidot
+      url: https://www.solidot.org/index.rss
+      publisher: Solidot
+      topics: [technology, open source]
+      priority: 80
+    - name: Ifanr
+      url: https://www.ifanr.com/feed
+      publisher: 爱范儿
+      topics: [technology, consumer technology]
+      priority: 75
+    - name: 36Kr
+      url: https://36kr.com/feed
+      publisher: 36氪
+      topics: [finance, startups, technology]
+      priority: 75

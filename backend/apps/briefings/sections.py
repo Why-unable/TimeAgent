@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Any
 
 from django.contrib.auth.models import User
@@ -7,6 +7,13 @@ from apps.briefings.registry import BriefingRegistry, SectionContext
 from apps.briefings.schemas import SectionResult, SourceReference
 from apps.events.models import CalendarEventStatus
 from apps.events.services import EventQuery, EventService
+from apps.external_data.configuration import get_provider_config
+from apps.external_data.providers import NewsProvider, WeatherProvider
+from apps.external_data.services import (
+    NewsDataService,
+    WeatherDataService,
+    WeatherLocationNotConfiguredError,
+)
 from apps.tasks.models import TaskStatus
 from apps.tasks.services import TaskQuery, TaskService
 from common.time import to_user_timezone
@@ -153,6 +160,170 @@ class TaskBriefingSection:
         )
 
 
+class WeatherBriefingSection:
+    key = "weather"
+
+    def __init__(self, provider: WeatherProvider | None = None) -> None:
+        self.provider = provider
+
+    def collect(self, *, user: User, context: SectionContext) -> SectionResult:
+        try:
+            forecast = WeatherDataService.forecast_for_user(
+                user=user,
+                start_date=context.target_date,
+                requested_at=context.current_datetime,
+                locale=context.locale,
+                provider=self.provider,
+            )
+        except WeatherLocationNotConfiguredError as exc:
+            return SectionResult(
+                key=self.key,
+                status="completed",
+                warnings=[str(exc)],
+            )
+        location_label = ", ".join(
+            item
+            for item in [
+                forecast.location.name,
+                forecast.location.admin1,
+                forecast.location.country,
+            ]
+            if item
+        )
+        daily = []
+        sources = []
+        for item in forecast.daily:
+            source_id = (
+                f"weather:{forecast.location.latitude:.4f}:"
+                f"{forecast.location.longitude:.4f}:{item.date.isoformat()}"
+            )
+            daily.append(
+                {
+                    "id": source_id,
+                    "date": item.date.isoformat(),
+                    "location": location_label,
+                    "weather_code": item.weather_code,
+                    "condition": _weather_condition(item.weather_code),
+                    "temperature_min": item.temperature_min,
+                    "temperature_max": item.temperature_max,
+                    "precipitation_probability": item.precipitation_probability,
+                    "precipitation_sum": item.precipitation_sum,
+                    "wind_speed_max": item.wind_speed_max,
+                    "sunrise": item.sunrise.isoformat() if item.sunrise else None,
+                    "sunset": item.sunset.isoformat() if item.sunset else None,
+                }
+            )
+            sources.append(
+                SourceReference(
+                    kind="weather_forecast",
+                    id=source_id,
+                    title=f"{location_label} {item.date.isoformat()} 天气",
+                    occurred_at=context.day_start_at,
+                    url=str(forecast.source_url),
+                    publisher=forecast.provider,
+                )
+            )
+        return SectionResult(
+            key=self.key,
+            status="completed",
+            data={
+                "provider": forecast.provider,
+                "location": forecast.location.model_dump(mode="json"),
+                "daily": daily,
+                "units": forecast.units,
+                "generated_at": forecast.generated_at.isoformat(),
+            },
+            sources=sources,
+        )
+
+
+class NewsBriefingSection:
+    key = "news"
+
+    def __init__(self, provider: NewsProvider | None = None) -> None:
+        self.provider = provider
+
+    def collect(self, *, user: User, context: SectionContext) -> SectionResult:
+        config = get_provider_config().news
+        effective_end = min(context.current_datetime, context.day_end_at)
+        effective_start = effective_end - timedelta(hours=config.lookback_hours)
+        collection = NewsDataService.collect_for_user(
+            user=user,
+            start_at=effective_start,
+            end_at=effective_end,
+            provider=self.provider,
+        )
+        if collection.selected_feeds and not collection.successful_feeds:
+            return SectionResult(
+                key=self.key,
+                status="failed",
+                warnings=collection.warnings or ["新闻 Provider 暂时不可用。"],
+                error_code="NewsProvidersUnavailable",
+            )
+        items = [
+            {
+                "id": str(item.pk),
+                "title": item.title,
+                "summary": item.summary,
+                "publisher": item.publisher,
+                "author": item.author,
+                "url": item.canonical_url,
+                "published_at": item.published_at.isoformat(),
+                "categories": item.categories,
+                "matched_topics": collection.matched_topics.get(str(item.pk), []),
+            }
+            for item in collection.items
+        ]
+        sources = [
+            SourceReference(
+                kind="news_article",
+                id=str(item.pk),
+                title=item.title,
+                occurred_at=item.published_at,
+                url=item.canonical_url,
+                publisher=item.publisher,
+            )
+            for item in collection.items
+        ]
+        return SectionResult(
+            key=self.key,
+            status="completed",
+            data={
+                "items": items,
+                "window_start": effective_start.isoformat(),
+                "window_end": effective_end.isoformat(),
+                "selected_feeds": collection.selected_feeds,
+            },
+            sources=sources,
+            warnings=collection.warnings,
+        )
+
+
+def _weather_condition(code: int | None) -> str:
+    if code is None:
+        return "未知"
+    if code == 0:
+        return "晴"
+    if code in {1, 2, 3}:
+        return "多云"
+    if code in {45, 48}:
+        return "雾"
+    if code in {51, 53, 55, 56, 57}:
+        return "毛毛雨"
+    if code in {61, 63, 65, 66, 67, 80, 81, 82}:
+        return "降雨"
+    if code in {71, 73, 75, 77, 85, 86}:
+        return "降雪"
+    if code in {95, 96, 99}:
+        return "雷暴"
+    return "天气变化"
+
+
 DEFAULT_BRIEFING_REGISTRY = BriefingRegistry.from_sections(
-    [CalendarBriefingSection(), TaskBriefingSection()]
+    [
+        CalendarBriefingSection(),
+        TaskBriefingSection(),
+        WeatherBriefingSection(),
+        NewsBriefingSection(),
+    ]
 )

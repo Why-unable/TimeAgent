@@ -17,4 +17,5 @@ urlpatterns = [
     path("api/v1/chat/", include("apps.conversations.urls")),
     path("api/v1/action-proposals/", include("apps.action_proposals.urls")),
     path("api/v1/briefings/", include("apps.briefings.urls")),
+    path("api/v1/providers/", include("apps.external_data.urls")),
 ]

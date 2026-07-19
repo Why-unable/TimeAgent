@@ -323,14 +323,30 @@ GET|POST          /api/v1/briefings/definitions/
 GET|PATCH         /api/v1/briefings/definitions/{id}/
 GET|POST          /api/v1/briefings/runs/
 GET               /api/v1/briefings/runs/{id}/
+GET               /api/v1/providers/catalog/
 ```
 
 事件 PATCH/DELETE 需要 `expected_version` 查询参数；DELETE 执行取消而非物理删除。
 
+## 天气与新闻 Provider
+
+Phase 8 默认使用 Open-Meteo 天气 API，以及服务端维护的可信 RSS/Atom Feed 目录。非敏感配置位于 `backend/config/providers.yaml`，可通过 `TIME_AGENT_PROVIDER_CONFIG_PATH` 指向另一份配置文件。默认目录包含 OpenAI News、GitHub、Python Insider、BBC World、NASA，以及中国新闻网、InfoQ 中文、量子位、开源中国、Solidot、爱范儿和 36氪等国内来源；所有地址必须使用 HTTPS。
+
+用户不需要配置 Feed URL。在 `/settings/time` 中填写天气地点和新闻主题即可，例如 `上海` 与 `人工智能, 国内财经, Python`。后端会把别名归一为规范主题，选择覆盖这些主题的 Feed，再按主题命中、Feed 优先级和发布时间排序；目录未覆盖的主题会作为简报警告显示，不会自动扩大为任意网页搜索。同一次运行以受限线程池并发抓取 Feed，结果仍按目录顺序和评分确定性归并。
+
+修改 Provider 配置后需重启 Django 和 Celery 服务。可在后端执行只读连通性检查：
+
+```bash
+cd backend
+uv run python manage.py check_external_providers --weather-location 上海 --topic 人工智能 --topic Python
+```
+
+外部条目会保留来源 URL、发布方与时间；新闻规范化结果写入 PostgreSQL 并进行稳定指纹去重。单个 Provider/Feed 失败只会让简报进入部分降级，不会丢失日程和任务部分。
+
 ## 尚未实现
 
 - Email、Telegram、Browser 等真实通知渠道；
-- 天气、新闻、定时自动简报和外部日历；
+- 定时自动简报和外部日历；
 - 生产 TLS、完整监控、备份和发布流水线。
 
 ## 规范关系与注意事项
@@ -341,4 +357,4 @@ development settings 允许本地调试，production settings 强制提供安全
 
 ## 下一步
 
-Phase 7 已完成；下一阶段为 **Phase 8：天气与新闻**。
+Phase 8 已完成；下一阶段为 **Phase 9：外部日历和通知渠道**。

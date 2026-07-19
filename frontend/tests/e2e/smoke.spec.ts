@@ -19,10 +19,18 @@ test("renders the system status shell", async ({ page }) => {
 
 test("reads and updates time preferences", async ({ page }) => {
   let timezone = "Asia/Shanghai";
+  let weatherLocation = "";
+  let newsTopics: string[] = [];
   await page.route("**/api/v1/preferences/me/", async (route) => {
     if (route.request().method() === "PATCH") {
-      const changes = route.request().postDataJSON() as { timezone: string };
+      const changes = route.request().postDataJSON() as {
+        timezone: string;
+        weather_location: string;
+        news_topics: string[];
+      };
       timezone = changes.timezone;
+      weatherLocation = changes.weather_location;
+      newsTopics = changes.news_topics;
     }
     await route.fulfill({
       json: {
@@ -35,8 +43,8 @@ test("reads and updates time preferences", async ({ page }) => {
         default_event_duration_minutes: 60,
         preferred_focus_periods: [],
         default_reminder_offsets: [],
-        weather_location: "",
-        news_topics: [],
+        weather_location: weatherLocation,
+        news_topics: newsTopics,
         briefing_time: "08:00:00",
         planning_rules: {},
         updated_at: "2026-07-17T00:00:00Z",
@@ -47,9 +55,13 @@ test("reads and updates time preferences", async ({ page }) => {
   await page.goto("/settings/time");
   await expect(page.getByRole("heading", { name: "时间偏好" })).toBeVisible();
   await page.getByLabel("IANA 时区").fill("Europe/London");
+  await page.getByPlaceholder("上海 / London / 10001").fill("London");
+  await page.getByPlaceholder("人工智能, OpenAI, GitHub, Python").fill("AI, Python");
   await page.getByRole("button", { name: "保存偏好" }).click();
   await expect(page.getByRole("status")).toHaveText("时间偏好已保存。");
   expect(timezone).toBe("Europe/London");
+  expect(weatherLocation).toBe("London");
+  expect(newsTopics).toEqual(["AI", "Python"]);
 });
 
 test("renders the Today workspace from the summary API", async ({ page }) => {

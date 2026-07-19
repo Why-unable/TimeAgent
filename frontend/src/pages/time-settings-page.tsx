@@ -5,6 +5,7 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 
 import { updateCurrentUserPreference } from "../api/preferences";
+import { getProviderCatalog } from "../api/providers";
 import { preferenceQueryKey, useCurrentUserPreference } from "../features/preferences/hooks";
 import { getTimezoneLabel } from "../utils/datetime";
 
@@ -15,6 +16,8 @@ const preferenceSchema = z
     workday_start: z.string().regex(/^\d{2}:\d{2}(:\d{2})?$/),
     workday_end: z.string().regex(/^\d{2}:\d{2}(:\d{2})?$/),
     default_event_duration_minutes: z.coerce.number().int().min(5).max(1440),
+    weather_location: z.string().max(255),
+    news_topics: z.string(),
   })
   .refine((value) => value.workday_start < value.workday_end, {
     message: "工作结束时间必须晚于开始时间",
@@ -34,6 +37,8 @@ export function TimeSettingsPage() {
       workday_start: "09:00",
       workday_end: "18:00",
       default_event_duration_minutes: 60,
+      weather_location: "",
+      news_topics: "",
     },
   });
 
@@ -45,6 +50,10 @@ export function TimeSettingsPage() {
         workday_start: preference.data.workday_start?.slice(0, 5) ?? "09:00",
         workday_end: preference.data.workday_end?.slice(0, 5) ?? "18:00",
         default_event_duration_minutes: preference.data.default_event_duration_minutes ?? 60,
+        weather_location: preference.data.weather_location ?? "",
+        news_topics: Array.isArray(preference.data.news_topics)
+          ? preference.data.news_topics.filter((item): item is string => typeof item === "string").join(", ")
+          : "",
       });
     }
   }, [form, preference.data]);
@@ -55,9 +64,16 @@ export function TimeSettingsPage() {
       queryClient.setQueryData(preferenceQueryKey, data);
     },
   });
+  const providerCatalog = useMutation({ mutationFn: getProviderCatalog });
 
   const onSubmit = form.handleSubmit((values) => {
-    updatePreference.mutate(values);
+    updatePreference.mutate({
+      ...values,
+      news_topics: values.news_topics
+        .split(/[,，\n]/)
+        .map((item) => item.trim())
+        .filter(Boolean),
+    });
   });
   const timezoneValue = form.watch("timezone") || "Asia/Shanghai";
   let timezoneLabel = "请输入有效的 IANA 时区";
@@ -101,6 +117,42 @@ export function TimeSettingsPage() {
             <span className="text-sm text-red-300">{form.formState.errors.timezone.message}</span>
           )}
         </label>
+
+        <label className="block">
+          <span className="text-sm text-slate-300">天气地点</span>
+          <input
+            {...form.register("weather_location")}
+            className="mt-2 w-full rounded-xl border border-white/10 bg-slate-950 px-4 py-3"
+            placeholder="上海 / London / 10001"
+          />
+          <span className="mt-2 block text-xs text-slate-500">简报生成时由天气 Provider 解析为标准地点和经纬度。</span>
+        </label>
+
+        <label className="block">
+          <span className="text-sm text-slate-300">新闻关注主题</span>
+          <textarea
+            {...form.register("news_topics")}
+            rows={3}
+            className="mt-2 w-full rounded-xl border border-white/10 bg-slate-950 px-4 py-3"
+            placeholder="人工智能, OpenAI, GitHub, Python"
+          />
+          <span className="mt-2 block text-xs text-slate-500">使用逗号或换行分隔；主题会匹配服务端可信 Feed 目录。</span>
+        </label>
+
+        <div className="rounded-xl border border-white/10 bg-slate-950/60 p-4 text-xs text-slate-400">
+          <button type="button" onClick={() => providerCatalog.mutate()} className="text-cyan-300">
+            {providerCatalog.isPending ? "读取中…" : "查看当前新闻来源"}
+          </button>
+          {providerCatalog.data && (
+            <div className="mt-3 flex flex-wrap gap-2">
+              {providerCatalog.data.news_feeds.map((feed) => (
+                <a key={feed.url} href={feed.url} target="_blank" rel="noreferrer" className="rounded-lg bg-white/5 px-2 py-1 text-cyan-200">
+                  {feed.name} · {feed.topics.join(" / ")}
+                </a>
+              ))}
+            </div>
+          )}
+        </div>
 
         <label className="block">
           <span className="text-sm text-slate-300">语言区域</span>

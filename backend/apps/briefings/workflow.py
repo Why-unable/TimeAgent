@@ -50,6 +50,7 @@ def _section_context(state: BriefingState, runtime: Runtime[RuntimeContext]) -> 
     return SectionContext(
         target_date=target,
         timezone=state["timezone"],
+        locale=state["locale"],
         current_datetime=runtime.context.current_datetime,
         day_start_at=day_start,
         day_end_at=day_end,

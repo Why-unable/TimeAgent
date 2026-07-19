@@ -41,7 +41,7 @@ class BriefingDefinitionService:
         definition, _ = BriefingDefinition.objects.get_or_create(
             user=user,
             name="每日简报",
-            defaults={"enabled_sections": ["calendar", "tasks"]},
+            defaults={"enabled_sections": ["calendar", "tasks", "weather", "news"]},
         )
         return definition
 

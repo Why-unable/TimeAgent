@@ -12,6 +12,7 @@ from apps.briefings.schemas import SectionResult
 class SectionContext:
     target_date: date
     timezone: str
+    locale: str
     current_datetime: datetime
     day_start_at: datetime
     day_end_at: datetime

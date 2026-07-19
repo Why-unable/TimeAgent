@@ -1,7 +1,7 @@
 import { apiRequest } from "./client";
 import type { AgentRun, Conversation } from "./chat";
 
-export type BriefingSectionKey = "calendar" | "tasks";
+export type BriefingSectionKey = "calendar" | "tasks" | "weather" | "news";
 export type BriefingStyle = "concise" | "balanced" | "detailed";
 export type BriefingRunStatus = "pending" | "running" | "completed" | "partial" | "failed";
 
@@ -18,10 +18,12 @@ export interface BriefingDefinition {
   updated_at: string;
 }
 export interface BriefingSourceReference {
-  kind: "calendar_event" | "task";
+  kind: "calendar_event" | "task" | "weather_forecast" | "news_article";
   id: string;
   title: string;
   occurred_at: string | null;
+  url: string;
+  publisher: string;
 }
 
 export interface BriefingSectionRun {

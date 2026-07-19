@@ -34,6 +34,7 @@ INSTALLED_APPS = [
     "apps.preferences",
     "apps.reminders",
     "apps.events",
+    "apps.external_data",
     "apps.tasks",
     "apps.planning",
     "apps.today",
@@ -128,6 +129,12 @@ SPECTACULAR_SETTINGS = {
 }
 
 REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.redis.RedisCache",
+        "LOCATION": REDIS_URL,
+    }
+}
 CELERY_BROKER_URL = os.getenv("CELERY_BROKER_URL", REDIS_URL)
 CELERY_RESULT_BACKEND = os.getenv("CELERY_RESULT_BACKEND", REDIS_URL)
 CELERY_TASK_TRACK_STARTED = True

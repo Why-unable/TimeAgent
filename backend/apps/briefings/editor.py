@@ -13,7 +13,7 @@ from apps.agents.configuration import get_agent_config
 from apps.agents.model import build_chat_model
 from apps.briefings.schemas import BriefingDraft, SectionResult
 
-PROMPT_VERSION = "briefing-editor-v1"
+PROMPT_VERSION = "briefing-editor-v2-weather-news"
 PROMPT_PATH = Path(__file__).with_name("prompts") / "editor.md"
 EDITOR_SYSTEM_PROMPT = PROMPT_PATH.read_text(encoding="utf-8").strip()
 
