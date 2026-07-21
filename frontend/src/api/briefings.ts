@@ -50,6 +50,7 @@ export interface BriefingRun {
   status: BriefingRunStatus;
   definition_snapshot: Record<string, unknown>;
   structured_result: Record<string, unknown>;
+  research_report: Record<string, unknown>;
   rendered_markdown: string;
   warnings: string[];
   failure_code: string;

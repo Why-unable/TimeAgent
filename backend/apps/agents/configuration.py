@@ -41,6 +41,8 @@ class ModelDefinition(StrictConfigModel):
     max_completion_tokens: int | None = Field(default=None, ge=1)
     max_tokens: int | None = Field(default=None, ge=1)
     reasoning_effort: Literal["none", "minimal", "low", "medium", "high", "xhigh"] | None = None
+    enable_thinking: bool | None = None
+    structured_output_strategy: Literal["auto", "tool", "provider"] = "auto"
     extra_body: dict[str, Any] = Field(default_factory=dict)
 
     @field_validator("model")
@@ -63,6 +65,8 @@ class ModelDefinition(StrictConfigModel):
                 raise ValueError("anthropic models use max_tokens, not max_completion_tokens")
             if self.reasoning_effort is not None:
                 raise ValueError("anthropic models do not support reasoning_effort")
+            if self.enable_thinking is not None:
+                raise ValueError("anthropic models do not use enable_thinking")
             if self.extra_body:
                 raise ValueError("anthropic models do not accept extra_body")
             if self.base_url and self.base_url.rstrip("/").endswith("/v1"):
@@ -71,13 +75,24 @@ class ModelDefinition(StrictConfigModel):
             raise ValueError(
                 "openai_compatible models use max_completion_tokens or extra_body, not max_tokens"
             )
+        if self.enable_thinking is not None and "thinking" in self.extra_body:
+            raise ValueError(
+                "configure enable_thinking or extra_body.thinking, not both"
+            )
         return self
 
 
 class AgentDefinition(StrictConfigModel):
     default_model: str
     fallback_models: list[str] = Field(default_factory=list)
+    briefing_model: str | None = None
+    # Backward-compatible alias for local agent.yaml files created before the
+    # Briefing Editor became a research-capable Briefing Agent.
     briefing_editor_model: str | None = None
+
+    @property
+    def selected_briefing_model(self) -> str:
+        return self.briefing_model or self.briefing_editor_model or self.default_model
 
 
 class GraphDefinition(StrictConfigModel):
@@ -133,11 +148,20 @@ class TimeAgentConfig(StrictConfigModel):
         if unknown_fallbacks:
             names = ", ".join(sorted(unknown_fallbacks))
             raise ValueError(f"agent.fallback_models reference unknown model aliases: {names}")
-        if (
-            self.agent.briefing_editor_model is not None
-            and self.agent.briefing_editor_model not in self.models
-        ):
-            raise ValueError("agent.briefing_editor_model must reference a configured model alias")
+        if self.agent.briefing_model is not None and self.agent.briefing_model not in self.models:
+            raise ValueError("agent.briefing_model must reference a configured model alias")
+        if self.agent.briefing_editor_model is not None:
+            if self.agent.briefing_editor_model not in self.models:
+                raise ValueError(
+                    "agent.briefing_editor_model must reference a configured model alias"
+                )
+            if (
+                self.agent.briefing_model is not None
+                and self.agent.briefing_model != self.agent.briefing_editor_model
+            ):
+                raise ValueError(
+                    "agent.briefing_model and legacy briefing_editor_model must not conflict"
+                )
         return self
 
     def selected_model(self, name: str | None = None) -> ModelDefinition:

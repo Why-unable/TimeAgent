@@ -5,7 +5,7 @@ weather:
   forecast_url: https://api.open-meteo.com/v1/forecast
   geocoding_url: https://geocoding-api.open-meteo.com/v1/search
   timeout_seconds: 8
-  forecast_days: 3
+  forecast_days: 16
 
 news:
   provider: rss

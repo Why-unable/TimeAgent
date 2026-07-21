@@ -87,9 +87,7 @@ def execute_agent_run(
             runtime = build_outer_graph_runtime(
                 OuterGraphNodes(
                     time_steward_agent=agent,
-                    briefing_workflow=(
-                        lambda state, runtime: briefing_workflow_node(state, runtime, model=model)
-                    ),
+                    briefing_workflow=briefing_workflow_node,
                     calendar_sync_workflow=_unavailable_workflow,
                 ),
                 checkpointer=persistence.checkpointer,
@@ -150,9 +148,7 @@ def resume_agent_run(
             runtime = build_outer_graph_runtime(
                 OuterGraphNodes(
                     time_steward_agent=agent,
-                    briefing_workflow=(
-                        lambda state, runtime: briefing_workflow_node(state, runtime, model=model)
-                    ),
+                    briefing_workflow=briefing_workflow_node,
                     calendar_sync_workflow=_unavailable_workflow,
                 ),
                 checkpointer=persistence.checkpointer,

@@ -66,6 +66,7 @@ class BriefingRunSerializer(serializers.ModelSerializer[BriefingRun]):
             "status",
             "definition_snapshot",
             "structured_result",
+            "research_report",
             "rendered_markdown",
             "warnings",
             "model_config_snapshot",

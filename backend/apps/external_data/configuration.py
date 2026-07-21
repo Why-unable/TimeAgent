@@ -49,7 +49,7 @@ class WeatherProviderConfig(BaseModel):
     forecast_url: HttpUrl
     geocoding_url: HttpUrl
     timeout_seconds: float = Field(default=8, gt=0, le=30)
-    forecast_days: int = Field(default=3, ge=1, le=7)
+    forecast_days: int = Field(default=16, ge=1, le=16)
 
     @field_validator("forecast_url", "geocoding_url")
     @classmethod

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import math
+import re
 from datetime import date, datetime, timedelta
 from typing import Any, Protocol
 from urllib.parse import urlencode
@@ -57,15 +59,35 @@ class OpenMeteoWeatherProvider:
         normalized = query.strip()
         if len(normalized) < 2:
             raise ValueError("Weather location must contain at least two characters")
-        response = self._request(
-            str(self.config.geocoding_url),
-            params={"name": normalized, "count": 1, "language": language.split("-")[0]},
+        names, qualifiers = _location_search_terms(normalized)
+        candidates: dict[str, dict[str, Any]] = {}
+        for name in names:
+            response = self._request(
+                str(self.config.geocoding_url),
+                params={"name": name, "count": 20, "language": language.split("-")[0]},
+            )
+            payload = response.json()
+            results = payload.get("results", []) if isinstance(payload, dict) else []
+            for item in results:
+                if not isinstance(item, dict):
+                    continue
+                identity = str(
+                    item.get("id")
+                    or f"{item.get('latitude')}:{item.get('longitude')}"
+                )
+                candidates[identity] = item
+        ranked = sorted(
+            (
+                (_location_score(item, names[0], qualifiers), item)
+                for item in candidates.values()
+                if _matches_qualifiers(item, qualifiers)
+            ),
+            key=lambda pair: pair[0],
+            reverse=True,
         )
-        payload = response.json()
-        results = payload.get("results", []) if isinstance(payload, dict) else []
-        if not results:
+        if not ranked:
             raise LookupError(f"Weather location was not found: {normalized}")
-        item = results[0]
+        item = ranked[0][1]
         return ResolvedLocation(
             name=str(item["name"]),
             latitude=float(item["latitude"]),
@@ -74,7 +96,6 @@ class OpenMeteoWeatherProvider:
             country=str(item.get("country", "")),
             admin1=str(item.get("admin1", "")),
         )
-
     def forecast(
         self,
         location: ResolvedLocation,
@@ -83,7 +104,7 @@ class OpenMeteoWeatherProvider:
         days: int,
         requested_at: datetime,
     ) -> WeatherForecast:
-        bounded_days = max(1, min(days, 7))
+        bounded_days = max(1, min(days, self.config.forecast_days))
         params: dict[str, str | int | float | bool | None] = {
             "latitude": location.latitude,
             "longitude": location.longitude,
@@ -133,6 +154,82 @@ class OpenMeteoWeatherProvider:
             source_url=source_url,
             units={str(key): str(value) for key, value in units.items()},
         )
+
+
+_LOCATION_SEPARATOR = re.compile(r"[,，;；/]+")
+_ADMIN_SUFFIXES = ("特别行政区", "自治区", "自治州", "地区", "省", "市", "县", "区")
+
+
+def _location_search_terms(query: str) -> tuple[list[str], list[str]]:
+    parts = [part.strip() for part in _LOCATION_SEPARATOR.split(query) if part.strip()]
+    primary = parts[0] if parts else query
+    names = [query]
+    if primary not in names:
+        names.append(primary)
+    if _contains_cjk(primary) and not primary.endswith(_ADMIN_SUFFIXES):
+        names.append(f"{primary}市")
+    return list(dict.fromkeys(names)), parts[1:]
+
+
+def _contains_cjk(value: str) -> bool:
+    return any("\u4e00" <= character <= "\u9fff" for character in value)
+
+
+def _normalized_place(value: object) -> str:
+    normalized = re.sub(r"[\s\-_'’]", "", str(value).casefold())
+    for suffix in _ADMIN_SUFFIXES:
+        if normalized.endswith(suffix) and len(normalized) > len(suffix):
+            return normalized[: -len(suffix)]
+    return normalized
+
+
+def _candidate_fields(item: dict[str, Any]) -> list[str]:
+    return [
+        _normalized_place(item.get(key, ""))
+        for key in (
+            "name",
+            "admin1",
+            "admin2",
+            "admin3",
+            "admin4",
+            "country",
+            "country_code",
+        )
+        if item.get(key)
+    ]
+
+
+def _matches_qualifiers(item: dict[str, Any], qualifiers: list[str]) -> bool:
+    fields = _candidate_fields(item)
+    return all(
+        any(
+            _normalized_place(qualifier) == field
+            or _normalized_place(qualifier) in field
+            or field in _normalized_place(qualifier)
+            for field in fields
+        )
+        for qualifier in qualifiers
+    )
+
+
+def _location_score(item: dict[str, Any], primary: str, qualifiers: list[str]) -> float:
+    requested = _normalized_place(primary)
+    candidate = _normalized_place(item.get("name", ""))
+    score = 0.0
+    if candidate == requested:
+        score += 100
+    elif requested in candidate or candidate in requested:
+        score += 50
+    score += 100 * len(qualifiers)
+    feature_code = str(item.get("feature_code", ""))
+    if feature_code == "PPLC":
+        score += 30
+    elif feature_code.startswith("PPLA"):
+        score += 20
+    population = item.get("population")
+    if isinstance(population, (int, float)) and population > 0:
+        score += min(30, math.log10(population) * 4)
+    return score
 
 
 def _value_at(data: dict[str, object], key: str, index: int) -> Any:

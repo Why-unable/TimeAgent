@@ -39,20 +39,33 @@ class WeatherDataService:
         *,
         user: User,
         start_date: date,
+        end_date: date | None = None,
         requested_at: datetime,
         locale: str,
+        location_query: str | None = None,
         provider: WeatherProvider | None = None,
     ) -> WeatherForecast:
         preference = UserPreferenceService.get_for_user(user)
-        location_query = preference.weather_location.strip() if preference else ""
-        if not location_query:
+        effective_location = (
+            location_query.strip()
+            if location_query is not None
+            else (preference.weather_location.strip() if preference else "")
+        )
+        if not effective_location:
             raise WeatherLocationNotConfiguredError("请先在时间偏好中配置天气地点。")
+        effective_end = end_date or start_date
+        if effective_end < start_date:
+            raise ValueError("Weather end_date must not be earlier than start_date")
+        requested_days = (effective_end - start_date).days + 1
+        maximum_days = get_provider_config().weather.forecast_days
+        if requested_days > maximum_days:
+            raise ValueError(f"Weather provider supports at most {maximum_days} forecast days")
         resolved_provider = provider or OpenMeteoWeatherProvider()
-        location = resolved_provider.resolve_location(location_query, language=locale)
+        location = resolved_provider.resolve_location(effective_location, language=locale)
         return resolved_provider.forecast(
             location,
             start_date=start_date,
-            days=get_provider_config().weather.forecast_days,
+            days=requested_days,
             requested_at=requested_at,
         )
 
@@ -64,15 +77,22 @@ class NewsDataService:
         user: User,
         start_at: datetime,
         end_at: datetime,
+        topics: list[str] | None = None,
+        limit: int | None = None,
         provider: NewsProvider | None = None,
     ) -> NewsCollection:
         preference = UserPreferenceService.get_for_user(user)
-        topics = list(preference.news_topics) if preference else []
+        effective_topics = (
+            [item.strip() for item in topics if item.strip()]
+            if topics is not None
+            else (list(preference.news_topics) if preference else [])
+        )
+        configured_limit = get_provider_config().news.max_items
         result = (provider or RssNewsProvider()).search(
-            topics,
+            effective_topics,
             start_at=start_at,
             end_at=end_at,
-            limit=get_provider_config().news.max_items,
+            limit=min(limit or configured_limit, configured_limit),
         )
         deduplicated = _deduplicate(result.items)
         records: list[ExternalNewsItem] = []

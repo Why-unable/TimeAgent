@@ -1,6 +1,6 @@
 # Time Agent
 
-Time Agent 是以时间为核心的个人智能事务管理系统。本仓库当前已完成 **Phase 7**，具备提醒闭环、结构化事务管理、每日工作台、可恢复的 Time Steward Agent、高风险操作审批，以及可追溯的手动简报工作流。
+Time Agent 是以时间为核心的个人智能事务管理系统。本仓库当前已完成 **Phase 8**，具备提醒闭环、结构化事务管理、每日工作台、可恢复的 Time Steward Agent、高风险操作审批，以及支持天气与新闻调研、来源追踪和失败降级的简报工作流。
 
 > Time Steward 使用 LangChain `create_agent()`、LangGraph PostgreSQL 持久化和官方 Middleware；高风险写入通过 ActionProposal/HITL 审批；Briefing Workflow 使用确定性并行 Section、受限 Editor 和结构化输出。
 
@@ -39,7 +39,7 @@ Time Agent 是以时间为核心的个人智能事务管理系统。本仓库当
 - 审批 REST API、`/approvals` 集中列表、Chat 内结构化审批卡片、冲突信息和过期/失败状态。
 - Celery Beat 自动过期审批，并以安全拒绝语义恢复暂停的 AgentRun。
 - BriefingDefinition、BriefingRun 与逐 Section 运行记录，保留配置快照、来源、警告、模型配置和最终结构化结果。
-- Calendar/Task Section 并行收集、单 Section 失败降级、结构化 Briefing Editor、确定性 Markdown 渲染和 SSE 分块发布。
+- 短生命周期 Briefing Agent、日程/任务/天气/新闻只读调研 Tool、有限失败恢复、确定性来源校验、Markdown 渲染和 SSE 分块发布。
 - Time Steward 通过 `Command.PARENT` Handoff 转交自然语言简报请求；最终消息序列保持有效的 AI tool call、ToolMessage 和简报 AIMessage。
 - `/briefings` 支持配置、手动运行、结果、来源和“在聊天中继续”；聊天历史按普通聊天、手动简报和自动简报分类。
 
@@ -96,8 +96,17 @@ Messages API），不会从 YAML 动态导入任意 Python 对象。Anthropic-co
 `stream_usage: false`，保留 token 流式输出。详见
 `docs/architecture/agent-configuration.md`。
 
-Briefing Editor 的模型由 `agent.briefing_editor_model` 指定；未设置时继承
-`agent.default_model`。它不拥有业务写入 Tool，只能编辑工作流已收集并附有来源的数据。
+Briefing Agent 的模型由 `agent.briefing_model` 指定；未设置时继承
+`agent.default_model`。它拥有日程、任务、天气、新闻等只读调研 Tool，不拥有任何业务写入
+Tool；每次简报都是不持久化内部对话的短生命周期 Agent Run。外部 Tool 使用有限重试，最终
+简报、来源、调研摘要、失败项和未满足要求会持久化到 `BriefingRun`。
+
+Briefing Agent 直接把 `BriefingAgentReport` Schema 传给 LangChain `create_agent()`：模型
+支持原生结构化输出时自动使用 `ProviderStrategy`，否则使用 `ToolStrategy`。DeepSeek 配置中的
+`enable_thinking: false` 会映射为官方 OpenAI-compatible 请求体
+`thinking: {type: disabled}`，从而允许 `ToolStrategy` 强制提交最终报告。若 Anthropic-compatible
+中转站无法承载完整原生 JSON Grammar，可设置 `structured_output_strategy: tool`，LangChain
+将继续通过官方 `ToolStrategy` 返回同一个 Pydantic 类型。
 
 可以在启动前验证配置（不会输出 API Key）：
 

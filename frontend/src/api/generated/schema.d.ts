@@ -551,6 +551,7 @@ export interface components {
             readonly status: components["schemas"]["BriefingRunStatusEnum"];
             readonly definition_snapshot: unknown;
             readonly structured_result: unknown;
+            readonly research_report: unknown;
             readonly rendered_markdown: string;
             readonly warnings: unknown;
             readonly model_config_snapshot: unknown;

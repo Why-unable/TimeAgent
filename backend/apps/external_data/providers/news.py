@@ -69,18 +69,22 @@ class RssNewsProvider:
         limit: int,
     ) -> NewsSearchResult:
         normalized_topics, keywords = _expand_topics(topics, self.config.topic_aliases)
-        if not normalized_topics:
-            return NewsSearchResult(items=[], warnings=["尚未配置新闻关注主题。"])
-        selected = [
+        directly_matched = [
             feed for feed in self.config.feeds if _feed_matches(feed, normalized_topics, keywords)
         ]
         covered = {
             topic
-            for feed in selected
+            for feed in directly_matched
             for topic in normalized_topics
             if topic in {_normalize(item) for item in feed.topics}
         }
         uncovered = sorted(normalized_topics - covered)
+        # Unknown topics are search queries, not configuration errors. Search the
+        # remaining trusted catalog and retain only entries with keyword matches.
+        selected = list(directly_matched)
+        if not normalized_topics or uncovered:
+            selected.extend(feed for feed in self.config.feeds if feed not in selected)
+        directly_matched_names = {feed.name for feed in directly_matched}
         items: list[NewsItemData] = []
         warnings: list[str] = []
         successful_feeds: list[str] = []
@@ -107,6 +111,9 @@ class RssNewsProvider:
                             feed=feed,
                             normalized_topics=normalized_topics,
                             keywords=keywords,
+                            require_keyword_match=(
+                                bool(normalized_topics) and feed.name not in directly_matched_names
+                            ),
                         )
                         if item is not None and start_at <= item.published_at <= end_at:
                             items.append(item)
@@ -210,6 +217,7 @@ def _normalize_entry(
     feed: FeedDefinition,
     normalized_topics: set[str],
     keywords: set[str],
+    require_keyword_match: bool = False,
 ) -> NewsItemData | None:
     title = _plain_text(str(entry.get("title", "")))
     url = canonicalize_url(str(entry.get("link", "")))
@@ -224,6 +232,8 @@ def _normalize_entry(
     ]
     haystack = _normalize(" ".join([title, summary, *categories]))
     matched = sorted(topic for topic in keywords if topic and topic in haystack)
+    if require_keyword_match and not matched:
+        return None
     feed_topics = {_normalize(item) for item in feed.topics}
     routed = sorted(normalized_topics & feed_topics)
     score = float(feed.priority) + len(matched) * 20 + len(routed) * 5

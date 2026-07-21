@@ -25,12 +25,19 @@ def build_chat_model(model_name: str | None = None) -> BaseChatModel:
     if definition.stream_usage is not None:
         common_kwargs["stream_usage"] = definition.stream_usage
     if definition.provider == "openai_compatible":
+        extra_body = dict(definition.extra_body)
+        if definition.enable_thinking is not None:
+            # DeepSeek's OpenAI-compatible protocol expects the provider-specific
+            # thinking toggle in extra_body, not as a top-level LangChain option.
+            extra_body["thinking"] = {
+                "type": "enabled" if definition.enable_thinking else "disabled"
+            }
         model = init_chat_model(
             **common_kwargs,
             model_provider="openai",
             max_completion_tokens=definition.max_completion_tokens,
             reasoning_effort=definition.reasoning_effort,
-            extra_body=definition.extra_body or None,
+            extra_body=extra_body or None,
         )
     elif definition.provider == "anthropic":
         model = init_chat_model(

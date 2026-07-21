@@ -1,4 +1,4 @@
-from datetime import UTC, date, datetime
+from datetime import UTC, date, datetime, timedelta
 from typing import Any
 
 import httpx
@@ -8,7 +8,6 @@ from django.core.cache import cache
 from pydantic import ValidationError
 from rest_framework.test import APIClient
 
-from apps.briefings.registry import SectionContext
 from apps.briefings.rendering import render_markdown, validate_draft
 from apps.briefings.schemas import (
     BriefingDraft,
@@ -17,7 +16,6 @@ from apps.briefings.schemas import (
     SectionResult,
     SourceReference,
 )
-from apps.briefings.sections import NewsBriefingSection, WeatherBriefingSection
 from apps.external_data.configuration import (
     NewsProviderConfig,
     WeatherProviderConfig,
@@ -33,7 +31,7 @@ from apps.external_data.schemas import (
     ResolvedLocation,
     WeatherForecast,
 )
-from apps.external_data.services import NewsDataService
+from apps.external_data.services import NewsDataService, WeatherDataService
 from apps.preferences.services import UserPreferenceService
 
 
@@ -242,6 +240,108 @@ def test_open_meteo_resolves_location_and_normalizes_forecast() -> None:
     assert forecast.daily[0].precipitation_probability == 80
 
 
+def test_open_meteo_disambiguates_chinese_city_with_administrative_qualifier() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        query = request.url.params["name"]
+        if query == "珠海":
+            return httpx.Response(
+                200,
+                json={
+                    "results": [
+                        {
+                            "id": 1,
+                            "name": "珠海",
+                            "latitude": 35.87124,
+                            "longitude": 119.99638,
+                            "timezone": "Asia/Shanghai",
+                            "country": "中国",
+                            "admin1": "山东",
+                            "admin2": "青岛市",
+                            "feature_code": "PPL",
+                        }
+                    ]
+                },
+            )
+        if query == "珠海市":
+            return httpx.Response(
+                200,
+                json={
+                    "results": [
+                        {
+                            "id": 2,
+                            "name": "珠海市",
+                            "latitude": 22.27694,
+                            "longitude": 113.56778,
+                            "timezone": "Asia/Shanghai",
+                            "country": "中国",
+                            "admin1": "广东",
+                            "admin2": "珠海市",
+                            "feature_code": "PPLA2",
+                            "population": 2_207_090,
+                        }
+                    ]
+                },
+            )
+        return httpx.Response(200, json={})
+
+    config = WeatherProviderConfig.model_validate(
+        {
+            "forecast_url": "https://api.open-meteo.test/v1/forecast",
+            "geocoding_url": "https://geocoding.open-meteo.test/v1/search",
+            "forecast_days": 7,
+        }
+    )
+    provider = OpenMeteoWeatherProvider(
+        config,
+        client=httpx.Client(transport=httpx.MockTransport(handler)),
+    )
+
+    qualified = provider.resolve_location("珠海, 广东", language="zh-CN")
+    unqualified = provider.resolve_location("珠海", language="zh-CN")
+
+    assert qualified.name == "珠海市"
+    assert qualified.admin1 == "广东"
+    assert qualified.latitude == 22.27694
+    assert unqualified.name == "珠海市"
+
+
+def test_open_meteo_rejects_candidates_outside_explicit_administrative_area() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        del request
+        return httpx.Response(
+            200,
+            json={
+                "results": [
+                    {
+                        "id": 1,
+                        "name": "珠海",
+                        "latitude": 35.87124,
+                        "longitude": 119.99638,
+                        "timezone": "Asia/Shanghai",
+                        "country": "中国",
+                        "admin1": "山东",
+                        "admin2": "青岛市",
+                    }
+                ]
+            },
+        )
+
+    config = WeatherProviderConfig.model_validate(
+        {
+            "forecast_url": "https://api.open-meteo.test/v1/forecast",
+            "geocoding_url": "https://geocoding.open-meteo.test/v1/search",
+            "forecast_days": 7,
+        }
+    )
+    provider = OpenMeteoWeatherProvider(
+        config,
+        client=httpx.Client(transport=httpx.MockTransport(handler)),
+    )
+
+    with pytest.raises(LookupError, match="珠海, 广东"):
+        provider.resolve_location("珠海, 广东", language="zh-CN")
+
+
 def test_rss_provider_routes_topics_filters_time_and_preserves_sources() -> None:
     cache.clear()
     config = _news_config(
@@ -278,6 +378,40 @@ def test_rss_provider_routes_topics_filters_time_and_preserves_sources() -> None
     assert result.items[0].url == "https://example.test/story"
     assert "artificial intelligence" in result.items[0].matched_topics
     assert result.uncovered_topics == []
+
+
+def test_rss_provider_searches_trusted_catalog_for_unconfigured_topic() -> None:
+    cache.clear()
+    config = _news_config(
+        _feed("General One", "https://general-one.test/feed.xml", ["technology"]),
+        _feed("General Two", "https://general-two.test/feed.xml", ["finance"]),
+    )
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        title = "量子计算取得新进展" if request.url.host == "general-two.test" else "普通科技资讯"
+        return httpx.Response(
+            200,
+            content=_rss(
+                title,
+                link=f"https://{request.url.host}/story",
+                published="Sun, 19 Jul 2026 02:00:00 GMT",
+            ),
+        )
+
+    provider = RssNewsProvider(
+        config,
+        client=httpx.Client(transport=httpx.MockTransport(handler)),
+    )
+    result = provider.search(
+        ["量子计算"],
+        start_at=datetime(2026, 7, 18, tzinfo=UTC),
+        end_at=datetime(2026, 7, 20, tzinfo=UTC),
+        limit=10,
+    )
+
+    assert result.selected_feeds == ["General One", "General Two"]
+    assert [item.title for item in result.items] == ["量子计算取得新进展"]
+    assert result.uncovered_topics == ["量子计算"]
 
 
 def test_rss_provider_keeps_success_when_another_feed_times_out() -> None:
@@ -412,7 +546,10 @@ def test_news_service_deduplicates_and_persists_provider_items() -> None:
     assert canonicalize_url("https://x.test/a?utm_source=rss#top") == "https://x.test/a"
 
 
-class FakeWeatherProvider:
+class RecordingWeatherProvider:
+    def __init__(self) -> None:
+        self.days = 0
+
     def resolve_location(self, query: str, *, language: str) -> ResolvedLocation:
         del query, language
         return ResolvedLocation(
@@ -431,69 +568,42 @@ class FakeWeatherProvider:
         days: int,
         requested_at: datetime,
     ) -> WeatherForecast:
-        del days
+        self.days = days
         return WeatherForecast(
-            provider="fake_weather",
+            provider="recording_weather",
             location=location,
             generated_at=requested_at,
-            daily=[
-                DailyForecast(
-                    date=start_date,
-                    weather_code=61,
-                    temperature_min=25,
-                    temperature_max=31,
-                    precipitation_probability=80,
-                )
-            ],
+            daily=[DailyForecast(date=start_date + timedelta(days=index)) for index in range(days)],
             source_url="https://weather.test/forecast",
         )
 
 
-def _section_context() -> SectionContext:
-    return SectionContext(
-        target_date=date(2026, 7, 19),
-        timezone="Asia/Shanghai",
-        locale="zh-CN",
-        current_datetime=datetime(2026, 7, 19, 1, tzinfo=UTC),
-        day_start_at=datetime(2026, 7, 18, 16, tzinfo=UTC),
-        day_end_at=datetime(2026, 7, 19, 16, tzinfo=UTC),
-    )
-
-
 @pytest.mark.django_db
-def test_weather_section_uses_user_location_and_preserves_source() -> None:
-    user = User.objects.create_user(username="weather-section-user")
+def test_weather_service_honors_requested_range_up_to_provider_limit() -> None:
+    user = User.objects.create_user(username="weather-range-user")
     UserPreferenceService.update_for_user(user, {"weather_location": "上海"})
+    provider = RecordingWeatherProvider()
 
-    result = WeatherBriefingSection(FakeWeatherProvider()).collect(
-        user=user, context=_section_context()
+    forecast = WeatherDataService.forecast_for_user(
+        user=user,
+        start_date=date(2026, 7, 19),
+        end_date=date(2026, 7, 25),
+        requested_at=datetime(2026, 7, 19, tzinfo=UTC),
+        locale="zh-CN",
+        provider=provider,
     )
 
-    assert result.status == "completed"
-    assert result.data["daily"][0]["condition"] == "降雨"
-    assert result.sources[0].kind == "weather_forecast"
-    assert result.sources[0].url == "https://weather.test/forecast"
-
-
-@pytest.mark.django_db
-def test_news_section_marks_total_provider_failure_without_raising() -> None:
-    class FailedProvider:
-        def search(self, *args: Any, **kwargs: Any) -> NewsSearchResult:
-            del args, kwargs
-            return NewsSearchResult(
-                items=[],
-                warnings=["All feeds timed out."],
-                selected_feeds=["One"],
-                successful_feeds=[],
-            )
-
-    user = User.objects.create_user(username="news-section-user")
-    UserPreferenceService.update_for_user(user, {"news_topics": ["AI"]})
-
-    result = NewsBriefingSection(FailedProvider()).collect(user=user, context=_section_context())
-
-    assert result.status == "failed"
-    assert result.error_code == "NewsProvidersUnavailable"
+    assert provider.days == 7
+    assert len(forecast.daily) == 7
+    with pytest.raises(ValueError, match="at most 16"):
+        WeatherDataService.forecast_for_user(
+            user=user,
+            start_date=date(2026, 7, 19),
+            end_date=date(2026, 8, 4),
+            requested_at=datetime(2026, 7, 19, tzinfo=UTC),
+            locale="zh-CN",
+            provider=provider,
+        )
 
 
 @pytest.mark.django_db

@@ -104,6 +104,7 @@ class BriefingRun(models.Model):
     )
     definition_snapshot = models.JSONField(default=dict)
     structured_result = models.JSONField(default=dict)
+    research_report = models.JSONField(default=dict)
     rendered_markdown = models.TextField(blank=True)
     warnings = models.JSONField(default=list)
     model_config_snapshot = models.JSONField(default=dict)

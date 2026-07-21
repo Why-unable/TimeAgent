@@ -16,9 +16,13 @@ from apps.briefings.models import (
     BriefingSectionRun,
     BriefingSectionStatus,
 )
-from apps.briefings.registry import BriefingRegistry
-from apps.briefings.schemas import BriefingResult, SectionResult
-from apps.briefings.sections import DEFAULT_BRIEFING_REGISTRY
+from apps.briefings.schemas import (
+    BRIEFING_SECTION_KEYS,
+    BriefingAgentReport,
+    BriefingResult,
+    BriefingSectionKey,
+    SectionResult,
+)
 from apps.conversations.models import AgentRun, Conversation
 from common.time import validate_timezone
 
@@ -33,6 +37,7 @@ class StartBriefingCommand:
     definition_id: UUID | None = None
     conversation: Conversation | None = None
     agent_run: AgentRun | None = None
+    requested_sections: list[BriefingSectionKey] | None = None
 
 
 class BriefingDefinitionService:
@@ -64,9 +69,8 @@ class BriefingDefinitionService:
         style: str = "balanced",
         include_empty_sections: bool = False,
         definition: BriefingDefinition | None = None,
-        registry: BriefingRegistry = DEFAULT_BRIEFING_REGISTRY,
     ) -> BriefingDefinition:
-        unknown: set[str] = set(enabled_sections) - registry.keys
+        unknown: set[str] = set(enabled_sections) - BRIEFING_SECTION_KEYS
         if unknown:
             raise ValueError(f"Unknown briefing sections: {', '.join(sorted(unknown))}")
         if timezone_name:
@@ -96,6 +100,10 @@ class BriefingRunService:
         )
         timezone_name = definition.timezone or command.timezone or settings.DEFAULT_USER_TIMEZONE
         validate_timezone(timezone_name)
+        section_keys = command.requested_sections or list(definition.enabled_sections)
+        unknown = set(section_keys) - BRIEFING_SECTION_KEYS
+        if unknown:
+            raise ValueError(f"Unknown briefing sections: {', '.join(sorted(unknown))}")
         run, created = BriefingRun.objects.get_or_create(
             operation_id=command.operation_id,
             defaults={
@@ -110,6 +118,7 @@ class BriefingRunService:
                     "id": str(definition.pk),
                     "name": definition.name,
                     "enabled_sections": definition.enabled_sections,
+                    "requested_sections": section_keys,
                     "locale": definition.locale,
                     "timezone": timezone_name,
                     "style": definition.style,
@@ -121,10 +130,7 @@ class BriefingRunService:
             raise ValueError("operation_id already belongs to another briefing run")
         if created:
             BriefingSectionRun.objects.bulk_create(
-                [
-                    BriefingSectionRun(briefing_run=run, section_key=key)
-                    for key in definition.enabled_sections
-                ]
+                [BriefingSectionRun(briefing_run=run, section_key=key) for key in section_keys]
             )
         return run
 
@@ -141,21 +147,30 @@ class BriefingRunService:
     @staticmethod
     @transaction.atomic
     def start_section(run: BriefingRun, section_key: str) -> None:
-        BriefingSectionRun.objects.filter(briefing_run=run, section_key=section_key).update(
-            status=BriefingSectionStatus.RUNNING, started_at=timezone.now()
+        BriefingSectionRun.objects.update_or_create(
+            briefing_run=run,
+            section_key=section_key,
+            defaults={
+                "status": BriefingSectionStatus.RUNNING,
+                "started_at": timezone.now(),
+            },
         )
 
     @staticmethod
     @transaction.atomic
     def finish_section(run: BriefingRun, result: SectionResult) -> None:
+        # JSONField must receive JSON-native values. Research evidence may originate
+        # from Django models and therefore contain UUID/date/enum objects even when
+        # the corresponding ToolMessage artifact was already JSON-encoded.
+        serialized_result = result.model_dump(mode="json")
         BriefingSectionRun.objects.filter(briefing_run=run, section_key=result.key).update(
             status=(
                 BriefingSectionStatus.COMPLETED
                 if result.status == "completed"
                 else BriefingSectionStatus.FAILED
             ),
-            source_snapshot=result.data,
-            source_references=[item.model_dump(mode="json") for item in result.sources],
+            source_snapshot=serialized_result["data"],
+            source_references=serialized_result["sources"],
             warning="\n".join(result.warnings),
             error_code=result.error_code,
             completed_at=timezone.now(),
@@ -167,6 +182,7 @@ class BriefingRunService:
         run: BriefingRun,
         result: BriefingResult,
         *,
+        agent_report: BriefingAgentReport | None = None,
         model_config_snapshot: dict[str, str] | None = None,
         prompt_version: str = "",
     ) -> BriefingRun:
@@ -175,6 +191,9 @@ class BriefingRunService:
             BriefingRunStatus.PARTIAL if result.status == "partial" else BriefingRunStatus.COMPLETED
         )
         locked.structured_result = result.draft.model_dump(mode="json")
+        locked.research_report = (
+            agent_report.model_dump(mode="json") if agent_report is not None else {}
+        )
         locked.rendered_markdown = result.markdown
         locked.warnings = result.warnings
         locked.model_config_snapshot = model_config_snapshot or {}
@@ -186,6 +205,7 @@ class BriefingRunService:
             update_fields=[
                 "status",
                 "structured_result",
+                "research_report",
                 "rendered_markdown",
                 "warnings",
                 "model_config_snapshot",

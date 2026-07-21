@@ -147,6 +147,62 @@ def test_model_factory_uses_anthropic_provider_options(
         get_agent_config.cache_clear()
 
 
+def test_model_factory_maps_thinking_toggle_to_provider_extra_body(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    path = tmp_path / "agent.yaml"
+    write_config(
+        path,
+        default_model="deepseek",
+        extra_models="""
+  deepseek:
+    provider: openai_compatible
+    model: deepseek-v4-flash
+    api_key: $TEST_AGENT_API_KEY
+    base_url: https://api.deepseek.com
+    enable_thinking: false
+""",
+    )
+    monkeypatch.setenv("TEST_AGENT_API_KEY", "secret-value")
+    monkeypatch.setenv("TIME_AGENT_CONFIG_PATH", str(path))
+    get_agent_config.cache_clear()
+    try:
+        with patch("apps.agents.model.init_chat_model") as init_model:
+            init_model.return_value = MagicMock(spec=BaseChatModel)
+            build_chat_model()
+        assert init_model.call_args.kwargs["extra_body"] == {
+            "thinking": {"type": "disabled"}
+        }
+    finally:
+        get_agent_config.cache_clear()
+
+
+def test_model_config_can_select_tool_structured_output_for_relay(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    path = tmp_path / "agent.yaml"
+    write_config(
+        path,
+        default_model="claude",
+        extra_models="""
+  claude:
+    provider: anthropic
+    model: claude-opus-4-6
+    api_key: $TEST_AGENT_API_KEY
+    base_url: https://relay.example
+    max_tokens: 2048
+    structured_output_strategy: tool
+""",
+    )
+    monkeypatch.setenv("TEST_AGENT_API_KEY", "secret-value")
+
+    config = load_agent_config(path)
+
+    assert config.selected_model("claude").structured_output_strategy == "tool"
+
+
 def test_model_factory_builds_fallbacks_in_configured_order(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -203,3 +259,20 @@ def test_provider_specific_model_options_are_validated(tmp_path: Path) -> None:
 
     with pytest.raises(ImproperlyConfigured, match="anthropic"):
         load_agent_config(path)
+
+    conflicting = tmp_path / "conflicting-thinking.yaml"
+    write_config(
+        conflicting,
+        extra_models="""
+  deepseek:
+    provider: openai_compatible
+    model: deepseek-v4-flash
+    api_key: $TEST_AGENT_API_KEY
+    enable_thinking: false
+    extra_body:
+      thinking:
+        type: disabled
+""",
+    )
+    with pytest.raises(ImproperlyConfigured, match="enable_thinking"):
+        load_agent_config(conflicting)

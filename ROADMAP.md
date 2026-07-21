@@ -77,21 +77,21 @@
 ## Phase 7：Briefing Workflow
 
 - 状态：已完成。
-- 目标：建立确定性收集与 Agent 编辑相结合的简报流程。
-- 后端：BriefingDefinition/Run、Registry、日历/任务 Section、Editor Agent、Handoff。
+- 目标：建立可审计、可 Handoff 的独立简报运行与交付流程。
+- 后端：BriefingDefinition/Run、Briefing Agent、只读调研 Tool、结构化报告、Handoff。
 - 前端：简报配置、手动运行、结果与来源展示。
-- 测试：Section 并行收集、部分失败、结构化输出、手动 Handoff。
-- 验收：手动简报可生成、保存并展示，单 Section 失败可降级。
+- 测试：Agent Tool 循环、部分失败、结构化输出、有限修复、手动 Handoff。
+- 验收：手动简报可按请求范围生成、保存并展示，单数据源失败可降级。
 - 不包含：天气、新闻和定时自动投递。
 
 ## Phase 8：天气与新闻
 
 - 状态：已完成。
-- 目标：通过 Provider 扩展外部信息 Section。
+- 目标：通过 Provider 和 Briefing Agent 只读 Tool 扩展外部信息调研。
 - 后端：WeatherProvider、NewsProvider、去重、来源与时间校验。
 - 前端：来源、警告、Provider 部分失败展示。
 - 测试：Provider Mock、超时、降级、去重和来源保留。
-- 验收：外部服务失败不导致整份简报丢失。
+- 验收：未知主题可在可信 Feed 目录回退检索，外部服务失败不导致整份简报丢失。
 - 不包含：邮箱、外部日历、网页大规模抓取。
 
 ## Phase 9：外部日历和通知渠道
@@ -183,3 +183,7 @@
 | T063 | 将天气与新闻纳入 Briefing Registry、Editor Schema 和确定性降级（已完成） | Phase 8 |
 | T064 | 实现天气地点、新闻主题和 Provider 目录前端配置（已完成） | Phase 8 |
 | T065 | 完成 OpenAPI、Provider Mock、超时降级、ADR 与 Phase 8 验收（已完成） | Phase 8 |
+| T066 | 将固定 Section 收集重构为独立 Briefing Agent 与只读调研 Tool（已完成） | Phase 8 |
+| T067 | 实现结构化委托、调研报告、完整性校验与一次有限修复（已完成） | Phase 8 |
+| T068 | 实现天气 16 天范围和未知新闻主题可信目录回退检索（已完成） | Phase 8 |
+| T069 | 接入外部 Tool 重试/错误降级 Middleware 并记录 ADR（已完成） | Phase 8 |

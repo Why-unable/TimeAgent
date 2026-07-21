@@ -2073,6 +2073,9 @@
                     "structured_result": {
                         "readOnly": true
                     },
+                    "research_report": {
+                        "readOnly": true
+                    },
                     "rendered_markdown": {
                         "type": "string",
                         "readOnly": true
@@ -2134,6 +2137,7 @@
                     "operation_id",
                     "prompt_version",
                     "rendered_markdown",
+                    "research_report",
                     "section_runs",
                     "started_at",
                     "status",
