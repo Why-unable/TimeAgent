@@ -84,6 +84,118 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/auth/csrf/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["api_v1_auth_csrf_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/login/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["api_v1_auth_login_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/logout/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["api_v1_auth_logout_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/me/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["api_v1_auth_me_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/password-reset/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["api_v1_auth_password_reset_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/password-reset/confirm/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["api_v1_auth_password_reset_confirm_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/register/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["api_v1_auth_register_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/briefings/definitions/": {
         parameters: {
             query?: never;
@@ -276,6 +388,54 @@ export interface paths {
         patch: operations["api_v1_events_partial_update"];
         trace?: never;
     };
+    "/api/v1/notification-deliveries/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["api_v1_notification_deliveries_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/notification-deliveries/{delivery_id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["api_v1_notification_deliveries_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/notification-preferences/me/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["api_v1_notification_preferences_me_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch: operations["api_v1_notification_preferences_me_partial_update"];
+        trace?: never;
+    };
     "/api/v1/preferences/me/": {
         parameters: {
             query?: never;
@@ -399,6 +559,54 @@ export interface paths {
         put?: never;
         post?: never;
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/web-push/config/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["api_v1_web_push_config_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/web-push/subscriptions/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["api_v1_web_push_subscriptions_list"];
+        put?: never;
+        post: operations["api_v1_web_push_subscriptions_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/web-push/subscriptions/{subscription_id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: operations["api_v1_web_push_subscriptions_destroy"];
         options?: never;
         head?: never;
         patch?: never;
@@ -614,7 +822,6 @@ export interface components {
             source?: string;
             external_id?: string;
             created_by?: number | null;
-            /** Format: int64 */
             version?: number;
             /** Format: date-time */
             readonly created_at: string;
@@ -718,6 +925,20 @@ export interface components {
             source?: string;
             tags?: string[];
         };
+        CurrentUser: {
+            readonly id: number;
+            /**
+             * 电子邮件地址
+             * Format: email
+             */
+            readonly email: string;
+            readonly display_name: string;
+            /**
+             * 工作人员状态
+             * @description 指明用户是否可以登录到这个管理站点。
+             */
+            readonly is_staff: boolean;
+        };
         DependencyChecks: {
             database: components["schemas"]["DependencyStatusEnum"];
             redis: components["schemas"]["DependencyStatusEnum"];
@@ -751,6 +972,75 @@ export interface components {
          * @enum {string}
          */
         LiveResponseStatusEnum: "alive";
+        Login: {
+            identifier: string;
+            password: string;
+        };
+        /**
+         * @description * `console` - Console
+         *     * `email` - Email
+         *     * `web_push` - Web push
+         * @enum {string}
+         */
+        NotificationChannelTypeEnum: "console" | "email" | "web_push";
+        NotificationDelivery: {
+            /** Format: uuid */
+            readonly id: string;
+            readonly source_type: components["schemas"]["NotificationSourceTypeEnum"];
+            /** Format: uuid */
+            readonly source_id: string | null;
+            readonly channel_type: components["schemas"]["NotificationChannelTypeEnum"];
+            readonly status: components["schemas"]["ReminderStatusEnum"];
+            readonly subject: string;
+            /** Format: date-time */
+            readonly scheduled_at: string;
+            /** Format: date-time */
+            readonly queued_at: string | null;
+            /** Format: date-time */
+            readonly sending_at: string | null;
+            /** Format: date-time */
+            readonly sent_at: string | null;
+            /** Format: date-time */
+            readonly failed_at: string | null;
+            readonly attempt_count: number;
+            /** Format: date-time */
+            readonly next_retry_at: string | null;
+            readonly provider_message_id: string;
+            readonly failure_code: string;
+            readonly failure_reason: string;
+            /** Format: date-time */
+            readonly created_at: string;
+            /** Format: date-time */
+            readonly updated_at: string;
+        };
+        NotificationPreference: {
+            /** Format: email */
+            readonly email: string;
+            reminder_console_enabled?: boolean;
+            reminder_email_enabled?: boolean;
+            reminder_web_push_enabled?: boolean;
+            briefing_console_enabled?: boolean;
+            briefing_email_enabled?: boolean;
+            briefing_web_push_enabled?: boolean;
+            /** Format: date-time */
+            readonly updated_at: string;
+        };
+        /**
+         * @description * `reminder` - Reminder
+         *     * `briefing` - Briefing
+         *     * `system` - System
+         * @enum {string}
+         */
+        NotificationSourceTypeEnum: "reminder" | "briefing" | "system";
+        PasswordResetConfirm: {
+            uid: string;
+            token: string;
+            password: string;
+        };
+        PasswordResetRequest: {
+            /** Format: email */
+            email: string;
+        };
         PatchedBriefingDefinition: {
             /** Format: uuid */
             readonly id?: string;
@@ -763,6 +1053,18 @@ export interface components {
             is_active?: boolean;
             /** Format: date-time */
             readonly created_at?: string;
+            /** Format: date-time */
+            readonly updated_at?: string;
+        };
+        PatchedNotificationPreference: {
+            /** Format: email */
+            readonly email?: string;
+            reminder_console_enabled?: boolean;
+            reminder_email_enabled?: boolean;
+            reminder_web_push_enabled?: boolean;
+            briefing_console_enabled?: boolean;
+            briefing_email_enabled?: boolean;
+            briefing_web_push_enabled?: boolean;
             /** Format: date-time */
             readonly updated_at?: string;
         };
@@ -809,7 +1111,6 @@ export interface components {
             sleep_start?: string;
             /** Format: time */
             sleep_end?: string;
-            /** Format: int64 */
             default_event_duration_minutes?: number;
             preferred_focus_periods?: unknown;
             default_reminder_offsets?: unknown;
@@ -873,6 +1174,11 @@ export interface components {
          * @enum {string}
          */
         ReadyResponseStatusEnum: "ready" | "not_ready";
+        Register: {
+            /** Format: email */
+            email: string;
+            password: string;
+        };
         Reminder: {
             /** Format: uuid */
             readonly id: string;
@@ -890,7 +1196,6 @@ export interface components {
             queued_at?: string | null;
             /** Format: date-time */
             sent_at?: string | null;
-            /** Format: int64 */
             retry_count?: number;
             failure_reason?: string;
             /** Format: date-time */
@@ -963,7 +1268,6 @@ export interface components {
             priority?: components["schemas"]["PriorityEnum"];
             /** Format: date-time */
             due_at?: string | null;
-            /** Format: int64 */
             estimated_minutes?: number | null;
             /** Format: date-time */
             planned_start_at?: string | null;
@@ -1018,7 +1322,6 @@ export interface components {
             sleep_start?: string;
             /** Format: time */
             sleep_end?: string;
-            /** Format: int64 */
             default_event_duration_minutes?: number;
             preferred_focus_periods?: unknown;
             default_reminder_offsets?: unknown;
@@ -1036,6 +1339,28 @@ export interface components {
          * @enum {string}
          */
         VisibilityEnum: "private" | "public";
+        WebPushConfig: {
+            configured: boolean;
+            public_key: string;
+        };
+        WebPushSubscription: {
+            /** Format: uuid */
+            readonly id: string;
+            readonly endpoint_hint: string;
+            readonly enabled: boolean;
+            /** Format: date-time */
+            readonly last_used_at: string | null;
+            /** Format: date-time */
+            readonly invalidated_at: string | null;
+            /** Format: date-time */
+            readonly created_at: string;
+        };
+        WebPushSubscriptionCreate: {
+            /** Format: uri */
+            endpoint: string;
+            p256dh: string;
+            auth: string;
+        };
     };
     responses: never;
     parameters: never;
@@ -1210,6 +1535,159 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    api_v1_auth_csrf_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description CSRF cookie issued */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    api_v1_auth_login_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Login"];
+                "application/x-www-form-urlencoded": components["schemas"]["Login"];
+                "multipart/form-data": components["schemas"]["Login"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CurrentUser"];
+                };
+            };
+        };
+    };
+    api_v1_auth_logout_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    api_v1_auth_me_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CurrentUser"];
+                };
+            };
+        };
+    };
+    api_v1_auth_password_reset_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PasswordResetRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["PasswordResetRequest"];
+                "multipart/form-data": components["schemas"]["PasswordResetRequest"];
+            };
+        };
+        responses: {
+            /** @description No response body */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    api_v1_auth_password_reset_confirm_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PasswordResetConfirm"];
+                "application/x-www-form-urlencoded": components["schemas"]["PasswordResetConfirm"];
+                "multipart/form-data": components["schemas"]["PasswordResetConfirm"];
+            };
+        };
+        responses: {
+            /** @description No response body */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    api_v1_auth_register_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Register"];
+                "application/x-www-form-urlencoded": components["schemas"]["Register"];
+                "multipart/form-data": components["schemas"]["Register"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CurrentUser"];
+                };
             };
         };
     };
@@ -1665,6 +2143,90 @@ export interface operations {
             };
         };
     };
+    api_v1_notification_deliveries_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotificationDelivery"][];
+                };
+            };
+        };
+    };
+    api_v1_notification_deliveries_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                delivery_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotificationDelivery"];
+                };
+            };
+        };
+    };
+    api_v1_notification_preferences_me_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotificationPreference"];
+                };
+            };
+        };
+    };
+    api_v1_notification_preferences_me_partial_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PatchedNotificationPreference"];
+                "application/x-www-form-urlencoded": components["schemas"]["PatchedNotificationPreference"];
+                "multipart/form-data": components["schemas"]["PatchedNotificationPreference"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotificationPreference"];
+                };
+            };
+        };
+    };
     api_v1_preferences_me_retrieve: {
         parameters: {
             query?: never;
@@ -1941,6 +2503,89 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["TodaySummary"];
                 };
+            };
+        };
+    };
+    api_v1_web_push_config_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebPushConfig"];
+                };
+            };
+        };
+    };
+    api_v1_web_push_subscriptions_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebPushSubscription"][];
+                };
+            };
+        };
+    };
+    api_v1_web_push_subscriptions_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WebPushSubscriptionCreate"];
+                "application/x-www-form-urlencoded": components["schemas"]["WebPushSubscriptionCreate"];
+                "multipart/form-data": components["schemas"]["WebPushSubscriptionCreate"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebPushSubscription"];
+                };
+            };
+        };
+    };
+    api_v1_web_push_subscriptions_destroy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                subscription_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };

@@ -1,5 +1,53 @@
 import { expect, test } from "@playwright/test";
 
+test.beforeEach(async ({ page }) => {
+  await page.route("**/api/v1/auth/me/", async (route) => {
+    await route.fulfill({
+      json: { id: 1, email: "e2e@example.test", display_name: "E2E User", is_staff: false },
+    });
+  });
+  await page.route("**/api/v1/auth/csrf/", async (route) => {
+    await route.fulfill({ json: { csrfToken: "e2e-csrf" } });
+  });
+});
+
+test("redirects an unauthenticated visitor to the login page", async ({ page }) => {
+  await page.unroute("**/api/v1/auth/me/");
+  await page.route("**/api/v1/auth/me/", async (route) => {
+    await route.fulfill({ status: 401, json: { detail: "Authentication credentials were not provided." } });
+  });
+
+  await page.goto("/today");
+
+  await expect(page).toHaveURL(/\/login$/);
+  await expect(page.getByRole("heading", { name: "登录 Time Agent" })).toBeVisible();
+});
+
+test("logs in from the dedicated login page", async ({ page }) => {
+  await page.route("**/api/v1/auth/login/", async (route) => {
+    await route.fulfill({
+      json: { id: 1, email: "e2e@example.test", display_name: "E2E User", is_staff: false },
+    });
+  });
+  await page.route("**/api/v1/preferences/me/", async (route) => {
+    await route.fulfill({
+      json: {
+        timezone: "Asia/Shanghai", locale: "zh-CN", workday_start: "09:00:00", workday_end: "18:00:00",
+        sleep_start: "23:00:00", sleep_end: "07:00:00", default_event_duration_minutes: 60,
+        preferred_focus_periods: [], default_reminder_offsets: [], weather_location: "", news_topics: [],
+        briefing_time: "08:00:00", planning_rules: {}, updated_at: "2026-07-17T00:00:00Z",
+      },
+    });
+  });
+
+  await page.goto("/login");
+  await page.getByLabel("邮箱").fill("e2e@example.test");
+  await page.getByLabel("密码").fill("strong password 123");
+  await page.getByRole("button", { name: "登录", exact: true }).last().click();
+
+  await expect(page).toHaveURL(/\/today$/);
+});
+
 test("renders the system status shell", async ({ page }) => {
   await page.route("**/api/v1/preferences/me/", async (route) => {
     await route.fulfill({
@@ -15,6 +63,30 @@ test("renders the system status shell", async ({ page }) => {
 
   await page.goto("/");
   await expect(page.getByRole("heading", { name: "系统状态" })).toBeVisible();
+});
+
+test("uses the mobile app shell below the desktop breakpoint", async ({ page }) => {
+  await page.setViewportSize({ width: 930, height: 1000 });
+  await page.route("**/api/v1/preferences/me/", async (route) => {
+    await route.fulfill({
+      json: {
+        timezone: "Asia/Shanghai", locale: "zh-CN", workday_start: "09:00:00", workday_end: "18:00:00",
+        sleep_start: "23:00:00", sleep_end: "07:00:00", default_event_duration_minutes: 60,
+        preferred_focus_periods: [], default_reminder_offsets: [], weather_location: "", news_topics: [],
+        briefing_time: "08:00:00", planning_rules: {}, updated_at: "2026-07-17T00:00:00Z",
+      },
+    });
+  });
+  await page.route("**/api/v1/tasks/**", async (route) => {
+    await route.fulfill({ json: [] });
+  });
+
+  await page.goto("/tasks");
+
+  await expect(page.locator("aside")).toHaveCount(0);
+  await expect(page.getByRole("navigation", { name: "移动端主导航" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "更多" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "任务" })).toBeVisible();
 });
 
 test("reads and updates time preferences", async ({ page }) => {
@@ -477,4 +549,64 @@ test("launches a manual briefing into its own conversation", async ({ page }) =>
   await expect(page).toHaveURL(new RegExp(`/chat/${conversationId}$`));
   await expect(page.getByRole("heading", { name: "E2E Manual Briefing" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "E2E Briefing" })).toBeVisible();
+});
+
+test("opens notification settings, enables email, and shows delivery status", async ({ page }) => {
+  let emailEnabled = false;
+  await page.route("**/api/v1/preferences/me/", async (route) => {
+    await route.fulfill({ status: 403, json: { detail: "Not authenticated." } });
+  });
+  await page.route("**/api/v1/notification-preferences/me/", async (route) => {
+    if (route.request().method() === "PATCH") {
+      emailEnabled = Boolean(route.request().postDataJSON().reminder_email_enabled);
+    }
+    await route.fulfill({
+      json: {
+        email: "e2e@example.test",
+        reminder_console_enabled: true,
+        reminder_email_enabled: emailEnabled,
+        reminder_web_push_enabled: false,
+        briefing_console_enabled: true,
+        briefing_email_enabled: false,
+        briefing_web_push_enabled: false,
+        updated_at: "2026-07-21T00:00:00Z",
+      },
+    });
+  });
+  await page.route("**/api/v1/notification-deliveries/", async (route) => {
+    await route.fulfill({ json: [{
+      id: "dddddddd-dddd-4ddd-8ddd-dddddddddddd",
+      source_type: "reminder",
+      source_id: "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee",
+      channel_type: "email",
+      status: "sent",
+      subject: "E2E reminder",
+      scheduled_at: "2026-07-21T00:00:00Z",
+      queued_at: "2026-07-21T00:00:00Z",
+      sending_at: "2026-07-21T00:00:01Z",
+      sent_at: "2026-07-21T00:00:02Z",
+      failed_at: null,
+      attempt_count: 1,
+      next_retry_at: null,
+      provider_message_id: "e2e-message",
+      failure_code: "",
+      failure_reason: "",
+      created_at: "2026-07-21T00:00:00Z",
+      updated_at: "2026-07-21T00:00:02Z",
+    }] });
+  });
+  await page.route("**/api/v1/web-push/config/", async (route) => {
+    await route.fulfill({ json: { configured: false, public_key: "" } });
+  });
+  await page.route("**/api/v1/web-push/subscriptions/", async (route) => {
+    await route.fulfill({ json: [] });
+  });
+
+  await page.goto("/settings/notifications");
+  await expect(page.getByRole("heading", { name: "通知设置" })).toBeVisible();
+  await page.getByLabel("提醒邮件").click();
+  await expect(page.getByLabel("提醒邮件")).toBeChecked();
+  expect(emailEnabled).toBe(true);
+  await expect(page.getByText("E2E reminder")).toBeVisible();
+  await expect(page.getByText("sent", { exact: true })).toBeVisible();
 });

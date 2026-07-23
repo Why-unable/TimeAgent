@@ -137,9 +137,9 @@ describe("TodayPage", () => {
     expect(screen.getByText(/2026年7月20日/)).toBeInTheDocument();
     expect(screen.getAllByText("项目会议").length).toBeGreaterThanOrEqual(2);
     expect(screen.getAllByText("计划写作").length).toBeGreaterThanOrEqual(2);
-    expect(screen.getByText("今日交付")).toBeInTheDocument();
-    expect(screen.getByText("补交周报")).toBeInTheDocument();
-    expect(screen.getByText("提交前提醒")).toBeInTheDocument();
+    expect(screen.getAllByText("今日交付").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText("补交周报").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText("提交前提醒").length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText("1 小时后")).toBeInTheDocument();
     expect(screen.getByText("项目会议 与 计划写作")).toBeInTheDocument();
     expect(screen.getByText("Asia/Shanghai", { exact: false })).toBeInTheDocument();
@@ -162,7 +162,8 @@ describe("TodayPage", () => {
     );
     renderPage();
 
-    await userEvent.click(await screen.findByRole("button", { name: "完成任务：今日交付" }));
+    const completeButtons = await screen.findAllByRole("button", { name: "完成任务：今日交付" });
+    await userEvent.click(completeButtons[0]);
 
     await waitFor(() => {
       expect(completeUrl).toContain(`/tasks/${dueTask.id}/complete/`);

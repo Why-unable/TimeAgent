@@ -198,3 +198,6 @@
 | T077 | 实现通知 REST API、设置页、Service Worker 与投递记录（已完成） | Phase 9 |
 | T078 | 预留外部日历 Provider/DTO/能力/异常契约（已完成） | Phase 9 |
 | T079 | 完成 OpenAPI、测试、Compose 与 Phase 9 文档验收（已完成） | Phase 9 |
+| T080 | 实现浏览器 Session 认证、注册、登录、退出与密码重置（已完成） | Phase 10 |
+| T081 | 实现登录页、认证路由保护与账户设置（已完成） | Phase 10 |
+| T082 | 使用 Uvicorn ASGI、生产 Compose 覆盖与 Cloudflare Tunnel 部署基线（已完成） | Phase 10 |

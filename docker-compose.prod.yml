@@ -1,0 +1,15 @@
+# Production/tunnel overlay. Use with:
+# docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+#
+# The public TLS endpoint is Cloudflare Tunnel or an external reverse proxy.
+# Keep the application gateway loopback-only so it cannot bypass that endpoint.
+services:
+  django:
+    environment:
+      DJANGO_SETTINGS_MODULE: config.settings.production
+      DJANGO_DEBUG: "false"
+      SESSION_COOKIE_SECURE: "true"
+      CSRF_COOKIE_SECURE: "true"
+      SECURE_SSL_REDIRECT: "false"
+
+  nginx:

@@ -11,6 +11,8 @@ from apps.conversations.models import AgentRun
     name="conversations.execute_agent_run",
     acks_late=True,
     reject_on_worker_lost=True,
+    soft_time_limit=180,
+    time_limit=195,
 )  # type: ignore[untyped-decorator]
 def execute_agent_run_task(self: object, run_id: str) -> str:
     """Execute a persisted AgentRun outside the request-response lifecycle."""
@@ -26,6 +28,8 @@ def execute_agent_run_task(self: object, run_id: str) -> str:
     name="conversations.resume_agent_run",
     acks_late=True,
     reject_on_worker_lost=True,
+    soft_time_limit=180,
+    time_limit=195,
 )  # type: ignore[untyped-decorator]
 def resume_agent_run_task(self: object, run_id: str) -> str:
     run = AgentRun.objects.select_related("conversation__user").get(pk=UUID(run_id))

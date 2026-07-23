@@ -28,6 +28,14 @@ POST  /api/v1/chat/messages/
 GET   /api/v1/chat/runs/{id}/
 POST  /api/v1/chat/runs/{id}/cancel/
 GET   /api/v1/chat/runs/{id}/events/
+GET   /api/v1/notification-preferences/me/
+PATCH /api/v1/notification-preferences/me/
+GET   /api/v1/notification-deliveries/
+GET   /api/v1/notification-deliveries/{id}/
+GET   /api/v1/web-push/config/
+GET   /api/v1/web-push/subscriptions/
+POST  /api/v1/web-push/subscriptions/
+DELETE /api/v1/web-push/subscriptions/{id}/
 ```
 
 这些端点要求认证，写操作必须经过对应 Application Service。提醒 DELETE 表示取消，

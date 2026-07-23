@@ -6,6 +6,7 @@ import {
   MessageSquare,
   MonitorCog,
   Settings,
+  UserRound,
   ShieldCheck,
   Newspaper,
 } from "lucide-react";
@@ -24,6 +25,8 @@ const navigation = [
   { to: "/reminders", label: "提醒", icon: Bell },
   { to: "/approvals", label: "审批", icon: ShieldCheck },
   { to: "/settings/time", label: "时间偏好", icon: Settings },
+  { to: "/settings/account", label: "账户与安全", icon: UserRound },
+  { to: "/settings/notifications", label: "通知设置", icon: Bell },
 ];
 
 export function AppLayout() {
@@ -33,7 +36,7 @@ export function AppLayout() {
 
   return (
     <div data-color-scheme="dark" className="min-h-screen bg-slate-950 text-slate-100">
-      <aside className="fixed inset-y-0 left-0 hidden w-64 border-r border-white/10 bg-slate-900/80 p-6 backdrop-blur md:block">
+      <aside className="fixed inset-y-0 left-0 hidden w-64 border-r border-white/10 bg-slate-900/80 p-6 backdrop-blur lg:block">
         <div className="mb-10">
           <p className="text-xs uppercase tracking-[0.28em] text-cyan-300">Time Agent</p>
           <h1 className="mt-2 text-xl font-semibold">时间工作台</h1>
@@ -59,7 +62,7 @@ export function AppLayout() {
           ))}
         </nav>
       </aside>
-      <main className="min-h-screen px-5 pb-24 pt-8 md:ml-64 md:px-10 md:pb-10">
+      <main className="min-h-screen px-5 pb-36 pt-[max(env(safe-area-inset-top),2rem)] sm:px-5 lg:ml-64 lg:px-10 lg:pb-10 lg:pt-8">
         <Outlet />
       </main>
       <MobileNavigation />

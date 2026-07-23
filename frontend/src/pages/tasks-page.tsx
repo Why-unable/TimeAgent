@@ -51,32 +51,32 @@ export function TasksPage() {
 
   return (
     <section className="mx-auto max-w-6xl">
-      <div className="flex flex-wrap items-end justify-between gap-4">
+      <div className="flex flex-wrap items-start justify-between gap-4 sm:items-end">
         <div>
-          <p className="text-sm font-medium text-cyan-300">Phase 3 · 结构化事务</p>
+          <p className="hidden text-sm font-medium text-cyan-300 lg:block">Phase 3 · 结构化事务</p>
           <div className="mt-2 flex items-center gap-3">
-            <ListTodo className="text-cyan-300" />
-            <h2 className="text-3xl font-semibold">任务</h2>
+            <ListTodo className="text-cyan-300" size={31} />
+            <h2 className="text-4xl font-semibold">任务</h2>
           </div>
-          <p className="mt-3 text-slate-400">明确区分截止时间与计划执行区间。</p>
+          <p className="mt-4 text-lg text-slate-400">明确区分截止时间与计划执行区间。</p>
         </div>
         <button
           type="button"
           onClick={() => setCreating(true)}
-          className="inline-flex items-center gap-2 rounded-xl bg-cyan-300 px-5 py-3 font-medium text-slate-950"
+          className="inline-flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl bg-cyan-300 px-6 py-3 text-lg font-semibold text-slate-950 sm:w-auto"
         >
           <CirclePlus size={19} />
           新建任务
         </button>
       </div>
 
-      <div className="mt-7 flex gap-2 overflow-x-auto pb-2" aria-label="任务筛选">
+      <div className="mt-8 flex gap-3 overflow-x-auto pb-3" aria-label="任务筛选">
         {filters.map((item) => (
           <button
             type="button"
             key={item.id}
             onClick={() => setFilter(item.id)}
-            className={`shrink-0 rounded-full px-4 py-2 text-sm transition ${
+            className={`shrink-0 rounded-full px-5 py-3 text-base transition ${
               filter === item.id
                 ? "bg-cyan-300 text-slate-950"
                 : "border border-white/10 bg-slate-900 text-slate-300 hover:border-cyan-300/30"
@@ -94,8 +94,10 @@ export function TasksPage() {
         </div>
       )}
       {!tasks.isPending && !tasks.isError && visibleTasks.length === 0 && (
-        <div className="mt-8 rounded-2xl border border-dashed border-white/10 p-12 text-center text-slate-500">
-          当前分类暂无任务
+        <div className="mt-10 rounded-[2rem] border border-dashed border-white/10 p-12 text-center sm:p-12">
+          <ListTodo size={38} className="mx-auto text-slate-600" />
+          <p className="mt-5 text-xl font-medium text-slate-400">当前分类暂无任务</p>
+          <p className="mt-3 text-base text-slate-600">用右上角按钮添加一件想完成的事吧。</p>
         </div>
       )}
 

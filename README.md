@@ -1,6 +1,6 @@
 # Time Agent
 
-Time Agent 是以时间为核心的个人智能事务管理系统。本仓库当前已完成 **Phase 8**，具备提醒闭环、结构化事务管理、每日工作台、可恢复的 Time Steward Agent、高风险操作审批，以及支持天气与新闻调研、来源追踪和失败降级的简报工作流。
+Time Agent 是以时间为核心的个人智能事务管理系统。本仓库当前已完成 **Phase 9**，具备提醒闭环、结构化事务管理、每日工作台、可恢复的 Time Steward Agent、高风险操作审批、天气与新闻简报，以及持久化的 Console/Email/Web Push 通知投递体系。
 
 > Time Steward 使用 LangChain `create_agent()`、LangGraph PostgreSQL 持久化和官方 Middleware；高风险写入通过 ActionProposal/HITL 审批；Briefing Workflow 使用确定性并行 Section、受限 Editor 和结构化输出。
 
@@ -42,6 +42,9 @@ Time Agent 是以时间为核心的个人智能事务管理系统。本仓库当
 - 短生命周期 Briefing Agent、日程/任务/天气/新闻只读调研 Tool、有限失败恢复、确定性来源校验、Markdown 渲染和 SSE 分块发布。
 - Time Steward 通过 `Command.PARENT` Handoff 转交自然语言简报请求；最终消息序列保持有效的 AI tool call、ToolMessage 和简报 AIMessage。
 - `/briefings` 支持配置、手动运行、结果、来源和“在聊天中继续”；聊天历史按普通聊天、手动简报和自动简报分类。
+- `NotificationDelivery` 状态机、稳定幂等键、Celery 异步投递/有限重试/中断恢复，以及统一 Console、Django Email 和 Web Push Provider Registry；Reminder 和 Briefing 的各渠道结果独立审计。
+- `/settings/notifications` 支持当前用户 Email/Push 渠道开关、显式浏览器权限申请、Subscription 创建/取消和最近投递状态；VAPID 私钥不进入前端。
+- 外部日历已建立 Provider Protocol、Pydantic DTO、能力声明和统一异常契约；尚未实现任何 OAuth、Token、供应商接入或同步。
 
 ## 技术栈
 
@@ -138,6 +141,51 @@ POSTGRES_IMAGE=docker.1ms.run/library/postgres:17-alpine
 ```bash
 docker compose up --build
 ```
+
+## 浏览器账户与 PWA 登录
+
+应用使用 Django 同域 Session，不使用保存在浏览器 Local Storage 的 JWT。首次打开
+受保护页面会跳转到 `/login`；登录页支持邮箱注册、登录和通过邮件重置密码。登录成功后
+会回到原先请求的页面，账户设置位于 `/settings/account`。管理员后台 `/admin/` 只用于
+运维，不是普通用户登录入口。
+
+注册接口带有 CSRF 保护和匿名访问频率限制。公开部署前请确认 `.env` 中的
+`AUTH_REGISTRATION_ENABLED` 是否符合预期；个人或邀请制部署可在首个账户创建后设为
+`false`。
+
+## Cloudflare Tunnel 生产运行
+
+Cloudflare Tunnel 负责公网 HTTPS，Docker 内部入口只使用 HTTP。请在 `.env` 中配置实际
+域名，且不要将任何密码、API Key 或 Tunnel Token 提交到 Git：
+
+```env
+DJANGO_SETTINGS_MODULE=config.settings.production
+DJANGO_DEBUG=false
+DJANGO_SECRET_KEY=use-a-unique-random-secret
+DJANGO_ALLOWED_HOSTS=steward.example.com
+DJANGO_CSRF_TRUSTED_ORIGINS=https://steward.example.com
+SESSION_COOKIE_SECURE=true
+CSRF_COOKIE_SECURE=true
+AUTH_REGISTRATION_ENABLED=true
+```
+
+首次部署或更新时使用生产覆盖文件。它会将 Nginx 仅绑定至 `127.0.0.1:8080`，因此
+Cloudflare Tunnel 的 Service URL 仍应为 `http://localhost:8080`：
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+docker compose -f docker-compose.yml -f docker-compose.prod.yml ps
+```
+
+发布前显式执行迁移，随后检查公开健康端点：
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.prod.yml exec django python manage.py migrate --noinput
+curl https://steward.example.com/health/ready
+```
+
+`docker-compose.prod.yml` 使用 Uvicorn ASGI，而不是 Django `runserver`。确认 HTTPS 稳定
+运行一段时间后，才应考虑设置不可轻易撤销的 HSTS 参数 `SECURE_HSTS_SECONDS`。
 
 入口地址为 `http://localhost:8080`。停止服务：
 
@@ -352,10 +400,20 @@ uv run python manage.py check_external_providers --weather-location 上海 --top
 
 外部条目会保留来源 URL、发布方与时间；新闻规范化结果写入 PostgreSQL 并进行稳定指纹去重。单个 Provider/Feed 失败只会让简报进入部分降级，不会丢失日程和任务部分。
 
+通知渠道通过 `.env` 配置。开发环境默认使用 Console 通知与 Django console Email Backend；SMTP 可通过 `EMAIL_BACKEND`、`EMAIL_HOST`、`EMAIL_PORT`、`EMAIL_USERNAME`、`EMAIL_PASSWORD`、TLS/SSL 和 `EMAIL_FROM_ADDRESS` 切换。Web Push 使用 `WEB_PUSH_VAPID_PUBLIC_KEY`、`WEB_PUSH_VAPID_PRIVATE_KEY` 和 `WEB_PUSH_VAPID_SUBJECT`。私钥只注入 Django/Celery，前端通过认证 API 读取公钥。修改后请重建 Django、Worker 和 Beat：
+
+```powershell
+docker compose up -d --build django celery-worker celery-beat frontend
+docker compose restart nginx
+```
+
+生产 Web Push 必须使用 HTTPS；localhost 可用于开发。真实 SMTP/Web Push 测试默认不执行，只有在使用专用测试凭据并显式设置 `RUN_LIVE_NOTIFICATION_TESTS=1` 时才允许运行。
+
 ## 尚未实现
 
-- Email、Telegram、Browser 等真实通知渠道；
-- 定时自动简报和外部日历；
+- Telegram、SMS、任意第三方收件人通知；
+- 外部日历供应商、OAuth、Token、事件映射和同步；
+- 定时自动简报投递调度（简报结果的通知投递能力已具备）；
 - 生产 TLS、完整监控、备份和发布流水线。
 
 ## 规范关系与注意事项
@@ -366,4 +424,4 @@ development settings 允许本地调试，production settings 强制提供安全
 
 ## 下一步
 
-Phase 8 已完成；下一阶段为 **Phase 9：外部日历和通知渠道**。
+Phase 9 已完成；下一阶段为 **Phase 10：生产部署与监控**。

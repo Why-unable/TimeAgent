@@ -1,7 +1,10 @@
+from collections.abc import AsyncIterator
 from types import SimpleNamespace
+from typing import cast
 from uuid import uuid4
 
 import pytest
+from asgiref.sync import async_to_sync
 from django.contrib.auth.models import User
 from django.http import StreamingHttpResponse
 from langchain_core.messages import AIMessage, AIMessageChunk
@@ -11,6 +14,11 @@ from apps.conversations.execution import _last_ai_text, _message_text, _stream_m
 from apps.conversations.models import AgentRun, Conversation
 from apps.conversations.services import AgentRunService, StartRunCommand
 from apps.conversations.tasks import execute_agent_run_task
+
+
+async def _collect_async_stream(stream: StreamingHttpResponse) -> bytes:
+    content = cast("AsyncIterator[bytes]", stream.streaming_content)
+    return b"".join([item async for item in content])
 
 
 def test_native_subgraph_stream_shape_is_normalized() -> None:
@@ -118,7 +126,7 @@ def test_chat_run_lifecycle_and_sse_cursor(monkeypatch: pytest.MonkeyPatch) -> N
         HTTP_ACCEPT="text/event-stream",
     )
     assert isinstance(stream, StreamingHttpResponse)
-    content = b"".join(stream.streaming_content)
+    content = async_to_sync(_collect_async_stream)(stream)
     assert b"id: 1\n" not in content
     assert b"event: tool.started" in content
     assert b"event: tool.completed" in content
@@ -249,16 +257,21 @@ def test_sse_waits_for_events_until_run_reaches_terminal_state(
     )
     completed = False
 
-    def complete_during_poll(_seconds: float) -> None:
+    async def complete_during_poll(_seconds: float) -> None:
         nonlocal completed
         if not completed:
-            running = AgentRunService.mark_running(run)
-            AgentRunService.complete(running, "done")
+            from asgiref.sync import sync_to_async
+
+            running = await sync_to_async(AgentRunService.mark_running)(run)
+            await sync_to_async(AgentRunService.complete)(running, "done")
             completed = True
 
-    monkeypatch.setattr("apps.conversations.views.time.sleep", complete_during_poll)
+    monkeypatch.setattr("apps.conversations.views.asyncio.sleep", complete_during_poll)
 
-    content = b"".join(_sse(user_id=user.pk, run_id=run.pk, cursor=0))
+    async def collect() -> bytes:
+        return b"".join([item async for item in _sse(user_id=user.pk, run_id=run.pk, cursor=0)])
+
+    content = async_to_sync(collect)()
 
     assert b"event: agent.started" in content
     assert b"event: message.completed" in content
@@ -288,18 +301,23 @@ def test_sse_stays_open_while_approved_run_waits_for_celery_resume(
     assert AgentRunService.reserve_resume_task(run, task_id)
     resumed = False
 
-    def resume_during_poll(_seconds: float) -> None:
+    async def resume_during_poll(_seconds: float) -> None:
         nonlocal resumed
         if resumed:
             return
-        claimed = AgentRunService.claim_for_resume(run, task_id=task_id)
+        from asgiref.sync import sync_to_async
+
+        claimed = await sync_to_async(AgentRunService.claim_for_resume)(run, task_id=task_id)
         assert claimed is not None
-        AgentRunService.complete(claimed, "resumed reply")
+        await sync_to_async(AgentRunService.complete)(claimed, "resumed reply")
         resumed = True
 
-    monkeypatch.setattr("apps.conversations.views.time.sleep", resume_during_poll)
+    monkeypatch.setattr("apps.conversations.views.asyncio.sleep", resume_during_poll)
 
-    content = b"".join(_sse(user_id=user.pk, run_id=run.pk, cursor=0))
+    async def collect() -> bytes:
+        return b"".join([item async for item in _sse(user_id=user.pk, run_id=run.pk, cursor=0)])
+
+    content = async_to_sync(collect)()
 
     assert b"event: agent.resumed" in content
     assert b"event: message.completed" in content

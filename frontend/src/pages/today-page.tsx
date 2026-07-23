@@ -133,6 +133,35 @@ function NextEventCard({ event, minutes, timezone }: { event: CalendarEvent | nu
   );
 }
 
+function MobileTodayOverview({ data, timeline }: { data: TodaySummary; timeline: TimelineEntry[] }) {
+  const taskCount = data.planned_tasks.length + data.due_tasks.length + data.overdue_tasks.length;
+  const nextEventLabel = data.next_event
+    ? `${formatTimeInUserTimezone(data.next_event.start_at, data.timezone)} ${data.next_event.title}`
+    : "暂未安排后续日程";
+
+  return (
+    <section className="rounded-[2rem] border border-cyan-300/20 bg-gradient-to-br from-slate-800 to-slate-900 p-6 shadow-[0_24px_55px_-34px_rgba(34,211,238,0.65)] lg:hidden">
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <p className="text-base font-medium text-cyan-200">今日节奏</p>
+          <h3 className="mt-2 text-2xl font-semibold text-white">
+            {timeline.length === 0 && taskCount === 0 ? "今天很轻松" : "按自己的节奏来"}
+          </h3>
+        </div>
+        <span className="rounded-full bg-cyan-300/10 px-4 py-2 text-sm font-medium text-cyan-100">
+          {timeline.length} 项安排
+        </span>
+      </div>
+      <p className="mt-4 text-base text-slate-400">{nextEventLabel}</p>
+      <div className="mt-6 grid grid-cols-3 divide-x divide-white/10 rounded-2xl bg-slate-950/60 py-4">
+        <div className="px-3 text-center"><p className="text-2xl font-semibold text-white">{data.events.length}</p><p className="mt-1 text-sm text-slate-500">日程</p></div>
+        <div className="px-3 text-center"><p className="text-2xl font-semibold text-white">{taskCount}</p><p className="mt-1 text-sm text-slate-500">任务</p></div>
+        <div className="px-3 text-center"><p className="text-2xl font-semibold text-white">{data.pending_reminders.length}</p><p className="mt-1 text-sm text-slate-500">提醒</p></div>
+      </div>
+    </section>
+  );
+}
+
 export function TodayPage() {
   const summary = useTodaySummary();
   const completeTask = useCompleteTodayTask();
@@ -154,33 +183,52 @@ export function TodayPage() {
 
   return (
     <section className="mx-auto max-w-6xl">
-      <div className="flex flex-wrap items-end justify-between gap-5">
+      <div className="flex flex-wrap items-end justify-between gap-5 lg:gap-5">
         <div>
-          <p className="text-sm font-medium text-cyan-300">Phase 3 · 每日工作台</p>
+          <p className="hidden text-sm font-medium text-cyan-300 lg:block">Phase 3 · 每日工作台</p>
           <div className="mt-2 flex items-center gap-3">
-            <Clock3 className="text-cyan-300" />
-            <h2 className="text-3xl font-semibold">今天</h2>
+            <Clock3 className="text-cyan-300" size={31} />
+            <h2 className="text-4xl font-semibold sm:text-3xl">今天</h2>
           </div>
-          <p className="mt-3 text-slate-400">{formatDateKey(data.date)} · {data.timezone}</p>
+          <p className="mt-3 text-base text-slate-400 lg:mt-3">{formatDateKey(data.date)}<span className="hidden lg:inline"> · {data.timezone}</span></p>
         </div>
-        <div className="flex gap-3">
-          <Link to="/calendar" className="inline-flex items-center gap-2 rounded-xl border border-white/10 px-4 py-2 text-sm text-slate-200 hover:border-cyan-300/30">
+        <div className="hidden gap-2 sm:gap-3 lg:flex">
+          <Link to="/calendar" className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-white/10 px-3 py-2 text-sm font-medium text-slate-200 hover:border-cyan-300/30 sm:px-4">
             日历 <ArrowRight size={15} />
           </Link>
-          <Link to="/tasks" className="inline-flex items-center gap-2 rounded-xl border border-white/10 px-4 py-2 text-sm text-slate-200 hover:border-cyan-300/30">
+          <Link to="/tasks" className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-white/10 px-3 py-2 text-sm font-medium text-slate-200 hover:border-cyan-300/30 sm:px-4">
             任务 <ArrowRight size={15} />
           </Link>
         </div>
       </div>
 
-      <div className="mt-8 grid gap-5 lg:grid-cols-[minmax(0,1fr)_340px]">
-        <section className="rounded-2xl border border-white/10 bg-slate-900 p-5">
+      <div className="mt-5 lg:hidden">
+        <MobileTodayOverview data={data} timeline={timeline} />
+      </div>
+
+      {timeline.length === 0 && data.planned_tasks.length === 0 && data.due_tasks.length === 0 && data.overdue_tasks.length === 0 && (
+        <div className="mt-5 grid grid-cols-2 gap-4 lg:hidden">
+          <Link to="/calendar" className="min-h-40 rounded-3xl border border-cyan-300/20 bg-cyan-300/10 p-5 text-left text-cyan-100 transition active:scale-[0.98]">
+            <CalendarClock size={28} />
+            <span className="mt-5 block text-xl font-semibold">安排日程</span>
+            <span className="mt-2 block text-base text-cyan-100/70">为今天留出时间</span>
+          </Link>
+          <Link to="/chat" className="min-h-40 rounded-3xl border border-violet-300/20 bg-violet-300/10 p-5 text-left text-violet-100 transition active:scale-[0.98]">
+            <Bell size={28} />
+            <span className="mt-5 block text-xl font-semibold">交给助手</span>
+            <span className="mt-2 block text-base text-violet-100/70">用一句话开始</span>
+          </Link>
+        </div>
+      )}
+
+      <div className="mt-5 grid gap-5 lg:mt-8 lg:grid-cols-[minmax(0,1fr)_340px]">
+        <section className={`rounded-3xl border border-white/10 bg-slate-900 p-5 sm:p-5 ${timeline.length === 0 ? "hidden lg:block" : ""}`}>
           <div className="flex items-center justify-between gap-3">
             <h3 className="flex items-center gap-2 font-semibold"><CalendarClock size={19} className="text-cyan-300" />今日时间线</h3>
             <span className="text-xs text-slate-500">{timeline.length} 项安排</span>
           </div>
           <div className="mt-5 space-y-1">
-            {timeline.length === 0 && <p className="py-8 text-center text-sm text-slate-500">今天没有已安排的日程或任务</p>}
+            {timeline.length === 0 && <p className="py-7 text-center text-base text-slate-500 sm:py-8">时间线是空的，留一点时间给自己吧。</p>}
             {timeline.map((item) => (
               <article key={`${item.kind}-${item.id}`} className="grid grid-cols-[92px_12px_minmax(0,1fr)] gap-3 py-3">
                 <time className="text-sm text-slate-400">
@@ -196,7 +244,7 @@ export function TodayPage() {
             ))}
           </div>
         </section>
-        <div className="space-y-5">
+        <div className="hidden space-y-5 lg:block">
           <NextEventCard event={data.next_event} minutes={data.minutes_until_next_event} timezone={data.timezone} />
           <section className={`rounded-2xl border p-5 ${data.conflicts.length ? "border-red-400/30 bg-red-400/10" : "border-emerald-400/20 bg-emerald-400/5"}`}>
             <div className="flex items-center gap-2">
@@ -221,13 +269,50 @@ export function TodayPage() {
         </div>
       </div>
 
-      <div className="mt-5 grid gap-5 lg:grid-cols-3">
+      <div className="mt-5 hidden gap-5 lg:grid lg:grid-cols-3">
         <TaskList title="今日计划任务" tasks={data.planned_tasks} timezone={data.timezone} tone="cyan" onComplete={complete} completing={completeTask.isPending} />
         <TaskList title="今日截止任务" tasks={data.due_tasks} timezone={data.timezone} tone="amber" onComplete={complete} completing={completeTask.isPending} />
         <TaskList title="已逾期任务" tasks={data.overdue_tasks} timezone={data.timezone} tone="red" onComplete={complete} completing={completeTask.isPending} />
       </div>
 
-      <section className="mt-5 rounded-2xl border border-white/10 bg-slate-900 p-5">
+      {(data.planned_tasks.length > 0 || data.due_tasks.length > 0 || data.overdue_tasks.length > 0) && (
+        <section className="mt-5 rounded-2xl border border-white/10 bg-slate-900 p-4 lg:hidden">
+          <h3 className="font-semibold text-white">待处理任务</h3>
+          <div className="mt-3 space-y-2">
+            {[...data.planned_tasks, ...data.due_tasks, ...data.overdue_tasks].slice(0, 4).map((task) => (
+              <article key={task.id} className="flex items-center justify-between gap-3 rounded-xl bg-slate-950/60 px-3 py-3">
+                <div className="min-w-0"><p className="truncate text-sm font-medium text-slate-100">{task.title}</p><p className="mt-1 text-xs text-slate-500">{task.project || "任务"}</p></div>
+                <button type="button" aria-label={`完成任务：${task.title}`} disabled={completeTask.isPending} onClick={() => complete(task.id)} className="shrink-0 rounded-lg p-2 text-emerald-300 hover:bg-emerald-400/10 disabled:opacity-50"><CircleCheck size={19} /></button>
+              </article>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {data.conflicts.length > 0 && (
+        <section className="mt-5 rounded-2xl border border-red-400/30 bg-red-400/10 p-4 lg:hidden">
+          <div className="flex items-center gap-2 font-semibold text-red-100"><AlertTriangle size={18} className="text-red-300" />发现 {data.conflicts.length} 个时间冲突</div>
+        </section>
+      )}
+
+      {data.pending_reminders.length > 0 && (
+        <section className="mt-5 rounded-2xl border border-violet-300/15 bg-slate-900 p-4 lg:hidden">
+          <div className="flex items-center justify-between gap-3">
+            <h3 className="flex items-center gap-2 font-semibold text-white"><Bell size={18} className="text-violet-300" />待处理提醒</h3>
+            <span className="text-xs text-slate-500">{data.pending_reminders.length} 项</span>
+          </div>
+          <div className="mt-3 space-y-2">
+            {data.pending_reminders.slice(0, 3).map((reminder) => (
+              <article key={reminder.id} className="rounded-xl bg-slate-950/60 px-3 py-3">
+                <p className="text-sm font-medium text-slate-100">{reminder.title}</p>
+                <p className="mt-1 text-xs text-slate-500">{formatTimeInUserTimezone(reminder.trigger_at, data.timezone)}</p>
+              </article>
+            ))}
+          </div>
+        </section>
+      )}
+
+      <section className="mt-5 hidden rounded-2xl border border-white/10 bg-slate-900 p-5 lg:block">
         <div className="flex items-center justify-between gap-3">
           <h3 className="flex items-center gap-2 font-semibold"><Bell size={18} className="text-violet-300" />待处理提醒</h3>
           <span className="text-xs text-slate-500">{data.pending_reminders.length} 项</span>

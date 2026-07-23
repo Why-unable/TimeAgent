@@ -1,35 +1,97 @@
-import { Bell, CalendarDays, CheckSquare, Clock3, MessageSquare, Newspaper } from "lucide-react";
+import {
+  Bell,
+  CalendarDays,
+  CheckSquare,
+  Clock3,
+  LayoutGrid,
+  MessageSquare,
+  MonitorCog,
+  Newspaper,
+  ShieldCheck,
+  SlidersHorizontal,
+  UserRound,
+} from "lucide-react";
+import { useState } from "react";
 import { NavLink } from "react-router-dom";
 
-const items = [
+import { Drawer } from "../components/overlay/drawer";
+
+const primaryItems = [
   { to: "/today", label: "今天", icon: Clock3 },
   { to: "/chat", label: "聊天", icon: MessageSquare },
-  { to: "/briefings", label: "简报", icon: Newspaper },
-  { to: "/calendar", label: "日历", icon: CalendarDays },
   { to: "/tasks", label: "任务", icon: CheckSquare },
-  { to: "/reminders", label: "提醒", icon: Bell },
+  { to: "/calendar", label: "日历", icon: CalendarDays },
+];
+
+const moreItems = [
+  { to: "/briefings", label: "简报", description: "生成与查看每日简报", icon: Newspaper },
+  { to: "/reminders", label: "提醒", description: "管理待发送提醒", icon: Bell },
+  { to: "/approvals", label: "审批", description: "处理需要确认的操作", icon: ShieldCheck },
+  { to: "/settings/time", label: "时间偏好", description: "时区、天气与新闻偏好", icon: SlidersHorizontal },
+  { to: "/settings/account", label: "账户与安全", description: "登录状态与账户操作", icon: UserRound },
+  { to: "/settings/notifications", label: "通知设置", description: "邮件与 Web Push 通知", icon: Bell },
+  { to: "/", label: "系统状态", description: "检查服务健康状态", icon: MonitorCog },
 ];
 
 export function MobileNavigation() {
+  const [moreOpen, setMoreOpen] = useState(false);
+
   return (
-    <nav
-      aria-label="移动端导航"
-      className="fixed inset-x-0 bottom-0 grid grid-cols-6 border-t border-white/10 bg-slate-900/95 px-2 py-2 backdrop-blur md:hidden"
-    >
-      {items.map(({ to, label, icon: Icon }) => (
-        <NavLink
-          key={to}
-          to={to}
-          className={({ isActive }) =>
-            `flex flex-col items-center gap-1 rounded-lg py-2 text-xs ${
-              isActive ? "text-cyan-300" : "text-slate-400"
-            }`
-          }
+    <>
+      <nav
+        aria-label="移动端主导航"
+        className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-5 border-t border-white/10 bg-slate-900/95 px-2 pb-[max(env(safe-area-inset-bottom),0.625rem)] pt-2.5 shadow-[0_-12px_32px_rgba(2,6,23,0.45)] backdrop-blur lg:hidden"
+      >
+        {primaryItems.map(({ to, label, icon: Icon }) => (
+          <NavLink
+            key={to}
+            to={to}
+            className={({ isActive }) =>
+              `flex min-h-[4.5rem] flex-col items-center justify-center gap-1.5 rounded-2xl text-sm font-medium transition ${
+                isActive ? "bg-cyan-300/10 text-cyan-200" : "text-slate-400"
+              }`
+            }
+          >
+            <Icon size={25} strokeWidth={1.8} />
+            {label}
+          </NavLink>
+        ))}
+        <button
+          type="button"
+          onClick={() => setMoreOpen(true)}
+          className="flex min-h-[4.5rem] flex-col items-center justify-center gap-1.5 rounded-2xl text-sm font-medium text-slate-400 transition hover:bg-white/5 hover:text-white"
         >
-          <Icon size={18} />
-          {label}
-        </NavLink>
-      ))}
-    </nav>
+          <LayoutGrid size={25} strokeWidth={1.8} />
+          更多
+        </button>
+      </nav>
+      {moreOpen && (
+        <Drawer title="更多功能" description="个人时间管理工具" onClose={() => setMoreOpen(false)}>
+          <nav className="grid gap-2" aria-label="更多功能">
+            {moreItems.map(({ to, label, description, icon: Icon }) => (
+              <NavLink
+                key={to}
+                to={to}
+                end={to === "/"}
+                onClick={() => setMoreOpen(false)}
+                className={({ isActive }) =>
+                  `flex min-h-[4.75rem] items-center gap-4 rounded-2xl border p-5 transition ${
+                    isActive
+                      ? "border-cyan-300/30 bg-cyan-300/10 text-cyan-100"
+                      : "border-white/10 bg-slate-950/40 text-slate-200 hover:border-white/20"
+                  }`
+                }
+              >
+                <Icon size={24} className="shrink-0 text-cyan-300" />
+                <span className="min-w-0">
+                  <span className="block text-base font-semibold">{label}</span>
+                  <span className="mt-1 block text-sm text-slate-500">{description}</span>
+                </span>
+              </NavLink>
+            ))}
+          </nav>
+        </Drawer>
+      )}
+    </>
   );
 }

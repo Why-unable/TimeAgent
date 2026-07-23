@@ -12,6 +12,21 @@ export class ApiError extends Error {
 const baseUrl = import.meta.env.VITE_API_BASE_URL ?? "";
 const timeoutMs = Number(import.meta.env.VITE_REQUEST_TIMEOUT_MS ?? 5000);
 
+function createRequestId(): string {
+  const cryptography = globalThis.crypto;
+  if (typeof cryptography?.randomUUID === "function") {
+    return cryptography.randomUUID();
+  }
+  if (typeof cryptography?.getRandomValues === "function") {
+    const bytes = cryptography.getRandomValues(new Uint8Array(16));
+    bytes[6] = (bytes[6] & 0x0f) | 0x40;
+    bytes[8] = (bytes[8] & 0x3f) | 0x80;
+    const hex = Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0"));
+    return `${hex.slice(0, 4).join("")}-${hex.slice(4, 6).join("")}-${hex.slice(6, 8).join("")}-${hex.slice(8, 10).join("")}-${hex.slice(10).join("")}`;
+  }
+  return `request-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
+
 function getCookie(name: string): string | undefined {
   return document.cookie
     .split(";")
@@ -23,7 +38,7 @@ function getCookie(name: string): string | undefined {
 export async function apiRequest<T>(path: string, init: RequestInit = {}): Promise<T> {
   const controller = new AbortController();
   const timeout = window.setTimeout(() => controller.abort(), timeoutMs);
-  const requestId = crypto.randomUUID();
+  const requestId = createRequestId();
   const headers = new Headers(init.headers);
   headers.set("Accept", "application/json");
   headers.set("X-Request-ID", requestId);

@@ -26,6 +26,7 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "rest_framework",
     "drf_spectacular",
+    "apps.accounts",
     "apps.action_proposals",
     "apps.agents",
     "apps.briefings",
@@ -103,6 +104,7 @@ USE_TZ = True
 DEFAULT_USER_TIMEZONE = os.getenv("DEFAULT_TIMEZONE", "Asia/Shanghai")
 DEFAULT_USER_LOCALE = os.getenv("DEFAULT_LOCALE", "zh-CN")
 ACTION_PROPOSAL_TTL_SECONDS = int(os.getenv("ACTION_PROPOSAL_TTL_SECONDS", "86400"))
+AUTH_REGISTRATION_ENABLED = os.getenv("AUTH_REGISTRATION_ENABLED", "true").lower() == "true"
 NOTIFICATION_MAX_RETRIES = int(os.getenv("NOTIFICATION_MAX_RETRIES", "4"))
 NOTIFICATION_DEFAULT_CHANNEL = os.getenv("NOTIFICATION_DEFAULT_CHANNEL", "console")
 NOTIFICATION_SENDING_STALE_SECONDS = int(os.getenv("NOTIFICATION_SENDING_STALE_SECONDS", "300"))
@@ -127,6 +129,7 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 REST_FRAMEWORK = {
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
     "DEFAULT_RENDERER_CLASSES": ["rest_framework.renderers.JSONRenderer"],
+    "DEFAULT_THROTTLE_RATES": {"authentication": "10/min"},
 }
 
 SPECTACULAR_SETTINGS = {

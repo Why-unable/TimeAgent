@@ -20,3 +20,21 @@ body {
   min-height: 100vh;
 }
 
+/* A PWA is held at arm's length more often than a desktop app.  Enlarge the
+ * recurring text tokens on touch-sized viewports without changing the root
+ * font size: Tailwind's responsive breakpoints are rem-based. */
+@media (max-width: 1023px) {
+  .text-sm {
+    font-size: 1rem;
+    line-height: 1.5rem;
+  }
+
+  .text-xs {
+    font-size: 0.8125rem;
+    line-height: 1.125rem;
+  }
+
+  body {
+    background: #020617;
+  }
+}

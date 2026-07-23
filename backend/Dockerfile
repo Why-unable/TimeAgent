@@ -21,4 +21,4 @@ RUN useradd --create-home --uid 10001 appuser \
 USER appuser
 ENV PATH="/app/.venv/bin:$PATH"
 
-CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]
+CMD ["uvicorn", "config.asgi:application", "--host", "0.0.0.0", "--port", "8000"]

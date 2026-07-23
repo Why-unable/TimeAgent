@@ -1,8 +1,11 @@
+import asyncio
 import json
 import time
-from collections.abc import Iterator
+from collections.abc import AsyncIterator
+from typing import Any
 from uuid import UUID, uuid4
 
+from asgiref.sync import sync_to_async
 from django.contrib.auth.models import User
 from django.db import close_old_connections
 from django.http import Http404, StreamingHttpResponse
@@ -175,17 +178,22 @@ class AgentRunEventStreamView(APIView):
         return response
 
 
-def _sse(*, user_id: int, run_id: UUID, cursor: int) -> Iterator[bytes]:
+async def _sse(*, user_id: int, run_id: UUID, cursor: int) -> AsyncIterator[bytes]:
+    """Yield persisted run events without blocking Django's ASGI event loop.
+
+    ``StreamingHttpResponse`` must receive an asynchronous iterator under
+    Uvicorn. A synchronous generator is consumed to completion by Django's
+    ASGI adapter, which buffers every SSE frame until the run ends.
+    """
+
     current_cursor = cursor
     last_heartbeat = time.monotonic()
     try:
         while True:
-            close_old_connections()
-            run = AgentRun.objects.only("status", "execution_task_id").get(
-                pk=run_id,
-                conversation__user_id=user_id,
-            )
-            events = list(run.events.filter(sequence__gt=current_cursor).order_by("sequence"))
+            run, events = await sync_to_async(
+                _sse_poll,
+                thread_sensitive=True,
+            )(user_id=user_id, run_id=run_id, cursor=current_cursor)
             for event in events:
                 event_data = {
                     **event.payload,
@@ -204,9 +212,19 @@ def _sse(*, user_id: int, run_id: UUID, cursor: int) -> Iterator[bytes]:
             if now - last_heartbeat >= SSE_HEARTBEAT_INTERVAL_SECONDS:
                 yield b": heartbeat\n\n"
                 last_heartbeat = now
-            time.sleep(SSE_POLL_INTERVAL_SECONDS)
+            await asyncio.sleep(SSE_POLL_INTERVAL_SECONDS)
     finally:
-        close_old_connections()
+        await sync_to_async(close_old_connections, thread_sensitive=True)()
+
+
+def _sse_poll(*, user_id: int, run_id: UUID, cursor: int) -> tuple[AgentRun, list[Any]]:
+    close_old_connections()
+    run = AgentRun.objects.only("status", "execution_task_id").get(
+        pk=run_id,
+        conversation__user_id=user_id,
+    )
+    events = list(run.events.filter(sequence__gt=cursor).order_by("sequence"))
+    return run, events
 
 
 def _event_stream_is_terminal(run: AgentRun) -> bool:
