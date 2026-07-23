@@ -2,7 +2,7 @@
 
 每个阶段必须可独立验收；未列入阶段目标的功能不应顺带实现。
 
-当前进度：Phase 0 至 Phase 8 已完成；下一阶段为 Phase 9。
+当前进度：Phase 0 至 Phase 9 已完成；下一阶段为 Phase 10。
 
 ## Phase 0：工程骨架
 
@@ -96,12 +96,13 @@
 
 ## Phase 9：外部日历和通知渠道
 
-- 目标：接入可替换的日历同步和真实通知渠道。
-- 后端：CalendarProvider、邮件/Telegram Provider、OAuth、同步与冲突处理。
-- 前端：集成状态、授权回调、重新授权、通知设置。
-- 测试：Token 过期、增量同步、版本冲突、通知失败重试。
-- 验收：外部集成可断开替换，失败不会破坏本地权威数据。
-- 不包含：自动修改他人日历、Gmail 自动回复。
+- 状态：已完成。
+- 目标：建立持久、异步、幂等、可审计的 Console/Email/Web Push 投递系统，并为外部日历保留最小类型契约。
+- 后端：NotificationDelivery、渠道偏好、Provider Registry、Celery Dispatcher、Email/Web Push、Reminder/Briefing 集成。
+- 前端：通知渠道设置、浏览器订阅生命周期、权限/配置状态与最近投递记录。
+- 测试：状态机、用户隔离、幂等、重试上限、失效订阅、业务集成、Provider Mock 与契约测试。
+- 验收：无外部凭据时 Console 和普通测试可用；外部日历没有 OAuth、Token、同步或真实网络调用。
+- 不包含：第三方收件人、Telegram、OAuth、外部日历实现和双向同步。
 
 ## Phase 10：生产部署与监控
 
@@ -187,3 +188,13 @@
 | T067 | 实现结构化委托、调研报告、完整性校验与一次有限修复（已完成） | Phase 8 |
 | T068 | 实现天气 16 天范围和未知新闻主题可信目录回退检索（已完成） | Phase 8 |
 | T069 | 接入外部 Tool 重试/错误降级 Middleware 并记录 ADR（已完成） | Phase 8 |
+| T070 | 完成 Phase 9 通知边界设计与 ADR（已完成） | Phase 9 |
+| T071 | 实现 NotificationDelivery、通知偏好与状态机（已完成） | Phase 9 |
+| T072 | 实现 NotificationProvider Protocol、Registry 与 Console 迁移（已完成） | Phase 9 |
+| T073 | 实现 NotificationService、幂等创建与 Celery Dispatcher（已完成） | Phase 9 |
+| T074 | 实现 Email Provider 与当前用户邮箱投递（已完成） | Phase 9 |
+| T075 | 集成 Reminder/Briefing 多渠道投递（已完成） | Phase 9 |
+| T076 | 实现 WebPushSubscription、Web Push Provider 与失效处理（已完成） | Phase 9 |
+| T077 | 实现通知 REST API、设置页、Service Worker 与投递记录（已完成） | Phase 9 |
+| T078 | 预留外部日历 Provider/DTO/能力/异常契约（已完成） | Phase 9 |
+| T079 | 完成 OpenAPI、测试、Compose 与 Phase 9 文档验收（已完成） | Phase 9 |

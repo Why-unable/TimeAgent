@@ -4,8 +4,8 @@ from uuid import UUID
 
 from django.db import transaction
 
+from apps.notifications.integrations import create_reminder_deliveries
 from apps.reminders.models import Reminder, ReminderStatus
-from apps.reminders.providers import NotificationProvider, get_notification_provider
 
 
 class ReminderDeliveryError(RuntimeError):
@@ -51,7 +51,6 @@ class ReminderDispatcher:
         reminder_id: UUID,
         *,
         now: datetime,
-        provider: NotificationProvider | None = None,
     ) -> bool:
         delivery_error: ReminderDeliveryError | None = None
         with transaction.atomic():
@@ -70,16 +69,8 @@ class ReminderDispatcher:
                 reminder.transition_to(ReminderStatus.QUEUED, occurred_at=now)
             reminder.transition_to(ReminderStatus.SENDING, occurred_at=now)
 
-            selected_provider = provider or get_notification_provider(reminder.channel)
             try:
-                result = selected_provider.send(
-                    recipient=str(reminder.user_id),
-                    title=reminder.title,
-                    content=reminder.title,
-                    idempotency_key=f"reminder:{reminder.id}",
-                )
-                if not result.delivered:
-                    raise ReminderDeliveryError("Notification provider did not deliver reminder")
+                create_reminder_deliveries(reminder=reminder, occurred_at=now)
             except Exception as exc:
                 delivery_error = (
                     exc
@@ -92,6 +83,9 @@ class ReminderDispatcher:
                     failure_reason=str(delivery_error),
                 )
             else:
+                # Reminder SENT means the due occurrence was handed to the durable
+                # notification subsystem. Individual channel outcomes are tracked
+                # independently by NotificationDelivery.
                 reminder.transition_to(ReminderStatus.SENT, occurred_at=now)
 
             reminder.full_clean()

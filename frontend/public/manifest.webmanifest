@@ -1,0 +1,52 @@
+{
+  "name": "Time Agent",
+  "short_name": "Time Agent",
+  "description": "以时间为核心的个人智能事务管理系统。",
+  "id": "/",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#0f172a",
+  "theme_color": "#0f172a",
+  "lang": "zh-CN",
+  "dir": "ltr",
+  "categories": ["productivity", "utilities"],
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "今天",
+      "short_name": "今天",
+      "url": "/today"
+    },
+    {
+      "name": "聊天",
+      "short_name": "聊天",
+      "url": "/chat"
+    },
+    {
+      "name": "提醒",
+      "short_name": "提醒",
+      "url": "/reminders"
+    }
+  ]
+}

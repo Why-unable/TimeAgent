@@ -31,6 +31,7 @@ INSTALLED_APPS = [
     "apps.briefings",
     "apps.conversations",
     "apps.health",
+    "apps.notifications",
     "apps.preferences",
     "apps.reminders",
     "apps.events",
@@ -102,6 +103,22 @@ USE_TZ = True
 DEFAULT_USER_TIMEZONE = os.getenv("DEFAULT_TIMEZONE", "Asia/Shanghai")
 DEFAULT_USER_LOCALE = os.getenv("DEFAULT_LOCALE", "zh-CN")
 ACTION_PROPOSAL_TTL_SECONDS = int(os.getenv("ACTION_PROPOSAL_TTL_SECONDS", "86400"))
+NOTIFICATION_MAX_RETRIES = int(os.getenv("NOTIFICATION_MAX_RETRIES", "4"))
+NOTIFICATION_DEFAULT_CHANNEL = os.getenv("NOTIFICATION_DEFAULT_CHANNEL", "console")
+NOTIFICATION_SENDING_STALE_SECONDS = int(os.getenv("NOTIFICATION_SENDING_STALE_SECONDS", "300"))
+EMAIL_BACKEND = os.getenv("EMAIL_BACKEND", "django.core.mail.backends.console.EmailBackend")
+EMAIL_HOST = os.getenv("EMAIL_HOST", "localhost")
+EMAIL_PORT = int(os.getenv("EMAIL_PORT", "25"))
+EMAIL_HOST_USER = os.getenv("EMAIL_USERNAME", "")
+EMAIL_HOST_PASSWORD = os.getenv("EMAIL_PASSWORD", "")
+EMAIL_USE_TLS = os.getenv("EMAIL_USE_TLS", "false").lower() == "true"
+EMAIL_USE_SSL = os.getenv("EMAIL_USE_SSL", "false").lower() == "true"
+EMAIL_TIMEOUT = int(os.getenv("EMAIL_TIMEOUT_SECONDS", "10"))
+EMAIL_FROM_ADDRESS = os.getenv("EMAIL_FROM_ADDRESS", "Time Agent <noreply@localhost>")
+WEB_PUSH_VAPID_PUBLIC_KEY = os.getenv("WEB_PUSH_VAPID_PUBLIC_KEY", "")
+WEB_PUSH_VAPID_PRIVATE_KEY = os.getenv("WEB_PUSH_VAPID_PRIVATE_KEY", "")
+WEB_PUSH_VAPID_SUBJECT = os.getenv("WEB_PUSH_VAPID_SUBJECT", "")
+WEB_PUSH_TIMEOUT_SECONDS = int(os.getenv("WEB_PUSH_TIMEOUT_SECONDS", "10"))
 
 STATIC_URL = "/static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
@@ -125,6 +142,8 @@ SPECTACULAR_SETTINGS = {
         "ActionProposalStatusEnum": "apps.action_proposals.models.ActionProposalStatus",
         "RiskLevelEnum": "apps.action_proposals.models.RiskLevel",
         "ConversationKindEnum": "apps.conversations.models.ConversationKind",
+        "NotificationSourceTypeEnum": "apps.notifications.models.NotificationSourceType",
+        "NotificationChannelTypeEnum": "apps.notifications.models.NotificationChannelType",
     },
 }
 
@@ -148,6 +167,10 @@ CELERY_BEAT_SCHEDULE = {
     "expire-action-proposals": {
         "task": "action_proposals.expire_due",
         "schedule": 60.0,
+    },
+    "dispatch-due-notifications": {
+        "task": "notifications.dispatch_due",
+        "schedule": 30.0,
     },
 }
 

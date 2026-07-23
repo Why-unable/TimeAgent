@@ -3,6 +3,7 @@ import { createRoot } from "react-dom/client";
 
 import { AppProviders } from "./app/providers";
 import { AppRouter } from "./app/router";
+import { registerServiceWorker } from "./pwa";
 import "@fullcalendar/react/skeleton.css";
 import "@fullcalendar/react/themes/monarch/theme.css";
 import "@fullcalendar/react/themes/monarch/palettes/blue.css";
@@ -15,3 +16,5 @@ createRoot(document.getElementById("root")!).render(
     </AppProviders>
   </StrictMode>,
 );
+
+void registerServiceWorker();

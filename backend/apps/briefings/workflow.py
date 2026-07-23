@@ -29,6 +29,7 @@ from apps.briefings.schemas import (
 )
 from apps.briefings.services import BriefingRunService, StartBriefingCommand
 from apps.conversations.models import AgentRun
+from apps.notifications.integrations import create_briefing_deliveries
 from apps.preferences.services import UserPreferenceService
 from common.time import get_timezone
 
@@ -161,13 +162,14 @@ def briefing_workflow_node(
             warnings=warnings,
         )
         snapshot = briefing_model_snapshot() if model is None else {"model": type(model).__name__}
-        BriefingRunService.complete(
+        run = BriefingRunService.complete(
             run,
             result,
             agent_report=execution.report,
             model_config_snapshot={str(key): str(value) for key, value in snapshot.items()},
             prompt_version=PROMPT_VERSION,
         )
+        create_briefing_deliveries(run=run, occurred_at=runtime.context.current_datetime)
     except Exception as exc:
         BriefingRunService.fail(run, code=type(exc).__name__, message=str(exc))
         raise
