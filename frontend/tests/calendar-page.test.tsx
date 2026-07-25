@@ -7,9 +7,10 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { CalendarPage } from "../src/pages/calendar-page";
 
 vi.mock("@fullcalendar/react", () => ({
-  default: ({ events }: { events?: { id?: string; title?: string }[] }) => (
+  default: ({ events, dateClick }: { events?: { id?: string; title?: string }[]; dateClick?: (info: { date: Date }) => void }) => (
     <div data-testid="full-calendar">
       <span>月视图</span><span>周视图</span><span>日视图</span>
+      <button type="button" onClick={() => dateClick?.({ date: new Date("2026-07-20T01:00:00Z") })}>打开日期</button>
       {events?.map((event) => <span key={event.id}>{event.title}</span>)}
     </div>
   ),
@@ -68,6 +69,43 @@ describe("CalendarPage", () => {
     expect(screen.getByText("会议室 A")).toBeInTheDocument();
   });
 
+  it("does not render cancelled events in the calendar or range list", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: RequestInfo | URL) => {
+        const body = String(input).includes("preferences")
+          ? preference
+          : [calendarEvent, { ...calendarEvent, id: "22222222-2222-4222-8222-222222222222", title: "已取消的日程", status: "cancelled" }];
+        return new Response(JSON.stringify(body), { status: 200 });
+      }),
+    );
+
+    renderPage();
+
+    expect((await screen.findAllByText("项目会议")).length).toBeGreaterThan(0);
+    expect(screen.queryByText("已取消的日程")).not.toBeInTheDocument();
+  });
+
+  it("opens the selected day's event list before editing or deleting", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: RequestInfo | URL) => {
+        const body = String(input).includes("preferences") ? preference : [calendarEvent];
+        return new Response(JSON.stringify(body), { status: 200 });
+      }),
+    );
+    renderPage();
+
+    await screen.findAllByText("项目会议");
+    await userEvent.click(screen.getByRole("button", { name: "打开日期" }));
+
+    expect(screen.getByRole("dialog", { name: "当日日程" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "修改" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "删除" })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "删除" }));
+    expect(screen.getByRole("button", { name: "确认删除" })).toBeInTheDocument();
+  });
+
   it("creates an event using the configured user timezone", async () => {
     let createBody: Record<string, unknown> | undefined;
     const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
@@ -87,7 +125,7 @@ describe("CalendarPage", () => {
 
     await userEvent.click(screen.getByRole("button", { name: "新建日程" }));
     await userEvent.type(screen.getByLabelText("日程标题"), "客户沟通");
-    fireEvent.change(screen.getByLabelText(/开始时间/), {
+    fireEvent.change(screen.getByLabelText(`开始时间（${preference.timezone}）`), {
       target: { value: "2026-07-21T09:00" },
     });
     fireEvent.change(screen.getByLabelText(/结束时间/), {

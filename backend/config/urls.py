@@ -8,6 +8,7 @@ urlpatterns = [
     path("admin/", admin.site.urls),
     path("health/live", live, name="health-live"),
     path("health/ready", ready, name="health-ready"),
+    path("", include("django_prometheus.urls")),
     path("api/schema/", SpectacularAPIView.as_view(), name="api-schema"),
     path("api/v1/auth/", include("apps.accounts.urls")),
     path("api/v1/preferences/", include("apps.preferences.urls")),

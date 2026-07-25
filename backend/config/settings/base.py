@@ -24,6 +24,7 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "django_prometheus",
     "rest_framework",
     "drf_spectacular",
     "apps.accounts",
@@ -43,6 +44,7 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
+    "django_prometheus.middleware.PrometheusBeforeMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -50,6 +52,8 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "config.observability.RequestContextMiddleware",
+    "django_prometheus.middleware.PrometheusAfterMiddleware",
 ]
 
 ROOT_URLCONF = "config.urls"
@@ -185,9 +189,19 @@ LOGGING = {
         "json": {
             "format": (
                 '{{"time":"{asctime}","level":"{levelname}",'
-                '"logger":"{name}","message":"{message}"}}'
+                '"logger":"{name}","message":"{message}",'
+                '"request_id":"{request_id}","method":"{method}",'
+                '"path":"{path}","status_code":"{status_code}",'
+                '"duration_ms":"{duration_ms}"}}'
             ),
             "style": "{",
+            "defaults": {
+                "request_id": "-",
+                "method": "-",
+                "path": "-",
+                "status_code": "-",
+                "duration_ms": "-",
+            },
         }
     },
     "handlers": {"console": {"class": "logging.StreamHandler", "formatter": "json"}},

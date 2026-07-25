@@ -20,6 +20,8 @@ class ReminderSerializer(serializers.ModelSerializer[Reminder]):
             "id",
             "target_type",
             "target_id",
+            "schedule_anchor",
+            "offset_minutes",
             "title",
             "trigger_at",
             "timezone",
@@ -62,3 +64,5 @@ class CreateReminderSerializer(serializers.ModelSerializer[Reminder]):
             raise serializers.ValidationError(exc.message_dict) from exc
         except ReminderIdempotencyConflictError as exc:
             raise serializers.ValidationError({"deduplication_key": str(exc)}) from exc
+        except ValueError as exc:
+            raise serializers.ValidationError({"target_id": str(exc)}) from exc

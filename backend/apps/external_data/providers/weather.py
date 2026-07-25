@@ -13,6 +13,8 @@ from apps.external_data.schemas import DailyForecast, ResolvedLocation, WeatherF
 
 
 class WeatherProvider(Protocol):
+    def search_locations(self, query: str, *, language: str) -> list[ResolvedLocation]: ...
+
     def resolve_location(self, query: str, *, language: str) -> ResolvedLocation: ...
 
     def forecast(
@@ -56,6 +58,12 @@ class OpenMeteoWeatherProvider:
         return response
 
     def resolve_location(self, query: str, *, language: str) -> ResolvedLocation:
+        locations = self.search_locations(query, language=language)
+        if not locations:
+            raise LookupError(f"Weather location was not found: {query.strip()}")
+        return locations[0]
+
+    def search_locations(self, query: str, *, language: str) -> list[ResolvedLocation]:
         normalized = query.strip()
         if len(normalized) < 2:
             raise ValueError("Weather location must contain at least two characters")
@@ -85,17 +93,17 @@ class OpenMeteoWeatherProvider:
             key=lambda pair: pair[0],
             reverse=True,
         )
-        if not ranked:
-            raise LookupError(f"Weather location was not found: {normalized}")
-        item = ranked[0][1]
-        return ResolvedLocation(
-            name=str(item["name"]),
-            latitude=float(item["latitude"]),
-            longitude=float(item["longitude"]),
-            timezone=str(item["timezone"]),
-            country=str(item.get("country", "")),
-            admin1=str(item.get("admin1", "")),
-        )
+        return [
+            ResolvedLocation(
+                name=str(item["name"]),
+                latitude=float(item["latitude"]),
+                longitude=float(item["longitude"]),
+                timezone=str(item["timezone"]),
+                country=str(item.get("country", "")),
+                admin1=str(item.get("admin1", "")),
+            )
+            for _, item in ranked[:8]
+        ]
     def forecast(
         self,
         location: ResolvedLocation,

@@ -13,7 +13,7 @@ from django.contrib.auth.models import User
 from django.core.management import call_command
 from langchain_core.callbacks.manager import CallbackManagerForLLMRun
 from langchain_core.language_models.chat_models import BaseChatModel
-from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, ToolMessage
+from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, SystemMessage, ToolMessage
 from langchain_core.outputs import ChatGeneration, ChatResult
 from langchain_core.runnables import Runnable
 from langchain_core.tools import BaseTool
@@ -25,14 +25,17 @@ from apps.agents.tools import READ_ONLY_TOOLS, TIME_STEWARD_TOOLS, WRITE_TOOLS
 from apps.conversations.models import AgentRunStatus, ToolCallAudit, ToolCallStatus
 from apps.conversations.services import AgentRunService, ConversationService, StartRunCommand
 from apps.events.services import CreateEventCommand, EventService
+from apps.preferences.snapshots import PlanningPreferencesSnapshot
 from apps.tasks.models import Task
 from apps.tasks.services import TaskService
+from common.clock import FixedClock
 
 
 class ScriptedChatModel(BaseChatModel):
     responses: list[AIMessage]
     response_index: int = 0
     bound_tool_names: list[str] = []
+    received_messages: list[BaseMessage] = []
 
     @property
     def _llm_type(self) -> str:
@@ -56,27 +59,106 @@ class ScriptedChatModel(BaseChatModel):
         run_manager: CallbackManagerForLLMRun | None = None,
         **kwargs: Any,
     ) -> ChatResult:
-        del messages, stop, run_manager, kwargs
+        self.received_messages = messages
+        del stop, run_manager, kwargs
         response = self.responses[self.response_index]
         self.response_index += 1
         return ChatResult(generations=[ChatGeneration(message=response)])
 
 
 def context(
-    user: User, *, read_only: bool = False, agent_run_id: str | None = None
+    user: User,
+    *,
+    read_only: bool = False,
+    agent_run_id: str | None = None,
+    clock: FixedClock | None = None,
 ) -> RuntimeContext:
-    return RuntimeContext(
-        user_id=str(user.pk),
-        request_id=str(uuid4()),
-        timezone="Asia/Shanghai",
-        locale="zh-CN",
-        current_datetime=datetime(2026, 7, 17, 8, tzinfo=UTC),
-        trigger_type="user_message",
-        conversation_id=str(uuid4()),
-        agent_run_id=agent_run_id,
-        read_only=read_only,
-        actor=user,
+    values: dict[str, Any] = {
+        "user_id": str(user.pk),
+        "request_id": str(uuid4()),
+        "timezone": "Asia/Shanghai",
+        "locale": "zh-CN",
+        "current_datetime": datetime(2026, 7, 17, 8, tzinfo=UTC),
+        "trigger_type": "user_message",
+        "conversation_id": str(uuid4()),
+        "agent_run_id": agent_run_id,
+        "read_only": read_only,
+        "actor": user,
+    }
+    if clock is not None:
+        values["clock"] = clock
+    return RuntimeContext(**values)
+
+
+@pytest.mark.django_db(transaction=True)
+def test_time_tool_returns_fixed_run_anchor_and_realtime_clock() -> None:
+    user = User.objects.create_user(username="clock-reader")
+    observed_time = datetime(2026, 7, 17, 8, 5, tzinfo=UTC)
+    model = ScriptedChatModel(
+        responses=[
+            AIMessage(
+                content="",
+                tool_calls=[
+                    {
+                        "name": "get_current_datetime",
+                        "args": {},
+                        "id": "read-time-1",
+                        "type": "tool_call",
+                    }
+                ],
+            ),
+            AIMessage(content="The time is confirmed."),
+        ]
     )
+    agent = build_time_steward_agent(model=model)
+
+    result = agent.invoke(
+        {"messages": [HumanMessage(content="What time is it?")]},
+        context=context(user, read_only=True, clock=FixedClock(observed_time)),
+    )
+
+    tool_message = next(
+        message for message in result["messages"] if isinstance(message, ToolMessage)
+    )
+    payload = json.loads(str(tool_message.content))
+    assert payload["run_anchor_datetime_utc"] == "2026-07-17T08:00:00+00:00"
+    assert payload["observed_datetime_utc"] == "2026-07-17T08:05:00+00:00"
+    assert payload["observed_datetime_local"] == "2026-07-17T16:05:00+08:00"
+
+
+@pytest.mark.django_db(transaction=True)
+def test_agent_injects_planning_preferences_without_exposing_a_preference_tool() -> None:
+    user = User.objects.create_user(username="planning-reader")
+    model = ScriptedChatModel(responses=[AIMessage(content="I'll use your work hours.")])
+    agent = build_time_steward_agent(model=model)
+    preferences = PlanningPreferencesSnapshot(
+        workday_start="08:30",
+        workday_end="17:30",
+        default_reminder_offsets=(30, 120),
+    )
+
+    result = agent.invoke(
+        {"messages": [HumanMessage(content="Plan my afternoon.")]},
+        context=RuntimeContext(
+            user_id=str(user.pk),
+            request_id=str(uuid4()),
+            timezone="Asia/Shanghai",
+            locale="zh-CN",
+            current_datetime=datetime(2026, 7, 17, 8, tzinfo=UTC),
+            trigger_type="user_message",
+            conversation_id=str(uuid4()),
+            actor=user,
+            planning_preferences=preferences,
+        ),
+    )
+
+    prompt = next(
+        message for message in model.received_messages if isinstance(message, SystemMessage)
+    )
+    assert "Workday: 08:30-17:30" in str(prompt.content)
+    assert "Default reminder offsets (minutes): 30, 120" in str(prompt.content)
+    assert "get_user_preferences" not in model.bound_tool_names
+    assert all(not isinstance(message, SystemMessage) for message in result["messages"])
 
 
 @pytest.mark.django_db(transaction=True)
@@ -262,14 +344,21 @@ def test_official_middleware_and_fixed_eval_policy_cover_phase_five() -> None:
         assert set(case["allowed_tools"]).issubset(registered)
         assert set(case["forbidden_tools"]).isdisjoint(set(case["required_tools"]))
     assert write_names == {
-        "create_event",
-        "cancel_event",
+        "mutate_events",
+        "create_recurring_event",
         "create_task",
+        "create_task_batch",
+        "update_task",
+        "change_task_state",
+        "change_task_batch_state",
         "complete_task",
         "reschedule_task",
         "cancel_task",
         "create_reminder",
+        "update_reminder",
+        "set_reminder_target",
         "cancel_reminder",
+        "apply_schedule_plan",
     }
 
 
@@ -278,9 +367,7 @@ def test_fixed_eval_command_executes_and_checks_real_trajectories(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     cases = json.loads(
-        (Path(__file__).parent / "fixtures" / "time_steward_eval.json").read_text(
-            encoding="utf-8"
-        )
+        (Path(__file__).parent / "fixtures" / "time_steward_eval.json").read_text(encoding="utf-8")
     )
     trajectories = [
         {

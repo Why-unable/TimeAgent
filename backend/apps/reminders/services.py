@@ -1,16 +1,20 @@
+from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import datetime
+from typing import Any
 from uuid import UUID
 
 from django.contrib.auth.models import User
 from django.db import IntegrityError, transaction
 
+from apps.events.models import CalendarEvent
 from apps.reminders.models import (
     Reminder,
     ReminderChannel,
     ReminderStatus,
     ReminderTargetType,
 )
+from apps.tasks.models import Task
 
 
 class ReminderIdempotencyConflictError(ValueError):
@@ -40,7 +44,18 @@ class ReminderQuery:
     trigger_before: datetime | None = None
 
 
+@dataclass(frozen=True, slots=True)
+class UpdateReminderCommand:
+    user: User
+    reminder_id: UUID
+    expected_version: int
+    changes: Mapping[str, Any]
+
+
 class ReminderService:
+    UPDATE_FIELDS = frozenset(
+        {"title", "trigger_at", "timezone", "channel", "target_type", "target_id"}
+    )
     @staticmethod
     def list_reminders(query: ReminderQuery) -> list[Reminder]:
         if query.user.pk is None:
@@ -63,6 +78,7 @@ class ReminderService:
     def create_reminder(command: CreateReminderCommand) -> Reminder:
         if command.user.pk is None:
             raise ValueError("Reminder user must be persisted")
+        ReminderService._validate_target(command)
 
         candidate = Reminder(
             user=command.user,
@@ -120,7 +136,39 @@ class ReminderService:
 
         reminder.transition_to(ReminderStatus.CANCELLED, occurred_at=occurred_at)
         reminder.full_clean()
-        reminder.save(update_fields=["status", "updated_at"])
+        reminder.version += 1
+        reminder.save(update_fields=["status", "version", "updated_at"])
+        return reminder
+
+    @staticmethod
+    @transaction.atomic
+    def update_reminder(command: UpdateReminderCommand) -> Reminder:
+        if command.user.pk is None:
+            raise ValueError("Reminder user must be persisted")
+        unsupported = set(command.changes) - ReminderService.UPDATE_FIELDS
+        if unsupported:
+            raise ValueError(f"Unsupported reminder fields: {', '.join(sorted(unsupported))}")
+        reminder = Reminder.objects.select_for_update().get(
+            pk=command.reminder_id,
+            user=command.user,
+        )
+        if reminder.version != command.expected_version:
+            raise ValueError(
+                "Reminder version conflict: "
+                f"expected {command.expected_version}, current {reminder.version}"
+            )
+        if reminder.status not in {ReminderStatus.PENDING, ReminderStatus.FAILED}:
+            raise ValueError("Only pending or failed reminders can be edited")
+        for field_name, value in command.changes.items():
+            setattr(reminder, field_name, value)
+        ReminderService._validate_target_values(
+            user=command.user,
+            target_type=reminder.target_type,
+            target_id=reminder.target_id,
+        )
+        reminder.version += 1
+        reminder.full_clean()
+        reminder.save()
         return reminder
 
     @staticmethod
@@ -143,3 +191,21 @@ class ReminderService:
             raise ReminderIdempotencyConflictError(
                 f"Idempotency key already exists with different reminder data: {fields_text}"
             )
+
+    @staticmethod
+    def _validate_target(command: CreateReminderCommand) -> None:
+        ReminderService._validate_target_values(
+            user=command.user,
+            target_type=command.target_type,
+            target_id=command.target_id,
+        )
+
+    @staticmethod
+    def _validate_target_values(*, user: User, target_type: str, target_id: UUID | None) -> None:
+        if target_type == ReminderTargetType.CUSTOM:
+            return
+        if target_id is None:
+            return
+        model = CalendarEvent if target_type == ReminderTargetType.CALENDAR_EVENT else Task
+        if not model.objects.filter(pk=target_id, user=user).exists():
+            raise ValueError("Reminder target must belong to the current user")

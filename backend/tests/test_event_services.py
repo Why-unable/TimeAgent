@@ -7,6 +7,7 @@ from django.contrib.auth.models import User
 from apps.events.models import CalendarEvent, CalendarEventStatus
 from apps.events.services import (
     CreateEventCommand,
+    EventConflictError,
     EventQuery,
     EventService,
     EventVersionConflictError,
@@ -199,3 +200,61 @@ def test_detect_conflicts_rejects_invalid_range() -> None:
 
     with pytest.raises(ValueError, match="later than"):
         EventService.detect_conflicts(user=user, start_at=START_AT, end_at=START_AT)
+
+
+def test_event_service_blocks_overlapping_create_and_update() -> None:
+    user = create_user()
+    existing = create_event(user)
+
+    with pytest.raises(EventConflictError) as create_error:
+        create_event(
+            user,
+            title="Overlapping review",
+            start_at=START_AT + timedelta(minutes=30),
+            end_at=END_AT + timedelta(minutes=30),
+        )
+    assert create_error.value.preview.conflicts[0].event_id == existing.id
+
+    later = create_event(
+        user,
+        title="Later review",
+        start_at=END_AT + timedelta(hours=1),
+        end_at=END_AT + timedelta(hours=2),
+    )
+    with pytest.raises(EventConflictError):
+        EventService.update_event(
+            UpdateEventCommand(
+                user=user,
+                event_id=later.id,
+                expected_version=later.version,
+                changes={"start_at": START_AT + timedelta(minutes=30), "end_at": END_AT},
+            )
+        )
+    later.refresh_from_db()
+    assert later.start_at == END_AT + timedelta(hours=1)
+
+
+def test_event_batch_is_atomic_when_one_item_conflicts() -> None:
+    user = create_user()
+    existing = create_event(user)
+
+    with pytest.raises(EventConflictError):
+        EventService.create_events(
+            commands=[
+                CreateEventCommand(
+                    user=user,
+                    title="Safe first item",
+                    start_at=END_AT + timedelta(hours=2),
+                    end_at=END_AT + timedelta(hours=3),
+                    timezone="Asia/Shanghai",
+                ),
+                CreateEventCommand(
+                    user=user,
+                    title="Conflicting second item",
+                    start_at=START_AT + timedelta(minutes=30),
+                    end_at=END_AT + timedelta(minutes=30),
+                    timezone="Asia/Shanghai",
+                ),
+            ]
+        )
+    assert list(CalendarEvent.objects.all()) == [existing]

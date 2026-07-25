@@ -53,11 +53,9 @@ describe("ApprovalCard", () => {
     const onDecision = vi.fn().mockResolvedValue(undefined);
     render(<ApprovalCard proposal={proposal} onDecision={onDecision} />);
 
-    await userEvent.click(screen.getByRole("button", { name: "编辑后批准" }));
-    const editor = screen.getByLabelText("编辑操作参数");
-    fireEvent.change(editor, {
-      target: { value: JSON.stringify({ ...proposal.action_payload, title: "新标题" }) },
-    });
+    await userEvent.click(screen.getByRole("button", { name: "调整后批准" }));
+    const editor = screen.getByLabelText("日程标题");
+    fireEvent.change(editor, { target: { value: "新标题" } });
     await userEvent.click(screen.getByRole("button", { name: "保存修改并批准" }));
 
     expect(onDecision).toHaveBeenCalledWith(
@@ -89,5 +87,34 @@ describe("ApprovalCard", () => {
     expect(screen.getByRole("button", { name: "拒绝" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "编辑后批准" })).not.toBeInTheDocument();
     expect(screen.queryByText(/冲突检查/)).not.toBeInTheDocument();
+  });
+
+  it("lets a recurring-event proposal preview every occurrence", async () => {
+    const recurring: ActionProposal = {
+      ...proposal,
+      action_type: "create_recurring_event",
+      action_payload: {
+        title: "随便学点",
+        start_at: "2026-07-25T10:00:00+08:00",
+        end_at: "2026-07-25T10:30:00+08:00",
+        timezone: "Asia/Shanghai",
+        frequency: "daily",
+        occurrence_count: 3,
+      },
+      display_context: {
+        allowed_decisions: ["approve", "reject"],
+        occurrences: [
+          { index: 1, start_at: "2026-07-25T10:00:00+08:00", end_at: "2026-07-25T10:30:00+08:00", conflicts: [] },
+          { index: 2, start_at: "2026-07-26T10:00:00+08:00", end_at: "2026-07-26T10:30:00+08:00", conflicts: [] },
+          { index: 3, start_at: "2026-07-27T10:00:00+08:00", end_at: "2026-07-27T10:30:00+08:00", conflicts: [] },
+        ],
+      },
+    };
+
+    render(<ApprovalCard proposal={recurring} onDecision={vi.fn()} />);
+
+    expect(screen.getByText(/第 1 \/ 3 次/)).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "查看下一个日程实例" }));
+    expect(screen.getByText(/第 2 \/ 3 次/)).toBeInTheDocument();
   });
 });

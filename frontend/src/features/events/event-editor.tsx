@@ -8,6 +8,7 @@ import type { CalendarEvent } from "../../api/events";
 import { Drawer } from "../../components/overlay/drawer";
 import { toDateTimeLocalValue, toUtcISOString } from "../../utils/datetime";
 import { useCancelEvent, useCreateEvent, useUpdateEvent } from "./hooks";
+import { useCreateTask, useTasks } from "../tasks/hooks";
 
 const eventFormSchema = z
   .object({
@@ -18,10 +19,21 @@ const eventFormSchema = z
     location: z.string().max(255),
     status: z.enum(["tentative", "confirmed"]),
     visibility: z.enum(["private", "public"]),
+    task: z.string(),
+    new_task_title: z.string(),
   })
   .refine((values) => values.end_at > values.start_at, {
     message: "结束时间必须晚于开始时间",
     path: ["end_at"],
+  })
+  .superRefine((values, context) => {
+    if (values.task === "__new__" && !values.new_task_title.trim()) {
+      context.addIssue({
+        code: "custom",
+        path: ["new_task_title"],
+        message: "请输入新任务标题",
+      });
+    }
   });
 
 type EventForm = z.infer<typeof eventFormSchema>;
@@ -30,11 +42,17 @@ interface EventEditorProps {
   event?: CalendarEvent;
   initialStart?: Date;
   timezone: string;
+  defaultDurationMinutes?: number;
   onClose: () => void;
 }
 
-function initialValues(event: CalendarEvent | undefined, initialStart: Date, timezone: string) {
-  const end = new Date(initialStart.getTime() + 60 * 60 * 1000);
+function initialValues(
+  event: CalendarEvent | undefined,
+  initialStart: Date,
+  timezone: string,
+  defaultDurationMinutes: number,
+) {
+  const end = new Date(initialStart.getTime() + defaultDurationMinutes * 60 * 1000);
   return {
     title: event?.title ?? "",
     description: event?.description ?? "",
@@ -43,25 +61,44 @@ function initialValues(event: CalendarEvent | undefined, initialStart: Date, tim
     location: event?.location ?? "",
     status: event?.status === "tentative" ? "tentative" : "confirmed",
     visibility: event?.visibility === "public" ? "public" : "private",
+    task: event?.task ?? "",
+    new_task_title: "",
   } satisfies EventForm;
 }
 
 const inputClass =
   "mt-2 w-full rounded-xl border border-white/10 bg-slate-950 px-4 py-3 text-slate-100 outline-none focus:border-cyan-300/60";
 
-export function EventEditor({ event, initialStart = new Date(), timezone, onClose }: EventEditorProps) {
+export function EventEditor({
+  event,
+  initialStart = new Date(),
+  timezone,
+  defaultDurationMinutes = 60,
+  onClose,
+}: EventEditorProps) {
   const createMutation = useCreateEvent();
   const updateMutation = useUpdateEvent();
   const cancelMutation = useCancelEvent();
   const [confirmCancel, setConfirmCancel] = useState(false);
+  const tasks = useTasks();
+  const createTask = useCreateTask();
   const isCancelled = event?.status === "cancelled";
   const form = useForm<EventForm>({
     resolver: zodResolver(eventFormSchema),
-    defaultValues: initialValues(event, initialStart, timezone),
+    defaultValues: initialValues(event, initialStart, timezone, defaultDurationMinutes),
   });
 
-  const mutationError = createMutation.error ?? updateMutation.error ?? cancelMutation.error;
-  const onSubmit = form.handleSubmit((values) => {
+  const mutationError = createMutation.error ?? updateMutation.error ?? cancelMutation.error ?? createTask.error;
+  const onSubmit = form.handleSubmit(async (values) => {
+    const taskId = values.task === "__new__"
+      ? (await createTask.mutateAsync({
+          title: values.new_task_title.trim(),
+          planned_start_at: toUtcISOString(values.start_at, timezone),
+          planned_end_at: toUtcISOString(values.end_at, timezone),
+          source: "local",
+          tags: [],
+        })).id
+      : values.task || null;
     const input = {
       title: values.title.trim(),
       description: values.description.trim(),
@@ -71,6 +108,7 @@ export function EventEditor({ event, initialStart = new Date(), timezone, onClos
       location: values.location.trim(),
       status: values.status,
       visibility: values.visibility,
+      task: taskId,
     };
     if (event) {
       updateMutation.mutate(
@@ -137,6 +175,20 @@ export function EventEditor({ event, initialStart = new Date(), timezone, onClos
           <input {...form.register("location")} disabled={isCancelled} className={inputClass} />
         </label>
         <label className="block text-sm text-slate-300">
+          关联任务（可选）
+          <select {...form.register("task")} disabled={isCancelled} className={inputClass}>
+            <option value="">不关联任务</option><option value="__new__">新建任务并关联</option>
+            {(tasks.data ?? []).filter((item) => item.status !== "cancelled").map((item) => (
+              <option key={item.id} value={item.id}>{item.title}</option>
+            ))}
+          </select>
+          {form.watch("task") === "__new__" && <input {...form.register("new_task_title")} placeholder="新任务标题" className={inputClass} />}
+          {form.formState.errors.new_task_title && (
+            <span className="mt-1 block text-red-300">{form.formState.errors.new_task_title.message}</span>
+          )}
+          <span className="mt-2 block text-xs text-slate-500">一个任务可以拥有多条日程；保存后会按日程时间维护提前 1 天、2 小时、30 分钟的提醒。</span>
+        </label>
+        <label className="block text-sm text-slate-300">
           描述
           <textarea
             {...form.register("description")}
@@ -159,6 +211,7 @@ export function EventEditor({ event, initialStart = new Date(), timezone, onClos
               <option value="private">私密</option>
               <option value="public">公开</option>
             </select>
+            <span className="mt-2 block text-xs text-slate-500">当前仅本人可见；公开/私密为未来共享日历预留，暂不改变访问权限。</span>
           </label>
         </div>
         {mutationError && (
@@ -198,7 +251,7 @@ export function EventEditor({ event, initialStart = new Date(), timezone, onClos
             )}
             <button
               type="submit"
-              disabled={createMutation.isPending || updateMutation.isPending}
+              disabled={createMutation.isPending || updateMutation.isPending || createTask.isPending}
               className="inline-flex items-center gap-2 rounded-xl bg-cyan-300 px-5 py-3 font-medium text-slate-950 disabled:opacity-50"
             >
               <Save size={18} />

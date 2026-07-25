@@ -3,10 +3,12 @@ from typing import Any
 from django.core.exceptions import ValidationError as DjangoValidationError
 from rest_framework import serializers
 
+from apps.external_data.configuration import get_provider_config
 from apps.preferences.models import UserPreference
 
 
 class UserPreferenceSerializer(serializers.ModelSerializer[UserPreference]):
+    locale = serializers.ChoiceField(choices=(("zh-CN", "简体中文"), ("en-US", "English")))
     class Meta:
         model = UserPreference
         fields = [
@@ -20,6 +22,7 @@ class UserPreferenceSerializer(serializers.ModelSerializer[UserPreference]):
             "preferred_focus_periods",
             "default_reminder_offsets",
             "weather_location",
+            "weather_forecast_days",
             "news_topics",
             "briefing_time",
             "planning_rules",
@@ -36,3 +39,14 @@ class UserPreferenceSerializer(serializers.ModelSerializer[UserPreference]):
         except DjangoValidationError as exc:
             raise serializers.ValidationError(exc.message_dict) from exc
         return attrs
+
+    def validate_news_topics(self, value: list[str]) -> list[str]:
+        allowed = {
+            topic
+            for feed in get_provider_config().news.feeds
+            for topic in feed.topics
+        } | set(get_provider_config().news.topic_aliases)
+        invalid = sorted({topic for topic in value if topic not in allowed})
+        if invalid:
+            raise serializers.ValidationError(f"Unsupported news topics: {', '.join(invalid)}")
+        return value

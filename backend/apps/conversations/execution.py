@@ -58,6 +58,7 @@ def execute_agent_run(
     preference = UserPreferenceService.get_for_user(actor)
     timezone_name = preference.timezone if preference else settings.DEFAULT_USER_TIMEZONE
     locale = preference.locale if preference else settings.DEFAULT_USER_LOCALE
+    planning_preferences = UserPreferenceService.planning_snapshot_for_user(actor)
     current_time = (now or timezone.now()).astimezone(UTC)
     payload: dict[str, JsonValue] = cast(dict[str, JsonValue], dict(run.trigger_payload))
     if run.trigger_type == "user_message":
@@ -79,6 +80,7 @@ def execute_agent_run(
         locale=locale,
         actor=actor,
         agent_run_id=str(run.pk),
+        planning_preferences=planning_preferences,
     )
 
     try:
@@ -124,6 +126,7 @@ def resume_agent_run(
     preference = UserPreferenceService.get_for_user(actor)
     timezone_name = preference.timezone if preference else settings.DEFAULT_USER_TIMEZONE
     locale = preference.locale if preference else settings.DEFAULT_USER_LOCALE
+    planning_preferences = UserPreferenceService.planning_snapshot_for_user(actor)
     current_time = (now or timezone.now()).astimezone(UTC)
     envelope = TriggerEnvelope(
         trigger_type="user_message",
@@ -140,6 +143,7 @@ def resume_agent_run(
         locale=locale,
         actor=actor,
         agent_run_id=str(run.pk),
+        planning_preferences=planning_preferences,
     )
     try:
         resume_value = ActionProposalService.resume_payload(run.pk)

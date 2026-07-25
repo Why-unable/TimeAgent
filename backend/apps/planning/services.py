@@ -1,8 +1,12 @@
 from datetime import UTC, date, datetime, time, timedelta
 
 from django.contrib.auth.models import User
+from django.db import transaction
+from django.utils import timezone
 
 from apps.events.models import CalendarEvent, CalendarEventStatus
+from apps.events.services import CreateEventCommand, EventService
+from apps.planning.models import SchedulePlan, SchedulePlanStatus
 from apps.planning.schemas import PlanningConstraints, TimeSlot
 from apps.preferences.models import UserPreference
 from apps.tasks.models import Task, TaskStatus
@@ -12,6 +16,92 @@ BusyInterval = tuple[datetime, datetime]
 
 
 class PlanningService:
+    @staticmethod
+    @transaction.atomic
+    def propose_schedule_plan(
+        *,
+        user: User,
+        task_ids: list[object],
+        range_start: datetime,
+        range_end: datetime,
+        strategy: str,
+    ) -> SchedulePlan:
+        if strategy not in {"plan_tasks_only", "create_linked_event_blocks"}:
+            raise ValueError("Unsupported planning strategy")
+        if not task_ids or len(set(task_ids)) != len(task_ids):
+            raise ValueError("Provide unique task IDs")
+        tasks = list(Task.objects.filter(user=user, pk__in=task_ids).order_by("id"))
+        if len(tasks) != len(task_ids):
+            raise ValueError("Every task must belong to the current user")
+        slots = PlanningService.find_free_slots(
+            user=user,
+            range_start=range_start,
+            range_end=range_end,
+            duration_minutes=max(task.estimated_minutes or 30 for task in tasks),
+            constraints=PlanningConstraints(max_results=len(tasks) * 4),
+        )
+        items: list[dict[str, object]] = []
+        cursor = 0
+        for task in tasks:
+            duration = task.estimated_minutes or 30
+            selected = next(
+                (
+                    slot
+                    for slot in slots[cursor:]
+                    if (slot.end_at - slot.start_at).total_seconds() >= duration * 60
+                ),
+                None,
+            )
+            if selected is None:
+                raise ValueError(f"No free slot for task {task.title}")
+            cursor = slots.index(selected) + 1
+            items.append(
+                {
+                    "task_id": str(task.pk),
+                    "task_version": task.version,
+                    "start_at": selected.start_at.isoformat(),
+                    "end_at": (selected.start_at + timedelta(minutes=duration)).isoformat(),
+                }
+            )
+        return SchedulePlan.objects.create(user=user, strategy=strategy, items=items)
+
+    @staticmethod
+    @transaction.atomic
+    def apply_schedule_plan(*, user: User, plan_id: object, expected_version: int) -> SchedulePlan:
+        plan = SchedulePlan.objects.select_for_update().get(pk=plan_id, user=user)
+        if plan.status != SchedulePlanStatus.DRAFT:
+            raise ValueError("Schedule plan is no longer a draft")
+        if plan.version != expected_version:
+            raise ValueError("Schedule plan version conflict")
+        for item in plan.items:
+            task = Task.objects.select_for_update().get(pk=item["task_id"], user=user)
+            if task.version != item["task_version"]:
+                raise ValueError(f"Task {task.title} changed since planning")
+            start_at = datetime.fromisoformat(str(item["start_at"]))
+            end_at = datetime.fromisoformat(str(item["end_at"]))
+            if plan.strategy == "plan_tasks_only":
+                task.planned_start_at = start_at
+                task.planned_end_at = end_at
+                task.version += 1
+                task.full_clean()
+                task.save()
+            else:
+                EventService.create_event(
+                    CreateEventCommand(
+                        user=user,
+                        task=task,
+                        title=task.title,
+                        start_at=start_at,
+                        end_at=end_at,
+                        timezone=PlanningService._user_timezone(user),
+                    )
+                )
+        plan.status = SchedulePlanStatus.APPLIED
+        plan.version += 1
+        plan.applied_at = timezone.now()
+        plan.save(update_fields=["status", "version", "applied_at"])
+        return plan
+
     @staticmethod
     def find_free_slots(
         *,
@@ -201,3 +291,8 @@ class PlanningService:
     def _ensure_persisted_user(user: User) -> None:
         if user.pk is None:
             raise ValueError("Planning user must be persisted")
+
+    @staticmethod
+    def _user_timezone(user: User) -> str:
+        preference = UserPreference.objects.filter(user=user).first()
+        return preference.timezone if preference is not None else UserPreference(user=user).timezone

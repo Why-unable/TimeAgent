@@ -154,9 +154,9 @@ function MobileTodayOverview({ data, timeline }: { data: TodaySummary; timeline:
       </div>
       <p className="mt-4 text-base text-slate-400">{nextEventLabel}</p>
       <div className="mt-6 grid grid-cols-3 divide-x divide-white/10 rounded-2xl bg-slate-950/60 py-4">
-        <div className="px-3 text-center"><p className="text-2xl font-semibold text-white">{data.events.length}</p><p className="mt-1 text-sm text-slate-500">日程</p></div>
-        <div className="px-3 text-center"><p className="text-2xl font-semibold text-white">{taskCount}</p><p className="mt-1 text-sm text-slate-500">任务</p></div>
-        <div className="px-3 text-center"><p className="text-2xl font-semibold text-white">{data.pending_reminders.length}</p><p className="mt-1 text-sm text-slate-500">提醒</p></div>
+        <Link to="/calendar" className="px-3 text-center"><p className="text-2xl font-semibold text-white">{data.events.length}</p><p className="mt-1 text-sm text-slate-500">日程</p></Link>
+        <Link to="/tasks" className="px-3 text-center"><p className="text-2xl font-semibold text-white">{taskCount}</p><p className="mt-1 text-sm text-slate-500">任务</p></Link>
+        <Link to="/reminders" className="px-3 text-center"><p className="text-2xl font-semibold text-white">{data.pending_reminders.length}</p><p className="mt-1 text-sm text-slate-500">提醒</p></Link>
       </div>
     </section>
   );

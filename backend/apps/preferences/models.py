@@ -35,6 +35,7 @@ class UserPreference(models.Model):
     preferred_focus_periods = models.JSONField(default=list, blank=True)
     default_reminder_offsets = models.JSONField(default=list, blank=True)
     weather_location = models.CharField(max_length=255, blank=True)
+    weather_forecast_days = models.PositiveSmallIntegerField(default=3)
     news_topics = models.JSONField(default=list, blank=True)
     briefing_time = models.TimeField(default=time(8, 0))
     planning_rules = models.JSONField(default=dict, blank=True)
@@ -61,6 +62,8 @@ class UserPreference(models.Model):
                     )
                 }
             )
+        if not 1 <= self.weather_forecast_days <= 7:
+            raise ValidationError({"weather_forecast_days": "Must be between 1 and 7 days"})
         self._validate_integer_list("default_reminder_offsets", self.default_reminder_offsets)
         self._validate_string_list("news_topics", self.news_topics)
         if not isinstance(self.preferred_focus_periods, list):

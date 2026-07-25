@@ -1,0 +1,97 @@
+from datetime import UTC, datetime, timedelta
+
+import pytest
+from django.contrib.auth import get_user_model
+
+from apps.events.services import CreateEventCommand, EventService, UpdateEventCommand
+from apps.reminders.models import Reminder, ReminderStatus, ReminderTargetType
+from apps.tasks.services import CreateTaskCommand, TaskService
+
+pytestmark = pytest.mark.django_db
+
+
+def test_planned_task_creates_progressive_future_reminders() -> None:
+    user = get_user_model().objects.create_user(username="schedule-task")
+    start = datetime.now(UTC) + timedelta(days=10)
+    TaskService.create_task(
+        CreateTaskCommand(
+            user=user,
+            title="Write report",
+            planned_start_at=start,
+            planned_end_at=start + timedelta(hours=1),
+        )
+    )
+
+    reminders = Reminder.objects.filter(user=user, target_type=ReminderTargetType.TASK)
+    assert set(reminders.values_list("offset_minutes", flat=True)) == {30, 1440, 4320, 10080}
+
+
+def test_event_reschedule_updates_its_pending_reminders() -> None:
+    user = get_user_model().objects.create_user(username="schedule-event")
+    start = datetime.now(UTC) + timedelta(days=3)
+    event = EventService.create_event(
+        CreateEventCommand(
+            user=user,
+            created_by=user,
+            title="Review",
+            start_at=start,
+            end_at=start + timedelta(hours=1),
+            timezone="Asia/Shanghai",
+        )
+    )
+    new_start = start + timedelta(days=1)
+    EventService.update_event(
+        UpdateEventCommand(
+            user=user,
+            event_id=event.id,
+            expected_version=event.version,
+            changes={"start_at": new_start, "end_at": new_start + timedelta(hours=1)},
+        )
+    )
+    reminder = Reminder.objects.get(target_id=event.id, offset_minutes=120)
+    assert reminder.trigger_at == new_start - timedelta(minutes=120)
+
+
+def test_task_reschedule_updates_its_pending_reminders() -> None:
+    user = get_user_model().objects.create_user(username="schedule-task-reschedule")
+    start = datetime.now(UTC) + timedelta(days=10)
+    task = TaskService.create_task(
+        CreateTaskCommand(
+            user=user,
+            title="Prepare workshop",
+            planned_start_at=start,
+            planned_end_at=start + timedelta(hours=2),
+        )
+    )
+
+    new_start = start + timedelta(days=2)
+    TaskService.reschedule_task(
+        task_id=task.id,
+        user=user,
+        planned_start_at=new_start,
+        planned_end_at=new_start + timedelta(hours=2),
+    )
+
+    reminder = Reminder.objects.get(target_id=task.id, offset_minutes=1_440)
+    assert reminder.trigger_at == new_start - timedelta(days=1)
+
+
+def test_cancelled_event_cancels_pending_automatic_reminders() -> None:
+    user = get_user_model().objects.create_user(username="schedule-cancel")
+    start = datetime.now(UTC) + timedelta(days=2)
+    event = EventService.create_event(
+        CreateEventCommand(
+            user=user,
+            created_by=user,
+            title="Review",
+            start_at=start,
+            end_at=start + timedelta(hours=1),
+            timezone="Asia/Shanghai",
+        )
+    )
+    EventService.cancel_event(event_id=event.id, user=user, expected_version=event.version)
+    assert (
+        not Reminder.objects.filter(target_id=event.id)
+        .exclude(status=ReminderStatus.CANCELLED)
+        .exists()
+    )

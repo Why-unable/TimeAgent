@@ -1,9 +1,12 @@
 from dataclasses import dataclass, field
 from datetime import datetime
+from typing import cast
 
 from django.contrib.auth.models import User
 
 from apps.agents.triggers import TriggerType
+from apps.preferences.snapshots import PlanningPreferencesSnapshot
+from common.clock import Clock, SystemClock
 from common.time import to_utc, validate_timezone
 
 
@@ -21,6 +24,14 @@ class RuntimeContext:
     agent_run_id: str | None = None
     read_only: bool = False
     actor: User | None = field(default=None, repr=False, compare=False)
+    planning_preferences: PlanningPreferencesSnapshot = field(
+        default_factory=PlanningPreferencesSnapshot,
+        repr=False,
+        compare=False,
+    )
+    # Runtime dependencies must remain schema-agnostic because LangChain derives
+    # Pydantic schemas from tool signatures containing RuntimeContext.
+    clock: object = field(default_factory=SystemClock, repr=False, compare=False)
 
     def __post_init__(self) -> None:
         for field_name in ("user_id", "request_id", "timezone", "locale"):
@@ -38,3 +49,8 @@ class RuntimeContext:
 
         validate_timezone(self.timezone)
         object.__setattr__(self, "current_datetime", to_utc(self.current_datetime))
+
+    def observed_datetime(self) -> datetime:
+        """Read the trusted realtime clock without changing this run's anchor."""
+
+        return to_utc(cast(Clock, self.clock).now_utc())

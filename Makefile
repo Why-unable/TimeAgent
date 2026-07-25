@@ -1,4 +1,4 @@
-.PHONY: up down build logs backend-test frontend-test lint check migrate migrations api-schema frontend-api
+.PHONY: up down build logs backend-test frontend-test lint check migrate migrations api-schema frontend-api observability
 
 up:
 	docker compose up --build
@@ -43,3 +43,5 @@ api-schema:
 frontend-api: api-schema
 	cd frontend && npm run generate:api
 
+observability:
+	docker compose -f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.observability.yml up -d prometheus

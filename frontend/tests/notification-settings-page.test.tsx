@@ -32,7 +32,10 @@ function mockApi({ subscriptions = [] as object[] } = {}) {
     requests.push({ url, init });
     if (url.endsWith("notification-preferences/me/") && (init?.method ?? "GET") === "GET") return new Response(JSON.stringify(preference));
     if (url.endsWith("notification-preferences/me/") && init?.method === "PATCH") return new Response(JSON.stringify({ ...preference, ...JSON.parse(String(init.body)) }));
-    if (url.endsWith("notification-deliveries/")) return new Response(JSON.stringify([{ id: "delivery-1", source_type: "reminder", source_id: null, channel_type: "email", status: "failed", subject: "Take medicine", scheduled_at: "2026-07-21T00:00:00Z", queued_at: null, sending_at: null, sent_at: null, failed_at: "2026-07-21T00:00:01Z", attempt_count: 4, next_retry_at: null, provider_message_id: "", failure_code: "permanent_notification_error", failure_reason: "Invalid mailbox", created_at: "2026-07-21T00:00:00Z", updated_at: "2026-07-21T00:00:01Z" }]));
+    if (url.endsWith("notification-deliveries/")) return new Response(JSON.stringify([
+      { id: "delivery-console", source_type: "reminder", source_id: null, channel_type: "console", status: "sent", subject: "Development-only reminder", scheduled_at: "2026-07-21T00:00:00Z", queued_at: null, sending_at: null, sent_at: "2026-07-21T00:00:01Z", failed_at: null, attempt_count: 1, next_retry_at: null, provider_message_id: "", failure_code: "", failure_reason: "", created_at: "2026-07-21T00:00:00Z", updated_at: "2026-07-21T00:00:01Z" },
+      { id: "delivery-1", source_type: "reminder", source_id: null, channel_type: "email", status: "failed", subject: "Take medicine", scheduled_at: "2026-07-21T00:00:00Z", queued_at: null, sending_at: null, sent_at: null, failed_at: "2026-07-21T00:00:01Z", attempt_count: 4, next_retry_at: null, provider_message_id: "", failure_code: "permanent_notification_error", failure_reason: "Invalid mailbox", created_at: "2026-07-21T00:00:00Z", updated_at: "2026-07-21T00:00:01Z" },
+    ]));
     if (url.endsWith("web-push/config/")) return new Response(JSON.stringify({ configured: true, public_key: "AQID" }));
     if (url.endsWith("web-push/subscriptions/") && (init?.method ?? "GET") === "GET") return new Response(JSON.stringify(subscriptions));
     if (url.endsWith("web-push/subscriptions/") && init?.method === "POST") return new Response(JSON.stringify({ id: "subscription-1", endpoint_hint: "https://push.example…", enabled: true, last_used_at: null, invalidated_at: null, created_at: "2026-07-21T00:00:00Z" }), { status: 201 });
@@ -56,6 +59,7 @@ describe("NotificationSettingsPage", () => {
     renderPage();
     expect(await screen.findByText("浏览器不支持 Web Push")).toBeInTheDocument();
     expect(await screen.findByText(/Invalid mailbox/)).toBeInTheDocument();
+    expect(screen.queryByText("Development-only reminder")).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "启用浏览器通知" })).toBeDisabled();
   });
 

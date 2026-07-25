@@ -38,3 +38,37 @@ body {
     background: #020617;
   }
 }
+
+/* Phone week view follows the familiar course-timetable pattern: a fixed time
+ * rail and sufficiently wide day columns that users can horizontally browse. */
+@media (max-width: 639px) {
+  .calendar-week-layout .fc {
+    min-width: 720px;
+  }
+
+  .calendar-week-layout .fc-col-header-cell-cushion {
+    padding: 0.65rem 0.25rem;
+    font-size: 0.9rem;
+    font-weight: 700;
+  }
+
+  .calendar-week-layout .fc-timegrid-slot {
+    height: 3.5rem;
+  }
+
+  .calendar-week-layout .fc-timegrid-slot-label-cushion {
+    padding-right: 0.45rem;
+    font-size: 0.78rem;
+  }
+
+  .calendar-week-layout .fc-timegrid-event {
+    border-radius: 0.65rem;
+    box-shadow: 0 4px 12px rgb(0 0 0 / 20%);
+  }
+
+  .calendar-week-layout .fc-event-main {
+    padding: 0.3rem;
+    font-size: 0.78rem;
+    line-height: 1.25;
+  }
+}

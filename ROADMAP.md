@@ -201,3 +201,6 @@
 | T080 | 实现浏览器 Session 认证、注册、登录、退出与密码重置（已完成） | Phase 10 |
 | T081 | 实现登录页、认证路由保护与账户设置（已完成） | Phase 10 |
 | T082 | 使用 Uvicorn ASGI、生产 Compose 覆盖与 Cloudflare Tunnel 部署基线（已完成） | Phase 10 |
+| T083 | 实现请求关联结构化日志、Prometheus 指标与告警基线（已完成） | Phase 10 |
+| T084 | 实现 PostgreSQL 备份恢复脚本与生产运维演练文档（已完成） | Phase 10 |
+| T085 | 完成生产安全响应头、Compose 健康恢复与部署验收（进行中） | Phase 10 |

@@ -1,5 +1,41 @@
 # Time Agent
 
+## Phase 10：观测、备份与恢复
+
+生产日志为 JSON，每个 HTTP 响应均携带 `X-Request-ID`；它可用于将浏览器报错、Nginx 请求和 Django 完成日志关联起来。日志不会记录查询参数、Cookie、请求正文、密钥或用户对话内容。
+
+Prometheus 是可选的本机监控覆盖层，不通过 Cloudflare Tunnel 暴露。启动后访问 `http://localhost:9090` 查看目标状态与告警规则：
+
+```powershell
+docker compose -f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.observability.yml up -d prometheus
+# 或：make observability
+```
+
+若 Docker Hub 在本机网络中不可达，可在 `.env` 通过 `PROMETHEUS_IMAGE` 覆盖为团队已验证的镜像地址；仓库默认不会绑定任何第三方镜像加速服务。
+
+它在 Docker 内网抓取 Django 的 `/metrics`；公网入口对该路径返回 404。默认告警涵盖 Django 目标不可达与持续的 HTTP 5xx。将 Prometheus 接入 Alertmanager、邮件或其他告警渠道前，应先在本机确认告警规则符合实际运维策略。
+
+PostgreSQL 使用 custom-format 备份，备份文件默认写入被 Git 忽略的 `backups/`。建议定期将备份复制到独立、加密且有保留策略的存储：
+
+```powershell
+.\scripts\backup-postgres.ps1
+.\scripts\backup-postgres.ps1 -OutputDirectory D:\TimeAgentBackups
+```
+
+恢复会覆盖归档包含的对象，因此只允许显式确认后执行；请先针对隔离的非生产 Compose 项目完成恢复演练：
+
+```powershell
+.\scripts\restore-postgres.ps1 -ArchivePath .\backups\time-agent-YYYYMMDD-HHMMSS.dump -ConfirmRestore
+```
+
+部署前后最低限度检查：
+
+```powershell
+docker compose -f docker-compose.yml -f docker-compose.prod.yml ps
+Invoke-WebRequest http://localhost:8080/health/ready
+docker compose -f docker-compose.yml -f docker-compose.prod.yml logs --tail=100 django nginx celery-worker
+```
+
 Time Agent 是以时间为核心的个人智能事务管理系统。本仓库当前已完成 **Phase 9**，具备提醒闭环、结构化事务管理、每日工作台、可恢复的 Time Steward Agent、高风险操作审批、天气与新闻简报，以及持久化的 Console/Email/Web Push 通知投递体系。
 
 > Time Steward 使用 LangChain `create_agent()`、LangGraph PostgreSQL 持久化和官方 Middleware；高风险写入通过 ActionProposal/HITL 审批；Briefing Workflow 使用确定性并行 Section、受限 Editor 和结构化输出。
@@ -45,6 +81,13 @@ Time Agent 是以时间为核心的个人智能事务管理系统。本仓库当
 - `NotificationDelivery` 状态机、稳定幂等键、Celery 异步投递/有限重试/中断恢复，以及统一 Console、Django Email 和 Web Push Provider Registry；Reminder 和 Briefing 的各渠道结果独立审计。
 - `/settings/notifications` 支持当前用户 Email/Push 渠道开关、显式浏览器权限申请、Subscription 创建/取消和最近投递状态；VAPID 私钥不进入前端。
 - 外部日历已建立 Provider Protocol、Pydantic DTO、能力声明和统一异常契约；尚未实现任何 OAuth、Token、供应商接入或同步。
+
+## 计划事务与提醒
+
+- 任务是待完成的工作，可设置计划开始/结束时间；日程是实际占用的一段时间。一个任务可关联多条日程，日程也可独立存在。
+- 有计划开始时间的任务会维护未来的提前 7 天、3 天、1 天和 30 分钟提醒；日程维护提前 1 天、2 小时和 30 分钟提醒。重排会更新未投递提醒，完成或取消会取消未投递提醒。
+- 手工提醒可关联任务、日程或独立存在。通知仍由 Celery Dispatcher 和已启用的 Console、Email、Web Push 渠道投递，不经过 LLM。
+- “默认事件时长”仅用于新建日程时预填结束时间；它不会修改既有日程或提醒。日程的“公开/私密”目前是未来共享日历的预留字段，当前仍只允许所有者访问。
 
 ## 技术栈
 

@@ -1,0 +1,17 @@
+groups:
+  - name: time-agent
+    rules:
+      - alert: TimeAgentDjangoUnavailable
+        expr: up{job="time-agent-django"} == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: Time Agent Django metrics target is unavailable
+      - alert: TimeAgentServerErrors
+        expr: increase(django_http_responses_total_by_status_total{status=~"5.."}[5m]) > 0
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: Time Agent returned one or more HTTP 5xx responses

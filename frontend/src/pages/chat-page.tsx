@@ -263,7 +263,6 @@ export function ChatPage() {
     if (!conversationId) {
       setEntries([]);
       setLoadingHistory(false);
-      window.setTimeout(() => textarea.current?.focus(), 0);
       return;
     }
 
@@ -380,6 +379,9 @@ export function ChatPage() {
   };
 
   const handleComposerKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
+    // On touch devices the software keyboard has no practical Shift+Enter
+    // affordance. Keep Return as a newline and use the visible send button.
+    if (navigator.maxTouchPoints > 0) return;
     if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing) {
       event.preventDefault();
       event.currentTarget.form?.requestSubmit();
@@ -441,7 +443,7 @@ export function ChatPage() {
   );
 
   return (
-    <section className="mx-auto flex h-[calc(100dvh-10.5rem)] min-h-[32rem] max-w-7xl overflow-hidden bg-transparent lg:h-[calc(100vh-7rem)] lg:rounded-2xl lg:border lg:border-white/10 lg:bg-slate-900/40">
+    <section className="-mx-5 flex h-[calc(100dvh-8.25rem)] min-h-[32rem] overflow-hidden bg-transparent lg:mx-auto lg:h-[calc(100vh-7rem)] lg:max-w-7xl lg:rounded-2xl lg:border lg:border-white/10 lg:bg-slate-900/40">
       <aside className="hidden w-64 shrink-0 border-r border-white/10 bg-slate-950/40 lg:block">{historyPanel}</aside>
       {historyOpen && (
         <div className="fixed inset-0 z-40 lg:hidden">
@@ -451,7 +453,7 @@ export function ChatPage() {
       )}
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="flex items-center gap-3 border-b border-white/10 px-1 pb-5 pt-1 sm:px-6 lg:px-4 lg:py-3">
+        <header className="flex items-center gap-3 border-b border-white/10 px-4 py-3 sm:px-6 lg:px-4">
           <button type="button" onClick={() => setHistoryOpen(true)} aria-label="打开对话历史" className="rounded-2xl bg-white/5 p-3 text-slate-300 hover:bg-white/10 hover:text-white lg:hidden"><Menu size={24} /></button>
           <Bot className="shrink-0 text-cyan-300" size={27} />
           <div className="min-w-0">
@@ -461,10 +463,10 @@ export function ChatPage() {
           {conversationId && <button type="button" onClick={startNewChat} className="ml-auto hidden items-center gap-2 rounded-lg border border-white/10 px-3 py-2 text-xs text-slate-300 hover:bg-white/5 sm:flex"><Plus size={15} /> 新建聊天</button>}
         </header>
 
-        <div aria-live="polite" aria-busy={loadingHistory || busy} className="min-h-0 flex-1 space-y-6 overflow-y-auto px-1 py-8 sm:px-8 lg:px-4">
+        <div aria-live="polite" aria-busy={loadingHistory || busy} className="min-h-0 flex-1 space-y-5 overflow-y-auto px-4 py-5 sm:px-8 lg:px-4">
           {loadingHistory && <p className="flex items-center justify-center gap-2 py-16 text-sm text-slate-500"><LoaderCircle className="animate-spin" size={16} /> 正在加载对话…</p>}
           {!loadingHistory && entries.length === 0 && (
-            <div className="mx-auto flex max-w-lg flex-col items-center py-16 text-center">
+            <div className="mx-auto flex max-w-xl flex-col items-center px-4 py-12 text-center">
               <span className="rounded-[2rem] bg-cyan-300/10 p-6 text-cyan-300"><Bot size={42} /></span>
               <h3 className="mt-7 text-3xl font-semibold">今天需要我帮你安排什么？</h3>
               <p className="mt-4 text-lg leading-8 text-slate-500">查询日程、整理任务、设置提醒，或直接告诉我你想做什么。</p>
@@ -473,7 +475,7 @@ export function ChatPage() {
           {entries.map((entry) => {
             if (entry.kind === "approval") {
               return (
-                <div key={entry.id} className="mx-auto max-w-3xl">
+                <div key={entry.id} className="w-full sm:mx-auto sm:max-w-3xl">
                   <ApprovalCard
                     proposal={entry.proposal}
                     busy={busy}
@@ -488,20 +490,20 @@ export function ChatPage() {
             }
             if (entry.kind === "tool") {
               return (
-                <div key={entry.id} className="mx-auto flex max-w-xl items-center gap-3 rounded-xl border border-violet-300/20 bg-violet-300/5 px-4 py-3 text-sm text-violet-100">
+                <div key={entry.id} className="flex w-full items-center gap-3 rounded-xl border border-violet-300/20 bg-violet-300/5 px-4 py-3 text-sm text-violet-100 sm:mx-auto sm:max-w-xl">
                   <Wrench size={16} /><span className="min-w-0 flex-1 truncate">{entry.name}</span>
                   <span>{entry.status === "running" ? "执行中" : entry.status === "completed" ? "已完成" : "失败"}</span>
                 </div>
               );
             }
             if (entry.kind === "notice") {
-              return <p key={entry.id} className={`mx-auto max-w-xl rounded-xl border px-4 py-3 text-sm ${entry.tone === "error" ? "border-red-400/30 bg-red-400/10 text-red-100" : "border-white/10 bg-white/5 text-slate-400"}`}>{entry.content}</p>;
+              return <p key={entry.id} className={`w-full rounded-xl border px-4 py-3 text-sm sm:mx-auto sm:max-w-xl ${entry.tone === "error" ? "border-red-400/30 bg-red-400/10 text-red-100" : "border-white/10 bg-white/5 text-slate-400"}`}>{entry.content}</p>;
             }
             return (
-              <article key={entry.id} className={`mx-auto flex max-w-3xl gap-3 ${entry.kind === "user" ? "justify-end" : "justify-start"}`}>
+              <article key={entry.id} className={`flex w-full gap-3 sm:mx-auto sm:max-w-3xl ${entry.kind === "user" ? "justify-end" : "justify-start"}`}>
                 {entry.kind === "assistant" && <Bot className="mt-2 shrink-0 text-cyan-300" size={18} />}
                 {entry.kind === "user" ? (
-                  <div className="max-w-[85%]">
+                  <div className="max-w-[92%] sm:max-w-[85%]">
                     <p className="whitespace-pre-wrap rounded-2xl bg-cyan-400/15 px-4 py-3 text-sm leading-6 text-cyan-50">{entry.content}</p>
                     <time
                       dateTime={entry.timestamp}
@@ -512,7 +514,7 @@ export function ChatPage() {
                     </time>
                   </div>
                 ) : (
-                  <div className="min-w-0 max-w-[85%]">
+                  <div className="min-w-0 max-w-[92%] sm:max-w-[85%]">
                     <div className="rounded-2xl bg-white/5 px-4 py-3">
                       <MarkdownMessage content={entry.content} />
                     </div>
@@ -534,8 +536,8 @@ export function ChatPage() {
           <div ref={messagesEnd} />
         </div>
 
-        <form onSubmit={submit} className="border-t border-white/10 bg-slate-950/90 pb-[max(env(safe-area-inset-bottom),1rem)] pt-3 sm:p-4 lg:p-3">
-          <div className="mx-auto flex max-w-3xl items-end gap-2 rounded-3xl border border-white/10 bg-slate-900 p-3 shadow-xl focus-within:border-cyan-300/40">
+        <form onSubmit={submit} className="border-t border-white/10 bg-slate-950/95 pb-[max(env(safe-area-inset-bottom),0.5rem)] pt-2 sm:p-4 lg:p-3">
+          <div className="mx-4 flex max-w-none items-end gap-2 rounded-3xl border border-white/10 bg-slate-900 p-3 shadow-xl focus-within:border-cyan-300/40 sm:mx-auto sm:max-w-3xl">
             <label className="sr-only" htmlFor="chat-message">消息</label>
             <textarea ref={textarea} id="chat-message" rows={1} value={message} onChange={(event) => setMessage(event.target.value)} onKeyDown={handleComposerKeyDown} disabled={busy || loadingHistory} placeholder="输入你的时间管理请求…" className="max-h-40 min-h-14 flex-1 resize-none bg-transparent px-3 py-3 text-lg outline-none disabled:opacity-60" />
             {busy ? (
@@ -544,7 +546,6 @@ export function ChatPage() {
               <button type="submit" aria-label="发送消息" disabled={!message.trim() || loadingHistory} className="grid h-14 w-14 shrink-0 place-items-center rounded-2xl bg-cyan-300 text-slate-950 disabled:opacity-40"><Send size={24} /></button>
             )}
           </div>
-          <p className="mt-2 text-center text-[11px] text-slate-600">Enter 发送，Shift + Enter 换行</p>
         </form>
       </div>
     </section>

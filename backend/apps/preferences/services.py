@@ -5,6 +5,7 @@ from django.contrib.auth.models import AbstractBaseUser, User
 from django.db import transaction
 
 from apps.preferences.models import UserPreference
+from apps.preferences.snapshots import PlanningPreferencesSnapshot
 
 
 class UserPreferenceService:
@@ -20,6 +21,7 @@ class UserPreferenceService:
             "preferred_focus_periods",
             "default_reminder_offsets",
             "weather_location",
+            "weather_forecast_days",
             "news_topics",
             "briefing_time",
             "planning_rules",
@@ -31,6 +33,13 @@ class UserPreferenceService:
         if user.pk is None:
             raise ValueError("Preference user must be persisted")
         return UserPreference.objects.filter(user=user).first()
+
+    @staticmethod
+    def planning_snapshot_for_user(user: User) -> PlanningPreferencesSnapshot:
+        preference = UserPreferenceService.get_for_user(user)
+        if preference is None:
+            preference = UserPreference(user=user)
+        return PlanningPreferencesSnapshot.from_preference(preference)
 
     @staticmethod
     @transaction.atomic

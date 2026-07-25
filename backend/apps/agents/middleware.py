@@ -33,6 +33,7 @@ from apps.agents.tools import READ_ONLY_TOOLS, WRITE_TOOLS
 from apps.agents.tools.handoff_tools import HANDOFF_TOOLS
 from apps.conversations.models import ToolCallStatus
 from apps.conversations.services import AgentRunService, ToolAuditService
+from common.time import to_user_timezone
 
 PROMPT_PATH = Path(__file__).with_name("prompts") / "time_steward.md"
 BASE_SYSTEM_PROMPT = PROMPT_PATH.read_text(encoding="utf-8").strip()
@@ -45,11 +46,15 @@ HANDOFF_NAMES = frozenset(tool.name for tool in HANDOFF_TOOLS)
 def runtime_system_prompt(request: ModelRequest[RuntimeContext]) -> SystemMessage:
     context = request.runtime.context
     mode = "read-only" if context.read_only else "read/write; high-risk tools require approval"
+    local_anchor = to_user_timezone(context.current_datetime, context.timezone)
     return SystemMessage(
         content=(
             f"{BASE_SYSTEM_PROMPT}\n\n"
-            f"Runtime: current UTC time={context.current_datetime.isoformat()}; "
-            f"user timezone={context.timezone}; locale={context.locale}; mode={mode}."
+            "Runtime: this run's fixed time anchor is "
+            f"{local_anchor.isoformat()} ({context.timezone}), UTC "
+            f"{context.current_datetime.isoformat()}. Interpret relative dates against this "
+            f"anchor. User timezone={context.timezone}; locale={context.locale}; mode={mode}.\n\n"
+            f"{context.planning_preferences.as_prompt_block()}"
         )
     )
 

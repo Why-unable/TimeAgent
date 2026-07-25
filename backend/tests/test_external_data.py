@@ -617,4 +617,5 @@ def test_provider_catalog_api_requires_authentication_and_lists_feeds() -> None:
 
     assert response.status_code == 200
     assert response.data["weather_provider"] == "open_meteo"
+    assert response.data["timezones"] == ["Asia/Shanghai"]
     assert any(item["name"] == "OpenAI News" for item in response.data["news_feeds"])

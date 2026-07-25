@@ -97,14 +97,19 @@ def _event_tool_call() -> AIMessage:
         content="",
         tool_calls=[
             {
-                "name": "create_event",
+                "name": "mutate_events",
                 "args": {
-                    "title": "项目评审",
-                    "start_at": "2026-07-20T07:00:00Z",
-                    "end_at": "2026-07-20T08:00:00Z",
-                    "timezone": "Asia/Shanghai",
+                    "operations": [
+                        {
+                            "action": "create",
+                            "title": "项目评审",
+                            "start_at": "2026-07-20T07:00:00Z",
+                            "end_at": "2026-07-20T08:00:00Z",
+                            "timezone": "Asia/Shanghai",
+                        }
+                    ]
                 },
-                "id": "create-event-hitl-1",
+                "id": "mutate-events-hitl-1",
                 "type": "tool_call",
             }
         ],
@@ -126,6 +131,43 @@ def _conflict_check_tool_call() -> AIMessage:
             }
         ],
     )
+
+
+@pytest.mark.django_db
+def test_recurring_event_proposal_includes_each_occurrence_preview() -> None:
+    user = User.objects.create_user(username="recurring-preview")
+    run, _, _ = _setup_run(user)
+    proposal = ActionProposalService.create_from_interrupt(
+        run=run,
+        interrupt_value={
+            "action_requests": [
+                {
+                    "name": "create_recurring_event",
+                    "args": {
+                        "title": "每日学习",
+                        "start_at": "2026-07-25T10:00:00+08:00",
+                        "end_at": "2026-07-25T10:30:00+08:00",
+                        "timezone": "Asia/Shanghai",
+                        "frequency": "daily",
+                        "interval": 1,
+                        "occurrence_count": 3,
+                    },
+                }
+            ],
+            "review_configs": [
+                {
+                    "action_name": "create_recurring_event",
+                    "allowed_decisions": ["approve", "edit", "reject"],
+                }
+            ],
+        },
+    )[0]
+
+    assert proposal.display_context["is_recurring"] is True
+    assert proposal.display_context["conflict_check"] == "completed"
+    assert proposal.display_context["impact_scope"] == "Creates 3 recurring calendar events"
+    assert [item["index"] for item in proposal.display_context["occurrences"]] == [1, 2, 3]
+    assert proposal.display_context["occurrences"][1]["start_at"] == "2026-07-26T10:00:00+08:00"
 
 
 @pytest.mark.django_db(transaction=True)
@@ -158,7 +200,11 @@ def test_high_risk_tool_never_executes_before_edited_approval() -> None:
         expected_version=proposal.version,
         decision="edit",
         decision_idempotency_key=uuid4(),
-        edited_payload={**proposal.action_payload, "title": "已编辑的项目评审"},
+        edited_payload={
+            "operations": [
+                {**proposal.action_payload["operations"][0], "title": "已编辑的项目评审"}
+            ]
+        },
     )
     assert decision.resume_ready
     resume_payload = ActionProposalService.resume_payload(run.pk)
@@ -208,7 +254,7 @@ def test_rejected_high_risk_tool_resumes_without_execution() -> None:
 
 
 @pytest.mark.django_db(transaction=True)
-@pytest.mark.parametrize("tool_name", ["cancel_event", "cancel_reminder", "cancel_task"])
+@pytest.mark.parametrize("tool_name", ["mutate_events", "cancel_reminder", "cancel_task"])
 def test_cancellation_tools_pause_before_side_effect_and_execute_only_after_approval(
     tool_name: str,
 ) -> None:
@@ -217,7 +263,7 @@ def test_cancellation_tools_pause_before_side_effect_and_execute_only_after_appr
     run.input_message = f"请执行 {tool_name}"
     run.save(update_fields=["input_message"])
 
-    if tool_name == "cancel_event":
+    if tool_name == "mutate_events":
         target = EventService.create_event(
             CreateEventCommand(
                 user=user,
@@ -227,7 +273,15 @@ def test_cancellation_tools_pause_before_side_effect_and_execute_only_after_appr
                 timezone="Asia/Shanghai",
             )
         )
-        arguments = {"event_id": str(target.pk), "expected_version": target.version}
+        arguments = {
+            "operations": [
+                {
+                    "action": "cancel",
+                    "event_id": str(target.pk),
+                    "expected_version": target.version,
+                }
+            ]
+        }
         cancelled_status = CalendarEventStatus.CANCELLED
     elif tool_name == "cancel_reminder":
         target = ReminderService.create_reminder(
@@ -277,8 +331,12 @@ def test_cancellation_tools_pause_before_side_effect_and_execute_only_after_appr
         run=run,
         interrupt_value=interrupted["__interrupt__"][0].value,
     )[0]
-    assert proposal.display_context["object_name"] == target.title
-    assert proposal.display_context["allowed_decisions"] == ["approve", "reject"]
+    if tool_name == "mutate_events":
+        assert proposal.display_context["object_name"] == "1 calendar operations"
+        assert proposal.display_context["allowed_decisions"] == ["approve", "edit", "reject"]
+    else:
+        assert proposal.display_context["object_name"] == target.title
+        assert proposal.display_context["allowed_decisions"] == ["approve", "reject"]
 
     ActionProposalService.decide(
         user=user,
@@ -325,7 +383,6 @@ def test_production_outer_graph_run_pauses_and_resumes_same_thread(
     )
     model = ScriptedModel(
         responses=[
-            _conflict_check_tool_call(),
             _event_tool_call(),
             AIMessage(content="已通过恢复流程创建日程。"),
         ]
@@ -342,7 +399,7 @@ def test_production_outer_graph_run_pauses_and_resumes_same_thread(
     assert waiting.status == AgentRunStatus.WAITING_APPROVAL
     assert CalendarEvent.objects.count() == 0
     proposal = waiting.action_proposals.get()
-    assert proposal.action_type == "create_event"
+    assert proposal.action_type == "mutate_events"
     assert proposal.tool_call_id.startswith("pending:")
     ActionProposalService.decide(
         user=user,
@@ -375,10 +432,10 @@ def test_edit_reject_expiry_concurrency_and_idempotency() -> None:
     run, _, _ = _setup_run(user)
     payload = {
         "action_requests": [
-            {"name": "create_event", "args": _event_tool_call().tool_calls[0]["args"]}
+            {"name": "mutate_events", "args": _event_tool_call().tool_calls[0]["args"]}
         ],
         "review_configs": [
-            {"action_name": "create_event", "allowed_decisions": ["approve", "edit", "reject"]}
+            {"action_name": "mutate_events", "allowed_decisions": ["approve", "edit", "reject"]}
         ],
     }
     proposal = ActionProposalService.create_from_interrupt(
@@ -386,7 +443,7 @@ def test_edit_reject_expiry_concurrency_and_idempotency() -> None:
         interrupt_value=payload,
     )[0]
     operation_id = uuid4()
-    edited = dict(proposal.action_payload, title="编辑后的评审")
+    edited = {"operations": [{**proposal.action_payload["operations"][0], "title": "编辑后的评审"}]}
     first = ActionProposalService.decide(
         user=user,
         proposal_id=proposal.pk,
@@ -404,7 +461,7 @@ def test_edit_reject_expiry_concurrency_and_idempotency() -> None:
         edited_payload=edited,
     )
     assert first.proposal.pk == replay.proposal.pk
-    assert replay.proposal.action_payload["title"] == "编辑后的评审"
+    assert replay.proposal.action_payload["operations"][0]["title"] == "编辑后的评审"
 
     with pytest.raises(ProposalConflictError):
         ActionProposalService.decide(
@@ -434,3 +491,116 @@ def test_edit_reject_expiry_concurrency_and_idempotency() -> None:
     assert expired.status == ActionProposalStatus.EXPIRED
     assert CalendarEvent.objects.count() == 0
     assert run.status == AgentRunStatus.RUNNING
+
+
+@pytest.mark.django_db
+def test_event_proposal_surfaces_conflict_and_cannot_be_approved() -> None:
+    user = User.objects.create_user(username="proposal-conflict")
+    EventService.create_event(
+        CreateEventCommand(
+            user=user,
+            title="Existing meeting",
+            start_at=datetime(2026, 7, 20, 7, tzinfo=UTC),
+            end_at=datetime(2026, 7, 20, 8, tzinfo=UTC),
+            timezone="Asia/Shanghai",
+        )
+    )
+    run, _, _ = _setup_run(user)
+    proposal = ActionProposalService.create_from_interrupt(
+        run=run,
+        interrupt_value={
+            "action_requests": [
+                {
+                    "name": "mutate_events",
+                    "args": {
+                        "operations": [
+                            {
+                                "action": "create",
+                                "title": "Overlapping meeting",
+                                "start_at": "2026-07-20T07:30:00Z",
+                                "end_at": "2026-07-20T08:30:00Z",
+                                "timezone": "Asia/Shanghai",
+                            }
+                        ]
+                    },
+                }
+            ],
+            "review_configs": [
+                {
+                    "action_name": "mutate_events",
+                    "allowed_decisions": ["approve", "edit", "reject"],
+                }
+            ],
+        },
+    )[0]
+
+    assert proposal.display_context["conflict_check"] == "completed"
+    assert proposal.display_context["conflicts"][0]["title"] == "Existing meeting"
+    with pytest.raises(ProposalConflictError, match="still conflicts"):
+        ActionProposalService.decide(
+            user=user,
+            proposal_id=proposal.pk,
+            expected_version=proposal.version,
+            decision="approve",
+            decision_idempotency_key=uuid4(),
+        )
+
+
+@pytest.mark.django_db
+def test_event_mutation_preflight_detects_overlap_inside_same_batch() -> None:
+    user = User.objects.create_user(username="proposal-batch-conflict")
+    run, _, _ = _setup_run(user)
+    proposal = ActionProposalService.create_from_interrupt(
+        run=run,
+        interrupt_value={
+            "action_requests": [
+                {
+                    "name": "mutate_events",
+                    "args": {
+                        "operations": [
+                            {
+                                "action": "create",
+                                "title": "First interview prep",
+                                "start_at": "2026-07-20T07:00:00Z",
+                                "end_at": "2026-07-20T08:00:00Z",
+                                "timezone": "Asia/Shanghai",
+                            },
+                            {
+                                "action": "create",
+                                "title": "Second interview prep",
+                                "start_at": "2026-07-20T07:30:00Z",
+                                "end_at": "2026-07-20T08:30:00Z",
+                                "timezone": "Asia/Shanghai",
+                            },
+                        ]
+                    },
+                }
+            ],
+            "review_configs": [
+                {
+                    "action_name": "mutate_events",
+                    "allowed_decisions": ["approve", "edit", "reject"],
+                }
+            ],
+        },
+    )[0]
+
+    assert proposal.display_context["conflict_check"] == "completed"
+    assert proposal.display_context["conflicts"] == [
+        {
+            "operation_index": 1,
+            "conflicting_operation_index": 0,
+            "title": "First interview prep",
+            "start_at": "2026-07-20T07:00:00+00:00",
+            "end_at": "2026-07-20T08:00:00+00:00",
+            "source": "same_mutation_batch",
+        }
+    ]
+    with pytest.raises(ProposalConflictError, match="still conflicts"):
+        ActionProposalService.decide(
+            user=user,
+            proposal_id=proposal.pk,
+            expected_version=proposal.version,
+            decision="approve",
+            decision_idempotency_key=uuid4(),
+        )

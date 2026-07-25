@@ -33,6 +33,7 @@ class UpdateTaskCommand:
     user: User
     task_id: UUID
     changes: Mapping[str, Any]
+    expected_version: int | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -79,7 +80,22 @@ class TaskService:
         )
         task.full_clean()
         task.save(force_insert=True)
+        from apps.reminders.scheduling import ReminderScheduleService
+
+        ReminderScheduleService.sync_task_reminders(task=task)
         return task
+
+    @staticmethod
+    @transaction.atomic
+    def create_tasks(*, commands: list[CreateTaskCommand]) -> list[Task]:
+        """Create a finite task batch atomically through the normal task invariant."""
+
+        if not commands:
+            raise ValueError("At least one task is required")
+        user = commands[0].user
+        if any(command.user.pk != user.pk for command in commands):
+            raise ValueError("All batch tasks must belong to the same user")
+        return [TaskService.create_task(command) for command in commands]
 
     @staticmethod
     @transaction.atomic
@@ -87,10 +103,16 @@ class TaskService:
         TaskService._ensure_persisted_user(command.user)
         TaskService._validate_changes(command.changes)
         task = Task.objects.select_for_update().get(pk=command.task_id, user=command.user)
+        if command.expected_version is not None:
+            TaskService._ensure_version(task, command.expected_version)
         for field_name, value in command.changes.items():
             setattr(task, field_name, value)
         task.full_clean()
+        task.version += 1
         task.save()
+        from apps.reminders.scheduling import ReminderScheduleService
+
+        ReminderScheduleService.sync_task_reminders(task=task)
         return task
 
     @staticmethod
@@ -107,8 +129,12 @@ class TaskService:
             return task
 
         task.transition_to(TaskStatus.COMPLETED, occurred_at=occurred_at or timezone.now())
+        task.version += 1
         task.full_clean()
         task.save()
+        from apps.reminders.scheduling import ReminderScheduleService
+
+        ReminderScheduleService.cancel_task_reminders(task=task)
         return task
 
     @staticmethod
@@ -127,8 +153,12 @@ class TaskService:
             return task
 
         task.transition_to(TaskStatus.CANCELLED, occurred_at=occurred_at or timezone.now())
+        task.version += 1
         task.full_clean()
         task.save()
+        from apps.reminders.scheduling import ReminderScheduleService
+
+        ReminderScheduleService.cancel_task_reminders(task=task)
         return task
 
     @staticmethod
@@ -144,9 +174,83 @@ class TaskService:
         task = Task.objects.select_for_update().get(pk=task_id, user=user)
         task.planned_start_at = planned_start_at
         task.planned_end_at = planned_end_at
+        task.version += 1
         task.full_clean()
         task.save()
+        from apps.reminders.scheduling import ReminderScheduleService
+
+        ReminderScheduleService.sync_task_reminders(task=task)
         return task
+
+    @staticmethod
+    @transaction.atomic
+    def change_task_state(
+        *,
+        task_id: UUID,
+        user: User,
+        status: TaskStatus | str,
+        occurred_at: datetime,
+    ) -> Task:
+        """Apply a valid task state-machine transition and synchronise derived reminders."""
+
+        TaskService._ensure_persisted_user(user)
+        task = Task.objects.select_for_update().get(pk=task_id, user=user)
+        normalized_status = TaskStatus(status)
+        if task.status == normalized_status:
+            return task
+        task.transition_to(normalized_status, occurred_at=occurred_at)
+        task.version += 1
+        task.full_clean()
+        task.save()
+        from apps.reminders.scheduling import ReminderScheduleService
+
+        if normalized_status in {TaskStatus.COMPLETED, TaskStatus.CANCELLED}:
+            ReminderScheduleService.cancel_task_reminders(task=task)
+        else:
+            ReminderScheduleService.sync_task_reminders(task=task)
+        return task
+
+    @staticmethod
+    @transaction.atomic
+    def change_tasks_state(
+        *,
+        user: User,
+        items: list[tuple[UUID, int]],
+        status: TaskStatus | str,
+        occurred_at: datetime,
+    ) -> list[Task]:
+        """Atomically transition a versioned, finite set of tasks."""
+
+        if not items:
+            raise ValueError("At least one task is required")
+        task_ids = [task_id for task_id, _ in items]
+        if len(set(task_ids)) != len(task_ids):
+            raise ValueError("Task batch must not contain duplicate task IDs")
+        locked = {
+            task.pk: task
+            for task in Task.objects.select_for_update().filter(user=user, pk__in=task_ids)
+        }
+        if len(locked) != len(items):
+            raise ValueError("Every task must belong to the current user")
+        normalized_status = TaskStatus(status)
+        tasks: list[Task] = []
+        for task_id, expected_version in items:
+            task = locked[task_id]
+            TaskService._ensure_version(task, expected_version)
+            if task.status != normalized_status:
+                task.transition_to(normalized_status, occurred_at=occurred_at)
+                task.version += 1
+                task.full_clean()
+                task.save()
+            tasks.append(task)
+        from apps.reminders.scheduling import ReminderScheduleService
+
+        for task in tasks:
+            if normalized_status in {TaskStatus.COMPLETED, TaskStatus.CANCELLED}:
+                ReminderScheduleService.cancel_task_reminders(task=task)
+            else:
+                ReminderScheduleService.sync_task_reminders(task=task)
+        return tasks
 
     @staticmethod
     def list_tasks(query: TaskQuery) -> list[Task]:
@@ -173,6 +277,13 @@ class TaskService:
         if unsupported_fields:
             fields = ", ".join(sorted(unsupported_fields))
             raise ValueError(f"Unsupported task fields: {fields}")
+
+    @staticmethod
+    def _ensure_version(task: Task, expected_version: int) -> None:
+        if task.version != expected_version:
+            raise ValueError(
+                f"Task version conflict: expected {expected_version}, current {task.version}"
+            )
 
     @staticmethod
     def _ensure_persisted_user(user: User) -> None:

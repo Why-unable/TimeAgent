@@ -2,6 +2,7 @@ from datetime import UTC, datetime
 
 import pytest
 
+from common.clock import FixedClock, SystemClock
 from common.time import (
     AmbiguousLocalTimeError,
     InvalidTimezoneError,
@@ -16,13 +17,18 @@ from common.time import (
 )
 
 
+def test_clock_uses_utc_and_can_be_fixed_for_deterministic_execution() -> None:
+    fixed_time = datetime(2026, 7, 24, 1, 2, 3, tzinfo=UTC)
+
+    assert FixedClock(fixed_time).now_utc() == fixed_time
+    assert SystemClock().now_utc().tzinfo is UTC
+
+
 def test_converts_aware_datetime_to_utc_and_user_timezone() -> None:
     shanghai_time = datetime(2026, 7, 17, 15, 0, tzinfo=get_timezone("Asia/Shanghai"))
 
     assert to_utc(shanghai_time) == datetime(2026, 7, 17, 7, 0, tzinfo=UTC)
-    assert to_user_timezone(
-        datetime(2026, 7, 17, 7, 0, tzinfo=UTC), "Asia/Shanghai"
-    ).hour == 15
+    assert to_user_timezone(datetime(2026, 7, 17, 7, 0, tzinfo=UTC), "Asia/Shanghai").hour == 15
 
 
 def test_rejects_naive_datetime_and_invalid_timezone() -> None:
@@ -48,12 +54,12 @@ def test_requires_fold_for_ambiguous_daylight_saving_time() -> None:
     with pytest.raises(AmbiguousLocalTimeError):
         resolve_local_datetime(local_time, "America/New_York")
 
-    assert resolve_local_datetime(
-        local_time, "America/New_York", fold=0
-    ) == datetime(2026, 11, 1, 5, 30, tzinfo=UTC)
-    assert resolve_local_datetime(
-        local_time, "America/New_York", fold=1
-    ) == datetime(2026, 11, 1, 6, 30, tzinfo=UTC)
+    assert resolve_local_datetime(local_time, "America/New_York", fold=0) == datetime(
+        2026, 11, 1, 5, 30, tzinfo=UTC
+    )
+    assert resolve_local_datetime(local_time, "America/New_York", fold=1) == datetime(
+        2026, 11, 1, 6, 30, tzinfo=UTC
+    )
 
 
 def test_rejects_nonexistent_daylight_saving_time() -> None:

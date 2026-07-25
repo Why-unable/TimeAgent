@@ -16,6 +16,7 @@ from pydantic import TypeAdapter, ValidationError
 from apps.action_proposals.models import ActionProposal, ActionProposalStatus
 from apps.action_proposals.risk_policy import policy_for_tool
 from apps.conversations.models import AgentRun
+from apps.events.series_services import EventSeriesService
 from apps.events.services import EventService
 from apps.reminders.services import ReminderService
 from apps.tasks.services import TaskService
@@ -223,13 +224,37 @@ class ActionProposalService:
                 }
             )
             return context
-        if tool_name != "create_event":
+        if tool_name == "create_recurring_event":
+            return ActionProposalService._recurring_event_display_context(
+                context=context,
+                user=run.conversation.user,
+                args=args,
+            )
+        if tool_name not in {"create_event", "update_event", "create_event_batch", "mutate_events"}:
             return context
+        if tool_name == "mutate_events":
+            return ActionProposalService._mutation_event_display_context(
+                context=context,
+                user=run.conversation.user,
+                args=args,
+            )
+        if tool_name == "create_event_batch":
+            return ActionProposalService._batch_event_display_context(
+                context=context,
+                user=run.conversation.user,
+                args=args,
+            )
+        if tool_name == "update_event":
+            return ActionProposalService._update_event_display_context(
+                context=context,
+                user=run.conversation.user,
+                args=args,
+            )
         context["impact_scope"] = "Creates one confirmed event on the user's local calendar"
         try:
             start_at = DATETIME_ADAPTER.validate_python(args.get("start_at"))
             end_at = DATETIME_ADAPTER.validate_python(args.get("end_at"))
-            conflicts = EventService.detect_conflicts(
+            preview = EventService.preview_event_change(
                 user=run.conversation.user,
                 start_at=start_at,
                 end_at=end_at,
@@ -238,15 +263,211 @@ class ActionProposalService:
             context["conflict_check"] = "unavailable_until_arguments_are_valid"
             return context
         context["conflict_check"] = "completed"
-        context["conflicts"] = [
+        context["conflicts"] = [conflict.as_dict() for conflict in preview.conflicts]
+        return context
+
+    @staticmethod
+    def _recurring_event_display_context(
+        *,
+        context: dict[str, Any],
+        user: User,
+        args: dict[str, Any],
+    ) -> dict[str, Any]:
+        try:
+            windows = EventSeriesService.preview_occurrence_windows(
+                start_at=DATETIME_ADAPTER.validate_python(args.get("start_at")),
+                end_at=DATETIME_ADAPTER.validate_python(args.get("end_at")),
+                frequency=str(args.get("frequency")),
+                interval=int(args.get("interval", 1)),
+                occurrence_count=int(args.get("occurrence_count")),
+            )
+        except (ValidationError, ValueError, TypeError):
+            context["conflict_check"] = "unavailable_until_arguments_are_valid"
+            return context
+
+        conflicts: list[dict[str, Any]] = []
+        occurrences: list[dict[str, Any]] = []
+        for index, (start_at, end_at) in enumerate(windows, start=1):
+            preview = EventService.preview_event_change(
+                user=user,
+                start_at=start_at,
+                end_at=end_at,
+            )
+            occurrence_conflicts = [item.as_dict() for item in preview.conflicts]
+            occurrences.append(
+                {
+                    "index": index,
+                    "start_at": start_at.isoformat(),
+                    "end_at": end_at.isoformat(),
+                    "conflicts": occurrence_conflicts,
+                }
+            )
+            conflicts.extend({"occurrence_index": index, **item} for item in occurrence_conflicts)
+        context.update(
             {
-                "id": str(event.pk),
-                "title": event.title,
-                "start_at": event.start_at.isoformat(),
-                "end_at": event.end_at.isoformat(),
+                "object_name": str(args.get("title", "")),
+                "impact_scope": f"Creates {len(occurrences)} recurring calendar events",
+                "is_recurring": True,
+                "occurrences": occurrences,
+                "conflict_check": "completed",
+                "conflicts": conflicts,
             }
-            for event in conflicts
-        ]
+        )
+        return context
+
+    @staticmethod
+    def _update_event_display_context(
+        *,
+        context: dict[str, Any],
+        user: User,
+        args: dict[str, Any],
+    ) -> dict[str, Any]:
+        try:
+            event = EventService.get_event(user=user, event_id=UUID(str(args.get("event_id", ""))))
+            start_at = DATETIME_ADAPTER.validate_python(args.get("start_at", event.start_at))
+            end_at = DATETIME_ADAPTER.validate_python(args.get("end_at", event.end_at))
+            preview = EventService.preview_event_change(
+                user=user,
+                start_at=start_at,
+                end_at=end_at,
+                exclude_event_id=event.pk,
+            )
+        except (ObjectDoesNotExist, ValidationError, ValueError, TypeError):
+            context["conflict_check"] = "unavailable_until_target_and_arguments_are_valid"
+            return context
+        context.update(
+            {
+                "target_lookup": "completed",
+                "object_name": str(args.get("title", event.title)),
+                "impact_scope": "Updates one existing calendar event",
+                "proposed_start_at": start_at.isoformat(),
+                "proposed_end_at": end_at.isoformat(),
+                "current_version": event.version,
+                "conflict_check": "completed",
+                "conflicts": [conflict.as_dict() for conflict in preview.conflicts],
+            }
+        )
+        return context
+
+    @staticmethod
+    def _batch_event_display_context(
+        *,
+        context: dict[str, Any],
+        user: User,
+        args: dict[str, Any],
+    ) -> dict[str, Any]:
+        events = args.get("events")
+        if not isinstance(events, list) or not events:
+            context["conflict_check"] = "unavailable_until_arguments_are_valid"
+            return context
+        all_conflicts: list[dict[str, Any]] = []
+        try:
+            for index, event in enumerate(events):
+                if not isinstance(event, dict):
+                    raise ValueError("event must be an object")
+                preview = EventService.preview_event_change(
+                    user=user,
+                    start_at=DATETIME_ADAPTER.validate_python(event.get("start_at")),
+                    end_at=DATETIME_ADAPTER.validate_python(event.get("end_at")),
+                )
+                all_conflicts.extend(
+                    {"batch_index": index, **conflict.as_dict()} for conflict in preview.conflicts
+                )
+        except (ValidationError, ValueError, TypeError):
+            context["conflict_check"] = "unavailable_until_arguments_are_valid"
+            return context
+        context.update(
+            {
+                "object_name": f"{len(events)} calendar events",
+                "impact_scope": "Creates a finite batch of calendar events atomically",
+                "conflict_check": "completed",
+                "conflicts": all_conflicts,
+            }
+        )
+        return context
+
+    @staticmethod
+    def _mutation_event_display_context(
+        *,
+        context: dict[str, Any],
+        user: User,
+        args: dict[str, Any],
+    ) -> dict[str, Any]:
+        operations = args.get("operations")
+        if not isinstance(operations, list) or not operations:
+            context["conflict_check"] = "unavailable_until_arguments_are_valid"
+            return context
+        conflicts: list[dict[str, Any]] = []
+        planned_intervals: list[tuple[int, datetime, datetime, str]] = []
+        try:
+            for index, operation in enumerate(operations):
+                if not isinstance(operation, dict) or operation.get("action") not in {
+                    "create",
+                    "update",
+                }:
+                    continue
+                event_id = operation.get("event_id")
+                existing = (
+                    EventService.get_event(user=user, event_id=UUID(str(event_id)))
+                    if operation.get("action") == "update"
+                    else None
+                )
+                start_at = DATETIME_ADAPTER.validate_python(
+                    operation.get("start_at", existing.start_at if existing else None)
+                )
+                end_at = DATETIME_ADAPTER.validate_python(
+                    operation.get("end_at", existing.end_at if existing else None)
+                )
+                preview = EventService.preview_event_change(
+                    user=user,
+                    start_at=start_at,
+                    end_at=end_at,
+                    exclude_event_id=existing.pk if existing else None,
+                )
+                cancelled_ids = {
+                    str(previous.get("event_id"))
+                    for previous in operations[:index]
+                    if isinstance(previous, dict) and previous.get("action") == "cancel"
+                }
+                conflicts.extend(
+                    {"operation_index": index, **item.as_dict()}
+                    for item in preview.conflicts
+                    if str(item.event_id) not in cancelled_ids
+                )
+                for prior_index, prior_start, prior_end, prior_title in planned_intervals:
+                    if prior_start < end_at and prior_end > start_at:
+                        conflicts.append(
+                            {
+                                "operation_index": index,
+                                "conflicting_operation_index": prior_index,
+                                "title": prior_title,
+                                "start_at": prior_start.isoformat(),
+                                "end_at": prior_end.isoformat(),
+                                "source": "same_mutation_batch",
+                            }
+                        )
+                planned_intervals.append(
+                    (
+                        index,
+                        start_at,
+                        end_at,
+                        str(
+                            operation.get("title")
+                            or (existing.title if existing else "Untitled event")
+                        ),
+                    )
+                )
+        except (ObjectDoesNotExist, ValidationError, ValueError, TypeError):
+            context["conflict_check"] = "unavailable_until_arguments_are_valid"
+            return context
+        context.update(
+            {
+                "object_name": f"{len(operations)} calendar operations",
+                "impact_scope": "Applies a calendar mutation batch atomically",
+                "conflict_check": "completed",
+                "conflicts": conflicts,
+            }
+        )
         return context
 
     @staticmethod
@@ -306,10 +527,27 @@ class ActionProposalService:
         allowed = proposal.display_context.get("allowed_decisions", [])
         if decision not in allowed:
             raise ProposalConflictError(f"Decision {decision} is not allowed")
+        if decision == "approve" and proposal.display_context.get("conflicts"):
+            raise ProposalConflictError(
+                "This calendar change still conflicts with existing events; "
+                "edit its time or reject it"
+            )
         if decision == "edit":
             if not isinstance(edited_payload, dict) or not edited_payload:
                 raise ValueError("edited_payload is required for edit decisions")
+            refreshed_display_context = ActionProposalService._display_context(
+                run=proposal.agent_run,
+                tool_name=proposal.action_type,
+                args=edited_payload,
+                allowed_decisions=allowed,
+                position=int(proposal.display_context.get("position", 0)),
+            )
+            if refreshed_display_context.get("conflicts"):
+                raise ProposalConflictError(
+                    "The edited calendar change still conflicts with existing events"
+                )
             proposal.action_payload = edited_payload
+            proposal.display_context = refreshed_display_context
         proposal.status = (
             ActionProposalStatus.REJECTED if decision == "reject" else ActionProposalStatus.APPROVED
         )

@@ -86,6 +86,7 @@ class Task(models.Model):
     completed_at = models.DateTimeField(null=True, blank=True)
     source = models.CharField(max_length=64, default="local")
     tags = models.JSONField(default=list, blank=True)
+    version = models.PositiveIntegerField(default=1, validators=[MinValueValidator(1)])
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -122,6 +123,10 @@ class Task(models.Model):
                     | models.Q(actual_started_at__isnull=False)
                 ),
                 name="task_in_progress_has_start",
+            ),
+            models.CheckConstraint(
+                condition=models.Q(version__gte=1),
+                name="task_version_positive",
             ),
         ]
         indexes = [

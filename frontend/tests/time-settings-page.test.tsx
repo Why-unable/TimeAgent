@@ -25,6 +25,7 @@ const preference = {
   preferred_focus_periods: [],
   default_reminder_offsets: [],
   weather_location: "",
+  weather_forecast_days: 3,
   news_topics: [],
   briefing_time: "08:00:00",
   planning_rules: {},
@@ -34,7 +35,7 @@ const preference = {
 describe("TimeSettingsPage external data preferences", () => {
   afterEach(() => vi.unstubAllGlobals());
 
-  it("saves weather location and normalized news topics and shows trusted feeds", async () => {
+  it("requires a catalog city selection and saves only trusted news topics", async () => {
     let patchBody: Record<string, unknown> | undefined;
     vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
       const url = String(input);
@@ -56,24 +57,27 @@ describe("TimeSettingsPage external data preferences", () => {
             topics: ["artificial intelligence", "openai"],
           }],
           topic_aliases: {},
+          news_topics: ["openai", "artificial intelligence"],
+          timezones: ["Asia/Shanghai"],
+          locales: ["zh-CN", "en-US"],
         }));
+      }
+      if (url.includes("/api/v1/providers/locations/")) {
+        return new Response(JSON.stringify([{ name: "合肥", admin1: "安徽", country: "中国", timezone: "Asia/Shanghai", label: "合肥 / 安徽 / 中国" }]));
       }
       throw new Error(`Unexpected request: ${url}`);
     }));
 
     renderPage();
-    await userEvent.type(await screen.findByPlaceholderText("上海 / London / 10001"), "上海");
-    await userEvent.type(
-      screen.getByPlaceholderText("人工智能, OpenAI, GitHub, Python"),
-      "人工智能，OpenAI\nPython",
-    );
+    await userEvent.type(await screen.findByPlaceholderText("输入城市，如合肥"), "合肥");
+    await userEvent.click(await screen.findByRole("button", { name: /合肥/ }));
+    await userEvent.click(await screen.findByText("openai", { selector: "button" }));
     await userEvent.click(screen.getByRole("button", { name: "保存偏好" }));
 
     expect(patchBody).toEqual(expect.objectContaining({
-      weather_location: "上海",
-      news_topics: ["人工智能", "OpenAI", "Python"],
+      weather_location: "合肥 / 安徽 / 中国",
+      news_topics: ["openai"],
     }));
-    await userEvent.click(screen.getByRole("button", { name: "查看当前新闻来源" }));
     expect(await screen.findByRole("link", { name: /OpenAI News/ })).toHaveAttribute(
       "href",
       "https://openai.com/news/rss.xml",

@@ -2,10 +2,11 @@ from datetime import datetime
 from uuid import UUID
 
 from langchain.tools import ToolRuntime, tool
+from pydantic import BaseModel, Field
 
 from apps.agents.context import RuntimeContext
 from apps.agents.tools.common import model_dict, require_actor, require_writable
-from apps.tasks.services import CreateTaskCommand, TaskQuery, TaskService
+from apps.tasks.services import CreateTaskCommand, TaskQuery, TaskService, UpdateTaskCommand
 
 TASK_FIELDS = (
     "id",
@@ -19,7 +20,22 @@ TASK_FIELDS = (
     "planned_start_at",
     "planned_end_at",
     "tags",
+    "version",
 )
+
+
+class TaskDraftInput(BaseModel):
+    """Schema for one task in an atomic create-task batch."""
+
+    title: str
+    description: str = ""
+    project: str = ""
+    priority: str = "medium"
+    due_at: datetime | None = None
+    planned_start_at: datetime | None = None
+    planned_end_at: datetime | None = None
+    estimated_minutes: int | None = None
+    tags: list[str] = Field(default_factory=list)
 
 
 @tool
@@ -56,6 +72,8 @@ def create_task(
     project: str = "",
     priority: str = "medium",
     due_at: datetime | None = None,
+    planned_start_at: datetime | None = None,
+    planned_end_at: datetime | None = None,
     estimated_minutes: int | None = None,
     tags: list[str] | None = None,
 ) -> dict[str, object]:
@@ -69,12 +87,123 @@ def create_task(
             project=project,
             priority=priority,
             due_at=due_at,
+            planned_start_at=planned_start_at,
+            planned_end_at=planned_end_at,
             estimated_minutes=estimated_minutes,
             tags=tags or [],
             source="agent",
         )
     )
     return model_dict(task, TASK_FIELDS)
+
+
+@tool
+def create_task_batch(
+    tasks: list[TaskDraftInput],
+    runtime: ToolRuntime[RuntimeContext],
+) -> list[dict[str, object]]:
+    """Create several tasks atomically; the batch receives one approval before any write."""
+
+    actor = require_writable(runtime)
+    commands = [
+        CreateTaskCommand(
+            user=actor,
+            title=item.title,
+            description=item.description,
+            project=item.project,
+            priority=item.priority,
+            due_at=item.due_at,
+            planned_start_at=item.planned_start_at,
+            planned_end_at=item.planned_end_at,
+            estimated_minutes=item.estimated_minutes,
+            tags=item.tags,
+            source="agent",
+        )
+        for item in tasks
+    ]
+    created = TaskService.create_tasks(commands=commands)
+    return [model_dict(task, TASK_FIELDS) for task in created]
+
+
+@tool
+def update_task(
+    task_id: UUID,
+    expected_version: int,
+    runtime: ToolRuntime[RuntimeContext],
+    title: str | None = None,
+    description: str | None = None,
+    project: str | None = None,
+    priority: str | None = None,
+    due_at: datetime | None = None,
+    estimated_minutes: int | None = None,
+    tags: list[str] | None = None,
+) -> dict[str, object]:
+    """Update task details without silently changing its lifecycle state."""
+
+    changes = {
+        key: value
+        for key, value in {
+            "title": title,
+            "description": description,
+            "project": project,
+            "priority": priority,
+            "due_at": due_at,
+            "estimated_minutes": estimated_minutes,
+            "tags": tags,
+        }.items()
+        if value is not None
+    }
+    if not changes:
+        raise ValueError("Provide at least one task field to update")
+    task = TaskService.update_task(
+        UpdateTaskCommand(
+            user=require_writable(runtime),
+            task_id=task_id,
+            expected_version=expected_version,
+            changes=changes,
+        )
+    )
+    return model_dict(task, TASK_FIELDS)
+
+
+@tool
+def change_task_state(
+    task_id: UUID,
+    status: str,
+    runtime: ToolRuntime[RuntimeContext],
+) -> dict[str, object]:
+    """Move a task through its state machine: in_progress, completed, or cancelled."""
+
+    task = TaskService.change_task_state(
+        task_id=task_id,
+        user=require_writable(runtime),
+        status=status,
+        occurred_at=runtime.context.current_datetime,
+    )
+    return model_dict(task, TASK_FIELDS)
+
+
+@tool
+def change_task_batch_state(
+    items: list[dict[str, object]],
+    status: str,
+    runtime: ToolRuntime[RuntimeContext],
+) -> list[dict[str, object]]:
+    """Complete or cancel a versioned group of tasks atomically after one approval."""
+
+    parsed: list[tuple[UUID, int]] = []
+    for item in items:
+        try:
+            parsed.append((UUID(str(item["task_id"])), int(item["expected_version"])))
+        except (KeyError, TypeError, ValueError) as exc:
+            raise ValueError("Each item needs task_id and expected_version") from exc
+    tasks = TaskService.change_tasks_state(
+        user=require_writable(runtime),
+        items=parsed,
+        status=status,
+        occurred_at=runtime.context.current_datetime,
+    )
+    return [model_dict(task, TASK_FIELDS) for task in tasks]
 
 
 @tool
@@ -119,11 +248,15 @@ def reschedule_task(
     return model_dict(task, TASK_FIELDS)
 
 
-TASK_TOOLS = [
-    list_tasks,
-    get_task,
+TASK_READ_TOOLS = [list_tasks, get_task]
+TASK_WRITE_TOOLS = [
     create_task,
+    create_task_batch,
+    update_task,
+    change_task_state,
+    change_task_batch_state,
     complete_task,
     reschedule_task,
     cancel_task,
 ]
+TASK_TOOLS = [*TASK_READ_TOOLS, *TASK_WRITE_TOOLS]

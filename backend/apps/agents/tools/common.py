@@ -33,6 +33,19 @@ def require_writable(runtime: ToolRuntime[RuntimeContext, Any]) -> User:
     return actor
 
 
+def tool_idempotency_key(runtime: ToolRuntime[RuntimeContext, Any], *, purpose: str) -> str:
+    """Build an opaque idempotency key from trusted run and tool-call identity.
+
+    The model never supplies idempotency keys; retries of the same tool call use
+    the same key while a later request has a different call id.
+    """
+
+    context = runtime.context
+    run_id = context.agent_run_id or context.conversation_id or "interactive"
+    call_id = str(getattr(runtime, "tool_call_id", "") or "single")
+    return f"agent:{run_id}:{purpose}:{call_id}"[:128]
+
+
 def json_value(value: Any) -> Any:
     if isinstance(value, (datetime, date, time)):
         return value.isoformat()

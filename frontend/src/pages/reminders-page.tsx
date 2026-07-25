@@ -5,6 +5,8 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 
 import type { Reminder } from "../api/reminders";
+import { useEvents } from "../features/events/hooks";
+import { useTasks } from "../features/tasks/hooks";
 import { useCurrentUserPreference } from "../features/preferences/hooks";
 import {
   useCancelReminder,
@@ -13,10 +15,22 @@ import {
 } from "../features/reminders/hooks";
 import { formatInUserTimezone, toUtcISOString } from "../utils/datetime";
 
-const reminderFormSchema = z.object({
-  title: z.string().trim().min(1, "请输入提醒内容").max(255),
-  trigger_at: z.string().min(1, "请选择提醒时间"),
-});
+const reminderFormSchema = z
+  .object({
+    title: z.string().trim().min(1, "请输入提醒内容").max(255),
+    trigger_at: z.string().min(1, "请选择提醒时间"),
+    target_type: z.enum(["custom", "calendar_event", "task"]),
+    target_id: z.string(),
+  })
+  .superRefine((values, context) => {
+    if (values.target_type !== "custom" && !values.target_id) {
+      context.addIssue({
+        code: "custom",
+        path: ["target_id"],
+        message: "请选择关联对象",
+      });
+    }
+  });
 
 type ReminderForm = z.infer<typeof reminderFormSchema>;
 
@@ -48,9 +62,11 @@ export function RemindersPage() {
   const idempotencyKey = useRef(crypto.randomUUID());
   const timezone = preference.data?.timezone ?? "Asia/Shanghai";
   const locale = preference.data?.locale ?? "zh-CN";
+  const tasks = useTasks();
+  const events = useEvents({});
   const form = useForm<ReminderForm>({
     resolver: zodResolver(reminderFormSchema),
-    defaultValues: { title: "", trigger_at: "" },
+    defaultValues: { title: "", trigger_at: "", target_type: "custom", target_id: "" },
   });
 
   const onSubmit = form.handleSubmit((values) => {
@@ -60,7 +76,8 @@ export function RemindersPage() {
         trigger_at: toUtcISOString(values.trigger_at, timezone),
         timezone,
         channel: "console",
-        target_type: "custom",
+        target_type: values.target_type,
+        target_id: values.target_type === "custom" ? null : values.target_id,
         deduplication_key: idempotencyKey.current,
       },
       {
@@ -83,7 +100,7 @@ export function RemindersPage() {
 
       <form
         onSubmit={onSubmit}
-        className="mt-8 grid gap-4 rounded-2xl border border-white/10 bg-slate-900 p-5 md:grid-cols-[1fr_240px_auto] md:items-end"
+        className="mt-8 grid gap-4 rounded-2xl border border-white/10 bg-slate-900 p-5 lg:grid-cols-[minmax(0,1fr)_220px_240px_auto] lg:items-end"
       >
         <label>
           <span className="text-sm text-slate-300">提醒内容</span>
@@ -97,6 +114,12 @@ export function RemindersPage() {
               {form.formState.errors.title.message}
             </span>
           )}
+        </label>
+        <label>
+          <span className="text-sm text-slate-300">关联对象（可选）</span>
+          <select {...form.register("target_type")} className="mt-2 w-full rounded-xl border border-white/10 bg-slate-950 px-4 py-3"><option value="custom">不关联</option><option value="task">任务</option><option value="calendar_event">日程</option></select>
+          {form.watch("target_type") !== "custom" && <select {...form.register("target_id")} className="mt-2 w-full rounded-xl border border-white/10 bg-slate-950 px-4 py-3"><option value="">请选择</option>{(form.watch("target_type") === "task" ? tasks.data ?? [] : events.data ?? []).map((item) => <option key={item.id} value={item.id}>{item.title}</option>)}</select>}
+          {form.formState.errors.target_id && <span className="mt-1 block text-sm text-red-300">{form.formState.errors.target_id.message}</span>}
         </label>
         <label>
           <span className="text-sm text-slate-300">提醒时间（{timezone}）</span>
@@ -151,6 +174,14 @@ export function RemindersPage() {
                     <span className="mx-2">·</span>
                     Console
                   </p>
+                  {reminder.target_type !== "custom" && (
+                    <p className="mt-2 text-xs text-cyan-200">
+                      关联{reminder.target_type === "task" ? "任务" : "日程"}
+                      {reminder.schedule_anchor && reminder.offset_minutes
+                        ? ` · 自动提前 ${reminder.offset_minutes >= 1440 ? `${reminder.offset_minutes / 1440} 天` : `${reminder.offset_minutes} 分钟`}`
+                        : ""}
+                    </p>
+                  )}
                 </div>
                 <div className="flex items-center gap-2">
                   <span className={`rounded-full px-3 py-1 text-xs ${statusStyles[status]}`}>

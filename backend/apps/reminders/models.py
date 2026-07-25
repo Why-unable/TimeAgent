@@ -3,6 +3,7 @@ from datetime import datetime
 
 from django.conf import settings
 from django.core.exceptions import ValidationError
+from django.core.validators import MinValueValidator
 from django.db import models
 
 from apps.preferences.models import validate_iana_timezone
@@ -29,6 +30,11 @@ class ReminderChannel(models.TextChoices):
     EMAIL = "email", "Email"
     TELEGRAM = "telegram", "Telegram"
     BROWSER = "browser", "Browser"
+
+
+class ReminderScheduleAnchor(models.TextChoices):
+    TASK_PLANNED_START = "task_planned_start", "Task planned start"
+    EVENT_START = "event_start", "Event start"
 
 
 class InvalidReminderTransitionError(ValueError):
@@ -78,6 +84,12 @@ class Reminder(models.Model):
         default=ReminderTargetType.CUSTOM,
     )
     target_id = models.UUIDField(null=True, blank=True)
+    schedule_anchor = models.CharField(
+        max_length=32,
+        choices=ReminderScheduleAnchor.choices,
+        blank=True,
+    )
+    offset_minutes = models.PositiveIntegerField(null=True, blank=True)
     title = models.CharField(max_length=255)
     trigger_at = models.DateTimeField()
     timezone = models.CharField(
@@ -99,6 +111,7 @@ class Reminder(models.Model):
     sent_at = models.DateTimeField(null=True, blank=True)
     retry_count = models.PositiveSmallIntegerField(default=0)
     failure_reason = models.TextField(blank=True)
+    version = models.PositiveIntegerField(default=1, validators=[MinValueValidator(1)])
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -120,12 +133,26 @@ class Reminder(models.Model):
                 name="reminder_target_reference_consistent",
             ),
             models.CheckConstraint(
+                condition=(
+                    models.Q(schedule_anchor="", offset_minutes__isnull=True)
+                    | (
+                        ~models.Q(schedule_anchor="")
+                        & models.Q(offset_minutes__isnull=False, offset_minutes__gt=0)
+                    )
+                ),
+                name="reminder_schedule_metadata_consistent",
+            ),
+            models.CheckConstraint(
                 condition=(~models.Q(status=ReminderStatus.SENT) | models.Q(sent_at__isnull=False)),
                 name="reminder_sent_has_timestamp",
             ),
             models.CheckConstraint(
                 condition=(~models.Q(status=ReminderStatus.FAILED) | ~models.Q(failure_reason="")),
                 name="reminder_failed_has_reason",
+            ),
+            models.CheckConstraint(
+                condition=models.Q(version__gte=1),
+                name="reminder_version_positive",
             ),
         ]
         indexes = [
@@ -164,6 +191,11 @@ class Reminder(models.Model):
             raise ValidationError({"target_id": "Custom reminders cannot reference a target"})
         if not is_custom and not has_target_id:
             raise ValidationError({"target_id": "Targeted reminders require target_id"})
+        has_schedule = bool(self.schedule_anchor)
+        if has_schedule != (self.offset_minutes is not None):
+            raise ValidationError(
+                {"offset_minutes": "Scheduled reminders require an anchor and positive offset"}
+            )
         if self.status == ReminderStatus.SENT and self.sent_at is None:
             raise ValidationError({"sent_at": "Sent reminders require sent_at"})
         if self.status == ReminderStatus.FAILED and not self.failure_reason.strip():

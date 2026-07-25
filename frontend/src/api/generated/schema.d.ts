@@ -468,6 +468,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/providers/locations/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["api_v1_providers_locations_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/reminders/": {
         parameters: {
             query?: never;
@@ -726,6 +742,8 @@ export interface components {
          * @enum {string}
          */
         AgentRunStatusEnum: "pending" | "running" | "waiting_approval" | "completed" | "failed" | "cancelled";
+        /** @enum {unknown} */
+        BlankEnum: "";
         BriefingDefinition: {
             /** Format: uuid */
             readonly id: string;
@@ -808,6 +826,8 @@ export interface components {
         CalendarEvent: {
             /** Format: uuid */
             readonly id: string;
+            /** Format: uuid */
+            task?: string | null;
             title: string;
             description?: string;
             /** Format: date-time */
@@ -822,6 +842,7 @@ export interface components {
             source?: string;
             external_id?: string;
             created_by?: number | null;
+            /** Format: int64 */
             version?: number;
             /** Format: date-time */
             readonly created_at: string;
@@ -872,6 +893,8 @@ export interface components {
          */
         ConversationKindEnum: "chat" | "manual_briefing" | "scheduled_briefing";
         CreateCalendarEvent: {
+            /** Format: uuid */
+            task?: string | null;
             title: string;
             description?: string;
             /** Format: date-time */
@@ -972,6 +995,19 @@ export interface components {
          * @enum {string}
          */
         LiveResponseStatusEnum: "alive";
+        /**
+         * @description * `zh-CN` - 简体中文
+         *     * `en-US` - English
+         * @enum {string}
+         */
+        LocaleEnum: "zh-CN" | "en-US";
+        LocationCandidate: {
+            name: string;
+            admin1: string;
+            country: string;
+            timezone: string;
+            label: string;
+        };
         Login: {
             identifier: string;
             password: string;
@@ -1069,6 +1105,8 @@ export interface components {
             readonly updated_at?: string;
         };
         PatchedUpdateCalendarEvent: {
+            /** Format: uuid */
+            task?: string | null;
             title?: string;
             description?: string;
             /** Format: date-time */
@@ -1102,7 +1140,7 @@ export interface components {
         };
         PatchedUserPreference: {
             timezone?: string;
-            locale?: string;
+            locale?: components["schemas"]["LocaleEnum"];
             /** Format: time */
             workday_start?: string;
             /** Format: time */
@@ -1111,10 +1149,13 @@ export interface components {
             sleep_start?: string;
             /** Format: time */
             sleep_end?: string;
+            /** Format: int64 */
             default_event_duration_minutes?: number;
             preferred_focus_periods?: unknown;
             default_reminder_offsets?: unknown;
             weather_location?: string;
+            /** Format: int64 */
+            weather_forecast_days?: number;
             news_topics?: unknown;
             /** Format: time */
             briefing_time?: string;
@@ -1156,6 +1197,9 @@ export interface components {
             topic_aliases: {
                 [key: string]: string[];
             };
+            news_topics: string[];
+            timezones: string[];
+            locales: string[];
         };
         ProviderFeed: {
             name: string;
@@ -1185,6 +1229,9 @@ export interface components {
             target_type?: components["schemas"]["TargetTypeEnum"];
             /** Format: uuid */
             target_id?: string | null;
+            schedule_anchor?: components["schemas"]["ScheduleAnchorEnum"] | components["schemas"]["BlankEnum"];
+            /** Format: int64 */
+            offset_minutes?: number | null;
             title: string;
             /** Format: date-time */
             trigger_at: string;
@@ -1196,6 +1243,7 @@ export interface components {
             queued_at?: string | null;
             /** Format: date-time */
             sent_at?: string | null;
+            /** Format: int64 */
             retry_count?: number;
             failure_reason?: string;
             /** Format: date-time */
@@ -1218,6 +1266,12 @@ export interface components {
          * @enum {string}
          */
         RiskLevelEnum: "high";
+        /**
+         * @description * `task_planned_start` - Task planned start
+         *     * `event_start` - Event start
+         * @enum {string}
+         */
+        ScheduleAnchorEnum: "task_planned_start" | "event_start";
         ScheduleConflict: {
             first: components["schemas"]["ScheduleItem"];
             second: components["schemas"]["ScheduleItem"];
@@ -1268,6 +1322,7 @@ export interface components {
             priority?: components["schemas"]["PriorityEnum"];
             /** Format: date-time */
             due_at?: string | null;
+            /** Format: int64 */
             estimated_minutes?: number | null;
             /** Format: date-time */
             planned_start_at?: string | null;
@@ -1313,7 +1368,7 @@ export interface components {
         };
         UserPreference: {
             timezone?: string;
-            locale?: string;
+            locale: components["schemas"]["LocaleEnum"];
             /** Format: time */
             workday_start?: string;
             /** Format: time */
@@ -1322,10 +1377,13 @@ export interface components {
             sleep_start?: string;
             /** Format: time */
             sleep_end?: string;
+            /** Format: int64 */
             default_event_duration_minutes?: number;
             preferred_focus_periods?: unknown;
             default_reminder_offsets?: unknown;
             weather_location?: string;
+            /** Format: int64 */
+            weather_forecast_days?: number;
             news_topics?: unknown;
             /** Format: time */
             briefing_time?: string;
@@ -2286,6 +2344,25 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ProviderCatalog"];
+                };
+            };
+        };
+    };
+    api_v1_providers_locations_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LocationCandidate"][];
                 };
             };
         };

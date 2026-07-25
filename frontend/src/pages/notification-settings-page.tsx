@@ -83,6 +83,9 @@ export function NotificationSettingsPage() {
   const invalidated = (subscriptions.data ?? []).some(
     (item) => !item.enabled && Boolean(item.invalidated_at),
   );
+  const visibleDeliveries = (deliveries.data ?? []).filter(
+    (item) => item.channel_type !== "console",
+  );
   return (
     <section className="mx-auto max-w-5xl space-y-8">
       <div>
@@ -127,9 +130,9 @@ export function NotificationSettingsPage() {
       <div className="rounded-2xl border border-white/10 bg-slate-900 p-6">
         <div className="flex items-center gap-3"><BellRing className="text-cyan-300" /><h3 className="text-xl font-semibold">最近投递</h3></div>
         {deliveries.isLoading && <p className="mt-4 text-slate-400">正在加载…</p>}
-        {deliveries.data?.length === 0 && <p className="mt-4 text-slate-400">暂无投递记录。</p>}
+        {!deliveries.isLoading && visibleDeliveries.length === 0 && <p className="mt-4 text-slate-400">暂无真实渠道投递记录。</p>}
         <ul className="mt-4 divide-y divide-white/10">
-          {deliveries.data?.map((item) => (
+          {visibleDeliveries.map((item) => (
             <li key={item.id} className="grid gap-2 py-4 sm:grid-cols-[1fr_auto]">
               <div>
                 <p className="font-medium">{item.subject}</p>

@@ -9,7 +9,13 @@ from apps.events.models import (
     CalendarEventStatus,
     CalendarEventVisibility,
 )
-from apps.events.services import CreateEventCommand, EventService, UpdateEventCommand
+from apps.events.services import (
+    CreateEventCommand,
+    EventConflictError,
+    EventService,
+    UpdateEventCommand,
+)
+from apps.tasks.models import Task
 from common.serializers import ExplicitTimezoneDateTimeField, StrictSerializer
 
 
@@ -18,6 +24,7 @@ class CalendarEventSerializer(serializers.ModelSerializer[CalendarEvent]):
         model = CalendarEvent
         fields = [
             "id",
+            "task",
             "title",
             "description",
             "start_at",
@@ -37,6 +44,11 @@ class CalendarEventSerializer(serializers.ModelSerializer[CalendarEvent]):
 
 
 class CreateCalendarEventSerializer(StrictSerializer):
+    task = serializers.PrimaryKeyRelatedField(
+        required=False,
+        allow_null=True,
+        queryset=Task.objects.none(),
+    )
     title = serializers.CharField(max_length=255)
     description = serializers.CharField(required=False, allow_blank=True)
     start_at = ExplicitTimezoneDateTimeField()
@@ -62,6 +74,12 @@ class CreateCalendarEventSerializer(StrictSerializer):
         max_length=255,
     )
 
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
+        user = getattr(self.context.get("request"), "user", None)
+        if isinstance(user, User):
+            self.fields["task"].queryset = Task.objects.filter(user=user)  # type: ignore[union-attr]
+
     def create(self, validated_data: dict[str, Any]) -> CalendarEvent:
         user = self.context["request"].user
         if not isinstance(user, User):
@@ -70,9 +88,21 @@ class CreateCalendarEventSerializer(StrictSerializer):
             return EventService.create_event(CreateEventCommand(user=user, **validated_data))
         except DjangoValidationError as exc:
             raise serializers.ValidationError(exc.message_dict) from exc
+        except EventConflictError as exc:
+            raise serializers.ValidationError(
+                {
+                    "non_field_errors": [str(exc)],
+                    "conflicts": [item.as_dict() for item in exc.preview.conflicts],
+                }
+            ) from exc
 
 
 class UpdateCalendarEventSerializer(StrictSerializer):
+    task = serializers.PrimaryKeyRelatedField(
+        required=False,
+        allow_null=True,
+        queryset=Task.objects.none(),
+    )
     title = serializers.CharField(required=False, max_length=255)
     description = serializers.CharField(required=False, allow_blank=True)
     start_at = ExplicitTimezoneDateTimeField(required=False)
@@ -87,6 +117,12 @@ class UpdateCalendarEventSerializer(StrictSerializer):
     recurrence_rule = serializers.CharField(required=False, allow_blank=True)
     source = serializers.CharField(required=False, max_length=64)  # type: ignore[assignment]
     external_id = serializers.CharField(required=False, allow_blank=True, max_length=255)
+
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
+        user = getattr(self.context.get("request"), "user", None)
+        if isinstance(user, User):
+            self.fields["task"].queryset = Task.objects.filter(user=user)  # type: ignore[union-attr]
 
     def update(
         self,
@@ -108,6 +144,13 @@ class UpdateCalendarEventSerializer(StrictSerializer):
             )
         except DjangoValidationError as exc:
             raise serializers.ValidationError(exc.message_dict) from exc
+        except EventConflictError as exc:
+            raise serializers.ValidationError(
+                {
+                    "non_field_errors": [str(exc)],
+                    "conflicts": [item.as_dict() for item in exc.preview.conflicts],
+                }
+            ) from exc
 
     def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
         attrs = super().validate(attrs)

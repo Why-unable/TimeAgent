@@ -10,6 +10,7 @@ from apps.agents.context import RuntimeContext
 from apps.agents.execution import GraphExecutionLimits
 from apps.agents.state import AppState, WorkflowName
 from apps.agents.triggers import TriggerEnvelope, TriggerType
+from apps.preferences.snapshots import PlanningPreferencesSnapshot
 
 type RouteTarget = WorkflowName
 
@@ -81,6 +82,7 @@ def runtime_context_from_trigger(
     read_only: bool = False,
     actor: User | None = None,
     agent_run_id: str | None = None,
+    planning_preferences: PlanningPreferencesSnapshot | None = None,
 ) -> RuntimeContext:
     return RuntimeContext(
         user_id=str(envelope.user_id),
@@ -95,6 +97,7 @@ def runtime_context_from_trigger(
         agent_run_id=agent_run_id,
         read_only=read_only,
         actor=actor,
+        planning_preferences=planning_preferences or PlanningPreferencesSnapshot(),
     )
 
 

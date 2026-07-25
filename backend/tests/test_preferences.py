@@ -27,6 +27,28 @@ def test_service_creates_default_preference() -> None:
     assert UserPreference.objects.filter(user=user).count() == 1
 
 
+def test_service_builds_a_bounded_planning_snapshot() -> None:
+    user = create_user()
+    UserPreferenceService.update_for_user(
+        user,
+        {
+            "workday_start": time(8, 30),
+            "workday_end": time(17, 30),
+            "preferred_focus_periods": ["09:00-11:00", {"ignore": "me"}],
+            "default_reminder_offsets": [30, 120],
+            "planning_rules": {"avoid_late_meetings": True, "invalid-key": "ignore"},
+        },
+    )
+
+    snapshot = UserPreferenceService.planning_snapshot_for_user(user)
+
+    assert snapshot.workday_start == "08:30"
+    assert snapshot.workday_end == "17:30"
+    assert snapshot.preferred_focus_periods == ("09:00-11:00",)
+    assert snapshot.default_reminder_offsets == (30, 120)
+    assert snapshot.planning_rules == (("avoid_late_meetings", "true"),)
+
+
 def test_service_updates_preference_after_validation() -> None:
     user = create_user()
 
@@ -36,12 +58,14 @@ def test_service_updates_preference_after_validation() -> None:
             "timezone": "Europe/London",
             "locale": "en-GB",
             "default_event_duration_minutes": 45,
+            "weather_forecast_days": 7,
         },
     )
 
     assert preference.timezone == "Europe/London"
     assert preference.locale == "en-GB"
     assert preference.default_event_duration_minutes == 45
+    assert preference.weather_forecast_days == 7
 
 
 def test_service_rejects_fields_outside_the_application_contract() -> None:
@@ -87,6 +111,7 @@ def test_preference_api_reads_and_updates_via_service() -> None:
             "workday_start": "08:30:00",
             "workday_end": "17:30:00",
             "default_event_duration_minutes": 30,
+            "weather_forecast_days": 5,
         },
         content_type="application/json",
     )
@@ -95,6 +120,7 @@ def test_preference_api_reads_and_updates_via_service() -> None:
     assert get_response.json()["timezone"] == "Asia/Shanghai"
     assert patch_response.status_code == 200
     assert patch_response.json()["timezone"] == "America/Los_Angeles"
+    assert patch_response.json()["weather_forecast_days"] == 5
     assert UserPreference.objects.get(user=user).default_event_duration_minutes == 30
 
 

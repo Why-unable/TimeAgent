@@ -16,6 +16,7 @@ from apps.events.models import CalendarEventStatus
 from apps.events.services import EventQuery, EventService
 from apps.external_data.configuration import get_provider_config
 from apps.external_data.services import NewsDataService, WeatherDataService
+from apps.preferences.services import UserPreferenceService
 from apps.tasks.models import TaskStatus
 from apps.tasks.services import TaskQuery, TaskService
 from common.time import get_timezone, to_utc
@@ -200,6 +201,10 @@ def research_weather(
     """Fetch a weather forecast for a location and inclusive date range, up to provider limits."""
 
     actor = require_actor(runtime)
+    preference = UserPreferenceService.get_for_user(actor)
+    if preference is not None:
+        configured_end = start_date + timedelta(days=preference.weather_forecast_days - 1)
+        end_date = min(end_date, configured_end)
     forecast = WeatherDataService.forecast_for_user(
         user=actor,
         start_date=start_date,
