@@ -49,6 +49,37 @@ describe("ChatPage", () => {
     vi.unstubAllGlobals();
   });
 
+  it("does not auto-focus the composer on mount", async () => {
+    vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url.endsWith("/conversations/")) {
+        return new Response(JSON.stringify([]));
+      }
+      throw new Error(`Unexpected request: ${url}`);
+    }));
+
+    renderChatPage();
+    const composer = await screen.findByLabelText("消息");
+    expect(document.activeElement).not.toBe(composer);
+  });
+
+  it("quick action populates the composer with a preset prompt", async () => {
+    vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url.endsWith("/conversations/")) {
+        return new Response(JSON.stringify([]));
+      }
+      throw new Error(`Unexpected request: ${url}`);
+    }));
+
+    renderChatPage();
+    const empty = await screen.findByRole("heading", { name: "今天需要我帮你安排什么？" });
+    expect(empty).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "查询日程" }));
+    const composer = screen.getByLabelText("消息") as HTMLTextAreaElement;
+    expect(composer.value).toContain("查询");
+  });
+
   it("creates a conversation and renders tool lifecycle plus final answer", async () => {
     const stream = [
       'id: 1\nevent: agent.started\ndata: {"run_id":"run-1"}\n\n',

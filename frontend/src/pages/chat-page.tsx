@@ -40,6 +40,7 @@ import {
   type ActionProposal,
 } from "../api/action-proposals";
 import { ApprovalCard } from "../components/approvals/approval-card";
+import { ChatEmptyState } from "../components/chat/chat-empty-state";
 import { MarkdownMessage } from "../components/chat/markdown-message";
 import { streamAgentRun, type AgentStreamEvent } from "../features/agent-runs/sse-client";
 import { useCurrentUserPreference } from "../features/preferences/hooks";
@@ -122,6 +123,31 @@ export function ChatPage() {
   const runCursors = useRef(new Map<string, string>());
   const messagesEnd = useRef<HTMLDivElement | null>(null);
   const textarea = useRef<HTMLTextAreaElement | null>(null);
+  const composer = useRef<HTMLFormElement | null>(null);
+  const [composerOffset, setComposerOffset] = useState(0);
+
+  // Keep the composer above the software keyboard by tracking visualViewport.
+  useEffect(() => {
+    const vv = window.visualViewport;
+    if (!vv) return;
+    const handler = () => {
+      const delta = window.innerHeight - vv.height - vv.offsetTop;
+      setComposerOffset(delta > 24 ? delta : 0);
+    };
+    vv.addEventListener("resize", handler);
+    vv.addEventListener("scroll", handler);
+    handler();
+    return () => {
+      vv.removeEventListener("resize", handler);
+      vv.removeEventListener("scroll", handler);
+    };
+  }, []);
+
+  const handleQuickAction = useCallback((prompt: string) => {
+    setMessage((current) => (current.trim() ? current : prompt));
+    // Focus is intentional here because the user just tapped a button.
+    textarea.current?.focus();
+  }, []);
 
   const refreshConversations = useCallback(async () => {
     try {
@@ -466,16 +492,12 @@ export function ChatPage() {
         <div aria-live="polite" aria-busy={loadingHistory || busy} className="min-h-0 flex-1 space-y-5 overflow-y-auto px-4 py-5 sm:px-8 lg:px-4">
           {loadingHistory && <p className="flex items-center justify-center gap-2 py-16 text-sm text-slate-500"><LoaderCircle className="animate-spin" size={16} /> 正在加载对话…</p>}
           {!loadingHistory && entries.length === 0 && (
-            <div className="mx-auto flex max-w-xl flex-col items-center px-4 py-12 text-center">
-              <span className="rounded-[2rem] bg-cyan-300/10 p-6 text-cyan-300"><Bot size={42} /></span>
-              <h3 className="mt-7 text-3xl font-semibold">今天需要我帮你安排什么？</h3>
-              <p className="mt-4 text-lg leading-8 text-slate-500">查询日程、整理任务、设置提醒，或直接告诉我你想做什么。</p>
-            </div>
+            <ChatEmptyState onQuickAction={handleQuickAction} />
           )}
           {entries.map((entry) => {
             if (entry.kind === "approval") {
               return (
-                <div key={entry.id} className="w-full sm:mx-auto sm:max-w-3xl">
+                <div key={entry.id} className="w-full lg:mx-auto lg:max-w-3xl">
                   <ApprovalCard
                     proposal={entry.proposal}
                     busy={busy}
@@ -490,21 +512,21 @@ export function ChatPage() {
             }
             if (entry.kind === "tool") {
               return (
-                <div key={entry.id} className="flex w-full items-center gap-3 rounded-xl border border-violet-300/20 bg-violet-300/5 px-4 py-3 text-sm text-violet-100 sm:mx-auto sm:max-w-xl">
+                <div key={entry.id} className="flex w-full items-center gap-3 rounded-xl border border-violet-300/20 bg-violet-300/5 px-4 py-3 text-sm text-violet-100 lg:mx-auto lg:max-w-xl">
                   <Wrench size={16} /><span className="min-w-0 flex-1 truncate">{entry.name}</span>
                   <span>{entry.status === "running" ? "执行中" : entry.status === "completed" ? "已完成" : "失败"}</span>
                 </div>
               );
             }
             if (entry.kind === "notice") {
-              return <p key={entry.id} className={`w-full rounded-xl border px-4 py-3 text-sm sm:mx-auto sm:max-w-xl ${entry.tone === "error" ? "border-red-400/30 bg-red-400/10 text-red-100" : "border-white/10 bg-white/5 text-slate-400"}`}>{entry.content}</p>;
+              return <p key={entry.id} className={`w-full rounded-xl border px-4 py-3 text-sm lg:mx-auto lg:max-w-xl ${entry.tone === "error" ? "border-red-400/30 bg-red-400/10 text-red-100" : "border-white/10 bg-white/5 text-slate-400"}`}>{entry.content}</p>;
             }
             return (
-              <article key={entry.id} className={`flex w-full gap-3 sm:mx-auto sm:max-w-3xl ${entry.kind === "user" ? "justify-end" : "justify-start"}`}>
+              <article key={entry.id} className={`flex w-full gap-3 lg:mx-auto lg:max-w-3xl ${entry.kind === "user" ? "justify-end" : "justify-start"}`}>
                 {entry.kind === "assistant" && <Bot className="mt-2 shrink-0 text-cyan-300" size={18} />}
                 {entry.kind === "user" ? (
-                  <div className="max-w-[92%] sm:max-w-[85%]">
-                    <p className="whitespace-pre-wrap rounded-2xl bg-cyan-400/15 px-4 py-3 text-sm leading-6 text-cyan-50">{entry.content}</p>
+                  <div className="max-w-[88%] sm:max-w-[85%]">
+                    <p className="whitespace-pre-wrap rounded-2xl bg-cyan-400/15 px-4 py-3 text-base leading-6 text-cyan-50">{entry.content}</p>
                     <time
                       dateTime={entry.timestamp}
                       title={formatInUserTimezone(entry.timestamp, timezone)}
@@ -514,8 +536,8 @@ export function ChatPage() {
                     </time>
                   </div>
                 ) : (
-                  <div className="min-w-0 max-w-[92%] sm:max-w-[85%]">
-                    <div className="rounded-2xl bg-white/5 px-4 py-3">
+                  <div className="min-w-0 flex-1 lg:max-w-[85%]">
+                    <div className="rounded-2xl bg-white/5 px-4 py-3 lg:px-4 lg:py-3">
                       <MarkdownMessage content={entry.content} />
                     </div>
                     <time
@@ -536,7 +558,12 @@ export function ChatPage() {
           <div ref={messagesEnd} />
         </div>
 
-        <form onSubmit={submit} className="border-t border-white/10 bg-slate-950/95 pb-[max(env(safe-area-inset-bottom),0.5rem)] pt-2 sm:p-4 lg:p-3">
+        <form
+          ref={composer}
+          onSubmit={submit}
+          style={{ transform: composerOffset ? `translateY(-${composerOffset}px)` : undefined }}
+          className="border-t border-white/10 bg-slate-950/95 pb-[max(env(safe-area-inset-bottom),0.5rem)] pt-2 transition-transform sm:p-4 lg:p-3"
+        >
           <div className="mx-4 flex max-w-none items-end gap-2 rounded-3xl border border-white/10 bg-slate-900 p-3 shadow-xl focus-within:border-cyan-300/40 sm:mx-auto sm:max-w-3xl">
             <label className="sr-only" htmlFor="chat-message">消息</label>
             <textarea ref={textarea} id="chat-message" rows={1} value={message} onChange={(event) => setMessage(event.target.value)} onKeyDown={handleComposerKeyDown} disabled={busy || loadingHistory} placeholder="输入你的时间管理请求…" className="max-h-40 min-h-14 flex-1 resize-none bg-transparent px-3 py-3 text-lg outline-none disabled:opacity-60" />
