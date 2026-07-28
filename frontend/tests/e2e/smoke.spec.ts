@@ -49,10 +49,20 @@ test("logs in from the dedicated login page", async ({ page }) => {
 });
 
 test("renders the system status shell", async ({ page }) => {
+  await page.unroute("**/api/v1/auth/me/");
+  await page.route("**/api/v1/auth/me/", async (route) => {
+    await route.fulfill({
+      json: { id: 1, email: "admin@example.test", display_name: "E2E Admin", is_staff: true },
+    });
+  });
   await page.route("**/api/v1/preferences/me/", async (route) => {
     await route.fulfill({
-      status: 403,
-      json: { detail: "Authentication credentials were not provided." },
+      json: {
+        timezone: "Asia/Shanghai", locale: "zh-CN", workday_start: "09:00:00", workday_end: "18:00:00",
+        sleep_start: "23:00:00", sleep_end: "07:00:00", default_event_duration_minutes: 60,
+        preferred_focus_periods: [], default_reminder_offsets: [], weather_location: "", news_topics: [],
+        briefing_time: "08:00:00", planning_rules: {}, updated_at: "2026-07-17T00:00:00Z",
+      },
     });
   });
   await page.route("**/health/ready", async (route) => {
@@ -61,7 +71,7 @@ test("renders the system status shell", async ({ page }) => {
     });
   });
 
-  await page.goto("/");
+  await page.goto("/system-status");
   await expect(page.getByRole("heading", { name: "系统状态" })).toBeVisible();
 });
 
@@ -83,7 +93,7 @@ test("uses the mobile app shell below the desktop breakpoint", async ({ page }) 
 
   await page.goto("/tasks");
 
-  await expect(page.locator("aside")).toHaveCount(0);
+  await expect(page.getByTestId("desktop-sidebar")).toBeHidden();
   await expect(page.getByRole("navigation", { name: "移动端主导航" })).toBeVisible();
   await expect(page.getByRole("button", { name: "更多" })).toBeVisible();
   // Mobile hides the giant 任务 heading; the workspace tab bar carries the label.
@@ -95,6 +105,30 @@ test("reads and updates time preferences", async ({ page }) => {
   let timezone = "Asia/Shanghai";
   let weatherLocation = "";
   let newsTopics: string[] = [];
+  await page.route("**/api/v1/providers/catalog/", async (route) => {
+    await route.fulfill({
+      json: {
+        weather_provider: "Open-Meteo",
+        news_provider: "RSS",
+        news_feeds: [],
+        topic_aliases: {},
+        news_topics: ["AI", "Python"],
+        timezones: ["Asia/Shanghai"],
+        locales: ["zh-CN", "en-US"],
+      },
+    });
+  });
+  await page.route("**/api/v1/providers/locations/**", async (route) => {
+    await route.fulfill({
+      json: [{
+        name: "合肥",
+        admin1: "安徽",
+        country: "中国",
+        timezone: "Asia/Shanghai",
+        label: "合肥 / 安徽 / 中国",
+      }],
+    });
+  });
   await page.route("**/api/v1/preferences/me/", async (route) => {
     if (route.request().method() === "PATCH") {
       const changes = route.request().postDataJSON() as {
@@ -128,13 +162,15 @@ test("reads and updates time preferences", async ({ page }) => {
 
   await page.goto("/settings/time");
   await expect(page.getByRole("heading", { name: "时间偏好" })).toBeVisible();
-  await page.getByLabel("IANA 时区").fill("Europe/London");
-  await page.getByPlaceholder("上海 / London / 10001").fill("London");
-  await page.getByPlaceholder("人工智能, OpenAI, GitHub, Python").fill("AI, Python");
+  await page.getByLabel("IANA 时区").selectOption("Asia/Shanghai");
+  await page.getByPlaceholder("输入城市，如合肥").fill("合肥");
+  await page.getByRole("button", { name: "合肥 / 安徽 / 中国" }).click();
+  await page.getByRole("button", { name: "AI", exact: true }).click();
+  await page.getByRole("button", { name: "Python", exact: true }).click();
   await page.getByRole("button", { name: "保存偏好" }).click();
   await expect(page.getByRole("status")).toHaveText("时间偏好已保存。");
-  expect(timezone).toBe("Europe/London");
-  expect(weatherLocation).toBe("London");
+  expect(timezone).toBe("Asia/Shanghai");
+  expect(weatherLocation).toBe("合肥 / 安徽 / 中国");
   expect(newsTopics).toEqual(["AI", "Python"]);
 });
 

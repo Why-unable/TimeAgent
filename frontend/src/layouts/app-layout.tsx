@@ -38,7 +38,7 @@ export function AppLayout() {
 
   return (
     <div data-color-scheme="dark" className="min-h-screen bg-slate-950 text-slate-100">
-      <aside className="fixed inset-y-0 left-0 hidden w-64 border-r border-white/10 bg-slate-900/80 p-6 backdrop-blur lg:block">
+      <aside data-testid="desktop-sidebar" className="fixed inset-y-0 left-0 hidden w-64 border-r border-white/10 bg-slate-900/80 p-6 backdrop-blur lg:block">
         <div className="mb-10">
           <p className="text-xs uppercase tracking-[0.28em] text-cyan-300">Time Agent</p>
           <h1 className="mt-2 text-xl font-semibold">时间工作台</h1>
