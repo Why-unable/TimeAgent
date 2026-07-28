@@ -66,35 +66,41 @@ body::-webkit-scrollbar {
 }
 
 /* Phone week view follows the familiar course-timetable pattern: a fixed time
- * rail and sufficiently wide day columns that users can horizontally browse. */
+ * rail and sufficiently wide day columns that users can horizontally browse.
+ * All FullCalendar overrides are scoped under .calendar-shell per §13. */
 @media (max-width: 639px) {
-  .calendar-week-layout .fc {
+  .calendar-shell.calendar-week-layout .fc {
     min-width: 720px;
   }
 
-  .calendar-week-layout .fc-col-header-cell-cushion {
+  .calendar-shell.calendar-week-layout .fc-col-header-cell-cushion {
     padding: 0.65rem 0.25rem;
     font-size: 0.9rem;
     font-weight: 700;
   }
 
-  .calendar-week-layout .fc-timegrid-slot {
+  .calendar-shell.calendar-week-layout .fc-timegrid-slot {
     height: 3.5rem;
   }
 
-  .calendar-week-layout .fc-timegrid-slot-label-cushion {
+  .calendar-shell.calendar-week-layout .fc-timegrid-slot-label-cushion {
     padding-right: 0.45rem;
     font-size: 0.78rem;
   }
 
-  .calendar-week-layout .fc-timegrid-event {
+  .calendar-shell.calendar-week-layout .fc-timegrid-event {
     border-radius: 0.65rem;
     box-shadow: 0 4px 12px rgb(0 0 0 / 20%);
   }
 
-  .calendar-week-layout .fc-event-main {
+  .calendar-shell.calendar-week-layout .fc-event-main {
     padding: 0.3rem;
     font-size: 0.78rem;
     line-height: 1.25;
+  }
+
+  /* Horizontal scroll for week/day so the page keeps flowing vertically. */
+  .calendar-shell.calendar-week-layout {
+    overflow-x: auto;
   }
 }
