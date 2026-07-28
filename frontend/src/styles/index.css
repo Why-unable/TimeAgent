@@ -8,6 +8,18 @@
   color-scheme: dark;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
+
+  /* Mobile design tokens: keep phone screens readable without transform tricks. */
+  --mobile-page-gutter: 1.25rem;
+  --mobile-bottom-nav-height: 5.25rem;
+  --mobile-control-height: 3.5rem;
+  --mobile-card-radius: 1.5rem;
+}
+
+@media (max-width: 360px) {
+  :root {
+    --mobile-page-gutter: 1rem;
+  }
 }
 
 * {

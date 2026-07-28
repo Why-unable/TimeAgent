@@ -1,7 +1,6 @@
 import {
   Bell,
   CalendarDays,
-  CheckSquare,
   Clock3,
   LayoutGrid,
   MessageSquare,
@@ -12,16 +11,21 @@ import {
   UserRound,
 } from "lucide-react";
 import { useState } from "react";
-import { NavLink } from "react-router-dom";
+import { Link, NavLink, useLocation } from "react-router-dom";
 
 import { Drawer } from "../components/overlay/drawer";
 import { useCurrentUser } from "../features/accounts/hooks";
 
 const primaryItems = [
-  { to: "/today", label: "今天", icon: Clock3 },
-  { to: "/chat", label: "聊天", icon: MessageSquare },
-  { to: "/tasks", label: "任务", icon: CheckSquare },
-  { to: "/calendar", label: "日历", icon: CalendarDays },
+  { to: "/today", label: "今天", icon: Clock3, match: (path: string) => path.startsWith("/today") },
+  { to: "/chat", label: "聊天", icon: MessageSquare, match: (path: string) => path.startsWith("/chat") },
+  {
+    to: "/calendar",
+    label: "日程",
+    icon: CalendarDays,
+    match: (path: string) =>
+      path.startsWith("/calendar") || path.startsWith("/tasks") || path.startsWith("/reminders"),
+  },
 ];
 
 const moreItems = [
@@ -37,9 +41,9 @@ const moreItems = [
 export function MobileNavigation() {
   const [moreOpen, setMoreOpen] = useState(false);
   const currentUser = useCurrentUser();
-  const visiblePrimaryItems = primaryItems.map((item) =>
-    item.to === "/tasks" ? { ...item, to: "/calendar", label: "日程" } : item,
-  );
+  const location = useLocation();
+  const pathname = location.pathname;
+
   const visibleMoreItems = moreItems
     .filter((item) => !["/briefings", "/reminders"].includes(item.to))
     .filter((item) => currentUser.data?.is_staff || item.to !== "/")
@@ -53,22 +57,24 @@ export function MobileNavigation() {
     <>
       <nav
         aria-label="移动端主导航"
-        className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-5 border-t border-white/10 bg-slate-900/95 px-2 pb-[max(env(safe-area-inset-bottom),0.625rem)] pt-2.5 shadow-[0_-12px_32px_rgba(2,6,23,0.45)] backdrop-blur lg:hidden"
+        className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-4 border-t border-white/10 bg-slate-900/95 px-2 pb-[max(env(safe-area-inset-bottom),0.625rem)] pt-2.5 shadow-[0_-12px_32px_rgba(2,6,23,0.45)] backdrop-blur lg:hidden"
       >
-        {visiblePrimaryItems.map(({ to, label, icon: Icon }) => (
-          <NavLink
-            key={to}
-            to={to}
-            className={({ isActive }) =>
-              `flex min-h-[4.5rem] flex-col items-center justify-center gap-1.5 rounded-2xl text-sm font-medium transition ${
+        {primaryItems.map(({ to, label, icon: Icon, match }) => {
+          const isActive = match(pathname);
+          return (
+            <Link
+              key={to}
+              to={to}
+              aria-current={isActive ? "page" : undefined}
+              className={`flex min-h-[4.5rem] flex-col items-center justify-center gap-1.5 rounded-2xl text-sm font-medium transition ${
                 isActive ? "bg-cyan-300/10 text-cyan-200" : "text-slate-400"
-              }`
-            }
-          >
-            <Icon size={25} strokeWidth={1.8} />
-            {label}
-          </NavLink>
-        ))}
+              }`}
+            >
+              <Icon size={25} strokeWidth={1.8} />
+              {label}
+            </Link>
+          );
+        })}
         <button
           type="button"
           onClick={() => setMoreOpen(true)}

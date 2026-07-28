@@ -67,7 +67,7 @@ export function AppLayout() {
           ))}
         </nav>
       </aside>
-      <main className="min-h-screen px-5 pb-36 pt-[max(env(safe-area-inset-top),2rem)] sm:px-5 lg:ml-64 lg:px-10 lg:pb-10 lg:pt-8">
+      <main className="min-h-screen px-[var(--mobile-page-gutter)] pb-[calc(var(--mobile-bottom-nav-height)+env(safe-area-inset-bottom)+1rem)] pt-[max(env(safe-area-inset-top),2rem)] lg:ml-64 lg:px-10 lg:pb-10 lg:pt-8">
         <Outlet />
       </main>
       <MobileNavigation />
