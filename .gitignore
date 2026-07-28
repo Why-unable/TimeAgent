@@ -1,4 +1,5 @@
 .env
+frontend/.env.production.local
 backend/config/agent.yaml
 .venv/
 __pycache__/
@@ -12,6 +13,9 @@ frontend/node_modules/
 frontend/dist/
 frontend/playwright-report/
 frontend/test-results/
+frontend/android/.gradle/
+frontend/android/**/build/
+frontend/android/app/src/main/assets/
 *.log
 backups/
 celerybeat-schedule*

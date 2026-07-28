@@ -185,7 +185,6 @@ export function TodayPage() {
     <section className="mx-auto max-w-6xl">
       <div className="flex flex-wrap items-end justify-between gap-5 lg:gap-5">
         <div>
-          <p className="hidden text-sm font-medium text-cyan-300 lg:block">Phase 3 · 每日工作台</p>
           <div className="mt-2 flex items-center gap-3">
             <Clock3 className="text-cyan-300" size={31} />
             <h2 className="text-4xl font-semibold sm:text-3xl">今天</h2>
@@ -205,21 +204,6 @@ export function TodayPage() {
       <div className="mt-5 lg:hidden">
         <MobileTodayOverview data={data} timeline={timeline} />
       </div>
-
-      {timeline.length === 0 && data.planned_tasks.length === 0 && data.due_tasks.length === 0 && data.overdue_tasks.length === 0 && (
-        <div className="mt-5 grid grid-cols-2 gap-4 lg:hidden">
-          <Link to="/calendar" className="min-h-40 rounded-3xl border border-cyan-300/20 bg-cyan-300/10 p-5 text-left text-cyan-100 transition active:scale-[0.98]">
-            <CalendarClock size={28} />
-            <span className="mt-5 block text-xl font-semibold">安排日程</span>
-            <span className="mt-2 block text-base text-cyan-100/70">为今天留出时间</span>
-          </Link>
-          <Link to="/chat" className="min-h-40 rounded-3xl border border-violet-300/20 bg-violet-300/10 p-5 text-left text-violet-100 transition active:scale-[0.98]">
-            <Bell size={28} />
-            <span className="mt-5 block text-xl font-semibold">交给助手</span>
-            <span className="mt-2 block text-base text-violet-100/70">用一句话开始</span>
-          </Link>
-        </div>
-      )}
 
       <div className="mt-5 grid gap-5 lg:mt-8 lg:grid-cols-[minmax(0,1fr)_340px]">
         <section className={`rounded-3xl border border-white/10 bg-slate-900 p-5 sm:p-5 ${timeline.length === 0 ? "hidden lg:block" : ""}`}>

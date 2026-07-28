@@ -15,6 +15,7 @@ import { useState } from "react";
 import { NavLink } from "react-router-dom";
 
 import { Drawer } from "../components/overlay/drawer";
+import { useCurrentUser } from "../features/accounts/hooks";
 
 const primaryItems = [
   { to: "/today", label: "今天", icon: Clock3 },
@@ -35,6 +36,18 @@ const moreItems = [
 
 export function MobileNavigation() {
   const [moreOpen, setMoreOpen] = useState(false);
+  const currentUser = useCurrentUser();
+  const visiblePrimaryItems = primaryItems.map((item) =>
+    item.to === "/tasks" ? { ...item, to: "/calendar", label: "日程" } : item,
+  );
+  const visibleMoreItems = moreItems
+    .filter((item) => !["/briefings", "/reminders"].includes(item.to))
+    .filter((item) => currentUser.data?.is_staff || item.to !== "/")
+    .map((item) =>
+      item.to === "/"
+        ? { ...item, to: "/system-status", label: "系统状态", description: "检查服务健康状态" }
+        : item,
+    );
 
   return (
     <>
@@ -42,7 +55,7 @@ export function MobileNavigation() {
         aria-label="移动端主导航"
         className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-5 border-t border-white/10 bg-slate-900/95 px-2 pb-[max(env(safe-area-inset-bottom),0.625rem)] pt-2.5 shadow-[0_-12px_32px_rgba(2,6,23,0.45)] backdrop-blur lg:hidden"
       >
-        {primaryItems.map(({ to, label, icon: Icon }) => (
+        {visiblePrimaryItems.map(({ to, label, icon: Icon }) => (
           <NavLink
             key={to}
             to={to}
@@ -68,11 +81,11 @@ export function MobileNavigation() {
       {moreOpen && (
         <Drawer title="更多功能" description="个人时间管理工具" onClose={() => setMoreOpen(false)}>
           <nav className="grid gap-2" aria-label="更多功能">
-            {moreItems.map(({ to, label, description, icon: Icon }) => (
+            {visibleMoreItems.map(({ to, label, description, icon: Icon }) => (
               <NavLink
                 key={to}
                 to={to}
-                end={to === "/"}
+                end={to === "/system-status"}
                 onClick={() => setMoreOpen(false)}
                 className={({ isActive }) =>
                   `flex min-h-[4.75rem] items-center gap-4 rounded-2xl border p-5 transition ${

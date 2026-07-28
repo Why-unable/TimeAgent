@@ -8,11 +8,13 @@ import type { Reminder } from "../api/reminders";
 import { useEvents } from "../features/events/hooks";
 import { useTasks } from "../features/tasks/hooks";
 import { useCurrentUserPreference } from "../features/preferences/hooks";
+import { useCurrentUser } from "../features/accounts/hooks";
 import {
   useCancelReminder,
   useCreateReminder,
   useReminders,
 } from "../features/reminders/hooks";
+import { ScheduleWorkspaceTabs } from "../features/workspace/schedule-workspace-tabs";
 import { formatInUserTimezone, toUtcISOString } from "../utils/datetime";
 
 const reminderFormSchema = z
@@ -53,8 +55,10 @@ const statusStyles: Record<NonNullable<Reminder["status"]>, string> = {
 };
 
 const cancellableStatuses = new Set<Reminder["status"]>(["pending", "queued", "failed"]);
+const historicalStatuses = new Set<Reminder["status"]>(["sent", "failed", "cancelled"]);
 
 export function RemindersPage() {
+  const currentUser = useCurrentUser();
   const preference = useCurrentUserPreference();
   const reminders = useReminders();
   const createMutation = useCreateReminder();
@@ -68,6 +72,14 @@ export function RemindersPage() {
     resolver: zodResolver(reminderFormSchema),
     defaultValues: { title: "", trigger_at: "", target_type: "custom", target_id: "" },
   });
+  const visibleReminders = (() => {
+    const items = reminders.data ?? [];
+    if (currentUser.data?.is_staff) return items;
+    return [
+      ...items.filter((item) => !historicalStatuses.has(item.status)),
+      ...items.filter((item) => historicalStatuses.has(item.status)).slice(0, 10),
+    ];
+  })();
 
   const onSubmit = form.handleSubmit((values) => {
     createMutation.mutate(
@@ -91,7 +103,7 @@ export function RemindersPage() {
 
   return (
     <section className="mx-auto max-w-5xl">
-      <p className="text-sm font-medium text-cyan-300">Phase 2 · 提醒闭环</p>
+      <ScheduleWorkspaceTabs />
       <div className="mt-2 flex items-center gap-3">
         <Bell className="text-cyan-300" />
         <h2 className="text-3xl font-semibold">提醒</h2>
@@ -156,12 +168,12 @@ export function RemindersPage() {
             无法读取提醒，请先通过 Django Session 登录。
           </div>
         )}
-        {reminders.data?.length === 0 && (
+        {visibleReminders.length === 0 && (
           <div className="rounded-2xl border border-dashed border-white/10 p-10 text-center text-slate-500">
             暂无提醒
           </div>
         )}
-        {reminders.data?.map((reminder) => {
+        {visibleReminders.map((reminder) => {
           const status = reminder.status ?? "pending";
           const canCancel = cancellableStatuses.has(status);
           return (

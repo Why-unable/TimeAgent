@@ -16,7 +16,6 @@ export function SystemStatusPage() {
 
   return (
     <section className="mx-auto max-w-5xl">
-      <p className="text-sm font-medium text-cyan-300">Phase 0 · 工程骨架</p>
       <h2 className="mt-2 text-3xl font-semibold tracking-tight">系统状态</h2>
       <p className="mt-3 max-w-2xl text-slate-400">
         此页面读取 Django readiness 接口，展示基础服务是否可用于接收请求。
@@ -37,4 +36,3 @@ export function SystemStatusPage() {
     </section>
   );
 }
-

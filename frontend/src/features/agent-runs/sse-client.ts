@@ -1,3 +1,5 @@
+import { getAuthToken } from "../../api/auth-token";
+
 export interface AgentStreamEvent<T = Record<string, unknown>> {
   id: string;
   type: string;
@@ -27,11 +29,21 @@ export async function streamAgentRun(
   while (true) {
     let terminal = false;
     try {
+      // Native (token) auth and web (session cookie) auth are mutually
+      // exclusive, mirroring api/client.ts: with a token we send the
+      // Authorization header and drop cookies (the WebView is cross-origin);
+      // otherwise we keep the same-origin session flow for the web client.
+      const authToken = getAuthToken();
+      const headers: Record<string, string> = {
+        Accept: "text/event-stream",
+        "Last-Event-ID": cursor,
+      };
+      if (authToken) headers.Authorization = `Token ${authToken}`;
       const response = await fetch(
         `${baseUrl}/api/v1/chat/runs/${runId}/events/?cursor=${encodeURIComponent(cursor)}`,
         {
-          credentials: "same-origin",
-          headers: { Accept: "text/event-stream", "Last-Event-ID": cursor },
+          credentials: authToken ? "omit" : "same-origin",
+          headers,
           signal: options.signal,
         },
       );

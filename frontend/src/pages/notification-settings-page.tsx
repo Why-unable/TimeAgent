@@ -1,6 +1,6 @@
 import { BellRing, Mail, MonitorSmartphone } from "lucide-react";
 import type { ReactNode } from "react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import type { NotificationPreference } from "../api/notifications";
 import {
@@ -17,6 +17,13 @@ import {
   subscribeBrowser,
   unsubscribeBrowser,
 } from "../features/notifications/web-push";
+import {
+  clearNativeNotificationDiagnostics,
+  getNativeNotificationDiagnostics,
+  type NotificationDiagnosticEntry,
+} from "../native/notification-diagnostics";
+import { isNativePlatform } from "../platform";
+import { useCurrentUser } from "../features/accounts/hooks";
 
 const stateLabels = {
   unsupported: "浏览器不支持 Web Push",
@@ -26,6 +33,7 @@ const stateLabels = {
 };
 
 export function NotificationSettingsPage() {
+  const currentUser = useCurrentUser();
   const preference = useNotificationPreference();
   const deliveries = useNotificationDeliveries();
   const pushConfig = useWebPushConfig();
@@ -35,6 +43,20 @@ export function NotificationSettingsPage() {
   const deleteSubscription = useDeleteWebPushSubscription();
   const [pushState, setPushState] = useState(() => browserPushState());
   const [pushError, setPushError] = useState("");
+  const [diagnostics, setDiagnostics] = useState<NotificationDiagnosticEntry[]>([]);
+  const [diagnosticsError, setDiagnosticsError] = useState("");
+
+  const refreshDiagnostics = async () => {
+    if (!isNativePlatform()) return;
+    try {
+      setDiagnostics(await getNativeNotificationDiagnostics());
+      setDiagnosticsError("");
+    } catch (error) {
+      setDiagnosticsError(error instanceof Error ? error.message : "无法读取设备通知诊断");
+    }
+  };
+
+  useEffect(() => { void refreshDiagnostics(); }, []);
 
   const update = (field: keyof NotificationPreference, checked: boolean) => {
     updatePreference.mutate({ [field]: checked });
@@ -86,10 +108,10 @@ export function NotificationSettingsPage() {
   const visibleDeliveries = (deliveries.data ?? []).filter(
     (item) => item.channel_type !== "console",
   );
+  const deliveryHistory = currentUser.data?.is_staff ? visibleDeliveries : visibleDeliveries.slice(0, 10);
   return (
     <section className="mx-auto max-w-5xl space-y-8">
       <div>
-        <p className="text-sm font-medium text-cyan-300">Phase 9 · 外部通知</p>
         <h2 className="mt-2 text-3xl font-semibold">通知设置</h2>
         <p className="mt-3 text-slate-400">
           每个渠道独立投递、重试和审计。通知只发送给当前登录用户本人。
@@ -130,9 +152,9 @@ export function NotificationSettingsPage() {
       <div className="rounded-2xl border border-white/10 bg-slate-900 p-6">
         <div className="flex items-center gap-3"><BellRing className="text-cyan-300" /><h3 className="text-xl font-semibold">最近投递</h3></div>
         {deliveries.isLoading && <p className="mt-4 text-slate-400">正在加载…</p>}
-        {!deliveries.isLoading && visibleDeliveries.length === 0 && <p className="mt-4 text-slate-400">暂无真实渠道投递记录。</p>}
+        {!deliveries.isLoading && deliveryHistory.length === 0 && <p className="mt-4 text-slate-400">暂无真实渠道投递记录。</p>}
         <ul className="mt-4 divide-y divide-white/10">
-          {visibleDeliveries.map((item) => (
+          {deliveryHistory.map((item) => (
             <li key={item.id} className="grid gap-2 py-4 sm:grid-cols-[1fr_auto]">
               <div>
                 <p className="font-medium">{item.subject}</p>
@@ -144,6 +166,15 @@ export function NotificationSettingsPage() {
           ))}
         </ul>
       </div>
+
+      {currentUser.data?.is_staff && isNativePlatform() && <div className="rounded-2xl border border-cyan-300/20 bg-slate-900 p-6">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div><h3 className="text-xl font-semibold">设备通知诊断</h3><p className="mt-1 text-sm text-slate-400">仅保存在本机；“已触发”来自 Android 后台 Receiver，即使 App 已关闭也会记录。</p></div>
+          <div className="flex gap-2"><button type="button" onClick={() => void refreshDiagnostics()} className="rounded-lg border border-white/15 px-3 py-2 text-sm">刷新</button><button type="button" onClick={() => void clearNativeNotificationDiagnostics().then(refreshDiagnostics)} className="rounded-lg border border-white/15 px-3 py-2 text-sm">清除</button></div>
+        </div>
+        {diagnosticsError && <p role="alert" className="mt-3 text-sm text-red-300">{diagnosticsError}</p>}
+        {diagnostics.length === 0 ? <p className="mt-4 text-sm text-slate-400">尚无设备端排程或触发记录。</p> : <ul className="mt-4 space-y-2 text-sm">{diagnostics.slice().reverse().map((item, index) => <li key={`${item.recordedAt}-${index}`} className="rounded-xl bg-slate-950/60 p-3"><span className={item.kind === "fired" ? "text-emerald-300" : "text-cyan-300"}>{item.kind === "fired" ? "已触发" : "已登记"}</span><span className="ml-2 text-slate-300">#{item.notificationId} {item.title ?? ""}</span><p className="mt-1 text-xs text-slate-400">记录：{new Date(item.recordedAt).toLocaleString()} {item.scheduledAt ? ` · 计划：${new Date(item.scheduledAt).toLocaleString()} · 差值：${Math.round((item.recordedAt - item.scheduledAt) / 1000)} 秒` : ""}</p></li>)}</ul>}
+      </div>}
     </section>
   );
 }

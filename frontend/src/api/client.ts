@@ -9,6 +9,8 @@ export class ApiError extends Error {
   }
 }
 
+import { getAuthToken } from "./auth-token";
+
 const baseUrl = import.meta.env.VITE_API_BASE_URL ?? "";
 const timeoutMs = Number(import.meta.env.VITE_REQUEST_TIMEOUT_MS ?? 5000);
 
@@ -47,15 +49,24 @@ export async function apiRequest<T>(path: string, init: RequestInit = {}): Promi
     headers.set("Content-Type", "application/json");
   }
 
-  const csrfToken = getCookie("csrftoken");
-  if (csrfToken && !["GET", "HEAD", "OPTIONS"].includes(init.method?.toUpperCase() ?? "GET")) {
-    headers.set("X-CSRFToken", decodeURIComponent(csrfToken));
+  // Native (token) auth and web (session cookie) auth are mutually exclusive.
+  // When a token is present we send it in the Authorization header and skip
+  // cookies + CSRF entirely, since the native WebView is cross-origin. Otherwise
+  // we preserve the existing same-origin session + CSRF flow unchanged.
+  const authToken = getAuthToken();
+  if (authToken) {
+    headers.set("Authorization", `Token ${authToken}`);
+  } else {
+    const csrfToken = getCookie("csrftoken");
+    if (csrfToken && !["GET", "HEAD", "OPTIONS"].includes(init.method?.toUpperCase() ?? "GET")) {
+      headers.set("X-CSRFToken", decodeURIComponent(csrfToken));
+    }
   }
 
   try {
     const response = await fetch(`${baseUrl}${path}`, {
       ...init,
-      credentials: "same-origin",
+      credentials: authToken ? "omit" : "same-origin",
       headers,
       signal: init.signal ?? controller.signal,
     });

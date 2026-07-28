@@ -1,0 +1,24 @@
+diff --git a/node_modules/@capacitor/local-notifications/android/src/main/java/com/capacitorjs/plugins/localnotifications/TimedNotificationPublisher.java b/node_modules/@capacitor/local-notifications/android/src/main/java/com/capacitorjs/plugins/localnotifications/TimedNotificationPublisher.java
+--- a/node_modules/@capacitor/local-notifications/android/src/main/java/com/capacitorjs/plugins/localnotifications/TimedNotificationPublisher.java
++++ b/node_modules/@capacitor/local-notifications/android/src/main/java/com/capacitorjs/plugins/localnotifications/TimedNotificationPublisher.java
+@@ -10,1 +10,2 @@
+ import android.os.Build;
++import com.timeagent.app.NotificationDiagnosticsStore;
+@@ -40,1 +41,9 @@
+-        notification.when = System.currentTimeMillis();
++        // The notification object was built when the alarm was registered, so
++        // mutating its public `when` field alone is not reliably reflected by
++        // OEM System UI. Rebuild it at receipt time through the platform API.
++        // This preserves the original content while setting the event time
++        // that the notification shade renders.
++        notification = Notification.Builder.recoverBuilder(context, notification)
++            .setWhen(System.currentTimeMillis())
++            .setShowWhen(true)
++            .build();
+@@ -52,3 +61,6 @@
+         if (id == Integer.MIN_VALUE) {
+             Logger.error(Logger.tags("LN"), "No valid id supplied", null);
+         }
++        else {
++            NotificationDiagnosticsStore.append(context, "fired", id, null, null);
++        }

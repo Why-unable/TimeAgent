@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { NavLink, Outlet } from "react-router-dom";
 
+import { useCurrentUser } from "../features/accounts/hooks";
 import { useCurrentUserPreference } from "../features/preferences/hooks";
 import { MobileNavigation } from "./mobile-navigation";
 
@@ -30,6 +31,7 @@ const navigation = [
 ];
 
 export function AppLayout() {
+  const currentUser = useCurrentUser();
   const preference = useCurrentUserPreference();
   const timezone =
     preference.data?.timezone ?? import.meta.env.VITE_DEFAULT_TIMEZONE ?? "Asia/Shanghai";
@@ -43,11 +45,14 @@ export function AppLayout() {
           <p className="mt-3 text-xs text-slate-500">当前时区：{timezone}</p>
         </div>
         <nav className="space-y-2" aria-label="主导航">
-          {navigation.map(({ to, label, icon: Icon }) => (
+          {navigation
+            .filter(({ to }) => currentUser.data?.is_staff || to !== "/")
+            .map((item) => (item.to === "/" ? { ...item, to: "/system-status" } : item))
+            .map(({ to, label, icon: Icon }) => (
             <NavLink
               key={to}
               to={to}
-              end={to === "/"}
+              end={to === "/system-status"}
               className={({ isActive }) =>
                 `flex items-center gap-3 rounded-xl px-3 py-2 text-sm transition ${
                   isActive

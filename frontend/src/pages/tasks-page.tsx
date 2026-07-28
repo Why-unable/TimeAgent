@@ -6,6 +6,7 @@ import { useCurrentUserPreference } from "../features/preferences/hooks";
 import { filterTasks, type TaskFilter } from "../features/tasks/filters";
 import { useCompleteTask, useTasks } from "../features/tasks/hooks";
 import { TaskEditor } from "../features/tasks/task-editor";
+import { ScheduleWorkspaceTabs } from "../features/workspace/schedule-workspace-tabs";
 import { formatInUserTimezone } from "../utils/datetime";
 
 const filters: { id: TaskFilter; label: string }[] = [
@@ -51,9 +52,9 @@ export function TasksPage() {
 
   return (
     <section className="mx-auto max-w-6xl">
+      <ScheduleWorkspaceTabs />
       <div className="flex flex-wrap items-start justify-between gap-4 sm:items-end">
         <div>
-          <p className="hidden text-sm font-medium text-cyan-300 lg:block">Phase 3 · 结构化事务</p>
           <div className="mt-2 flex items-center gap-3">
             <ListTodo className="text-cyan-300" size={31} />
             <h2 className="text-4xl font-semibold">任务</h2>

@@ -100,6 +100,38 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/auth/email-verification/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["api_v1_auth_email_verification_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/email-verification/confirm/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["api_v1_auth_email_verification_confirm_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/auth/login/": {
         parameters: {
             query?: never;
@@ -180,6 +212,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/auth/profile/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch: operations["api_v1_auth_profile_partial_update"];
+        trace?: never;
+    };
     "/api/v1/auth/register/": {
         parameters: {
             query?: never;
@@ -190,6 +238,46 @@ export interface paths {
         get?: never;
         put?: never;
         post: operations["api_v1_auth_register_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/token/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * @description Exchange credentials for a DRF auth token (native app channel).
+         *
+         *     Explicitly clears authentication_classes so SessionAuthentication's CSRF
+         *     enforcement does not apply — native clients have no CSRF cookie. Credentials
+         *     are validated exactly as the session LoginView, reusing AccountService.
+         */
+        post: operations["api_v1_auth_token_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/token/revoke/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Delete the caller's auth token (native app logout). */
+        post: operations["api_v1_auth_token_revoke_create"];
         delete?: never;
         options?: never;
         head?: never;
@@ -742,6 +830,10 @@ export interface components {
          * @enum {string}
          */
         AgentRunStatusEnum: "pending" | "running" | "waiting_approval" | "completed" | "failed" | "cancelled";
+        AuthToken: {
+            readonly token: string;
+            readonly user: components["schemas"]["CurrentUser"];
+        };
         /** @enum {unknown} */
         BlankEnum: "";
         BriefingDefinition: {
@@ -842,7 +934,6 @@ export interface components {
             source?: string;
             external_id?: string;
             created_by?: number | null;
-            /** Format: int64 */
             version?: number;
             /** Format: date-time */
             readonly created_at: string;
@@ -956,6 +1047,7 @@ export interface components {
              */
             readonly email: string;
             readonly display_name: string;
+            readonly is_email_verified: boolean;
             /**
              * 工作人员状态
              * @description 指明用户是否可以登录到这个管理站点。
@@ -972,6 +1064,14 @@ export interface components {
          * @enum {string}
          */
         DependencyStatusEnum: "ok" | "error";
+        EmailVerificationConfirm: {
+            uid: string;
+            token: string;
+        };
+        EmailVerificationRequest: {
+            /** Format: email */
+            email: string;
+        };
         ErrorResponse: {
             detail: string;
         };
@@ -1092,6 +1192,9 @@ export interface components {
             /** Format: date-time */
             readonly updated_at?: string;
         };
+        PatchedNicknameUpdate: {
+            nickname?: string;
+        };
         PatchedNotificationPreference: {
             /** Format: email */
             readonly email?: string;
@@ -1149,12 +1252,10 @@ export interface components {
             sleep_start?: string;
             /** Format: time */
             sleep_end?: string;
-            /** Format: int64 */
             default_event_duration_minutes?: number;
             preferred_focus_periods?: unknown;
             default_reminder_offsets?: unknown;
             weather_location?: string;
-            /** Format: int64 */
             weather_forecast_days?: number;
             news_topics?: unknown;
             /** Format: time */
@@ -1221,6 +1322,7 @@ export interface components {
         Register: {
             /** Format: email */
             email: string;
+            nickname: string;
             password: string;
         };
         Reminder: {
@@ -1230,7 +1332,6 @@ export interface components {
             /** Format: uuid */
             target_id?: string | null;
             schedule_anchor?: components["schemas"]["ScheduleAnchorEnum"] | components["schemas"]["BlankEnum"];
-            /** Format: int64 */
             offset_minutes?: number | null;
             title: string;
             /** Format: date-time */
@@ -1243,7 +1344,6 @@ export interface components {
             queued_at?: string | null;
             /** Format: date-time */
             sent_at?: string | null;
-            /** Format: int64 */
             retry_count?: number;
             failure_reason?: string;
             /** Format: date-time */
@@ -1322,7 +1422,6 @@ export interface components {
             priority?: components["schemas"]["PriorityEnum"];
             /** Format: date-time */
             due_at?: string | null;
-            /** Format: int64 */
             estimated_minutes?: number | null;
             /** Format: date-time */
             planned_start_at?: string | null;
@@ -1377,12 +1476,10 @@ export interface components {
             sleep_start?: string;
             /** Format: time */
             sleep_end?: string;
-            /** Format: int64 */
             default_event_duration_minutes?: number;
             preferred_focus_periods?: unknown;
             default_reminder_offsets?: unknown;
             weather_location?: string;
-            /** Format: int64 */
             weather_forecast_days?: number;
             news_topics?: unknown;
             /** Format: time */
@@ -1614,6 +1711,54 @@ export interface operations {
             };
         };
     };
+    api_v1_auth_email_verification_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EmailVerificationRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["EmailVerificationRequest"];
+                "multipart/form-data": components["schemas"]["EmailVerificationRequest"];
+            };
+        };
+        responses: {
+            /** @description No response body */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    api_v1_auth_email_verification_confirm_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EmailVerificationConfirm"];
+                "application/x-www-form-urlencoded": components["schemas"]["EmailVerificationConfirm"];
+                "multipart/form-data": components["schemas"]["EmailVerificationConfirm"];
+            };
+        };
+        responses: {
+            /** @description No response body */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     api_v1_auth_login_create: {
         parameters: {
             query?: never;
@@ -1724,6 +1869,31 @@ export interface operations {
             };
         };
     };
+    api_v1_auth_profile_partial_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PatchedNicknameUpdate"];
+                "application/x-www-form-urlencoded": components["schemas"]["PatchedNicknameUpdate"];
+                "multipart/form-data": components["schemas"]["PatchedNicknameUpdate"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CurrentUser"];
+                };
+            };
+        };
+    };
     api_v1_auth_register_create: {
         parameters: {
             query?: never;
@@ -1739,13 +1909,55 @@ export interface operations {
             };
         };
         responses: {
-            201: {
+            /** @description Verification email sent */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    api_v1_auth_token_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Login"];
+                "application/x-www-form-urlencoded": components["schemas"]["Login"];
+                "multipart/form-data": components["schemas"]["Login"];
+            };
+        };
+        responses: {
+            200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["CurrentUser"];
+                    "application/json": components["schemas"]["AuthToken"];
                 };
+            };
+        };
+    };
+    api_v1_auth_token_revoke_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };

@@ -1,8 +1,9 @@
 import { lazy, Suspense } from "react";
 import type { ReactNode } from "react";
-import { createBrowserRouter, RouterProvider } from "react-router-dom";
+import { Navigate, createBrowserRouter, RouterProvider } from "react-router-dom";
 
 import { RequireAuthentication } from "../features/accounts/require-authentication";
+import { RequireStaff } from "../features/accounts/require-staff";
 import { AppLayout } from "../layouts/app-layout";
 import { AccountSettingsPage } from "../pages/account-settings-page";
 import { LoginPage } from "../pages/login-page";
@@ -46,7 +47,7 @@ const router = createBrowserRouter([
       {
         element: <AppLayout />,
         children: [
-          { path: "/", element: <SystemStatusPage /> },
+          { path: "/", element: <Navigate to="/today" replace /> },
           { path: "/today", element: lazyPage(<TodayPage />) },
           { path: "/chat/:conversationId?", element: lazyPage(<ChatPage />) },
           { path: "/calendar", element: lazyPage(<CalendarPage />) },
@@ -59,6 +60,10 @@ const router = createBrowserRouter([
           {
             path: "/settings/notifications",
             element: lazyPage(<NotificationSettingsPage />),
+          },
+          {
+            element: <RequireStaff />,
+            children: [{ path: "/system-status", element: <SystemStatusPage /> }],
           },
         ],
       },

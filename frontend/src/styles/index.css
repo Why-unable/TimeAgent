@@ -20,6 +20,20 @@ body {
   min-height: 100vh;
 }
 
+/* The viewport scrollbar is visual noise in the installed app. Purposeful
+ * scroll containers such as the calendar keep their own scrolling behaviour. */
+html,
+body,
+#root {
+  scrollbar-width: none;
+}
+
+html::-webkit-scrollbar,
+body::-webkit-scrollbar {
+  display: none;
+}
+
+
 /* A PWA is held at arm's length more often than a desktop app.  Enlarge the
  * recurring text tokens on touch-sized viewports without changing the root
  * font size: Tailwind's responsive breakpoints are rem-based. */

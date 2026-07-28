@@ -21,7 +21,7 @@ from langchain.agents.middleware import (
     dynamic_prompt,
 )
 from langchain_core.language_models.chat_models import BaseChatModel
-from langchain_core.messages import SystemMessage, ToolMessage
+from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, SystemMessage, ToolMessage
 from langchain_core.tools import BaseTool
 
 from apps.action_proposals.risk_policy import hitl_interrupt_policy, policy_for_tool
@@ -47,6 +47,13 @@ def runtime_system_prompt(request: ModelRequest[RuntimeContext]) -> SystemMessag
     context = request.runtime.context
     mode = "read-only" if context.read_only else "read/write; high-risk tools require approval"
     local_anchor = to_user_timezone(context.current_datetime, context.timezone)
+    display_name = context.actor.first_name.strip() if context.actor is not None else ""
+    user_identity = (
+        f"User profile: preferred name={display_name}. "
+        "Address the user by this name when natural.\n\n"
+        if display_name
+        else ""
+    )
     return SystemMessage(
         content=(
             f"{BASE_SYSTEM_PROMPT}\n\n"
@@ -54,9 +61,109 @@ def runtime_system_prompt(request: ModelRequest[RuntimeContext]) -> SystemMessag
             f"{local_anchor.isoformat()} ({context.timezone}), UTC "
             f"{context.current_datetime.isoformat()}. Interpret relative dates against this "
             f"anchor. User timezone={context.timezone}; locale={context.locale}; mode={mode}.\n\n"
-            f"{context.planning_preferences.as_prompt_block()}"
+            f"{user_identity}"
+            f"{context.planning_preferences.as_prompt_block()}\n\n"
+            "Temporal precedence rule: interpret every relative time expression "
+            "only from this run's Runtime time anchor. Historical assistant "
+            "responses are context, not a clock; never derive current time from them."
         )
     )
+
+
+class TemporalContextMiddleware(AgentMiddleware[AppState, RuntimeContext, Any]):
+    """Present historical messages without letting old runtime observations become ``now``.
+
+    The returned messages exist only on the model request.  LangGraph state and its
+    checkpoint retain the original conversation verbatim for history/audit purposes.
+    """
+
+    _HISTORICAL_AI_PREFIX = (
+        "[Historical assistant response. Any runtime observation in this response, "
+        "including references to now/today/tomorrow, is stale and must not be used "
+        "as the current time.]\n"
+    )
+    _CURRENT_TIME_TOOL = "get_current_datetime"
+
+    @staticmethod
+    def _last_user_message_index(messages: list[BaseMessage]) -> int:
+        return max(
+            (index for index, message in enumerate(messages) if isinstance(message, HumanMessage)),
+            default=-1,
+        )
+
+    @classmethod
+    def _model_messages(cls, messages: list[BaseMessage]) -> list[BaseMessage]:
+        """Copy only historical assistant content and remove historical clock calls.
+
+        A ToolMessage cannot be removed on its own: providers expect every tool
+        response to have a matching tool call in the preceding AIMessage.  Therefore
+        we also remove the matching historical tool call from that AIMessage.  Calls
+        made after the latest user message belong to the current agent loop and are
+        deliberately retained.
+        """
+
+        last_user_index = cls._last_user_message_index(messages)
+        stale_time_call_ids: set[str] = set()
+        transformed: list[BaseMessage] = []
+
+        for index, message in enumerate(messages):
+            if index >= last_user_index or not isinstance(message, AIMessage):
+                transformed.append(message)
+                continue
+
+            tool_calls = list(message.tool_calls)
+            stale_time_call_ids.update(
+                str(call["id"])
+                for call in tool_calls
+                if call.get("name") == cls._CURRENT_TIME_TOOL and call.get("id")
+            )
+            retained_calls = [
+                call for call in tool_calls if call.get("name") != cls._CURRENT_TIME_TOOL
+            ]
+            content = message.content
+            historical_content = (
+                f"{cls._HISTORICAL_AI_PREFIX}{content}"
+                if isinstance(content, str)
+                else [
+                    {"type": "text", "text": cls._HISTORICAL_AI_PREFIX},
+                    *content,
+                ]
+            )
+            transformed.append(
+                message.model_copy(
+                    update={"content": historical_content, "tool_calls": retained_calls}
+                )
+            )
+
+        return [
+            message
+            for index, message in enumerate(transformed)
+            if not (
+                index < last_user_index
+                and isinstance(message, ToolMessage)
+                and (
+                    message.name == cls._CURRENT_TIME_TOOL
+                    or str(message.tool_call_id) in stale_time_call_ids
+                )
+            )
+        ]
+
+    def _request(self, request: ModelRequest[RuntimeContext]) -> ModelRequest[RuntimeContext]:
+        return request.override(messages=self._model_messages(list(request.messages)))
+
+    def wrap_model_call(
+        self,
+        request: ModelRequest[RuntimeContext],
+        handler: Callable[[ModelRequest[RuntimeContext]], ModelResponse],
+    ) -> ModelResponse:
+        return handler(self._request(request))
+
+    async def awrap_model_call(
+        self,
+        request: ModelRequest[RuntimeContext],
+        handler: Callable[[ModelRequest[RuntimeContext]], Awaitable[ModelResponse]],
+    ) -> ModelResponse:
+        return await handler(self._request(request))
 
 
 class ToolPolicyMiddleware(AgentMiddleware[AppState, RuntimeContext, Any]):
@@ -267,6 +374,7 @@ def build_time_steward_middleware(
     read_only_retry_tools: list[BaseTool | str] = list(READ_ONLY_TOOLS)
     middleware: list[Any] = [
         runtime_system_prompt,
+        TemporalContextMiddleware(),
         ToolPolicyMiddleware(),
         HumanInTheLoopMiddleware(interrupt_on=hitl_interrupt_policy()),
         ToolAuditMiddleware(),

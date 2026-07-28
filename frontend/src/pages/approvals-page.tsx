@@ -4,6 +4,7 @@ import { useState } from "react";
 import type { ActionProposalStatus } from "../api/action-proposals";
 import { ApprovalCard } from "../components/approvals/approval-card";
 import { useActionProposals, useProposalDecision } from "../features/approvals/hooks";
+import { useCurrentUser } from "../features/accounts/hooks";
 
 const filters: { value: ActionProposalStatus | undefined; label: string }[] = [
   { value: undefined, label: "全部" },
@@ -15,13 +16,16 @@ const filters: { value: ActionProposalStatus | undefined; label: string }[] = [
 ];
 
 export function ApprovalsPage() {
+  const currentUser = useCurrentUser();
   const [filter, setFilter] = useState<ActionProposalStatus | undefined>("awaiting_approval");
   const proposals = useActionProposals(filter);
   const decision = useProposalDecision();
+  const visibleProposals = currentUser.data?.is_staff || filter === "awaiting_approval"
+    ? proposals.data ?? []
+    : (proposals.data ?? []).slice(0, 10);
 
   return (
     <section className="mx-auto max-w-5xl">
-      <p className="text-sm font-medium text-cyan-300">Phase 6 · Human in the loop</p>
       <div className="mt-2 flex items-center gap-3">
         <ShieldCheck className="text-cyan-300" />
         <h2 className="text-3xl font-semibold">操作审批</h2>
@@ -37,8 +41,8 @@ export function ApprovalsPage() {
       <div className="mt-6 space-y-4">
         {proposals.isPending && <p className="text-slate-400">正在加载审批…</p>}
         {proposals.isError && <p role="alert" className="rounded-xl border border-red-400/30 bg-red-400/10 p-4 text-red-100">无法加载审批列表。</p>}
-        {proposals.data?.length === 0 && <div className="rounded-2xl border border-dashed border-white/10 p-12 text-center text-slate-500">当前没有符合条件的操作</div>}
-        {proposals.data?.map((proposal) => (
+        {visibleProposals.length === 0 && <div className="rounded-2xl border border-dashed border-white/10 p-12 text-center text-slate-500">当前没有符合条件的操作</div>}
+        {visibleProposals.map((proposal) => (
           <ApprovalCard
             key={proposal.id}
             proposal={proposal}

@@ -114,7 +114,6 @@ export function TimeSettingsPage() {
 
   return (
     <section className="mx-auto max-w-3xl">
-      <p className="text-sm font-medium text-cyan-300">Phase 1 · 时间基础</p>
       <h2 className="mt-2 text-3xl font-semibold">时间偏好</h2>
       <p className="mt-3 text-slate-400">
         后端保存 IANA 时区，并负责最终时区和工作时间校验。

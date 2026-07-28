@@ -15,6 +15,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 
 import type { CalendarEvent } from "../api/events";
 import { EventEditor } from "../features/events/event-editor";
+import { ScheduleWorkspaceTabs } from "../features/workspace/schedule-workspace-tabs";
 import { useCancelEvent, useEvents } from "../features/events/hooks";
 import { useCurrentUserPreference } from "../features/preferences/hooks";
 import { formatDateKey, formatInUserTimezone, formatTimeInUserTimezone, getLocalDateKey } from "../utils/datetime";
@@ -107,10 +108,9 @@ export function CalendarPage() {
   };
 
   return (
-    <section className="-mx-5 sm:mx-auto sm:max-w-[1500px]">
+    <section className="-mx-5 flex h-[calc(100dvh-11rem)] flex-col overflow-hidden sm:mx-auto sm:block sm:h-auto sm:max-w-[1500px] sm:overflow-visible">
       <div className="flex flex-wrap items-end justify-between gap-4 px-5 sm:px-0">
         <div>
-          <p className="hidden text-sm font-medium text-cyan-300 lg:block">Phase 3 · 结构化事务</p>
           <div className="mt-2 flex items-center gap-3">
             <CalendarDays className="text-cyan-300" size={31} />
             <h2 className="text-4xl font-semibold">日历</h2>
@@ -127,14 +127,16 @@ export function CalendarPage() {
         </button>
       </div>
 
+      <div className="px-5 sm:hidden"><ScheduleWorkspaceTabs /></div>
+
       {events.isError && (
         <div role="alert" className="mx-5 mt-6 rounded-xl border border-amber-400/30 bg-amber-400/10 p-4 text-amber-100 sm:mx-0">
           无法读取日程，请确认登录状态后重试。
         </div>
       )}
 
-      <div className="mt-6 grid gap-6 sm:mt-10 xl:grid-cols-[minmax(0,1fr)_320px]">
-        <div className={`calendar-shell flex h-[calc(100dvh-15rem)] min-w-0 flex-col bg-slate-900 px-2 py-3 sm:h-auto sm:rounded-[2rem] sm:border sm:border-white/10 sm:p-5 ${isMobile && view === "timeGridWeek" ? "calendar-week-layout" : ""}`}>
+      <div className="mt-4 min-h-0 flex-1 px-0 sm:mt-10 sm:grid sm:gap-6 sm:px-0 xl:grid-cols-[minmax(0,1fr)_320px]">
+        <div className={`calendar-shell flex h-full min-w-0 flex-col bg-slate-900 px-2 py-3 sm:h-auto sm:rounded-[2rem] sm:border sm:border-white/10 sm:p-5 ${isMobile && view === "timeGridWeek" ? "calendar-week-layout" : ""}`}>
           {events.isPending && <p className="mb-3 text-sm text-slate-400">正在读取当前日历范围…</p>}
           {isMobile && (
             <div className="mb-3 grid grid-cols-3 rounded-xl bg-slate-950/70 p-1" aria-label="日历视图">

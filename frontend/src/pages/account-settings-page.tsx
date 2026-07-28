@@ -1,11 +1,34 @@
+import { FormEvent, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
-import { useCurrentUser, useLogout } from "../features/accounts/hooks";
+import { updateNickname } from "../api/auth";
+import { queryClient } from "../app/query-client";
+import { currentUserQueryKey, useCurrentUser, useLogout } from "../features/accounts/hooks";
 
 export function AccountSettingsPage() {
   const navigate = useNavigate();
   const user = useCurrentUser();
   const logout = useLogout();
+  const [nickname, setNickname] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState("");
+
+  useEffect(() => {
+    if (user.data) setNickname(user.data.display_name);
+  }, [user.data]);
+
+  async function saveNickname(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setSaving(true);
+    setMessage("");
+    try {
+      const updated = await updateNickname(nickname);
+      queryClient.setQueryData(currentUserQueryKey, updated);
+      setMessage("昵称已保存。");
+    } finally {
+      setSaving(false);
+    }
+  }
 
   return (
     <section className="mx-auto max-w-3xl">
@@ -14,6 +37,25 @@ export function AccountSettingsPage() {
       <div className="mt-8 rounded-2xl border border-white/10 bg-slate-900 p-6">
         <p className="text-sm text-slate-400">当前登录账号</p>
         <p className="mt-2 text-lg font-medium">{user.data?.email}</p>
+        <p className="mt-2 text-sm text-slate-400">
+          邮箱状态：{user.data?.is_email_verified ? "已验证" : "未验证"}
+        </p>
+        <form className="mt-6" onSubmit={saveNickname}>
+          <label className="block text-sm text-slate-300">
+            昵称
+            <input
+              required
+              maxLength={150}
+              value={nickname}
+              onChange={(event) => setNickname(event.target.value)}
+              className="mt-2 w-full rounded-xl border border-white/10 bg-slate-950 px-4 py-3 text-white outline-none ring-cyan-300 focus:ring-2"
+            />
+          </label>
+          <button type="submit" disabled={saving} className="mt-3 rounded-xl bg-cyan-300 px-4 py-2 text-sm font-medium text-slate-950 disabled:opacity-50">
+            {saving ? "保存中…" : "保存昵称"}
+          </button>
+          {message && <p role="status" className="mt-2 text-sm text-emerald-200">{message}</p>}
+        </form>
         <button
           type="button"
           disabled={logout.isPending}

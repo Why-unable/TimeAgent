@@ -1,6 +1,8 @@
 import os
 from pathlib import Path
 
+from corsheaders.defaults import default_headers
+
 BASE_DIR = Path(__file__).resolve().parents[2]
 
 SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "unsafe-development-only-key")
@@ -15,6 +17,24 @@ CSRF_TRUSTED_ORIGINS = [
     for origin in os.getenv("DJANGO_CSRF_TRUSTED_ORIGINS", "").split(",")
     if origin.strip()
 ]
+# The native Android (Capacitor) WebView loads bundled assets from
+# https://localhost, so its API calls to the public backend are cross-origin.
+# The web client is same-origin and never triggers CORS. Defaults cover the
+# Capacitor WebView origins; override via DJANGO_CORS_ALLOWED_ORIGINS if needed.
+CORS_ALLOWED_ORIGINS = [
+    origin.strip()
+    for origin in os.getenv(
+        "DJANGO_CORS_ALLOWED_ORIGINS",
+        "https://localhost,capacitor://localhost",
+    ).split(",")
+    if origin.strip()
+]
+# Custom request headers the clients send that are not CORS-safelisted, so a
+# cross-origin preflight would otherwise reject them:
+#  - x-request-id: sent on every apiRequest call for tracing.
+#  - last-event-id: sent by the chat SSE stream (sse-client.ts) to resume from a
+#    cursor; without it the stream's preflight fails as "Failed to fetch".
+CORS_ALLOW_HEADERS = (*default_headers, "x-request-id", "last-event-id")
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
 INSTALLED_APPS = [
@@ -25,7 +45,9 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "django_prometheus",
+    "corsheaders",
     "rest_framework",
+    "rest_framework.authtoken",
     "drf_spectacular",
     "apps.accounts",
     "apps.action_proposals",
@@ -46,6 +68,10 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     "django_prometheus.middleware.PrometheusBeforeMiddleware",
     "django.middleware.security.SecurityMiddleware",
+    # CorsMiddleware must run before CommonMiddleware so preflight/actual
+    # responses carry CORS headers. The native Android (Capacitor) WebView is
+    # served from https://localhost, making its API calls cross-origin (ADR-0009).
+    "corsheaders.middleware.CorsMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -133,6 +159,17 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 REST_FRAMEWORK = {
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
     "DEFAULT_RENDERER_CLASSES": ["rest_framework.renderers.JSONRenderer"],
+    # Token auth is listed first so an unauthenticated request yields 401 (its
+    # authenticate_header sets WWW-Authenticate) rather than 403 — DRF derives
+    # the status from the FIRST authenticator's header. 403 would read as
+    # "service error" to clients that only treat 401 as "signed out". Session
+    # auth still keeps the same-origin web client working unchanged (ADR-0009);
+    # token auth is the additive channel for the native Android (Capacitor) app,
+    # whose WebView origin is cross-origin and cannot rely on session cookies.
+    "DEFAULT_AUTHENTICATION_CLASSES": [
+        "rest_framework.authentication.TokenAuthentication",
+        "rest_framework.authentication.SessionAuthentication",
+    ],
     "DEFAULT_THROTTLE_RATES": {"authentication": "10/min"},
 }
 

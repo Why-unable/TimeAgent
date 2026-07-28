@@ -269,6 +269,8 @@ docker compose restart nginx
 # Agent、Celery Task 或共享后端代码
 docker compose up -d --build django celery-worker celery-beat
 docker compose restart nginx
+
+docker compose -f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.observability.yml up -d --build django celery-worker celery-beat
 ```
 
 前端镜像更新后，在浏览器执行 `Ctrl + F5` 强制刷新。可以使用以下命令确认服务状态并检查

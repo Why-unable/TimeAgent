@@ -1,8 +1,18 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
+import {
+  clearAuthToken,
+  resetTokenStore,
+  setTokenStore,
+} from "../src/api/auth-token";
 import { parseEvent, streamAgentRun } from "../src/features/agent-runs/sse-client";
 
 describe("agent SSE protocol", () => {
+  afterEach(async () => {
+    await clearAuthToken();
+    resetTokenStore();
+  });
+
   it("parses cursor, typed event and multiline JSON data", () => {
     const event = parseEvent(
       'id: 7\nevent: tool.completed\ndata: {"tool_name":\ndata: "list_events"}',
@@ -44,5 +54,35 @@ describe("agent SSE protocol", () => {
       expect.objectContaining({ "Last-Event-ID": "1" }),
     );
     vi.useRealTimers();
+  });
+
+  it("sends the auth token and omits cookies when a token is present", async () => {
+    let stored: string | null = null;
+    setTokenStore({
+      load: async () => stored,
+      save: async (token) => {
+        stored = token;
+      },
+      clear: async () => {
+        stored = null;
+      },
+    });
+    const { setAuthToken } = await import("../src/api/auth-token");
+    await setAuthToken("native-token-abc");
+
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response('id: 1\nevent: message.completed\ndata: {"content":"ok"}\n\n', {
+        headers: { "Content-Type": "text/event-stream" },
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    await streamAgentRun("run-1", () => {});
+
+    const init = fetchMock.mock.calls[0]?.[1];
+    expect(init?.credentials).toBe("omit");
+    expect(init?.headers).toEqual(
+      expect.objectContaining({ Authorization: "Token native-token-abc" }),
+    );
   });
 });

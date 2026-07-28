@@ -20,7 +20,11 @@ from langchain_core.tools import BaseTool
 
 from apps.agents.agents.time_steward import build_time_steward_agent
 from apps.agents.context import RuntimeContext
-from apps.agents.middleware import ToolPolicyMiddleware, build_time_steward_middleware
+from apps.agents.middleware import (
+    TemporalContextMiddleware,
+    ToolPolicyMiddleware,
+    build_time_steward_middleware,
+)
 from apps.agents.tools import READ_ONLY_TOOLS, TIME_STEWARD_TOOLS, WRITE_TOOLS
 from apps.conversations.models import AgentRunStatus, ToolCallAudit, ToolCallStatus
 from apps.conversations.services import AgentRunService, ConversationService, StartRunCommand
@@ -90,6 +94,47 @@ def context(
     return RuntimeContext(**values)
 
 
+def test_temporal_context_hides_historical_clock_calls_and_labels_ai_messages() -> None:
+    messages: list[BaseMessage] = [
+        HumanMessage(content="What time is it?"),
+        AIMessage(
+            content="It is 2026-07-17 16:00.",
+            tool_calls=[
+                {
+                    "name": "get_current_datetime",
+                    "args": {},
+                    "id": "historic-clock-call",
+                    "type": "tool_call",
+                }
+            ],
+        ),
+        ToolMessage(
+            content='{"observed_datetime_local":"2026-07-17T16:00:00+08:00"}',
+            name="get_current_datetime",
+            tool_call_id="historic-clock-call",
+        ),
+        HumanMessage(content="Then schedule it tomorrow."),
+    ]
+
+    model_messages = TemporalContextMiddleware._model_messages(messages)
+
+    historical_ai = next(message for message in model_messages if isinstance(message, AIMessage))
+    assert str(historical_ai.content).startswith("[Historical assistant response.")
+    assert historical_ai.tool_calls == []
+    assert all(
+        not (
+            isinstance(message, ToolMessage)
+            and message.name == "get_current_datetime"
+        )
+        for message in model_messages
+    )
+    assert model_messages[-1].content == "Then schedule it tomorrow."
+
+    # The checkpoint/history source is untouched.
+    assert messages[1].content == "It is 2026-07-17 16:00."
+    assert isinstance(messages[2], ToolMessage)
+
+
 @pytest.mark.django_db(transaction=True)
 def test_time_tool_returns_fixed_run_anchor_and_realtime_clock() -> None:
     user = User.objects.create_user(username="clock-reader")
@@ -127,8 +172,8 @@ def test_time_tool_returns_fixed_run_anchor_and_realtime_clock() -> None:
 
 
 @pytest.mark.django_db(transaction=True)
-def test_agent_injects_planning_preferences_without_exposing_a_preference_tool() -> None:
-    user = User.objects.create_user(username="planning-reader")
+def test_agent_injects_runtime_preferences_and_nickname_without_preference_tool() -> None:
+    user = User.objects.create_user(username="planning-reader", first_name="小林")
     model = ScriptedChatModel(responses=[AIMessage(content="I'll use your work hours.")])
     agent = build_time_steward_agent(model=model)
     preferences = PlanningPreferencesSnapshot(
@@ -157,6 +202,8 @@ def test_agent_injects_planning_preferences_without_exposing_a_preference_tool()
     )
     assert "Workday: 08:30-17:30" in str(prompt.content)
     assert "Default reminder offsets (minutes): 30, 120" in str(prompt.content)
+    assert "Temporal precedence rule" in str(prompt.content)
+    assert "preferred name=小林" in str(prompt.content)
     assert "get_user_preferences" not in model.bound_tool_names
     assert all(not isinstance(message, SystemMessage) for message in result["messages"])
 

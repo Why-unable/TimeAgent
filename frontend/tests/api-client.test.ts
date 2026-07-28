@@ -1,8 +1,13 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
+import { clearAuthToken, setAuthToken } from "../src/api/auth-token";
 import { ApiError, apiRequest } from "../src/api/client";
 
 describe("apiRequest", () => {
+  afterEach(async () => {
+    await clearAuthToken();
+  });
+
   it("returns parsed JSON and sends a request id", async () => {
     const fetchMock = vi.fn().mockResolvedValue(
       new Response(JSON.stringify({ status: "alive" }), {
@@ -65,5 +70,32 @@ describe("apiRequest", () => {
     const headers = request.headers as Headers;
     expect(headers.get("Content-Type")).toBe("application/json");
     expect(headers.get("X-CSRFToken")).toBe("phase1-token");
+  });
+
+  it("uses the Authorization header and omits cookies when a token is set", async () => {
+    Object.defineProperty(document, "cookie", {
+      configurable: true,
+      value: "csrftoken=phase1-token",
+    });
+    await setAuthToken("native-token-abc");
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ ok: true }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    await apiRequest("/api/v1/reminders/", {
+      method: "POST",
+      body: JSON.stringify({ title: "x" }),
+    });
+
+    const [, request] = fetchMock.mock.calls[0] as [string, RequestInit];
+    const headers = request.headers as Headers;
+    // Token auth: Authorization header set, cookies omitted, CSRF skipped.
+    expect(headers.get("Authorization")).toBe("Token native-token-abc");
+    expect(headers.get("X-CSRFToken")).toBeNull();
+    expect(request.credentials).toBe("omit");
   });
 });
