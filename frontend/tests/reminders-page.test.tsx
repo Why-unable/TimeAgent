@@ -49,6 +49,21 @@ describe("RemindersPage", () => {
     );
   });
 
+  it("renders the shared 日程/任务/提醒 workspace tabs", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: RequestInfo | URL) => {
+        const url = String(input);
+        const body = url.includes("preferences") ? preference : [];
+        return new Response(JSON.stringify(body), { status: 200 });
+      }),
+    );
+    renderPage();
+    const nav = await screen.findByRole("navigation", { name: "时间管理工作区" });
+    expect(nav).toBeInTheDocument();
+    expect(nav.querySelectorAll("a")).toHaveLength(3);
+  });
+
   it("shows reminder status, retry count and failure reason", async () => {
     vi.stubGlobal(
       "fetch",
@@ -101,7 +116,7 @@ describe("RemindersPage", () => {
     fireEvent.change(screen.getByLabelText(/提醒时间/), {
       target: { value: "2026-07-17T15:00" },
     });
-    await userEvent.click(screen.getByRole("button", { name: "创建提醒" }));
+    await userEvent.click(screen.getByRole("button", { name: "新建提醒" }));
 
     await waitFor(() => expect(createBody).toBeDefined());
     expect(createBody).toMatchObject({

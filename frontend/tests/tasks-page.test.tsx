@@ -68,7 +68,7 @@ describe("TasksPage", () => {
     renderPage();
 
     expect(await screen.findByText("准备发布报告")).toBeInTheDocument();
-    expect(screen.getByText("截止时间 due_at")).toBeInTheDocument();
+    expect(screen.getByText("截止时间")).toBeInTheDocument();
     expect(screen.getByText("计划执行时间")).toBeInTheDocument();
     expect(screen.queryByText("归档旧报告")).not.toBeInTheDocument();
 

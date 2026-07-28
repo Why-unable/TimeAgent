@@ -86,7 +86,9 @@ test("uses the mobile app shell below the desktop breakpoint", async ({ page }) 
   await expect(page.locator("aside")).toHaveCount(0);
   await expect(page.getByRole("navigation", { name: "移动端主导航" })).toBeVisible();
   await expect(page.getByRole("button", { name: "更多" })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "任务" })).toBeVisible();
+  // Mobile hides the giant 任务 heading; the workspace tab bar carries the label.
+  await expect(page.getByRole("navigation", { name: "时间管理工作区" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "任务" })).toBeVisible();
 });
 
 test("reads and updates time preferences", async ({ page }) => {

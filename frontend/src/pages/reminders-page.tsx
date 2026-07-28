@@ -104,15 +104,23 @@ export function RemindersPage() {
   return (
     <section className="mx-auto max-w-5xl">
       <ScheduleWorkspaceTabs />
-      <div className="mt-2 flex items-center gap-3">
+      {/* Desktop heading */}
+      <div className="mt-2 hidden items-center gap-3 lg:flex">
         <Bell className="text-cyan-300" />
         <h2 className="text-3xl font-semibold">提醒</h2>
       </div>
-      <p className="mt-3 text-slate-400">创建自定义提醒，并查看确定性投递状态。</p>
+      <p className="mt-3 hidden text-slate-400 lg:block">创建自定义提醒，并查看确定性投递状态。</p>
+
+      {/* Mobile description + primary action */}
+      <p className="mt-4 text-base text-slate-400 lg:hidden">
+        创建自定义提醒，并查看确定性投递状态。
+      </p>
+      {/* sr-only heading so tests and screen readers can still target 提醒 */}
+      <h2 className="sr-only lg:hidden">提醒</h2>
 
       <form
         onSubmit={onSubmit}
-        className="mt-8 grid gap-4 rounded-2xl border border-white/10 bg-slate-900 p-5 lg:grid-cols-[minmax(0,1fr)_220px_240px_auto] lg:items-end"
+        className="mt-4 grid gap-4 rounded-2xl border border-white/10 bg-slate-900 p-5 lg:mt-8 lg:grid-cols-[minmax(0,1fr)_220px_240px_auto] lg:items-end"
       >
         <label>
           <span className="text-sm text-slate-300">提醒内容</span>
@@ -149,10 +157,10 @@ export function RemindersPage() {
         <button
           type="submit"
           disabled={createMutation.isPending}
-          className="inline-flex items-center justify-center gap-2 rounded-xl bg-cyan-300 px-5 py-3 font-medium text-slate-950 disabled:opacity-50"
+          className="inline-flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl bg-cyan-300 px-5 py-3 text-lg font-semibold text-slate-950 disabled:opacity-50 lg:w-auto lg:rounded-xl lg:text-base"
         >
           <Plus size={18} />
-          {createMutation.isPending ? "创建中" : "创建提醒"}
+          {createMutation.isPending ? "创建中" : "新建提醒"}
         </button>
         {createMutation.isError && (
           <div role="alert" className="text-sm text-red-300 md:col-span-3">
