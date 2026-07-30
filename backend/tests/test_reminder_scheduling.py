@@ -10,7 +10,7 @@ from apps.tasks.services import CreateTaskCommand, TaskService
 pytestmark = pytest.mark.django_db
 
 
-def test_planned_task_creates_progressive_future_reminders() -> None:
+def test_planned_task_creates_standard_future_reminders() -> None:
     user = get_user_model().objects.create_user(username="schedule-task")
     start = datetime.now(UTC) + timedelta(days=10)
     TaskService.create_task(
@@ -23,7 +23,7 @@ def test_planned_task_creates_progressive_future_reminders() -> None:
     )
 
     reminders = Reminder.objects.filter(user=user, target_type=ReminderTargetType.TASK)
-    assert set(reminders.values_list("offset_minutes", flat=True)) == {30, 1440, 4320, 10080}
+    assert set(reminders.values_list("offset_minutes", flat=True)) == {0, 15, 1440}
 
 
 def test_event_reschedule_updates_its_pending_reminders() -> None:
@@ -48,8 +48,8 @@ def test_event_reschedule_updates_its_pending_reminders() -> None:
             changes={"start_at": new_start, "end_at": new_start + timedelta(hours=1)},
         )
     )
-    reminder = Reminder.objects.get(target_id=event.id, offset_minutes=120)
-    assert reminder.trigger_at == new_start - timedelta(minutes=120)
+    reminder = Reminder.objects.get(target_id=event.id, offset_minutes=15)
+    assert reminder.trigger_at == new_start - timedelta(minutes=15)
 
 
 def test_task_reschedule_updates_its_pending_reminders() -> None:

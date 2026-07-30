@@ -4,6 +4,7 @@ from collections.abc import Callable, Sequence
 from datetime import UTC, datetime
 from io import StringIO
 from pathlib import Path
+from types import SimpleNamespace
 from typing import Any
 from unittest.mock import MagicMock
 from uuid import uuid4
@@ -23,6 +24,7 @@ from apps.agents.context import RuntimeContext
 from apps.agents.middleware import (
     TemporalContextMiddleware,
     ToolPolicyMiddleware,
+    _hitl_when,
     build_time_steward_middleware,
 )
 from apps.agents.tools import READ_ONLY_TOOLS, TIME_STEWARD_TOOLS, WRITE_TOOLS
@@ -76,6 +78,7 @@ def context(
     read_only: bool = False,
     agent_run_id: str | None = None,
     clock: FixedClock | None = None,
+    planning_preferences: PlanningPreferencesSnapshot | None = None,
 ) -> RuntimeContext:
     values: dict[str, Any] = {
         "user_id": str(user.pk),
@@ -91,6 +94,8 @@ def context(
     }
     if clock is not None:
         values["clock"] = clock
+    if planning_preferences is not None:
+        values["planning_preferences"] = planning_preferences
     return RuntimeContext(**values)
 
 
@@ -133,6 +138,63 @@ def test_temporal_context_hides_historical_clock_calls_and_labels_ai_messages() 
     # The checkpoint/history source is untouched.
     assert messages[1].content == "It is 2026-07-17 16:00."
     assert isinstance(messages[2], ToolMessage)
+
+
+@pytest.mark.django_db(transaction=True)
+def test_calendar_hitl_preferences_allow_safe_create_and_cancellation_only() -> None:
+    user = User.objects.create_user(username="calendar-policy")
+    preferences = PlanningPreferencesSnapshot(
+        require_event_creation_approval=False,
+        require_event_cancellation_approval=False,
+    )
+    runtime_context = context(user, planning_preferences=preferences)
+    requires_review = _hitl_when("mutate_events")
+
+    def request_for(operation: dict[str, object]) -> object:
+        return SimpleNamespace(
+            runtime=SimpleNamespace(context=runtime_context),
+            tool_call={"args": {"operations": [operation]}},
+        )
+
+    safe_create = {
+        "action": "create",
+        "title": "Focus time",
+        "start_at": "2026-07-18T10:00:00+08:00",
+        "end_at": "2026-07-18T11:00:00+08:00",
+    }
+    assert requires_review(request_for(safe_create)) is False  # type: ignore[arg-type]
+
+    event = EventService.create_event(
+        CreateEventCommand(
+            user=user,
+            title="Existing commitment",
+            start_at=datetime(2026, 7, 18, 2, tzinfo=UTC),
+            end_at=datetime(2026, 7, 18, 3, tzinfo=UTC),
+            timezone="Asia/Shanghai",
+        )
+    )
+    conflicting_create = {
+        **safe_create,
+        "start_at": "2026-07-18T10:30:00+08:00",
+        "end_at": "2026-07-18T11:30:00+08:00",
+    }
+    assert requires_review(request_for(conflicting_create)) is True  # type: ignore[arg-type]
+    assert requires_review(
+        request_for({"action": "cancel", "event_id": str(event.pk), "expected_version": 1})
+    ) is False  # type: ignore[arg-type]
+
+    protected_context = context(
+        user,
+        planning_preferences=PlanningPreferencesSnapshot(
+            require_event_creation_approval=True,
+            require_event_cancellation_approval=True,
+        ),
+    )
+    protected_request = SimpleNamespace(
+        runtime=SimpleNamespace(context=protected_context),
+        tool_call={"args": {"operations": [safe_create]}},
+    )
+    assert _hitl_when("mutate_events")(protected_request) is True  # type: ignore[arg-type]
 
 
 @pytest.mark.django_db(transaction=True)

@@ -57,7 +57,7 @@ describe("NotificationSettingsPage", () => {
   it("shows unsupported browser state and delivery failure reason", async () => {
     mockApi();
     renderPage();
-    expect(await screen.findByText("浏览器不支持 Web Push")).toBeInTheDocument();
+    expect(await screen.findByText("浏览器不支持推送通知")).toBeInTheDocument();
     expect(await screen.findByText(/Invalid mailbox/)).toBeInTheDocument();
     expect(screen.queryByText("Development-only reminder")).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "启用浏览器通知" })).toBeDisabled();

@@ -23,6 +23,11 @@ const CHANNEL_ID = "schedule_reminders";
 let channelReady = false;
 let tapListenerReady = false;
 
+export type NativeReminderPermissionState = {
+  display: string;
+  exactAlarm: string;
+};
+
 /**
  * Route to /reminders when the user taps a reminder notification. Registered
  * once. Uses hash-agnostic history navigation via location assignment on the
@@ -40,8 +45,10 @@ async function ensureTapListener(): Promise<void> {
   tapListenerReady = true;
 }
 
-export async function ensureNotificationSetup(): Promise<boolean> {
-  const permission = await LocalNotifications.requestPermissions();
+async function ensureNotificationSetup(requestDisplayPermission = false): Promise<boolean> {
+  const permission = requestDisplayPermission
+    ? await LocalNotifications.requestPermissions()
+    : await LocalNotifications.checkPermissions();
   if (permission.display !== "granted") return false;
 
   if (!channelReady) {
@@ -59,8 +66,31 @@ export async function ensureNotificationSetup(): Promise<boolean> {
   return true;
 }
 
+/** Read Android notification and exact-alarm access without prompting. */
+export async function getNativeReminderPermissionState(): Promise<NativeReminderPermissionState> {
+  const [display, exactAlarm] = await Promise.all([
+    LocalNotifications.checkPermissions(),
+    LocalNotifications.checkExactNotificationSetting(),
+  ]);
+  return { display: display.display, exactAlarm: exactAlarm.exact_alarm };
+}
+
+/** Must only be called from an explicit user action. */
+export async function requestNativeReminderNotificationPermission(): Promise<NativeReminderPermissionState> {
+  await ensureNotificationSetup(true);
+  return getNativeReminderPermissionState();
+}
+
+/** Opens Android's dedicated "Alarms & reminders" settings page. */
+export async function requestNativeExactAlarmPermission(): Promise<NativeReminderPermissionState> {
+  await LocalNotifications.changeExactNotificationSetting();
+  return getNativeReminderPermissionState();
+}
+
 /** Reconcile the device's scheduled notifications with the reminder list. */
 export async function syncReminderNotifications(reminders: readonly Reminder[]): Promise<void> {
+  // Background reconciliation must never surface a permission prompt.  The
+  // settings page owns the explicit, user-initiated permission flow.
   const granted = await ensureNotificationSetup();
   if (!granted) return;
 
@@ -74,6 +104,7 @@ export async function syncReminderNotifications(reminders: readonly Reminder[]):
       id: item.id,
       reminderId,
       title: item.title,
+      body: item.body,
       at,
       scheduleVersion: Number(item.extra?.scheduleVersion),
     }];
@@ -98,7 +129,7 @@ export async function syncReminderNotifications(reminders: readonly Reminder[]):
       notifications: plan.toSchedule.map((item) => ({
         id: item.id,
         title: item.title,
-        body: item.title,
+        body: item.body,
         channelId: CHANNEL_ID,
         // Android auto-groups four or more ungrouped notifications.  Some OEM
         // System UI implementations then render the group's first timestamp on

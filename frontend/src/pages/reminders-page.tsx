@@ -1,6 +1,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Bell, CircleAlert, Plus, X } from "lucide-react";
-import { useRef } from "react";
+import type { ReactNode } from "react";
+import { useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
@@ -8,7 +9,6 @@ import type { Reminder } from "../api/reminders";
 import { useEvents } from "../features/events/hooks";
 import { useTasks } from "../features/tasks/hooks";
 import { useCurrentUserPreference } from "../features/preferences/hooks";
-import { useCurrentUser } from "../features/accounts/hooks";
 import {
   useCancelReminder,
   useCreateReminder,
@@ -55,10 +55,11 @@ const statusStyles: Record<NonNullable<Reminder["status"]>, string> = {
 };
 
 const cancellableStatuses = new Set<Reminder["status"]>(["pending", "queued", "failed"]);
-const historicalStatuses = new Set<Reminder["status"]>(["sent", "failed", "cancelled"]);
+const pendingStatuses = new Set<Reminder["status"]>(["pending", "queued", "sending", "failed"]);
+const SENT_HISTORY_LIMIT = 10;
+const PENDING_PAGE_SIZE = 10;
 
 export function RemindersPage() {
-  const currentUser = useCurrentUser();
   const preference = useCurrentUserPreference();
   const reminders = useReminders();
   const createMutation = useCreateReminder();
@@ -72,14 +73,15 @@ export function RemindersPage() {
     resolver: zodResolver(reminderFormSchema),
     defaultValues: { title: "", trigger_at: "", target_type: "custom", target_id: "" },
   });
-  const visibleReminders = (() => {
-    const items = reminders.data ?? [];
-    if (currentUser.data?.is_staff) return items;
-    return [
-      ...items.filter((item) => !historicalStatuses.has(item.status)),
-      ...items.filter((item) => historicalStatuses.has(item.status)).slice(0, 10),
-    ];
-  })();
+  const [pendingLimit, setPendingLimit] = useState(PENDING_PAGE_SIZE);
+  const allReminders = reminders.data ?? [];
+  const pendingReminders = allReminders.filter((item) => pendingStatuses.has(item.status));
+  const sentReminders = allReminders
+    .filter((item) => item.status === "sent")
+    .slice()
+    .sort((left, right) => Date.parse(right.sent_at ?? right.updated_at) - Date.parse(left.sent_at ?? left.updated_at))
+    .slice(0, SENT_HISTORY_LIMIT);
+  const visiblePendingReminders = pendingReminders.slice(0, pendingLimit);
 
   const onSubmit = form.handleSubmit((values) => {
     createMutation.mutate(
@@ -176,63 +178,85 @@ export function RemindersPage() {
             无法读取提醒，请先通过 Django Session 登录。
           </div>
         )}
-        {visibleReminders.length === 0 && (
+        {allReminders.length === 0 && (
           <div className="rounded-2xl border border-dashed border-white/10 p-10 text-center text-slate-500">
             暂无提醒
           </div>
         )}
-        {visibleReminders.map((reminder) => {
-          const status = reminder.status ?? "pending";
-          const canCancel = cancellableStatuses.has(status);
-          return (
-            <article key={reminder.id} className="rounded-2xl border border-white/10 bg-slate-900 p-5">
-              <div className="flex flex-wrap items-start justify-between gap-4">
-                <div>
-                  <h3 className="font-medium text-slate-100">{reminder.title}</h3>
-                  <p className="mt-2 text-sm text-slate-400">
-                    {formatInUserTimezone(reminder.trigger_at, timezone, locale)}
-                    <span className="mx-2">·</span>
-                    Console
-                  </p>
-                  {reminder.target_type !== "custom" && (
-                    <p className="mt-2 text-xs text-cyan-200">
-                      关联{reminder.target_type === "task" ? "任务" : "日程"}
-                      {reminder.schedule_anchor && reminder.offset_minutes
-                        ? ` · 自动提前 ${reminder.offset_minutes >= 1440 ? `${reminder.offset_minutes / 1440} 天` : `${reminder.offset_minutes} 分钟`}`
-                        : ""}
-                    </p>
-                  )}
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className={`rounded-full px-3 py-1 text-xs ${statusStyles[status]}`}>
-                    {statusLabels[status]}
-                  </span>
-                  {canCancel && (
-                    <button
-                      type="button"
-                      aria-label={`取消提醒：${reminder.title}`}
-                      disabled={cancelMutation.isPending}
-                      onClick={() => cancelMutation.mutate(reminder.id)}
-                      className="rounded-lg p-2 text-slate-400 hover:bg-white/5 hover:text-white disabled:opacity-50"
-                    >
-                      <X size={17} />
-                    </button>
-                  )}
-                </div>
-              </div>
-              {(reminder.retry_count ?? 0) > 0 && (
-                <p className="mt-3 text-xs text-amber-200">已重试 {reminder.retry_count} 次</p>
-              )}
-              {reminder.failure_reason && (
-                <p className="mt-3 flex items-center gap-2 text-sm text-red-300">
-                  <CircleAlert size={16} />
-                  {reminder.failure_reason}
-                </p>
-              )}
-            </article>
-          );
-        })}
+        {visiblePendingReminders.length > 0 && (
+          <ReminderSection title="待发送" count={pendingReminders.length}>
+            {visiblePendingReminders.map((reminder) => (
+              <ReminderCard
+                key={reminder.id}
+                reminder={reminder}
+                timezone={timezone}
+                locale={locale}
+                cancelling={cancelMutation.isPending}
+                onCancel={(id) => cancelMutation.mutate(id)}
+              />
+            ))}
+            {pendingReminders.length > visiblePendingReminders.length && (
+              <button
+                type="button"
+                onClick={() => setPendingLimit((limit) => limit + PENDING_PAGE_SIZE)}
+                className="w-full rounded-xl border border-white/15 px-4 py-3 text-sm text-cyan-200 hover:bg-white/5"
+              >
+                更多待发送提醒（还有 {pendingReminders.length - visiblePendingReminders.length} 条）
+              </button>
+            )}
+          </ReminderSection>
+        )}
+        {sentReminders.length > 0 && (
+          <ReminderSection title="已发送提醒" count={sentReminders.length} subtitle="仅保留最近 10 条">
+            {sentReminders.map((reminder) => (
+              <ReminderCard
+                key={reminder.id}
+                reminder={reminder}
+                timezone={timezone}
+                locale={locale}
+                cancelling={false}
+                onCancel={() => undefined}
+              />
+            ))}
+          </ReminderSection>
+        )}
       </div>
     </section>
+  );
+}
+
+function ReminderSection({ title, count, subtitle, children }: { title: string; count: number; subtitle?: string; children: ReactNode }) {
+  return (
+    <section className="space-y-3">
+      <div className="flex items-baseline justify-between gap-3 px-1">
+        <div><h3 className="text-lg font-semibold text-slate-100">{title}</h3>{subtitle && <p className="mt-1 text-xs text-slate-500">{subtitle}</p>}</div>
+        <span className="text-sm text-slate-400">{count} 条</span>
+      </div>
+      {children}
+    </section>
+  );
+}
+
+function ReminderCard({ reminder, timezone, locale, cancelling, onCancel }: { reminder: Reminder; timezone: string; locale: string; cancelling: boolean; onCancel: (id: string) => void }) {
+  const status = reminder.status ?? "pending";
+  const canCancel = cancellableStatuses.has(status);
+  const automaticOffset = reminder.offset_minutes;
+  const offsetLabel = automaticOffset === 0 ? "准点" : automaticOffset === 1440 ? "提前一天" : automaticOffset === 15 ? "提前 15 分钟" : automaticOffset != null ? `提前 ${automaticOffset} 分钟` : "";
+  return (
+    <article className="rounded-2xl border border-white/10 bg-slate-900 p-5">
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h4 className="font-medium text-slate-100">{reminder.title}</h4>
+          <p className="mt-2 text-sm text-slate-400">{formatInUserTimezone(reminder.trigger_at, timezone, locale)}</p>
+          {reminder.target_type !== "custom" && <p className="mt-2 text-xs text-cyan-200">关联{reminder.target_type === "task" ? "任务" : "日程"}{offsetLabel ? ` · ${offsetLabel}` : ""}</p>}
+        </div>
+        <div className="flex items-center gap-2">
+          <span className={`rounded-full px-3 py-1 text-xs ${statusStyles[status]}`}>{statusLabels[status]}</span>
+          {canCancel && <button type="button" aria-label={`取消提醒：${reminder.title}`} disabled={cancelling} onClick={() => onCancel(reminder.id)} className="rounded-lg p-2 text-slate-400 hover:bg-white/5 hover:text-white disabled:opacity-50"><X size={17} /></button>}
+        </div>
+      </div>
+      {(reminder.retry_count ?? 0) > 0 && <p className="mt-3 text-xs text-amber-200">已重试 {reminder.retry_count} 次</p>}
+      {reminder.failure_reason && <p className="mt-3 flex items-center gap-2 text-sm text-red-300"><CircleAlert size={16} />{reminder.failure_reason}</p>}
+    </article>
   );
 }

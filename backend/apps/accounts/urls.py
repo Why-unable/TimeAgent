@@ -1,4 +1,5 @@
 from django.urls import path
+from django.views.decorators.csrf import csrf_exempt
 
 from apps.accounts.views import (
     AccountProfileView,
@@ -9,6 +10,8 @@ from apps.accounts.views import (
     EmailVerificationConfirmView,
     EmailVerificationRequestView,
     LoginView,
+    NativePasswordResetRequestView,
+    NativeRegisterView,
     LogoutView,
     PasswordResetConfirmView,
     PasswordResetRequestView,
@@ -18,6 +21,7 @@ from apps.accounts.views import (
 urlpatterns = [
     path("csrf/", CsrfTokenView.as_view(), name="csrf"),
     path("register/", RegisterView.as_view(), name="register"),
+    path("native/register/", csrf_exempt(NativeRegisterView.as_view()), name="native-register"),
     path(
         "email-verification/confirm/",
         EmailVerificationConfirmView.as_view(),
@@ -35,6 +39,7 @@ urlpatterns = [
     path("me/", CurrentUserView.as_view(), name="me"),
     path("profile/", AccountProfileView.as_view(), name="profile"),
     path("password-reset/", PasswordResetRequestView.as_view(), name="password-reset-request"),
+    path("native/password-reset/", csrf_exempt(NativePasswordResetRequestView.as_view()), name="native-password-reset-request"),
     path(
         "password-reset/confirm/",
         PasswordResetConfirmView.as_view(),

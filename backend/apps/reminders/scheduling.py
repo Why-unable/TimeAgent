@@ -17,8 +17,10 @@ from apps.tasks.models import Task, TaskStatus
 class ReminderScheduleService:
     """Maintain deterministic, future reminders for planned work and events."""
 
-    TASK_OFFSETS = (10_080, 4_320, 1_440, 30)
-    EVENT_OFFSETS = (1_440, 120, 30)
+    # Keep the planning contract simple and consistent for tasks and events:
+    # one day before, fifteen minutes before, and at the exact start time.
+    TASK_OFFSETS = (1_440, 15, 0)
+    EVENT_OFFSETS = (1_440, 15, 0)
     ACTIVE_STATUSES = (ReminderStatus.PENDING, ReminderStatus.QUEUED, ReminderStatus.FAILED)
 
     @classmethod

@@ -250,6 +250,23 @@ def _objective(payload: dict[str, Any], state: AppState) -> str:
 
 def _requested_sections(payload: dict[str, Any], defaults: list[Any]) -> list[BriefingSectionKey]:
     raw = _string_list(payload.get("requested_sections")) or [str(item) for item in defaults]
+    # The transfer tool exposes a Literal enum, so normal requests are already canonical.
+    # Keep this narrow alias table only as a backward-compatible guard for pre-contract runs
+    # or provider outputs that bypassed the tool schema; it is not used to parse user intent.
+    aliases = {
+        "日程": "calendar",
+        "日历": "calendar",
+        "calendar": "calendar",
+        "任务": "tasks",
+        "待办": "tasks",
+        "tasks": "tasks",
+        "天气": "weather",
+        "weather": "weather",
+        "新闻": "news",
+        "资讯": "news",
+        "news": "news",
+    }
+    raw = [aliases.get(item.strip().lower(), item.strip().lower()) for item in raw]
     allowed = {"calendar", "tasks", "weather", "news"}
     unknown = set(raw) - allowed
     if unknown:

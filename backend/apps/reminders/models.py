@@ -137,7 +137,7 @@ class Reminder(models.Model):
                     models.Q(schedule_anchor="", offset_minutes__isnull=True)
                     | (
                         ~models.Q(schedule_anchor="")
-                        & models.Q(offset_minutes__isnull=False, offset_minutes__gt=0)
+                        & models.Q(offset_minutes__isnull=False, offset_minutes__gte=0)
                     )
                 ),
                 name="reminder_schedule_metadata_consistent",
@@ -194,7 +194,7 @@ class Reminder(models.Model):
         has_schedule = bool(self.schedule_anchor)
         if has_schedule != (self.offset_minutes is not None):
             raise ValidationError(
-                {"offset_minutes": "Scheduled reminders require an anchor and positive offset"}
+                {"offset_minutes": "Scheduled reminders require an anchor and non-negative offset"}
             )
         if self.status == ReminderStatus.SENT and self.sent_at is None:
             raise ValidationError({"sent_at": "Sent reminders require sent_at"})

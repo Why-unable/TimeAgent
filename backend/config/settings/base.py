@@ -12,11 +12,22 @@ ALLOWED_HOSTS = [
     for host in os.getenv("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1").split(",")
     if host.strip()
 ]
-CSRF_TRUSTED_ORIGINS = [
-    origin.strip()
-    for origin in os.getenv("DJANGO_CSRF_TRUSTED_ORIGINS", "").split(",")
-    if origin.strip()
-]
+# Capacitor's Android WebView is served from https://localhost.  It is a
+# cross-origin client of the public backend, so Django must accept that origin
+# for CSRF-protected unauthenticated flows such as registration and password
+# reset.  Keep browser deployments configurable through the environment.
+CSRF_TRUSTED_ORIGINS = list(
+    dict.fromkeys(
+        [
+            "https://localhost",
+            *[
+                origin.strip()
+                for origin in os.getenv("DJANGO_CSRF_TRUSTED_ORIGINS", "").split(",")
+                if origin.strip()
+            ],
+        ]
+    )
+)
 # The native Android (Capacitor) WebView loads bundled assets from
 # https://localhost, so its API calls to the public backend are cross-origin.
 # The web client is same-origin and never triggers CORS. Defaults cover the

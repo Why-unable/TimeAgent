@@ -7,10 +7,27 @@ from apps.notifications.services import CreateDeliveryCommand, NotificationServi
 from apps.reminders.models import Reminder
 
 
+def _reminder_delivery_content(reminder: Reminder) -> tuple[str, str]:
+    """Build a user-facing reminder message from its deterministic schedule."""
+    offset = reminder.offset_minutes
+    if offset == 1_440:
+        prefix = "一天后"
+    elif offset == 15:
+        prefix = "15 分钟后"
+    elif offset == 0:
+        prefix = "现在"
+    elif offset is not None:
+        prefix = f"{offset} 分钟后"
+    else:
+        prefix = "提醒"
+    return ("Time Agent 提醒", f"{prefix}：{reminder.title}")
+
+
 def create_reminder_deliveries(
     *, reminder: Reminder, occurred_at: datetime
 ) -> list[NotificationDelivery]:
     deliveries: list[NotificationDelivery] = []
+    subject, body = _reminder_delivery_content(reminder)
     for channel in NotificationService.channels_for(
         user=reminder.user, source_type=NotificationSourceType.REMINDER
     ):
@@ -24,8 +41,8 @@ def create_reminder_deliveries(
                     f"reminder:{reminder.id}:occurrence:{reminder.trigger_at.isoformat()}:"
                     f"channel:{channel.value}"
                 ),
-                subject=reminder.title,
-                body=reminder.title,
+                subject=subject,
+                body=body,
                 payload={"url": "/reminders", "reminder_id": str(reminder.id)},
                 scheduled_at=occurred_at,
             )

@@ -22,6 +22,8 @@ class PlanningPreferencesSnapshot:
     default_event_duration_minutes: int = 60
     preferred_focus_periods: tuple[str, ...] = ()
     default_reminder_offsets: tuple[int, ...] = ()
+    require_event_creation_approval: bool = False
+    require_event_cancellation_approval: bool = False
     planning_rules: tuple[tuple[str, str], ...] = ()
 
     @classmethod
@@ -42,6 +44,8 @@ class PlanningPreferencesSnapshot:
                 for item in preference.default_reminder_offsets
                 if isinstance(item, int) and not isinstance(item, bool) and item >= 0
             )[:_MAX_REMINDER_OFFSETS],
+            require_event_creation_approval=preference.require_event_creation_approval,
+            require_event_cancellation_approval=preference.require_event_cancellation_approval,
             planning_rules=tuple(_safe_planning_rules(preference.planning_rules)),
         )
 
@@ -53,6 +57,10 @@ class PlanningPreferencesSnapshot:
             f"- Workday: {self.workday_start}-{self.workday_end}",
             f"- Sleep: {self.sleep_start}-{self.sleep_end}",
             f"- Default event duration: {self.default_event_duration_minutes} minutes",
+            "- Calendar creation approval: "
+            f"{'enabled' if self.require_event_creation_approval else 'disabled unless conflict'}",
+            "- Calendar cancellation approval: "
+            f"{'enabled' if self.require_event_cancellation_approval else 'disabled'}",
         ]
         if self.preferred_focus_periods:
             lines.append(f"- Preferred focus periods: {', '.join(self.preferred_focus_periods)}")

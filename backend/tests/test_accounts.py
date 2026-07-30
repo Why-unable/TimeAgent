@@ -84,6 +84,42 @@ def test_register_and_login_require_csrf_protection() -> None:
     assert response.status_code == 403
 
 
+@override_settings(CSRF_TRUSTED_ORIGINS=["https://localhost"])
+def test_register_accepts_capacitor_https_localhost_origin_with_valid_csrf_token() -> None:
+    client = Client(enforce_csrf_checks=True)
+    headers = {**csrf_headers(client), "Origin": "https://localhost"}
+
+    response = client.post(
+        "/api/v1/auth/register/",
+        data={
+            "email": "native-owner@example.test",
+            "nickname": "Native Owner",
+            "password": "strong password 123",
+        },
+        content_type="application/json",
+        headers=headers,
+    )
+
+    assert response.status_code == 202
+
+
+def test_native_register_does_not_require_a_csrf_cookie() -> None:
+    client = Client(enforce_csrf_checks=True)
+
+    response = client.post(
+        "/api/v1/auth/native/register/",
+        data={
+            "email": "native-token-owner@example.test",
+            "nickname": "Native Token Owner",
+            "password": "strong password 123",
+        },
+        content_type="application/json",
+        headers={"Origin": "https://localhost"},
+    )
+
+    assert response.status_code == 202
+
+
 def test_login_logout_and_me_flow() -> None:
     user = get_user_model().objects.create_user(
         username="existing-user", email="existing@example.test", password="strong password 123"

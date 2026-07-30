@@ -1,5 +1,6 @@
 import { clearAuthToken, setAuthToken } from "./auth-token";
 import { apiRequest } from "./client";
+import { isNativePlatform } from "../platform";
 
 export type CurrentUser = {
   id: number;
@@ -24,8 +25,9 @@ export async function ensureCsrfToken() {
 }
 
 export async function registerAccount(email: string, nickname: string, password: string) {
-  await ensureCsrfToken();
-  return apiRequest<void>("/api/v1/auth/register/", {
+  const native = isNativePlatform();
+  if (!native) await ensureCsrfToken();
+  return apiRequest<void>(native ? "/api/v1/auth/native/register/" : "/api/v1/auth/register/", {
     method: "POST",
     body: JSON.stringify({ email, nickname, password }),
   });
@@ -98,8 +100,9 @@ export async function logoutWithToken(): Promise<void> {
 }
 
 export async function requestPasswordReset(email: string) {
-  await ensureCsrfToken();
-  return apiRequest<void>("/api/v1/auth/password-reset/", {
+  const native = isNativePlatform();
+  if (!native) await ensureCsrfToken();
+  return apiRequest<void>(native ? "/api/v1/auth/native/password-reset/" : "/api/v1/auth/password-reset/", {
     method: "POST",
     body: JSON.stringify({ email }),
   });

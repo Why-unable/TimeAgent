@@ -50,6 +50,10 @@ body::-webkit-scrollbar {
  * recurring text tokens on touch-sized viewports without changing the root
  * font size: Tailwind's responsive breakpoints are rem-based. */
 @media (max-width: 1023px) {
+  :root {
+    color-scheme: light;
+  }
+
   .text-sm {
     font-size: 1rem;
     line-height: 1.5rem;
@@ -61,7 +65,60 @@ body::-webkit-scrollbar {
   }
 
   body {
-    background: #020617;
+    background: #f4f7fb;
+    color: #172033;
+  }
+
+  /* Mobile is intentionally light and high contrast. These compatibility
+   * overrides keep desktop-tailored utility classes legible during migration. */
+  [data-color-scheme="dark"],
+  [data-color-scheme="dark"] > main {
+    background-color: #f4f7fb !important;
+    color: #172033 !important;
+  }
+
+  [data-color-scheme="dark"] [class*="bg-slate-950"] {
+    background-color: #ffffff !important;
+  }
+
+  [data-color-scheme="dark"] [class*="bg-slate-900"] {
+    background-color: #edf3fa !important;
+  }
+
+  [data-color-scheme="dark"] [class*="text-slate-100"],
+  [data-color-scheme="dark"] [class*="text-white"] {
+    color: #172033 !important;
+  }
+
+  [data-color-scheme="dark"] [class*="text-slate-200"] {
+    color: #26364d !important;
+  }
+
+  [data-color-scheme="dark"] [class*="text-slate-300"] {
+    color: #3c4d66 !important;
+  }
+
+  [data-color-scheme="dark"] [class*="text-slate-400"],
+  [data-color-scheme="dark"] [class*="text-slate-500"] {
+    color: #64748b !important;
+  }
+
+  /* The original cyan palette was tuned for a navy surface. On white, use a
+   * deeper teal so links, chips and selected controls remain readable. */
+  [data-color-scheme="dark"] [class*="text-cyan"] {
+    color: #0f766e !important;
+  }
+
+  [data-color-scheme="dark"] [class*="text-emerald"] {
+    color: #047857 !important;
+  }
+
+  [data-color-scheme="dark"] [class*="border-white"] {
+    border-color: rgb(148 163 184 / 35%) !important;
+  }
+
+  [data-color-scheme="dark"] [class*="hover:bg-white"]:hover {
+    background-color: #e0f2fe !important;
   }
 }
 

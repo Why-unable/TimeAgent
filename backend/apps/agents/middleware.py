@@ -1,4 +1,5 @@
 from collections.abc import Awaitable, Callable
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 
@@ -42,10 +43,147 @@ WRITE_NAMES = frozenset(tool.name for tool in WRITE_TOOLS)
 HANDOFF_NAMES = frozenset(tool.name for tool in HANDOFF_TOOLS)
 
 
+def _parse_tool_datetime(value: object) -> datetime | None:
+    if isinstance(value, datetime):
+        return value
+    if not isinstance(value, str):
+        return None
+    try:
+        return datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+
+
+def _event_mutation_has_conflict(context: RuntimeContext, operation: dict[str, object]) -> bool:
+    """Fail closed when a non-approved creation cannot be safely previewed."""
+
+    if context.actor is None:
+        return True
+    action = operation.get("action")
+    if action == "create":
+        start_at = _parse_tool_datetime(operation.get("start_at"))
+        end_at = _parse_tool_datetime(operation.get("end_at"))
+        if start_at is None or end_at is None:
+            return True
+        exclude_event_id = None
+    elif action == "update" and (
+        "start_at" in operation or "end_at" in operation
+    ):
+        # A partial time update needs the existing event to build an accurate
+        # preview. Keep it reviewed rather than risking a false direct write.
+        return True
+    else:
+        return False
+    try:
+        from apps.events.services import EventService
+
+        return EventService.preview_event_change(
+            user=context.actor,
+            start_at=start_at,
+            end_at=end_at,
+            exclude_event_id=exclude_event_id,
+        ).has_conflicts
+    except Exception:
+        return True
+
+
+def _recurring_event_has_conflict(context: RuntimeContext, args: dict[str, object]) -> bool:
+    """Preview every occurrence before auto-approving a recurring series."""
+
+    if context.actor is None:
+        return True
+    start_at = _parse_tool_datetime(args.get("start_at"))
+    end_at = _parse_tool_datetime(args.get("end_at"))
+    frequency = args.get("frequency")
+    interval = args.get("interval", 1)
+    occurrence_count = args.get("occurrence_count")
+    if (
+        start_at is None
+        or end_at is None
+        or not isinstance(frequency, str)
+        or not isinstance(interval, int)
+        or isinstance(interval, bool)
+        or not isinstance(occurrence_count, int)
+        or isinstance(occurrence_count, bool)
+    ):
+        return True
+    try:
+        from apps.events.series_services import EventSeriesService
+        from apps.events.services import EventService
+
+        windows = EventSeriesService.preview_occurrence_windows(
+            start_at=start_at,
+            end_at=end_at,
+            frequency=frequency,
+            interval=interval,
+            occurrence_count=occurrence_count,
+        )
+        return any(
+            EventService.preview_event_change(
+                user=context.actor,
+                start_at=occurrence_start,
+                end_at=occurrence_end,
+            ).has_conflicts
+            for occurrence_start, occurrence_end in windows
+        )
+    except Exception:
+        return True
+
+
+def _hitl_when(tool_name: str) -> Callable[[ToolCallRequest], bool]:
+    """Resolve calendar review policy from trusted per-run preferences."""
+
+    def requires_review(request: ToolCallRequest) -> bool:
+        context = request.runtime.context
+        if not isinstance(context, RuntimeContext):
+            return True
+        preferences = context.planning_preferences
+        if tool_name == "mutate_events":
+            operations = request.tool_call.get("args", {}).get("operations", [])
+            if not isinstance(operations, list):
+                return True
+            for raw_operation in operations:
+                if not isinstance(raw_operation, dict):
+                    return True
+                operation = {str(key): value for key, value in raw_operation.items()}
+                action = operation.get("action")
+                if action == "create":
+                    if preferences.require_event_creation_approval:
+                        return True
+                    if _event_mutation_has_conflict(context, operation):
+                        return True
+                elif action == "cancel":
+                    if preferences.require_event_cancellation_approval:
+                        return True
+                elif action == "update":
+                    # Editing remains reviewed until it gets a separate, explicit
+                    # preference: it can silently move an existing commitment.
+                    return True
+            return False
+        if tool_name == "create_recurring_event":
+            if preferences.require_event_creation_approval:
+                return True
+            raw_args = request.tool_call.get("args", {})
+            if not isinstance(raw_args, dict):
+                return True
+            args = {str(key): value for key, value in raw_args.items()}
+            return _recurring_event_has_conflict(context, args)
+        return True
+
+    return requires_review
+
+
 @dynamic_prompt
 def runtime_system_prompt(request: ModelRequest[RuntimeContext]) -> SystemMessage:
     context = request.runtime.context
-    mode = "read-only" if context.read_only else "read/write; high-risk tools require approval"
+    mode = (
+        "read-only"
+        if context.read_only
+        else (
+            "read/write; calendar confirmations follow the user's preferences, "
+            "and conflicts always require approval"
+        )
+    )
     local_anchor = to_user_timezone(context.current_datetime, context.timezone)
     display_name = context.actor.first_name.strip() if context.actor is not None else ""
     user_identity = (
@@ -376,7 +514,7 @@ def build_time_steward_middleware(
         runtime_system_prompt,
         TemporalContextMiddleware(),
         ToolPolicyMiddleware(),
-        HumanInTheLoopMiddleware(interrupt_on=hitl_interrupt_policy()),
+        HumanInTheLoopMiddleware(interrupt_on=hitl_interrupt_policy(when=_hitl_when)),
         ToolAuditMiddleware(),
         ModelCallLimitMiddleware(
             run_limit=config.model_call_limit,

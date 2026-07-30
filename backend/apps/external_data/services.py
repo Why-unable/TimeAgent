@@ -16,7 +16,7 @@ from apps.external_data.providers import (
     WeatherProvider,
 )
 from apps.external_data.providers.news import canonicalize_url
-from apps.external_data.schemas import NewsItemData, WeatherForecast
+from apps.external_data.schemas import NewsItemData, ResolvedLocation, WeatherForecast
 from apps.preferences.services import UserPreferenceService
 
 
@@ -51,7 +51,8 @@ class WeatherDataService:
             if location_query is not None
             else (preference.weather_location.strip() if preference else "")
         )
-        if not effective_location:
+        selected_location = _selected_location(preference) if location_query is None else None
+        if not effective_location and selected_location is None:
             raise WeatherLocationNotConfiguredError("请先在时间偏好中配置天气地点。")
         effective_end = end_date or start_date
         if effective_end < start_date:
@@ -61,13 +62,35 @@ class WeatherDataService:
         if requested_days > maximum_days:
             raise ValueError(f"Weather provider supports at most {maximum_days} forecast days")
         resolved_provider = provider or OpenMeteoWeatherProvider()
-        location = resolved_provider.resolve_location(effective_location, language=locale)
+        location = selected_location or resolved_provider.resolve_location(
+            effective_location,
+            language=locale,
+        )
         return resolved_provider.forecast(
             location,
             start_date=start_date,
             days=requested_days,
             requested_at=requested_at,
         )
+
+
+def _selected_location(preference: object | None) -> ResolvedLocation | None:
+    data = getattr(preference, "weather_location_data", None)
+    if not isinstance(data, dict) or not data:
+        return None
+    try:
+        return ResolvedLocation(
+            name=str(data["name"]),
+            latitude=float(data["latitude"]),
+            longitude=float(data["longitude"]),
+            timezone=str(data["timezone"]),
+            country=str(data.get("country", "")),
+            admin1=str(data.get("admin1", "")),
+            provider_location_id=str(data.get("provider_location_id", "")),
+        )
+    except (KeyError, TypeError, ValueError):
+        # Legacy/malformed data cannot silently become a weather location.
+        return None
 
 
 class NewsDataService:

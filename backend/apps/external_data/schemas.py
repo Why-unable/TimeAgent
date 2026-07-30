@@ -13,6 +13,7 @@ class ResolvedLocation(BaseModel):
     timezone: str
     country: str = ""
     admin1: str = ""
+    provider_location_id: str = ""
 
 
 class DailyForecast(BaseModel):

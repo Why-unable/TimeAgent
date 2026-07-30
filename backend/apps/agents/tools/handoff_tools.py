@@ -7,6 +7,7 @@ from langchain_core.tools import tool
 from langgraph.types import Command
 
 from apps.agents.context import RuntimeContext
+from apps.briefings.schemas import BriefingSectionKey
 from apps.conversations.services import AgentRunService
 
 
@@ -17,7 +18,7 @@ def transfer_to_briefing(
     start_date: date | None = None,
     end_date: date | None = None,
     target_date: date | None = None,
-    requested_sections: list[str] | None = None,
+    requested_sections: list[BriefingSectionKey] | None = None,
     locations: list[str] | None = None,
     news_topics: list[str] | None = None,
     constraints: list[str] | None = None,
@@ -26,8 +27,10 @@ def transfer_to_briefing(
 ) -> Command[Any]:
     """Delegate a briefing request to the specialized, read-only Briefing Agent.
 
-    Preserve the user's requested date range, sections, topics, locations, constraints, and any
-    explicit feedback about a previous briefing. target_date is a legacy single-day alias.
+    ``requested_sections`` is a closed machine contract: use only calendar, tasks, weather, or
+    news. Keep the complete natural-language request (for example, "latest domestic news") in
+    ``request`` and put its filters in ``locations``, ``news_topics``, or ``constraints``.
+    Preserve the user's requested date range and explicit feedback. target_date is a legacy alias.
     """
 
     tool_call_id = (runtime.tool_call_id or "").strip()

@@ -1,6 +1,8 @@
+from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Literal
 
+from langchain.agents.middleware import ToolCallRequest
 from langchain.agents.middleware.human_in_the_loop import InterruptOnConfig
 
 DecisionType = Literal["approve", "edit", "reject"]
@@ -90,11 +92,17 @@ def policy_for_tool(tool_name: str) -> RiskPolicy | None:
     return HIGH_RISK_TOOL_POLICIES.get(tool_name)
 
 
-def hitl_interrupt_policy() -> dict[str, bool | InterruptOnConfig]:
-    return {
-        name: InterruptOnConfig(
-            allowed_decisions=list(policy.allowed_decisions),
-            description=policy.description,
-        )
-        for name, policy in HIGH_RISK_TOOL_POLICIES.items()
-    }
+def hitl_interrupt_policy(
+    *,
+    when: Callable[[str], Callable[[ToolCallRequest], bool]] | None = None,
+) -> dict[str, bool | InterruptOnConfig]:
+    policies: dict[str, bool | InterruptOnConfig] = {}
+    for name, policy in HIGH_RISK_TOOL_POLICIES.items():
+        config: InterruptOnConfig = {
+            "allowed_decisions": list(policy.allowed_decisions),
+            "description": policy.description,
+        }
+        if when is not None:
+            config["when"] = when(name)
+        policies[name] = config
+    return policies

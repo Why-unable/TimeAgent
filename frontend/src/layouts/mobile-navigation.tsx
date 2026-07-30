@@ -10,7 +10,7 @@ import {
   SlidersHorizontal,
   UserRound,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, NavLink, useLocation } from "react-router-dom";
 
 import { Drawer } from "../components/overlay/drawer";
@@ -40,9 +40,40 @@ const moreItems = [
 
 export function MobileNavigation() {
   const [moreOpen, setMoreOpen] = useState(false);
+  const [keyboardOpen, setKeyboardOpen] = useState(false);
   const currentUser = useCurrentUser();
   const location = useLocation();
   const pathname = location.pathname;
+
+  useEffect(() => {
+    const viewport = window.visualViewport;
+    const updateKeyboardState = () => {
+      if (!viewport) return;
+      const coveredHeight = window.innerHeight - viewport.height - viewport.offsetTop;
+      setKeyboardOpen(coveredHeight > 160);
+    };
+    const onFocusIn = (event: FocusEvent) => {
+      const target = event.target;
+      if (
+        target instanceof HTMLTextAreaElement
+        || (target instanceof HTMLInputElement && !["checkbox", "radio", "range"].includes(target.type))
+      ) {
+        setKeyboardOpen(true);
+      }
+    };
+    const onFocusOut = () => window.setTimeout(updateKeyboardState, 100);
+    viewport?.addEventListener("resize", updateKeyboardState);
+    viewport?.addEventListener("scroll", updateKeyboardState);
+    window.addEventListener("focusin", onFocusIn);
+    window.addEventListener("focusout", onFocusOut);
+    updateKeyboardState();
+    return () => {
+      viewport?.removeEventListener("resize", updateKeyboardState);
+      viewport?.removeEventListener("scroll", updateKeyboardState);
+      window.removeEventListener("focusin", onFocusIn);
+      window.removeEventListener("focusout", onFocusOut);
+    };
+  }, []);
 
   const visibleMoreItems = moreItems
     .filter((item) => !["/briefings", "/reminders"].includes(item.to))
@@ -57,7 +88,9 @@ export function MobileNavigation() {
     <>
       <nav
         aria-label="移动端主导航"
-        className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-4 border-t border-white/10 bg-slate-900/95 px-2 pb-[max(env(safe-area-inset-bottom),0.625rem)] pt-2.5 shadow-[0_-12px_32px_rgba(2,6,23,0.45)] backdrop-blur lg:hidden"
+        className={`fixed inset-x-0 bottom-0 z-40 grid grid-cols-4 border-t border-white/10 bg-slate-900/95 px-2 pb-[max(env(safe-area-inset-bottom),0.625rem)] pt-2.5 shadow-[0_-12px_32px_rgba(2,6,23,0.45)] backdrop-blur transition-transform duration-150 lg:hidden ${
+          keyboardOpen ? "pointer-events-none translate-y-full" : "translate-y-0"
+        }`}
       >
         {primaryItems.map(({ to, label, icon: Icon, match }) => {
           const isActive = match(pathname);

@@ -5,6 +5,7 @@ import {
   LOCAL_NOTIFICATION_SCHEDULE_VERSION,
   MAX_SCHEDULED,
   planReminderNotifications,
+  reminderNotificationBody,
   reminderNotificationId,
 } from "../src/features/notifications/local-schedule";
 
@@ -17,6 +18,7 @@ function reminder(overrides: Partial<Reminder> & { id: string }): Reminder {
     trigger_at: overrides.trigger_at ?? "2026-07-25T13:00:00Z",
     timezone: "Asia/Shanghai",
     status: overrides.status ?? "pending",
+    offset_minutes: overrides.offset_minutes,
     deduplication_key: overrides.deduplication_key ?? `dedup-${overrides.id}`,
   } as Reminder;
 }
@@ -44,7 +46,8 @@ describe("planReminderNotifications", () => {
     expect(plan.toSchedule).toHaveLength(1);
     expect(plan.toSchedule[0]).toMatchObject({
       reminderId: "r1",
-      title: "Meeting",
+      title: "Time Agent 提醒",
+      body: "Meeting",
       at: Date.parse("2026-07-25T13:00:00Z"),
     });
     expect(plan.toCancel).toEqual([]);
@@ -86,7 +89,8 @@ describe("planReminderNotifications", () => {
         {
           id: currentId,
           reminderId: "r1",
-          title: "Reminder",
+          title: "Time Agent 提醒",
+          body: "Reminder",
           at: Date.parse("2026-07-25T13:00:00Z"),
           scheduleVersion: LOCAL_NOTIFICATION_SCHEDULE_VERSION,
         },
@@ -105,7 +109,8 @@ describe("planReminderNotifications", () => {
       [{
         id,
         reminderId: "r1",
-        title: "Reminder",
+        title: "Time Agent 提醒",
+        body: "Reminder",
         at: Date.parse("2026-07-25T13:00:00Z"),
         scheduleVersion: LOCAL_NOTIFICATION_SCHEDULE_VERSION,
       }],
@@ -122,7 +127,7 @@ describe("planReminderNotifications", () => {
       [{
         id,
         reminderId: "r1",
-        title: "Old title",
+        title: "Time Agent 提醒",
         at: Date.parse("2026-07-25T13:00:00Z"),
       }],
       NOW,
@@ -132,7 +137,8 @@ describe("planReminderNotifications", () => {
       expect.objectContaining({
         id,
         reminderId: "r1",
-        title: "New title",
+        title: "Time Agent 提醒",
+        body: "New title",
         at: Date.parse("2026-07-25T14:00:00Z"),
       }),
     ]);
@@ -145,13 +151,19 @@ describe("planReminderNotifications", () => {
       [{
         id,
         reminderId: "r1",
-        title: "Reminder",
+        title: "Time Agent 提醒",
         at: Date.parse("2026-07-25T13:00:00Z"),
         scheduleVersion: 1,
       }],
       NOW,
     );
     expect(plan.toSchedule).toHaveLength(1);
+  });
+
+  it("labels automatic reminders by their remaining lead time", () => {
+    expect(reminderNotificationBody(reminder({ id: "day", title: "面试", offset_minutes: 1440 }))).toBe("一天后：面试");
+    expect(reminderNotificationBody(reminder({ id: "quarter", title: "面试", offset_minutes: 15 }))).toBe("15 分钟后：面试");
+    expect(reminderNotificationBody(reminder({ id: "now", title: "面试", offset_minutes: 0 }))).toBe("现在：面试");
   });
 
   it("does not cancel notifications owned by another feature", () => {

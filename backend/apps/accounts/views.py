@@ -73,7 +73,15 @@ class RegisterView(APIView):
         )
 
 
-@method_decorator(csrf_protect, name="dispatch")
+class NativeRegisterView(APIView):
+    """Stateless registration endpoint for Capacitor's token-auth channel."""
+
+    permission_classes = [AllowAny]
+    authentication_classes: list[type] = []
+    throttle_classes = [AuthenticationThrottle]
+    post = RegisterView.post
+
+
 class EmailVerificationConfirmView(APIView):
     permission_classes = [AllowAny]
     throttle_classes = [AuthenticationThrottle]
@@ -89,7 +97,6 @@ class EmailVerificationConfirmView(APIView):
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
-@method_decorator(csrf_protect, name="dispatch")
 class EmailVerificationRequestView(APIView):
     permission_classes = [AllowAny]
     throttle_classes = [AuthenticationThrottle]
@@ -177,6 +184,15 @@ class PasswordResetRequestView(APIView):
             )
         )
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class NativePasswordResetRequestView(APIView):
+    """Stateless password-reset request endpoint for Capacitor clients."""
+
+    permission_classes = [AllowAny]
+    authentication_classes: list[type] = []
+    throttle_classes = [AuthenticationThrottle]
+    post = PasswordResetRequestView.post
 
 
 @method_decorator(csrf_protect, name="dispatch")

@@ -15,6 +15,7 @@ from langchain_core.outputs import ChatGeneration, ChatResult
 from langchain_core.runnables import RunnableLambda
 from langchain_core.tools import BaseTool, StructuredTool
 from langgraph.graph import END, START, StateGraph
+from pydantic import TypeAdapter
 from rest_framework.test import APIClient
 
 from apps.agents.agents.time_steward import build_time_steward_agent
@@ -38,6 +39,7 @@ from apps.briefings.schemas import (
     BriefingAgentRequest,
     BriefingCoverage,
     BriefingDraft,
+    BriefingSectionKey,
     ResearchSummary,
     ResearchToolResult,
     SectionResult,
@@ -517,6 +519,13 @@ def test_handoff_command_pairs_tool_call_and_routes_to_parent() -> None:
     assert messages[0] is ai_message
     assert isinstance(messages[1], ToolMessage)
     assert messages[1].tool_call_id == "briefing-call-1"
+
+
+def test_briefing_handoff_schema_exposes_closed_section_enum() -> None:
+    schema = TypeAdapter(list[BriefingSectionKey] | None).json_schema()
+    item_schema = schema["anyOf"][0]["items"]
+    section_schema = schema["$defs"][item_schema["$ref"].removeprefix("#/$defs/")]
+    assert set(section_schema["enum"]) == {"calendar", "tasks", "weather", "news"}
 
 
 def test_briefing_agent_repairs_missing_research_once() -> None:

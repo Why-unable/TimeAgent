@@ -35,7 +35,12 @@ class UserPreference(models.Model):
     preferred_focus_periods = models.JSONField(default=list, blank=True)
     default_reminder_offsets = models.JSONField(default=list, blank=True)
     weather_location = models.CharField(max_length=255, blank=True)
+    # The selected provider candidate is the authority for weather queries.
+    # weather_location remains a readable compatibility label for existing users.
+    weather_location_data = models.JSONField(default=dict, blank=True)
     weather_forecast_days = models.PositiveSmallIntegerField(default=3)
+    require_event_creation_approval = models.BooleanField(default=False)
+    require_event_cancellation_approval = models.BooleanField(default=False)
     news_topics = models.JSONField(default=list, blank=True)
     briefing_time = models.TimeField(default=time(8, 0))
     planning_rules = models.JSONField(default=dict, blank=True)
@@ -64,6 +69,7 @@ class UserPreference(models.Model):
             )
         if not 1 <= self.weather_forecast_days <= 7:
             raise ValidationError({"weather_forecast_days": "Must be between 1 and 7 days"})
+        self._validate_weather_location_data()
         self._validate_integer_list("default_reminder_offsets", self.default_reminder_offsets)
         self._validate_string_list("news_topics", self.news_topics)
         if not isinstance(self.preferred_focus_periods, list):
@@ -84,3 +90,24 @@ class UserPreference(models.Model):
             not isinstance(item, str) or not item.strip() for item in value
         ):
             raise ValidationError({field_name: "Must be a list of non-empty strings"})
+
+    def _validate_weather_location_data(self) -> None:
+        value = self.weather_location_data
+        if not isinstance(value, dict):
+            raise ValidationError({"weather_location_data": "Must be an object"})
+        if not value:
+            return
+        required_text = ("provider", "name", "timezone", "label")
+        if any(
+            not isinstance(value.get(field), str) or not value[field].strip()
+            for field in required_text
+        ):
+            raise ValidationError({"weather_location_data": "Selected location is incomplete"})
+        for field in ("latitude", "longitude"):
+            coordinate = value.get(field)
+            if not isinstance(coordinate, (int, float)) or isinstance(coordinate, bool):
+                raise ValidationError({"weather_location_data": "Coordinates must be numbers"})
+        latitude = float(value["latitude"])
+        longitude = float(value["longitude"])
+        if not -90 <= latitude <= 90 or not -180 <= longitude <= 180:
+            raise ValidationError({"weather_location_data": "Coordinates are out of range"})

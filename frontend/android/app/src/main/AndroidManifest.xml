@@ -38,6 +38,9 @@
     <!-- Permissions -->
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- Requested only after the user taps “Use current location”. -->
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <!-- Show notifications on Android 13+ (runtime-requested). -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <!-- Fire reminders at an exact wall-clock time even in Doze. -->

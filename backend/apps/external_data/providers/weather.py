@@ -101,6 +101,7 @@ class OpenMeteoWeatherProvider:
                 timezone=str(item["timezone"]),
                 country=str(item.get("country", "")),
                 admin1=str(item.get("admin1", "")),
+                provider_location_id=str(item.get("id", "")),
             )
             for _, item in ranked[:8]
         ]

@@ -12,6 +12,7 @@ export interface PlannedNotification {
   id: number;
   reminderId: string;
   title: string;
+  body: string;
   /** Epoch milliseconds at which the OS should fire the notification. */
   at: number;
 }
@@ -25,6 +26,7 @@ export interface ExistingNotification {
   id: number;
   reminderId: string;
   title: string;
+  body?: string;
   at: number;
   scheduleVersion?: number;
 }
@@ -37,7 +39,15 @@ export const MAX_SCHEDULED = 60;
  * Increment when the native notification presentation contract changes.
  * Existing pending alarms are then safely re-created once on the next sync.
  */
-export const LOCAL_NOTIFICATION_SCHEDULE_VERSION = 2;
+export const LOCAL_NOTIFICATION_SCHEDULE_VERSION = 3;
+
+export function reminderNotificationBody(reminder: Reminder): string {
+  if (reminder.offset_minutes === 1440) return `一天后：${reminder.title}`;
+  if (reminder.offset_minutes === 15) return `15 分钟后：${reminder.title}`;
+  if (reminder.offset_minutes === 0) return `现在：${reminder.title}`;
+  if (reminder.offset_minutes != null) return `${reminder.offset_minutes} 分钟后：${reminder.title}`;
+  return reminder.title;
+}
 
 /**
  * Derive a stable positive 31-bit integer id from a reminder uuid. The plugin
@@ -77,7 +87,8 @@ export function planReminderNotifications(
   const desired: PlannedNotification[] = upcoming.map(({ reminder, at }) => ({
     id: reminderNotificationId(reminder.id),
     reminderId: reminder.id,
-    title: reminder.title,
+    title: "Time Agent 提醒",
+    body: reminderNotificationBody(reminder),
     at,
   }));
 
@@ -88,6 +99,7 @@ export function planReminderNotifications(
     return !current
       || current.id !== item.id
       || current.title !== item.title
+      || current.body !== item.body
       || current.at !== item.at
       || current.scheduleVersion !== LOCAL_NOTIFICATION_SCHEDULE_VERSION;
   });

@@ -22,6 +22,7 @@ from apps.external_data.configuration import (
     get_provider_config,
 )
 from apps.external_data.models import ExternalNewsItem
+from apps.external_data.providers.geocoding import AdministrativeAddress
 from apps.external_data.providers.news import RssNewsProvider, canonicalize_url
 from apps.external_data.providers.weather import OpenMeteoWeatherProvider
 from apps.external_data.schemas import (
@@ -549,9 +550,11 @@ def test_news_service_deduplicates_and_persists_provider_items() -> None:
 class RecordingWeatherProvider:
     def __init__(self) -> None:
         self.days = 0
+        self.resolve_calls = 0
 
     def resolve_location(self, query: str, *, language: str) -> ResolvedLocation:
         del query, language
+        self.resolve_calls += 1
         return ResolvedLocation(
             name="Shanghai",
             latitude=31.23,
@@ -595,6 +598,7 @@ def test_weather_service_honors_requested_range_up_to_provider_limit() -> None:
 
     assert provider.days == 7
     assert len(forecast.daily) == 7
+    assert provider.resolve_calls == 1
     with pytest.raises(ValueError, match="at most 16"):
         WeatherDataService.forecast_for_user(
             user=user,
@@ -604,6 +608,41 @@ def test_weather_service_honors_requested_range_up_to_provider_limit() -> None:
             locale="zh-CN",
             provider=provider,
         )
+
+
+@pytest.mark.django_db
+def test_weather_service_uses_confirmed_coordinates_without_regeocoding() -> None:
+    user = User.objects.create_user(username="confirmed-weather-location-user")
+    UserPreferenceService.update_for_user(
+        user,
+        {
+            "weather_location": "Zhuhai / Guangdong / China",
+            "weather_location_data": {
+                "provider": "open_meteo",
+                "provider_location_id": "123",
+                "name": "Zhuhai",
+                "admin1": "Guangdong",
+                "country": "China",
+                "timezone": "Asia/Shanghai",
+                "label": "Zhuhai / Guangdong / China",
+                "latitude": 22.27,
+                "longitude": 113.57,
+            },
+        },
+    )
+    provider = RecordingWeatherProvider()
+
+    forecast = WeatherDataService.forecast_for_user(
+        user=user,
+        start_date=date(2026, 7, 19),
+        requested_at=datetime(2026, 7, 19, tzinfo=UTC),
+        locale="zh-CN",
+        provider=provider,
+    )
+
+    assert provider.resolve_calls == 0
+    assert forecast.location.latitude == 22.27
+    assert forecast.location.longitude == 113.57
 
 
 @pytest.mark.django_db
@@ -619,3 +658,56 @@ def test_provider_catalog_api_requires_authentication_and_lists_feeds() -> None:
     assert response.data["weather_provider"] == "open_meteo"
     assert response.data["timezones"] == ["Asia/Shanghai"]
     assert any(item["name"] == "OpenAI News" for item in response.data["news_feeds"])
+
+
+@pytest.mark.django_db
+def test_current_location_api_returns_a_confirmable_coordinate_candidate(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        "apps.external_data.views.NominatimReverseGeocodingProvider.reverse",
+        lambda *args, **kwargs: AdministrativeAddress(
+            province="广东省",
+            city="珠海市",
+            district="香洲区",
+            country="中国",
+        ),
+    )
+    client = APIClient()
+    user = User.objects.create_user(username="current-location-user")
+    client.force_authenticate(user=user)
+
+    response = client.get(
+        "/api/v1/providers/locations/current/",
+        {"latitude": "22.27", "longitude": "113.57", "timezone": "Asia/Shanghai"},
+    )
+
+    assert response.status_code == 200
+    assert response.data["provider"] == "device_geolocation"
+    assert response.data["latitude"] == 22.27
+    assert response.data["label"] == "广东省 / 珠海市 / 香洲区"
+    assert response.data["district"] == "香洲区"
+
+
+@pytest.mark.django_db
+def test_administrative_area_api_provides_cascading_options() -> None:
+    client = APIClient()
+    client.force_authenticate(user=User.objects.create_user(username="administrative-area-user"))
+
+    provinces = client.get("/api/v1/providers/locations/administrative-areas/")
+    assert provinces.status_code == 200
+    guangdong = next(item for item in provinces.data if item["name"] == "广东省")
+
+    cities = client.get(
+        "/api/v1/providers/locations/administrative-areas/",
+        {"province_code": guangdong["code"]},
+    )
+    assert cities.status_code == 200
+    zhuhai = next(item for item in cities.data if item["name"] == "珠海市")
+
+    districts = client.get(
+        "/api/v1/providers/locations/administrative-areas/",
+        {"city_code": zhuhai["code"]},
+    )
+    assert districts.status_code == 200
+    assert any(item["name"] == "香洲区" for item in districts.data)

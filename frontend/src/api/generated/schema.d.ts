@@ -180,6 +180,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/auth/native/password-reset/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Stateless password-reset request endpoint for Capacitor clients. */
+        post: operations["api_v1_auth_native_password_reset_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/native/register/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Stateless registration endpoint for Capacitor's token-auth channel. */
+        post: operations["api_v1_auth_native_register_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/auth/password-reset/": {
         parameters: {
             query?: never;
@@ -563,7 +597,59 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /** @description Compatibility endpoint for existing saved-place lookups. */
         get: operations["api_v1_providers_locations_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/providers/locations/administrative-areas/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Read-only authoritative catalog for the province/city/district selector. */
+        get: operations["api_v1_providers_locations_administrative_areas_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/providers/locations/current/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Reverse an explicitly user-authorized coordinate to a concrete administrative address. */
+        get: operations["api_v1_providers_locations_current_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/providers/locations/resolve/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Resolve a selected province/city/district hierarchy into weather coordinates. */
+        get: operations["api_v1_providers_locations_resolve_retrieve"];
         put?: never;
         post?: never;
         delete?: never;
@@ -798,6 +884,10 @@ export interface components {
          * @enum {string}
          */
         ActionProposalStatusEnum: "awaiting_approval" | "approved" | "rejected" | "executing" | "executed" | "failed" | "expired";
+        AdministrativeAreaOption: {
+            code: string;
+            name: string;
+        };
         AgentRun: {
             /** Format: uuid */
             readonly id: string;
@@ -1102,11 +1192,23 @@ export interface components {
          */
         LocaleEnum: "zh-CN" | "en-US";
         LocationCandidate: {
+            provider: string;
+            provider_location_id: string;
             name: string;
             admin1: string;
             country: string;
             timezone: string;
             label: string;
+            /** Format: double */
+            latitude: number;
+            /** Format: double */
+            longitude: number;
+            /** @default  */
+            province: string;
+            /** @default  */
+            city: string;
+            /** @default  */
+            district: string;
         };
         Login: {
             identifier: string;
@@ -1256,7 +1358,10 @@ export interface components {
             preferred_focus_periods?: unknown;
             default_reminder_offsets?: unknown;
             weather_location?: string;
+            weather_location_data?: unknown;
             weather_forecast_days?: number;
+            require_event_creation_approval?: boolean;
+            require_event_cancellation_approval?: boolean;
             news_topics?: unknown;
             /** Format: time */
             briefing_time?: string;
@@ -1480,7 +1585,10 @@ export interface components {
             preferred_focus_periods?: unknown;
             default_reminder_offsets?: unknown;
             weather_location?: string;
+            weather_location_data?: unknown;
             weather_forecast_days?: number;
+            require_event_creation_approval?: boolean;
+            require_event_cancellation_approval?: boolean;
             news_topics?: unknown;
             /** Format: time */
             briefing_time?: string;
@@ -1818,6 +1926,54 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["CurrentUser"];
                 };
+            };
+        };
+    };
+    api_v1_auth_native_password_reset_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PasswordResetRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["PasswordResetRequest"];
+                "multipart/form-data": components["schemas"]["PasswordResetRequest"];
+            };
+        };
+        responses: {
+            /** @description No response body */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    api_v1_auth_native_register_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Register"];
+                "application/x-www-form-urlencoded": components["schemas"]["Register"];
+                "multipart/form-data": components["schemas"]["Register"];
+            };
+        };
+        responses: {
+            /** @description Verification email sent */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -2575,6 +2731,63 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["LocationCandidate"][];
+                };
+            };
+        };
+    };
+    api_v1_providers_locations_administrative_areas_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdministrativeAreaOption"][];
+                };
+            };
+        };
+    };
+    api_v1_providers_locations_current_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LocationCandidate"];
+                };
+            };
+        };
+    };
+    api_v1_providers_locations_resolve_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LocationCandidate"];
                 };
             };
         };

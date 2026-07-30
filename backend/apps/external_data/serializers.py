@@ -23,8 +23,20 @@ class ProviderCatalogSerializer(serializers.Serializer[Any]):
 
 
 class LocationCandidateSerializer(serializers.Serializer[Any]):
+    provider = serializers.CharField()
+    provider_location_id = serializers.CharField()
     name = serializers.CharField()
     admin1 = serializers.CharField()
     country = serializers.CharField()
     timezone = serializers.CharField()
     label = serializers.CharField()
+    latitude = serializers.FloatField()
+    longitude = serializers.FloatField()
+    province = serializers.CharField(required=False, allow_blank=True, default="")
+    city = serializers.CharField(required=False, allow_blank=True, default="")
+    district = serializers.CharField(required=False, allow_blank=True, default="")
+
+
+class AdministrativeAreaOptionSerializer(serializers.Serializer[Any]):
+    code = serializers.CharField()
+    name = serializers.CharField()
