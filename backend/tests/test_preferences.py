@@ -24,6 +24,7 @@ def test_service_creates_default_preference() -> None:
     assert preference.timezone == "Asia/Shanghai"
     assert preference.locale == "zh-CN"
     assert preference.workday_start == time(9, 0)
+    assert preference.daily_briefing_enabled is False
     assert UserPreference.objects.filter(user=user).count() == 1
 
 
@@ -112,6 +113,8 @@ def test_preference_api_reads_and_updates_via_service() -> None:
             "workday_end": "17:30:00",
             "default_event_duration_minutes": 30,
             "weather_forecast_days": 5,
+            "daily_briefing_enabled": True,
+            "briefing_time": "09:30:00",
         },
         content_type="application/json",
     )
@@ -121,6 +124,8 @@ def test_preference_api_reads_and_updates_via_service() -> None:
     assert patch_response.status_code == 200
     assert patch_response.json()["timezone"] == "America/Los_Angeles"
     assert patch_response.json()["weather_forecast_days"] == 5
+    assert patch_response.json()["daily_briefing_enabled"] is True
+    assert patch_response.json()["briefing_time"] == "09:30:00"
     assert UserPreference.objects.get(user=user).default_event_duration_minutes == 30
 
 

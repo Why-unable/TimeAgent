@@ -2002,8 +2002,9 @@ components:
           nullable: true
         version:
           type: integer
-          maximum: 2147483647
+          maximum: 9223372036854775807
           minimum: 1
+          format: int64
         created_at:
           type: string
           format: date-time
@@ -2744,8 +2745,9 @@ components:
           format: time
         default_event_duration_minutes:
           type: integer
-          maximum: 32767
+          maximum: 9223372036854775807
           minimum: 0
+          format: int64
         preferred_focus_periods: {}
         default_reminder_offsets: {}
         weather_location:
@@ -2754,13 +2756,16 @@ components:
         weather_location_data: {}
         weather_forecast_days:
           type: integer
-          maximum: 32767
+          maximum: 9223372036854775807
           minimum: 0
+          format: int64
         require_event_creation_approval:
           type: boolean
         require_event_cancellation_approval:
           type: boolean
         news_topics: {}
+        daily_briefing_enabled:
+          type: boolean
         briefing_time:
           type: string
           format: time
@@ -2939,8 +2944,9 @@ components:
           - $ref: '#/components/schemas/BlankEnum'
         offset_minutes:
           type: integer
-          maximum: 2147483647
+          maximum: 9223372036854775807
           minimum: 0
+          format: int64
           nullable: true
         title:
           type: string
@@ -2968,8 +2974,9 @@ components:
           nullable: true
         retry_count:
           type: integer
-          maximum: 32767
+          maximum: 9223372036854775807
           minimum: 0
+          format: int64
         failure_reason:
           type: string
         created_at:
@@ -3114,8 +3121,9 @@ components:
           nullable: true
         estimated_minutes:
           type: integer
-          maximum: 2147483647
+          maximum: 9223372036854775807
           minimum: 1
+          format: int64
           nullable: true
         planned_start_at:
           type: string
@@ -3247,8 +3255,9 @@ components:
           format: time
         default_event_duration_minutes:
           type: integer
-          maximum: 32767
+          maximum: 9223372036854775807
           minimum: 0
+          format: int64
         preferred_focus_periods: {}
         default_reminder_offsets: {}
         weather_location:
@@ -3257,13 +3266,16 @@ components:
         weather_location_data: {}
         weather_forecast_days:
           type: integer
-          maximum: 32767
+          maximum: 9223372036854775807
           minimum: 0
+          format: int64
         require_event_creation_approval:
           type: boolean
         require_event_cancellation_approval:
           type: boolean
         news_topics: {}
+        daily_briefing_enabled:
+          type: boolean
         briefing_time:
           type: string
           format: time

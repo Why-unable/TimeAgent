@@ -30,6 +30,10 @@ import {
   requestNativeReminderNotificationPermission,
   type NativeReminderPermissionState,
 } from "../features/notifications/local-sync";
+import {
+  useCurrentUserPreference,
+  useUpdateCurrentUserPreference,
+} from "../features/preferences/hooks";
 
 const stateLabels = {
   unsupported: "浏览器不支持推送通知",
@@ -45,6 +49,8 @@ export function NotificationSettingsPage() {
   const pushConfig = useWebPushConfig();
   const subscriptions = useWebPushSubscriptions();
   const updatePreference = useUpdateNotificationPreference();
+  const userPreference = useCurrentUserPreference();
+  const updateUserPreference = useUpdateCurrentUserPreference();
   const createSubscription = useCreateWebPushSubscription();
   const deleteSubscription = useDeleteWebPushSubscription();
   const [pushState, setPushState] = useState(() => browserPushState());
@@ -152,8 +158,13 @@ export function NotificationSettingsPage() {
     }
   };
 
-  if (preference.isLoading) return <p className="text-slate-400">正在加载通知设置…</p>;
-  if (preference.isError || !preference.data) {
+  if (preference.isLoading || userPreference.isLoading) return <p className="text-slate-400">正在加载通知设置…</p>;
+  if (
+    preference.isError ||
+    !preference.data ||
+    userPreference.isError ||
+    !userPreference.data
+  ) {
     return <p role="alert" className="text-red-300">无法读取通知设置，请确认已登录。</p>;
   }
 
@@ -175,6 +186,35 @@ export function NotificationSettingsPage() {
       </div>
 
       <div className="grid gap-5 lg:grid-cols-2">
+        <ChannelCard
+          icon={BellRing}
+          title="每日简报"
+          description="系统会提前 5 分钟生成，并在设定时间通过已启用的简报渠道发送。"
+        >
+          <Toggle
+            label="启用定时简报"
+            checked={Boolean(userPreference.data?.daily_briefing_enabled)}
+            onChange={(value) => updateUserPreference.mutate({ daily_briefing_enabled: value })}
+          />
+          <label className="block text-sm">
+            <span className="text-slate-300">每日发送时间</span>
+            <input
+              type="time"
+              value={userPreference.data?.briefing_time?.slice(0, 5) ?? "08:00"}
+              disabled={updateUserPreference.isPending}
+              onChange={(event) =>
+                updateUserPreference.mutate({ briefing_time: `${event.target.value}:00` })
+              }
+              className="mt-2 w-full rounded-xl border border-white/10 bg-slate-950 px-4 py-3"
+            />
+          </label>
+          {updateUserPreference.isError && (
+            <p role="alert" className="text-sm text-red-300">
+              定时简报设置保存失败：{updateUserPreference.error.message}
+            </p>
+          )}
+        </ChannelCard>
+
         <ChannelCard
           icon={Mail}
           title="Email"

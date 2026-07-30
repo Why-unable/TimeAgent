@@ -27,6 +27,7 @@ class UserPreferenceSerializer(serializers.ModelSerializer[UserPreference]):
             "require_event_creation_approval",
             "require_event_cancellation_approval",
             "news_topics",
+            "daily_briefing_enabled",
             "briefing_time",
             "planning_rules",
             "updated_at",

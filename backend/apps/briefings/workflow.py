@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, datetime
 from typing import Any, Literal, cast
 from uuid import UUID
 
@@ -169,7 +169,11 @@ def briefing_workflow_node(
             model_config_snapshot={str(key): str(value) for key, value in snapshot.items()},
             prompt_version=PROMPT_VERSION,
         )
-        create_briefing_deliveries(run=run, occurred_at=runtime.context.current_datetime)
+        create_briefing_deliveries(
+            run=run,
+            occurred_at=runtime.context.current_datetime,
+            scheduled_at=_payload_datetime(payload, "delivery_at"),
+        )
     except Exception as exc:
         BriefingRunService.fail(run, code=type(exc).__name__, message=str(exc))
         raise
@@ -277,6 +281,16 @@ def _requested_sections(payload: dict[str, Any], defaults: list[Any]) -> list[Br
 def _payload_date(payload: dict[str, Any], key: str) -> date | None:
     value = payload.get(key)
     return date.fromisoformat(value) if isinstance(value, str) and value.strip() else None
+
+
+def _payload_datetime(payload: dict[str, Any], key: str) -> datetime | None:
+    value = payload.get(key)
+    if not isinstance(value, str) or not value.strip():
+        return None
+    parsed = datetime.fromisoformat(value)
+    if parsed.tzinfo is None:
+        raise ValueError(f"{key} must include an explicit timezone")
+    return parsed
 
 
 def _string_list(value: Any) -> list[str]:

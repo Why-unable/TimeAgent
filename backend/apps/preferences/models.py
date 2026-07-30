@@ -42,6 +42,7 @@ class UserPreference(models.Model):
     require_event_creation_approval = models.BooleanField(default=False)
     require_event_cancellation_approval = models.BooleanField(default=False)
     news_topics = models.JSONField(default=list, blank=True)
+    daily_briefing_enabled = models.BooleanField(default=False)
     briefing_time = models.TimeField(default=time(8, 0))
     planning_rules = models.JSONField(default=dict, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)

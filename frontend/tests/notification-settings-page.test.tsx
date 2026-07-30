@@ -32,6 +32,15 @@ function mockApi({ subscriptions = [] as object[] } = {}) {
     requests.push({ url, init });
     if (url.endsWith("notification-preferences/me/") && (init?.method ?? "GET") === "GET") return new Response(JSON.stringify(preference));
     if (url.endsWith("notification-preferences/me/") && init?.method === "PATCH") return new Response(JSON.stringify({ ...preference, ...JSON.parse(String(init.body)) }));
+    if (url.endsWith("preferences/me/") && (init?.method ?? "GET") === "GET") return new Response(JSON.stringify({
+      daily_briefing_enabled: false,
+      briefing_time: "08:00:00",
+    }));
+    if (url.endsWith("preferences/me/") && init?.method === "PATCH") return new Response(JSON.stringify({
+      daily_briefing_enabled: false,
+      briefing_time: "08:00:00",
+      ...JSON.parse(String(init.body)),
+    }));
     if (url.endsWith("notification-deliveries/")) return new Response(JSON.stringify([
       { id: "delivery-console", source_type: "reminder", source_id: null, channel_type: "console", status: "sent", subject: "Development-only reminder", scheduled_at: "2026-07-21T00:00:00Z", queued_at: null, sending_at: null, sent_at: "2026-07-21T00:00:01Z", failed_at: null, attempt_count: 1, next_retry_at: null, provider_message_id: "", failure_code: "", failure_reason: "", created_at: "2026-07-21T00:00:00Z", updated_at: "2026-07-21T00:00:01Z" },
       { id: "delivery-1", source_type: "reminder", source_id: null, channel_type: "email", status: "failed", subject: "Take medicine", scheduled_at: "2026-07-21T00:00:00Z", queued_at: null, sending_at: null, sent_at: null, failed_at: "2026-07-21T00:00:01Z", attempt_count: 4, next_retry_at: null, provider_message_id: "", failure_code: "permanent_notification_error", failure_reason: "Invalid mailbox", created_at: "2026-07-21T00:00:00Z", updated_at: "2026-07-21T00:00:01Z" },
@@ -61,6 +70,22 @@ describe("NotificationSettingsPage", () => {
     expect(await screen.findByText(/Invalid mailbox/)).toBeInTheDocument();
     expect(screen.queryByText("Development-only reminder")).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "启用浏览器通知" })).toBeDisabled();
+  });
+
+  it("enables a daily briefing", async () => {
+    const requests = mockApi();
+    renderPage();
+
+    await userEvent.click(await screen.findByRole("checkbox", { name: "启用定时简报" }));
+
+    expect(
+      requests.some(
+        (item) =>
+          item.url.endsWith("preferences/me/") &&
+          item.init?.method === "PATCH" &&
+          String(item.init.body).includes("daily_briefing_enabled"),
+      ),
+    ).toBe(true);
   });
 
   it("shows permission denial after an explicit user click", async () => {

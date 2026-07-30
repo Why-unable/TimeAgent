@@ -57,10 +57,14 @@ def create_reminder_deliveries(
 
 
 def create_briefing_deliveries(
-    *, run: BriefingRun, occurred_at: datetime
+    *,
+    run: BriefingRun,
+    occurred_at: datetime,
+    scheduled_at: datetime | None = None,
 ) -> list[NotificationDelivery]:
     if run.status not in {"completed", "partial"}:
         return []
+    delivery_time = scheduled_at or occurred_at
     deliveries: list[NotificationDelivery] = []
     for channel in NotificationService.channels_for(
         user=run.user, source_type=NotificationSourceType.BRIEFING
@@ -79,10 +83,10 @@ def create_briefing_deliveries(
                     "briefing_run_id": str(run.id),
                     "warnings": run.warnings,
                 },
-                scheduled_at=occurred_at,
+                scheduled_at=delivery_time,
             )
         )
-        if delivery.status == "pending":
+        if delivery.status == "pending" and delivery_time <= occurred_at:
             delivery = NotificationService.queue_delivery(
                 delivery_id=delivery.id, occurred_at=occurred_at
             )

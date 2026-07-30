@@ -1024,6 +1024,7 @@ export interface components {
             source?: string;
             external_id?: string;
             created_by?: number | null;
+            /** Format: int64 */
             version?: number;
             /** Format: date-time */
             readonly created_at: string;
@@ -1354,15 +1355,18 @@ export interface components {
             sleep_start?: string;
             /** Format: time */
             sleep_end?: string;
+            /** Format: int64 */
             default_event_duration_minutes?: number;
             preferred_focus_periods?: unknown;
             default_reminder_offsets?: unknown;
             weather_location?: string;
             weather_location_data?: unknown;
+            /** Format: int64 */
             weather_forecast_days?: number;
             require_event_creation_approval?: boolean;
             require_event_cancellation_approval?: boolean;
             news_topics?: unknown;
+            daily_briefing_enabled?: boolean;
             /** Format: time */
             briefing_time?: string;
             planning_rules?: unknown;
@@ -1437,6 +1441,7 @@ export interface components {
             /** Format: uuid */
             target_id?: string | null;
             schedule_anchor?: components["schemas"]["ScheduleAnchorEnum"] | components["schemas"]["BlankEnum"];
+            /** Format: int64 */
             offset_minutes?: number | null;
             title: string;
             /** Format: date-time */
@@ -1449,6 +1454,7 @@ export interface components {
             queued_at?: string | null;
             /** Format: date-time */
             sent_at?: string | null;
+            /** Format: int64 */
             retry_count?: number;
             failure_reason?: string;
             /** Format: date-time */
@@ -1527,6 +1533,7 @@ export interface components {
             priority?: components["schemas"]["PriorityEnum"];
             /** Format: date-time */
             due_at?: string | null;
+            /** Format: int64 */
             estimated_minutes?: number | null;
             /** Format: date-time */
             planned_start_at?: string | null;
@@ -1581,15 +1588,18 @@ export interface components {
             sleep_start?: string;
             /** Format: time */
             sleep_end?: string;
+            /** Format: int64 */
             default_event_duration_minutes?: number;
             preferred_focus_periods?: unknown;
             default_reminder_offsets?: unknown;
             weather_location?: string;
             weather_location_data?: unknown;
+            /** Format: int64 */
             weather_forecast_days?: number;
             require_event_creation_approval?: boolean;
             require_event_cancellation_approval?: boolean;
             news_topics?: unknown;
+            daily_briefing_enabled?: boolean;
             /** Format: time */
             briefing_time?: string;
             planning_rules?: unknown;

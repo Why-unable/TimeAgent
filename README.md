@@ -447,6 +447,8 @@ uv run python manage.py check_external_providers --weather-location 上海 --top
 
 通知渠道通过 `.env` 配置。开发环境默认使用 Console 通知与 Django console Email Backend；SMTP 可通过 `EMAIL_BACKEND`、`EMAIL_HOST`、`EMAIL_PORT`、`EMAIL_USERNAME`、`EMAIL_PASSWORD`、TLS/SSL 和 `EMAIL_FROM_ADDRESS` 切换。Web Push 使用 `WEB_PUSH_VAPID_PUBLIC_KEY`、`WEB_PUSH_VAPID_PRIVATE_KEY` 和 `WEB_PUSH_VAPID_SUBJECT`。私钥只注入 Django/Celery，前端通过认证 API 读取公钥。修改后请重建 Django、Worker 和 Beat：
 
+定时简报在“通知设置”中显式开启并设置每日发送时间，默认关闭。Celery Beat 每分钟按用户 IANA 时区扫描：发送时间前 5 分钟创建幂等的 `scheduled_briefing` AgentRun，并直接进入 Briefing Workflow；生成结果先保存到 PostgreSQL，再创建计划发送时间为整点的 NotificationDelivery。现有通知 Dispatcher 到期后通过用户已启用的简报 Email/Web Push 渠道投递。若服务在计划生成时刻短暂不可用，会在发送时间后 1 小时内补偿生成；同一用户、同一发送时刻只会创建一个 Run。
+
 ```powershell
 docker compose up -d --build django celery-worker celery-beat frontend
 docker compose restart nginx

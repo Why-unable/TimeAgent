@@ -416,6 +416,30 @@ def test_completed_briefing_creates_independent_channel_deliveries() -> None:
     assert all(item.status == NotificationDeliveryStatus.QUEUED for item in deliveries)
 
 
+def test_completed_briefing_keeps_future_deliveries_pending() -> None:
+    owner = user()
+    definition = BriefingDefinitionService.default_for_user(owner)
+    run = BriefingRun.objects.create(
+        definition=definition,
+        user=owner,
+        operation_id=uuid4(),
+        trigger_type="scheduled_briefing",
+        target_date=NOW.date(),
+        timezone="Asia/Shanghai",
+        status=BriefingRunStatus.COMPLETED,
+        rendered_markdown="# Daily briefing",
+    )
+
+    deliveries = create_briefing_deliveries(
+        run=run,
+        occurred_at=NOW,
+        scheduled_at=NOW.replace(hour=NOW.hour + 1),
+    )
+
+    assert deliveries
+    assert all(item.status == NotificationDeliveryStatus.PENDING for item in deliveries)
+
+
 def test_failed_briefing_does_not_create_delivery() -> None:
     owner = user()
     definition = BriefingDefinitionService.default_for_user(owner)

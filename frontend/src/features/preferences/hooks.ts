@@ -1,6 +1,9 @@
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
-import { getCurrentUserPreference } from "../../api/preferences";
+import {
+  getCurrentUserPreference,
+  updateCurrentUserPreference,
+} from "../../api/preferences";
 
 export const preferenceQueryKey = ["user-preference"] as const;
 
@@ -12,3 +15,10 @@ export function useCurrentUserPreference() {
   });
 }
 
+export function useUpdateCurrentUserPreference() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: updateCurrentUserPreference,
+    onSuccess: (data) => client.setQueryData(preferenceQueryKey, data),
+  });
+}

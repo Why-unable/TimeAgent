@@ -227,6 +227,10 @@ CELERY_BEAT_SCHEDULE = {
         "task": "notifications.dispatch_due",
         "schedule": 30.0,
     },
+    "schedule-daily-briefings": {
+        "task": "briefings.schedule_due",
+        "schedule": 60.0,
+    },
 }
 
 LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")

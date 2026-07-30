@@ -33,6 +33,16 @@ vi.mock("../src/features/notifications/hooks", () => ({
   useCreateWebPushSubscription: () => ({ mutateAsync: vi.fn() }),
   useDeleteWebPushSubscription: () => ({ mutateAsync: vi.fn() }),
 }));
+vi.mock("../src/features/preferences/hooks", () => ({
+  useCurrentUserPreference: () => ({
+    data: {
+      daily_briefing_enabled: false,
+      briefing_time: "08:00:00",
+    },
+    isLoading: false,
+  }),
+  useUpdateCurrentUserPreference: () => ({ mutate: vi.fn(), isPending: false }),
+}));
 
 import { NotificationSettingsPage } from "../src/pages/notification-settings-page";
 
