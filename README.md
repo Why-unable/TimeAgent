@@ -198,6 +198,10 @@ docker compose up --build
 
 ## Cloudflare Tunnel 生产运行
 
+从 Windows 迁移到新 Linux 服务器时，请按
+[Linux 新机部署与切换指南](docs/operations/linux-server-deployment.md) 执行；其中包含
+PostgreSQL 最终备份、Cloudflare Tunnel 切换、回滚和自启动验证。
+
 Cloudflare Tunnel 负责公网 HTTPS，Docker 内部入口只使用 HTTP。请在 `.env` 中配置实际
 域名，且不要将任何密码、API Key 或 Tunnel Token 提交到 Git：
 

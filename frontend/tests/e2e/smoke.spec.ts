@@ -118,15 +118,34 @@ test("reads and updates time preferences", async ({ page }) => {
       },
     });
   });
-  await page.route("**/api/v1/providers/locations/**", async (route) => {
+  await page.route("**/api/v1/providers/locations/administrative-areas/**", async (route) => {
+    const url = new URL(route.request().url());
+    if (url.searchParams.get("city_code") === "340100") {
+      await route.fulfill({ json: [{ code: "340103", name: "庐阳区" }] });
+      return;
+    }
+    if (url.searchParams.get("province_code") === "340000") {
+      await route.fulfill({ json: [{ code: "340100", name: "合肥市" }] });
+      return;
+    }
+    await route.fulfill({ json: [{ code: "340000", name: "安徽省" }] });
+  });
+  await page.route("**/api/v1/providers/locations/resolve/**", async (route) => {
     await route.fulfill({
-      json: [{
-        name: "合肥",
-        admin1: "安徽",
+      json: {
+        provider: "open_meteo",
+        provider_location_id: "e2e-hefei",
+        name: "庐阳区",
+        admin1: "安徽省",
         country: "中国",
         timezone: "Asia/Shanghai",
-        label: "合肥 / 安徽 / 中国",
-      }],
+        label: "安徽省 / 合肥市 / 庐阳区",
+        latitude: 31.88,
+        longitude: 117.26,
+        province: "安徽省",
+        city: "合肥市",
+        district: "庐阳区",
+      },
     });
   });
   await page.route("**/api/v1/preferences/me/", async (route) => {
@@ -161,16 +180,18 @@ test("reads and updates time preferences", async ({ page }) => {
   });
 
   await page.goto("/settings/time");
-  await expect(page.getByRole("heading", { name: "时间偏好" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "偏好设置" })).toBeVisible();
   await page.getByLabel("IANA 时区").selectOption("Asia/Shanghai");
-  await page.getByPlaceholder("输入城市，如合肥").fill("合肥");
-  await page.getByRole("button", { name: "合肥 / 安徽 / 中国" }).click();
-  await page.getByRole("button", { name: "AI", exact: true }).click();
-  await page.getByRole("button", { name: "Python", exact: true }).click();
+  await page.getByLabel("省").selectOption("340000");
+  await page.getByLabel("市").selectOption("340100");
+  await page.getByLabel("区 / 县").selectOption("340103");
+  await expect(page.getByText("已选：安徽省 / 合肥市 / 庐阳区")).toBeVisible();
+  await page.getByText("AI", { exact: true }).click();
+  await page.getByText("Python", { exact: true }).click();
   await page.getByRole("button", { name: "保存偏好" }).click();
-  await expect(page.getByRole("status")).toHaveText("时间偏好已保存。");
+  await expect(page.getByRole("status")).toHaveText("偏好已保存。");
   expect(timezone).toBe("Asia/Shanghai");
-  expect(weatherLocation).toBe("合肥 / 安徽 / 中国");
+  expect(weatherLocation).toBe("安徽省 / 合肥市 / 庐阳区");
   expect(newsTopics).toEqual(["AI", "Python"]);
 });
 
@@ -592,7 +613,28 @@ test("launches a manual briefing into its own conversation", async ({ page }) =>
 test("opens notification settings, enables email, and shows delivery status", async ({ page }) => {
   let emailEnabled = false;
   await page.route("**/api/v1/preferences/me/", async (route) => {
-    await route.fulfill({ status: 403, json: { detail: "Not authenticated." } });
+    await route.fulfill({
+      json: {
+        timezone: "Asia/Shanghai",
+        locale: "zh-CN",
+        workday_start: "09:00:00",
+        workday_end: "18:00:00",
+        sleep_start: "23:00:00",
+        sleep_end: "07:00:00",
+        default_event_duration_minutes: 60,
+        preferred_focus_periods: [],
+        default_reminder_offsets: [],
+        weather_location: "",
+        weather_location_data: {},
+        weather_forecast_days: 3,
+        require_event_creation_approval: false,
+        require_event_cancellation_approval: false,
+        news_topics: [],
+        briefing_time: "08:00:00",
+        planning_rules: {},
+        updated_at: "2026-07-21T00:00:00Z",
+      },
+    });
   });
   await page.route("**/api/v1/notification-preferences/me/", async (route) => {
     if (route.request().method() === "PATCH") {

@@ -160,7 +160,10 @@ class AdministrativeLocationResolveView(APIView):
 
         provider = OpenMeteoWeatherProvider()
         location = None
-        for query in (f"{district}, {city}, {province}, China", f"{city}, {province}, China"):
+        # Country is intentionally omitted here. Open-Meteo returns localized
+        # country names (for example 中国), so an English "China" qualifier can
+        # reject an otherwise exact Chinese administrative match.
+        for query in (f"{district}, {city}, {province}", f"{city}, {province}"):
             try:
                 location = provider.resolve_location(
                     query,

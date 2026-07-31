@@ -49,13 +49,64 @@ import { formatInUserTimezone, formatTimeInUserTimezone, getLocalDateKey } from 
 type ChatEntry =
   | { id: string; kind: "user" | "assistant"; content: string; timestamp: string }
   | { id: string; kind: "notice"; content: string; tone: "error" | "muted" }
-  | { id: string; kind: "tool"; name: string; status: "running" | "completed" | "failed" }
+  | {
+      id: string;
+      kind: "tool";
+      runId: string;
+      name: string;
+      status: "running" | "completed" | "failed";
+    }
   | { id: string; kind: "approval"; proposal: ActionProposal };
 
 type ConversationGroup = { label: string; conversations: Conversation[] };
 type ConversationKind = Conversation["kind"];
+type ToolEntry = Extract<ChatEntry, { kind: "tool" }>;
 
 const ACTIVE_RUN_STATUSES = new Set(["pending", "running"]);
+
+function ToolActivityPanel({ tools }: { tools: ToolEntry[] }) {
+  return (
+    <section
+      aria-label="工具调用记录"
+      className="max-h-28 w-full overflow-y-auto rounded-xl border border-slate-200 bg-white text-slate-700 shadow-sm"
+    >
+      <header className="sticky top-0 z-10 flex items-center gap-2 border-b border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-700">
+        <Wrench size={14} />
+        <span className="flex-1">工具调用</span>
+        <span className="font-normal text-slate-500">{tools.length} 项</span>
+      </header>
+      <div className="divide-y divide-slate-100">
+        {tools.map((tool) => (
+          <div key={tool.id} className="flex items-center gap-2 px-3 py-2 text-xs">
+            {tool.status === "running" ? (
+              <LoaderCircle className="shrink-0 animate-spin text-teal-600" size={14} />
+            ) : (
+              <Wrench className="shrink-0 text-slate-500" size={14} />
+            )}
+            <span className="min-w-0 flex-1 truncate font-medium text-slate-800">
+              {tool.name}
+            </span>
+            <span
+              className={
+                tool.status === "failed"
+                  ? "text-red-600"
+                  : tool.status === "completed"
+                    ? "text-teal-700"
+                    : "text-amber-700"
+              }
+            >
+              {tool.status === "running"
+                ? "执行中"
+                : tool.status === "completed"
+                  ? "已完成"
+                  : "失败"}
+            </span>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
 
 function entriesFromRuns(runs: AgentRun[]): ChatEntry[] {
   return runs.flatMap((run) => {
@@ -181,7 +232,13 @@ export function ChatPage() {
     if (event.type === "tool.started") {
       setEntries((current) => current.some((entry) => entry.kind === "tool" && entry.id === callId)
         ? current
-        : [...current, { id: callId, kind: "tool", name: toolName, status: "running" }]);
+        : [...current, {
+          id: callId,
+          kind: "tool",
+          runId: activeRunId,
+          name: toolName,
+          status: "running",
+        }]);
     } else if (event.type === "tool.completed" || event.type === "tool.failed") {
       setEntries((current) => current.map((entry) =>
         entry.kind === "tool" && entry.id === callId
@@ -190,13 +247,19 @@ export function ChatPage() {
       ));
     } else if (event.type === "briefing.section.started") {
       const section = String(event.data.section ?? "section");
-      const id = `briefing-section-${section}`;
+      const id = `briefing-section-${activeRunId}-${section}`;
       setEntries((current) => current.some((entry) => entry.kind === "tool" && entry.id === id)
         ? current
-        : [...current, { id, kind: "tool", name: `简报 · ${section === "calendar" ? "日程" : "任务"}`, status: "running" }]);
+        : [...current, {
+          id,
+          kind: "tool",
+          runId: activeRunId,
+          name: `简报 · ${section === "calendar" ? "日程" : "任务"}`,
+          status: "running",
+        }]);
     } else if (event.type === "briefing.section.completed") {
       const section = String(event.data.section ?? "section");
-      const id = `briefing-section-${section}`;
+      const id = `briefing-section-${activeRunId}-${section}`;
       setEntries((current) => current.map((entry) => entry.kind === "tool" && entry.id === id
         ? { ...entry, status: event.data.status === "completed" ? "completed" : "failed" }
         : entry));
@@ -511,18 +574,42 @@ export function ChatPage() {
               );
             }
             if (entry.kind === "tool") {
+              const runTools = entries.filter(
+                (candidate): candidate is ToolEntry =>
+                  candidate.kind === "tool" && candidate.runId === entry.runId,
+              );
+              const assistantExists = entries.some(
+                (candidate) =>
+                  candidate.kind === "assistant"
+                  && candidate.id === `assistant-${entry.runId}`,
+              );
+              if (assistantExists || runTools[0]?.id !== entry.id) {
+                return null;
+              }
               return (
-                <div key={entry.id} className="flex w-full items-center gap-3 rounded-xl border border-violet-300/20 bg-violet-300/5 px-4 py-3 text-sm text-violet-100 lg:mx-auto lg:max-w-xl">
-                  <Wrench size={16} /><span className="min-w-0 flex-1 truncate">{entry.name}</span>
-                  <span>{entry.status === "running" ? "执行中" : entry.status === "completed" ? "已完成" : "失败"}</span>
+                <div key={entry.id} className="w-full lg:mx-auto lg:max-w-3xl">
+                  <ToolActivityPanel tools={runTools} />
                 </div>
               );
             }
             if (entry.kind === "notice") {
               return <p key={entry.id} className={`w-full rounded-xl border px-4 py-3 text-sm lg:mx-auto lg:max-w-xl ${entry.tone === "error" ? "border-red-400/30 bg-red-400/10 text-red-100" : "border-white/10 bg-white/5 text-slate-400"}`}>{entry.content}</p>;
             }
+            const assistantRunId = entry.kind === "assistant"
+              ? entry.id.replace(/^assistant-/, "")
+              : "";
+            const runTools = assistantRunId
+              ? entries.filter(
+                (candidate): candidate is ToolEntry =>
+                  candidate.kind === "tool" && candidate.runId === assistantRunId,
+              )
+              : [];
             return (
-              <article key={entry.id} className={`flex w-full gap-3 lg:mx-auto lg:max-w-3xl ${entry.kind === "user" ? "justify-end" : "justify-start"}`}>
+              <div key={entry.id} className="w-full space-y-2 lg:mx-auto lg:max-w-3xl">
+                {entry.kind === "assistant" && runTools.length > 0 && (
+                  <ToolActivityPanel tools={runTools} />
+                )}
+                <article className={`flex w-full gap-3 ${entry.kind === "user" ? "justify-end" : "justify-start"}`}>
                 {entry.kind === "assistant" && <Bot className="mt-2 shrink-0 text-cyan-300" size={18} />}
                 {entry.kind === "user" ? (
                   <div className="max-w-[88%] sm:max-w-[85%]">
@@ -550,7 +637,8 @@ export function ChatPage() {
                   </div>
                 )}
                 {entry.kind === "user" && <UserRound className="mt-2 shrink-0 text-slate-400" size={18} />}
-              </article>
+                </article>
+              </div>
             );
           })}
           {busy && <p className="mx-auto flex max-w-3xl items-center gap-2 text-sm text-slate-400"><LoaderCircle className="animate-spin" size={16} /> Time Steward 正在处理…</p>}

@@ -117,30 +117,23 @@ export function CalendarPage() {
 
   return (
     <section className="mx-auto max-w-[1500px]">
-      <div className="flex flex-col gap-4 lg:flex-row lg:flex-wrap lg:items-end lg:justify-between">
-        {/* Desktop heading — hidden on mobile per §10.1 */}
-        <div className="hidden lg:block">
-          <div className="mt-2 flex items-center gap-3">
-            <CalendarDays className="text-cyan-300" size={31} />
-            <h2 className="text-4xl font-semibold">日历</h2>
-          </div>
-          <p className="mt-4 text-lg text-slate-400">月、周、日视图统一按 {timezone} 展示。</p>
-        </div>
-      </div>
-
       <ScheduleWorkspaceTabs />
 
-      {/* Mobile-only intro */}
-      <p className="mt-4 text-sm text-slate-500 lg:hidden">
-        月、周、日视图按 {timezone} 展示。
-      </p>
-
-      {/* Single primary action: full-width on mobile, inline on desktop */}
-      <div className="mt-4 lg:mt-6 lg:flex lg:justify-end">
+      <div className="flex flex-col gap-4 lg:mt-7 lg:flex-row lg:flex-wrap lg:items-end lg:justify-between">
+        <div>
+          {/* Desktop heading — hidden on mobile per §10.1 */}
+          <div className="hidden items-center gap-3 lg:flex">
+            <CalendarDays className="text-cyan-300" size={31} />
+            <h2 className="text-4xl font-semibold">日程</h2>
+          </div>
+          <p className="text-sm text-slate-500 lg:mt-4 lg:text-lg lg:text-slate-400">
+            月、周、日视图统一按 {timezone} 展示。
+          </p>
+        </div>
         <button
           type="button"
           onClick={() => setCreateStart(new Date())}
-          className="inline-flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl bg-cyan-300 px-6 py-3 text-lg font-semibold text-slate-950 lg:w-auto"
+          className="inline-flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl bg-cyan-300 px-6 py-3 text-lg font-semibold text-slate-950 lg:min-h-12 lg:w-auto lg:text-base"
         >
           <CirclePlus size={19} />
           新建日程

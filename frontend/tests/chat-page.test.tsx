@@ -85,9 +85,11 @@ describe("ChatPage", () => {
       'id: 1\nevent: agent.started\ndata: {"run_id":"run-1"}\n\n',
       'id: 2\nevent: tool.started\ndata: {"tool_call_id":"tool-1","tool_name":"list_events"}\n\n',
       'id: 3\nevent: tool.completed\ndata: {"tool_call_id":"tool-1","tool_name":"list_events"}\n\n',
-      'id: 4\nevent: message.delta\ndata: {"content":"你今天"}\n\n',
-      'id: 5\nevent: message.delta\ndata: {"content":"没有安排。"}\n\n',
-      'id: 6\nevent: message.completed\ndata: {"content":"你今天没有安排。"}\n\n',
+      'id: 4\nevent: tool.started\ndata: {"tool_call_id":"tool-2","tool_name":"list_tasks"}\n\n',
+      'id: 5\nevent: tool.completed\ndata: {"tool_call_id":"tool-2","tool_name":"list_tasks"}\n\n',
+      'id: 6\nevent: message.delta\ndata: {"content":"你今天"}\n\n',
+      'id: 7\nevent: message.delta\ndata: {"content":"没有安排。"}\n\n',
+      'id: 8\nevent: message.completed\ndata: {"content":"你今天没有安排。"}\n\n',
     ].join("");
     const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
       const url = String(input);
@@ -121,7 +123,15 @@ describe("ChatPage", () => {
 
     expect(await screen.findByText("你今天没有安排。")).toBeInTheDocument();
     expect(screen.getByText("list_events")).toBeInTheDocument();
-    expect(screen.getByText("已完成")).toBeInTheDocument();
+    expect(screen.getByText("list_tasks")).toBeInTheDocument();
+    expect(screen.getAllByLabelText("工具调用记录")).toHaveLength(1);
+    expect(screen.getAllByText("已完成")).toHaveLength(2);
+    const toolPanel = screen.getByLabelText("工具调用记录");
+    const assistantAnswer = screen.getByText("你今天没有安排。");
+    expect(
+      toolPanel.compareDocumentPosition(assistantAnswer)
+      & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
     expect(fetchMock.mock.calls.some(([input]) => String(input).includes(`/runs/${run.id}/events/?cursor=0`))).toBe(true);
   });
 

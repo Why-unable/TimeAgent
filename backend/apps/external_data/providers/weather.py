@@ -84,6 +84,14 @@ class OpenMeteoWeatherProvider:
                     or f"{item.get('latitude')}:{item.get('longitude')}"
                 )
                 candidates[identity] = item
+            if qualifiers and any(
+                isinstance(item, dict) and _matches_qualifiers(item, qualifiers)
+                for item in results
+            ):
+                # A catalog-backed province/city/district selection is already
+                # unambiguous. Avoid querying fallback spellings after the
+                # provider returns a candidate in the requested hierarchy.
+                break
         ranked = sorted(
             (
                 (_location_score(item, names[0], qualifiers), item)
@@ -172,11 +180,22 @@ _ADMIN_SUFFIXES = ("特别行政区", "自治区", "自治州", "地区", "省",
 def _location_search_terms(query: str) -> tuple[list[str], list[str]]:
     parts = [part.strip() for part in _LOCATION_SEPARATOR.split(query) if part.strip()]
     primary = parts[0] if parts else query
-    names = [query]
+    names: list[str] = []
+    if _contains_cjk(primary):
+        normalized_primary = _normalized_place(primary)
+        if normalized_primary and normalized_primary not in names:
+            # Open-Meteo commonly indexes Chinese administrative places without
+            # 市/区/县 even when the authoritative Chinese catalog includes it.
+            # Try this canonical provider key first so a manual selection does
+            # not spend several network round trips on known-unresolvable forms.
+            names.append(normalized_primary)
+    if query not in names:
+        names.append(query)
     if primary not in names:
         names.append(primary)
-    if _contains_cjk(primary) and not primary.endswith(_ADMIN_SUFFIXES):
-        names.append(f"{primary}市")
+    if _contains_cjk(primary):
+        if not primary.endswith(_ADMIN_SUFFIXES):
+            names.append(f"{primary}市")
     return list(dict.fromkeys(names)), parts[1:]
 
 

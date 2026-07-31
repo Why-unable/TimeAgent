@@ -306,6 +306,53 @@ def test_open_meteo_disambiguates_chinese_city_with_administrative_qualifier() -
     assert unqualified.name == "珠海市"
 
 
+def test_open_meteo_resolves_county_level_city_with_catalog_suffixes() -> None:
+    requested_names: list[str] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        query = request.url.params["name"]
+        requested_names.append(query)
+        if query != "高州":
+            return httpx.Response(200, json={})
+        return httpx.Response(
+            200,
+            json={
+                "results": [
+                    {
+                        "id": 3,
+                        "name": "高州",
+                        "latitude": 21.91965,
+                        "longitude": 110.85678,
+                        "timezone": "Asia/Shanghai",
+                        "country": "中国",
+                        "admin1": "广东",
+                        "admin2": "茂名市",
+                        "feature_code": "PPLA3",
+                    }
+                ]
+            },
+        )
+
+    config = WeatherProviderConfig.model_validate(
+        {
+            "forecast_url": "https://api.open-meteo.test/v1/forecast",
+            "geocoding_url": "https://geocoding.open-meteo.test/v1/search",
+            "forecast_days": 7,
+        }
+    )
+    provider = OpenMeteoWeatherProvider(
+        config,
+        client=httpx.Client(transport=httpx.MockTransport(handler)),
+    )
+
+    location = provider.resolve_location("高州市, 茂名市, 广东省", language="zh-CN")
+
+    assert requested_names == ["高州"]
+    assert location.name == "高州"
+    assert location.admin1 == "广东"
+    assert location.latitude == 21.91965
+
+
 def test_open_meteo_rejects_candidates_outside_explicit_administrative_area() -> None:
     def handler(request: httpx.Request) -> httpx.Response:
         del request

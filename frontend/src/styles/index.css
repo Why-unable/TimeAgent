@@ -71,54 +71,162 @@ body::-webkit-scrollbar {
 
   /* Mobile is intentionally light and high contrast. These compatibility
    * overrides keep desktop-tailored utility classes legible during migration. */
-  [data-color-scheme="dark"],
-  [data-color-scheme="dark"] > main {
+  [data-color-scheme="workspace"],
+  [data-color-scheme="workspace"] > main {
     background-color: #f4f7fb !important;
     color: #172033 !important;
   }
 
-  [data-color-scheme="dark"] [class*="bg-slate-950"] {
+  [data-color-scheme="workspace"] [class*="bg-slate-950"] {
     background-color: #ffffff !important;
   }
 
-  [data-color-scheme="dark"] [class*="bg-slate-900"] {
+  [data-color-scheme="workspace"] [class*="bg-slate-900"] {
     background-color: #edf3fa !important;
   }
 
-  [data-color-scheme="dark"] [class*="text-slate-100"],
-  [data-color-scheme="dark"] [class*="text-white"] {
+  [data-color-scheme="workspace"] [class*="text-slate-100"],
+  [data-color-scheme="workspace"] [class*="text-white"] {
     color: #172033 !important;
   }
 
-  [data-color-scheme="dark"] [class*="text-slate-200"] {
+  [data-color-scheme="workspace"] [class*="text-slate-200"] {
     color: #26364d !important;
   }
 
-  [data-color-scheme="dark"] [class*="text-slate-300"] {
+  [data-color-scheme="workspace"] [class*="text-slate-300"] {
     color: #3c4d66 !important;
   }
 
-  [data-color-scheme="dark"] [class*="text-slate-400"],
-  [data-color-scheme="dark"] [class*="text-slate-500"] {
+  [data-color-scheme="workspace"] [class*="text-slate-400"],
+  [data-color-scheme="workspace"] [class*="text-slate-500"] {
     color: #64748b !important;
   }
 
   /* The original cyan palette was tuned for a navy surface. On white, use a
    * deeper teal so links, chips and selected controls remain readable. */
-  [data-color-scheme="dark"] [class*="text-cyan"] {
+  [data-color-scheme="workspace"] [class*="text-cyan"] {
     color: #0f766e !important;
   }
 
-  [data-color-scheme="dark"] [class*="text-emerald"] {
+  [data-color-scheme="workspace"] [class*="text-emerald"] {
     color: #047857 !important;
   }
 
-  [data-color-scheme="dark"] [class*="border-white"] {
+  [data-color-scheme="workspace"] [class*="border-white"] {
     border-color: rgb(148 163 184 / 35%) !important;
   }
 
-  [data-color-scheme="dark"] [class*="hover:bg-white"]:hover {
+  [data-color-scheme="workspace"] [class*="hover:bg-white"]:hover {
     background-color: #e0f2fe !important;
+  }
+}
+
+/* Desktop uses the same calm, bright product language as the installed app,
+ * while retaining the denser information layout expected on a wide screen. */
+@media (min-width: 1024px) {
+  :root {
+    color-scheme: light;
+  }
+
+  body {
+    background:
+      radial-gradient(circle at 85% 5%, rgb(207 250 254 / 45%), transparent 28rem),
+      #f4f7fb;
+    color: #172033;
+  }
+
+  [data-color-scheme="workspace"],
+  [data-color-scheme="workspace"] > main {
+    background-color: transparent !important;
+    color: #172033 !important;
+  }
+
+  [data-color-scheme="workspace"] > aside {
+    background: rgb(255 255 255 / 88%) !important;
+    border-color: rgb(203 213 225 / 70%) !important;
+    box-shadow: 16px 0 50px rgb(15 23 42 / 4%);
+  }
+
+  [data-color-scheme="workspace"] [class*="bg-slate-950"] {
+    background-color: #f8fafc !important;
+  }
+
+  [data-color-scheme="workspace"] [class*="bg-slate-900"] {
+    background-color: #ffffff !important;
+  }
+
+  [data-color-scheme="workspace"] [class*="text-slate-100"],
+  [data-color-scheme="workspace"] [class*="text-white"] {
+    color: #172033 !important;
+  }
+
+  [data-color-scheme="workspace"] [class*="text-slate-200"] {
+    color: #26364d !important;
+  }
+
+  [data-color-scheme="workspace"] [class*="text-slate-300"] {
+    color: #3c4d66 !important;
+  }
+
+  [data-color-scheme="workspace"] [class*="text-slate-400"],
+  [data-color-scheme="workspace"] [class*="text-slate-500"],
+  [data-color-scheme="workspace"] [class*="text-slate-600"] {
+    color: #64748b !important;
+  }
+
+  [data-color-scheme="workspace"] [class*="text-cyan"] {
+    color: #0f766e !important;
+  }
+
+  [data-color-scheme="workspace"] [class*="text-emerald"] {
+    color: #047857 !important;
+  }
+
+  [data-color-scheme="workspace"] [class*="text-amber"],
+  [data-color-scheme="workspace"] [class*="text-yellow"] {
+    color: #92400e !important;
+  }
+
+  [data-color-scheme="workspace"] [class*="text-red"],
+  [data-color-scheme="workspace"] [class*="text-rose"] {
+    color: #be123c !important;
+  }
+
+  [data-color-scheme="workspace"] [class*="border-white"] {
+    border-color: rgb(148 163 184 / 30%) !important;
+  }
+
+  [data-color-scheme="workspace"] [class*="hover:bg-white"]:hover {
+    background-color: #ecfeff !important;
+  }
+
+  [data-color-scheme="workspace"] input,
+  [data-color-scheme="workspace"] textarea,
+  [data-color-scheme="workspace"] select {
+    color-scheme: light;
+  }
+
+  .calendar-shell {
+    --fc-border-color: rgb(203 213 225 / 70%);
+    --fc-page-bg-color: #ffffff;
+    --fc-neutral-bg-color: #f8fafc;
+    --fc-list-event-hover-bg-color: #ecfeff;
+    --fc-today-bg-color: rgb(207 250 254 / 45%);
+  }
+
+  .calendar-shell .fc .fc-button-primary {
+    border-color: rgb(148 163 184 / 45%);
+    background: #ffffff;
+    color: #334155;
+    box-shadow: none;
+  }
+
+  .calendar-shell .fc .fc-button-primary:hover,
+  .calendar-shell .fc .fc-button-primary.fc-button-active {
+    border-color: #0f766e;
+    background: #0f766e;
+    color: #ffffff;
   }
 }
 
