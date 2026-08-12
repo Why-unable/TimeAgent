@@ -15,11 +15,16 @@ from apps.events.models import (
     EventSeries,
 )
 from apps.tasks.models import Task
+from common.clock import SystemClock
 from common.database_locks import lock_user_schedule_writes
 from common.time import to_utc
 
 
 class EventVersionConflictError(ValueError):
+    pass
+
+
+class PastEventMutationError(ValueError):
     pass
 
 
@@ -85,6 +90,7 @@ class UpdateEventCommand:
     expected_version: int
     changes: Mapping[str, Any]
     origin: str = "web"
+    current_datetime: datetime | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -169,6 +175,10 @@ class EventService:
             user=command.user,
         )
         EventService._ensure_version(event, command.expected_version)
+        EventService._ensure_event_is_mutable(
+            event,
+            current_datetime=command.current_datetime,
+        )
         old_snapshot = EventService._snapshot(event)
 
         for field_name, value in command.changes.items():
@@ -202,6 +212,7 @@ class EventService:
         user: User,
         expected_version: int,
         origin: str = "web",
+        current_datetime: datetime | None = None,
     ) -> CalendarEvent:
         EventService._ensure_persisted_user(user)
         EventService._lock_schedule(user)
@@ -209,6 +220,7 @@ class EventService:
         EventService._ensure_version(event, expected_version)
         if event.status == CalendarEventStatus.CANCELLED:
             return event
+        EventService._ensure_event_is_mutable(event, current_datetime=current_datetime)
 
         old_snapshot = EventService._snapshot(event)
         event.status = CalendarEventStatus.CANCELLED
@@ -347,6 +359,16 @@ class EventService:
             raise EventVersionConflictError(
                 f"Event version conflict: expected {expected_version}, current {event.version}"
             )
+
+    @staticmethod
+    def _ensure_event_is_mutable(
+        event: CalendarEvent,
+        *,
+        current_datetime: datetime | None,
+    ) -> None:
+        now = SystemClock().now_utc() if current_datetime is None else to_utc(current_datetime)
+        if event.end_at <= now:
+            raise PastEventMutationError("已结束的日程只读，不能修改或取消")
 
     @staticmethod
     def _ensure_persisted_user(user: User) -> None:

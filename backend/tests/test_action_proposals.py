@@ -76,6 +76,8 @@ def _setup_run(user: User) -> tuple[Any, RuntimeContext, RunnableConfig]:
             operation_id=uuid4(),
             request_id="hitl-request",
             message="明天下午三点创建项目评审日程",
+            anchor_at=datetime(2026, 7, 19, 8, tzinfo=UTC),
+            anchor_timezone="Asia/Shanghai",
         )
     )
     run = AgentRunService.mark_running(run)
@@ -109,13 +111,44 @@ def _event_tool_call() -> AIMessage:
                         {
                             "action": "create",
                             "title": "项目评审",
-                            "start_at": "2026-07-20T07:00:00Z",
-                            "end_at": "2026-07-20T08:00:00Z",
-                            "timezone": "Asia/Shanghai",
+                            "time": {
+                                "kind": "absolute",
+                                "start_at": "2026-07-20T07:00:00Z",
+                                "end_at": "2026-07-20T08:00:00Z",
+                            },
                         }
                     ]
                 },
                 "id": "mutate-events-hitl-1",
+                "type": "tool_call",
+            }
+        ],
+    )
+
+
+def _relative_event_tool_call() -> AIMessage:
+    return AIMessage(
+        content="",
+        tool_calls=[
+            {
+                "name": "mutate_events",
+                "args": {
+                    "operations": [
+                        {
+                            "action": "create",
+                            "title": "项目评审",
+                            "time": {
+                                "kind": "relative",
+                                "offset": 1,
+                                "unit": "day",
+                                "source_text": "明天下午三点",
+                                "local_time": "15:00:00",
+                                "duration_minutes": 60,
+                            },
+                        }
+                    ]
+                },
+                "id": "mutate-events-relative-hitl-1",
                 "type": "tool_call",
             }
         ],
@@ -151,9 +184,11 @@ def test_recurring_event_proposal_includes_each_occurrence_preview() -> None:
                     "name": "create_recurring_event",
                     "args": {
                         "title": "每日学习",
-                        "start_at": "2026-07-25T10:00:00+08:00",
-                        "end_at": "2026-07-25T10:30:00+08:00",
-                        "timezone": "Asia/Shanghai",
+                        "time": {
+                            "kind": "absolute",
+                            "start_at": "2026-07-25T10:00:00+08:00",
+                            "end_at": "2026-07-25T10:30:00+08:00",
+                        },
                         "frequency": "daily",
                         "interval": 1,
                         "occurrence_count": 3,
@@ -173,7 +208,7 @@ def test_recurring_event_proposal_includes_each_occurrence_preview() -> None:
     assert proposal.display_context["conflict_check"] == "completed"
     assert proposal.display_context["impact_scope"] == "Creates 3 recurring calendar events"
     assert [item["index"] for item in proposal.display_context["occurrences"]] == [1, 2, 3]
-    assert proposal.display_context["occurrences"][1]["start_at"] == "2026-07-26T10:00:00+08:00"
+    assert proposal.display_context["occurrences"][1]["start_at"] == "2026-07-26T02:00:00+00:00"
 
 
 @pytest.mark.django_db(transaction=True)
@@ -393,7 +428,7 @@ def test_production_outer_graph_run_pauses_and_resumes_same_thread(
     )
     model = ScriptedModel(
         responses=[
-            _event_tool_call(),
+            _relative_event_tool_call(),
             AIMessage(content="已通过恢复流程创建日程。"),
         ]
     )
@@ -431,7 +466,13 @@ def test_production_outer_graph_run_pauses_and_resumes_same_thread(
 
     assert completed.status == AgentRunStatus.COMPLETED
     assert completed.final_response == "已通过恢复流程创建日程。"
-    assert CalendarEvent.objects.get().title == "项目评审"
+    created_event = CalendarEvent.objects.get()
+    assert created_event.title == "项目评审"
+    assert created_event.start_at == datetime(2026, 7, 20, 7, tzinfo=UTC)
+    assert completed.anchor_at == datetime(2026, 7, 19, 8, tzinfo=UTC)
+    assert completed.anchor_timezone == "Asia/Shanghai"
+    temporal_event = completed.events.get(event_type="temporal.resolved")
+    assert temporal_event.payload["resolved_at"] == "2026-07-20T07:00:00+00:00"
     proposal.refresh_from_db()
     assert proposal.status == ActionProposalStatus.EXECUTED
 
@@ -527,9 +568,11 @@ def test_event_proposal_surfaces_conflict_and_cannot_be_approved() -> None:
                             {
                                 "action": "create",
                                 "title": "Overlapping meeting",
-                                "start_at": "2026-07-20T07:30:00Z",
-                                "end_at": "2026-07-20T08:30:00Z",
-                                "timezone": "Asia/Shanghai",
+                                "time": {
+                                    "kind": "absolute",
+                                    "start_at": "2026-07-20T07:30:00Z",
+                                    "end_at": "2026-07-20T08:30:00Z",
+                                },
                             }
                         ]
                     },
@@ -571,16 +614,20 @@ def test_event_mutation_preflight_detects_overlap_inside_same_batch() -> None:
                             {
                                 "action": "create",
                                 "title": "First interview prep",
-                                "start_at": "2026-07-20T07:00:00Z",
-                                "end_at": "2026-07-20T08:00:00Z",
-                                "timezone": "Asia/Shanghai",
+                                "time": {
+                                    "kind": "absolute",
+                                    "start_at": "2026-07-20T07:00:00Z",
+                                    "end_at": "2026-07-20T08:00:00Z",
+                                },
                             },
                             {
                                 "action": "create",
                                 "title": "Second interview prep",
-                                "start_at": "2026-07-20T07:30:00Z",
-                                "end_at": "2026-07-20T08:30:00Z",
-                                "timezone": "Asia/Shanghai",
+                                "time": {
+                                    "kind": "absolute",
+                                    "start_at": "2026-07-20T07:30:00Z",
+                                    "end_at": "2026-07-20T08:30:00Z",
+                                },
                             },
                         ]
                     },

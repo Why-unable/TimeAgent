@@ -95,9 +95,11 @@ describe("ApprovalCard", () => {
       action_type: "create_recurring_event",
       action_payload: {
         title: "随便学点",
-        start_at: "2026-07-25T10:00:00+08:00",
-        end_at: "2026-07-25T10:30:00+08:00",
-        timezone: "Asia/Shanghai",
+        time: {
+          kind: "absolute",
+          start_at: "2026-07-25T10:00:00+08:00",
+          end_at: "2026-07-25T10:30:00+08:00",
+        },
         frequency: "daily",
         occurrence_count: 3,
       },

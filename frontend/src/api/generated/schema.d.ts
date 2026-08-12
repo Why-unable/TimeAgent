@@ -1013,6 +1013,9 @@ export interface components {
             readonly synthetic_input: boolean;
             readonly status: components["schemas"]["AgentRunStatusEnum"];
             readonly input_message: string;
+            /** Format: date-time */
+            readonly anchor_at: string;
+            readonly anchor_timezone: string;
             readonly final_response: string;
             readonly error: string;
             /** Format: date-time */

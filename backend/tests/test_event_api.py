@@ -13,6 +13,14 @@ pytestmark = pytest.mark.django_db
 EVENTS_URL = "/api/v1/events/"
 
 
+@pytest.fixture(autouse=True)
+def fixed_event_clock(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(
+        "apps.events.services.SystemClock.now_utc",
+        lambda self: datetime(2026, 7, 19, 1, tzinfo=UTC),
+    )
+
+
 def create_user(username: str = "event-api-user") -> User:
     return get_user_model().objects.create_user(username=username)
 
@@ -124,6 +132,30 @@ def test_event_delete_cancels_with_optimistic_lock() -> None:
     event = CalendarEvent.objects.get(pk=created["id"])
     assert event.status == CalendarEventStatus.CANCELLED
     assert event.version == 2
+
+
+def test_ended_event_update_and_cancel_return_conflict(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    user = create_user()
+    client = authenticated_client(user)
+    created = create_event(client)
+    detail_url = f"{EVENTS_URL}{created['id']}/"
+    monkeypatch.setattr(
+        "apps.events.services.SystemClock.now_utc",
+        lambda self: datetime(2026, 7, 20, 3, tzinfo=UTC),
+    )
+
+    update_response = client.patch(
+        f"{detail_url}?expected_version=1",
+        data={"title": "Too late"},
+        content_type="application/json",
+    )
+    cancel_response = client.delete(f"{detail_url}?expected_version=1")
+
+    assert update_response.status_code == 409
+    assert cancel_response.status_code == 409
+    assert update_response.json()["detail"] == "已结束的日程只读，不能修改或取消"
 
 
 def test_event_api_requires_explicit_offsets_and_valid_ranges() -> None:

@@ -18,6 +18,7 @@ from apps.action_proposals.risk_policy import policy_for_tool
 from apps.conversations.models import AgentRun
 from apps.events.series_services import EventSeriesService
 from apps.events.services import EventService
+from apps.events.temporal_services import EventTemporalResolutionService
 from apps.reminders.services import ReminderService
 from apps.tasks.services import TaskService
 
@@ -157,6 +158,8 @@ class ActionProposalService:
             "participants": args.get("participants", []),
             "reminder_settings": args.get("reminders", []),
             "conflicts": [],
+            "run_anchor_at": run.anchor_at.isoformat(),
+            "run_timezone": run.anchor_timezone,
         }
         if tool_name == "cancel_event":
             try:
@@ -267,6 +270,18 @@ class ActionProposalService:
         return context
 
     @staticmethod
+    def _resolve_event_time(
+        *,
+        context: dict[str, Any],
+        value: object,
+    ) -> Any:
+        return EventTemporalResolutionService.resolve_value(
+            anchor_at=DATETIME_ADAPTER.validate_python(context.get("run_anchor_at")),
+            timezone=str(context.get("run_timezone")),
+            value=value,
+        )
+
+    @staticmethod
     def _recurring_event_display_context(
         *,
         context: dict[str, Any],
@@ -277,9 +292,13 @@ class ActionProposalService:
             raw_occurrence_count = args.get("occurrence_count")
             if not isinstance(raw_occurrence_count, int | str):
                 raise TypeError
+            resolution = ActionProposalService._resolve_event_time(
+                context=context,
+                value=args.get("time"),
+            )
             windows = EventSeriesService.preview_occurrence_windows(
-                start_at=DATETIME_ADAPTER.validate_python(args.get("start_at")),
-                end_at=DATETIME_ADAPTER.validate_python(args.get("end_at")),
+                start_at=resolution.start_at,
+                end_at=resolution.end_at,
                 frequency=str(args.get("frequency")),
                 interval=int(args.get("interval", 1)),
                 occurrence_count=int(raw_occurrence_count),
@@ -316,6 +335,9 @@ class ActionProposalService:
                 "conflicts": conflicts,
             }
         )
+        if occurrences:
+            context["proposed_start_at"] = occurrences[0]["start_at"]
+            context["proposed_end_at"] = occurrences[0]["end_at"]
         return context
 
     @staticmethod
@@ -402,12 +424,13 @@ class ActionProposalService:
             return context
         conflicts: list[dict[str, Any]] = []
         planned_intervals: list[tuple[int, datetime, datetime, str]] = []
+        resolved_operations: list[dict[str, Any]] = []
         try:
             for index, operation in enumerate(operations):
-                if not isinstance(operation, dict) or operation.get("action") not in {
-                    "create",
-                    "update",
-                }:
+                if not isinstance(operation, dict):
+                    raise TypeError
+                if operation.get("action") not in {"create", "update"}:
+                    resolved_operations.append(dict(operation))
                     continue
                 event_id = operation.get("event_id")
                 existing = (
@@ -415,12 +438,22 @@ class ActionProposalService:
                     if operation.get("action") == "update"
                     else None
                 )
-                start_at = DATETIME_ADAPTER.validate_python(
-                    operation.get("start_at", existing.start_at if existing else None)
+                if operation.get("time") is None:
+                    resolved_operations.append(dict(operation))
+                    continue
+                resolution = ActionProposalService._resolve_event_time(
+                    context=context,
+                    value=operation.get("time"),
                 )
-                end_at = DATETIME_ADAPTER.validate_python(
-                    operation.get("end_at", existing.end_at if existing else None)
-                )
+                start_at = resolution.start_at
+                end_at = resolution.end_at
+                resolved_operation = dict(operation)
+                resolved_operation["time"] = {
+                    "kind": "absolute",
+                    "start_at": start_at.isoformat(),
+                    "end_at": end_at.isoformat(),
+                }
+                resolved_operations.append(resolved_operation)
                 preview = EventService.preview_event_change(
                     user=user,
                     start_at=start_at,
@@ -469,8 +502,20 @@ class ActionProposalService:
                 "impact_scope": "Applies a calendar mutation batch atomically",
                 "conflict_check": "completed",
                 "conflicts": conflicts,
+                "resolved_operations": resolved_operations,
             }
         )
+        first_time = next(
+            (
+                operation.get("time")
+                for operation in resolved_operations
+                if isinstance(operation.get("time"), dict)
+            ),
+            None,
+        )
+        if isinstance(first_time, dict):
+            context["proposed_start_at"] = first_time["start_at"]
+            context["proposed_end_at"] = first_time["end_at"]
         return context
 
     @staticmethod

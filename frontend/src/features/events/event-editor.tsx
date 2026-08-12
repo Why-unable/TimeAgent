@@ -83,6 +83,8 @@ export function EventEditor({
   const tasks = useTasks();
   const createTask = useCreateTask();
   const isCancelled = event?.status === "cancelled";
+  const hasEnded = event ? new Date(event.end_at).getTime() <= Date.now() : false;
+  const isReadOnly = isCancelled || hasEnded;
   const form = useForm<EventForm>({
     resolver: zodResolver(eventFormSchema),
     defaultValues: initialValues(event, initialStart, timezone, defaultDurationMinutes),
@@ -139,10 +141,15 @@ export function EventEditor({
           该日程已取消，仅保留历史详情。
         </div>
       )}
+      {!isCancelled && hasEnded && (
+        <div className="mb-5 rounded-xl border border-slate-600 bg-slate-800 p-4 text-sm text-slate-300">
+          该日程已结束，仅可查看历史详情，不能再修改或取消。
+        </div>
+      )}
       <form onSubmit={onSubmit} className="space-y-5">
         <label className="block text-sm text-slate-300">
           日程标题
-          <input {...form.register("title")} disabled={isCancelled} className={inputClass} />
+          <input {...form.register("title")} disabled={isReadOnly} className={inputClass} />
           {form.formState.errors.title && (
             <span className="mt-1 block text-red-300">{form.formState.errors.title.message}</span>
           )}
@@ -153,7 +160,7 @@ export function EventEditor({
             <input
               type="datetime-local"
               {...form.register("start_at")}
-              disabled={isCancelled}
+              disabled={isReadOnly}
               className={inputClass}
             />
           </label>
@@ -162,7 +169,7 @@ export function EventEditor({
             <input
               type="datetime-local"
               {...form.register("end_at")}
-              disabled={isCancelled}
+              disabled={isReadOnly}
               className={inputClass}
             />
             {form.formState.errors.end_at && (
@@ -172,11 +179,11 @@ export function EventEditor({
         </div>
         <label className="block text-sm text-slate-300">
           地点
-          <input {...form.register("location")} disabled={isCancelled} className={inputClass} />
+          <input {...form.register("location")} disabled={isReadOnly} className={inputClass} />
         </label>
         <label className="block text-sm text-slate-300">
           关联任务（可选）
-          <select {...form.register("task")} disabled={isCancelled} className={inputClass}>
+          <select {...form.register("task")} disabled={isReadOnly} className={inputClass}>
             <option value="">不关联任务</option><option value="__new__">新建任务并关联</option>
             {(tasks.data ?? []).filter((item) => item.status !== "cancelled").map((item) => (
               <option key={item.id} value={item.id}>{item.title}</option>
@@ -186,13 +193,13 @@ export function EventEditor({
           {form.formState.errors.new_task_title && (
             <span className="mt-1 block text-red-300">{form.formState.errors.new_task_title.message}</span>
           )}
-          <span className="mt-2 block text-xs text-slate-500">一个任务可以拥有多条日程；保存后会按日程时间维护提前 1 天、2 小时、30 分钟的提醒。</span>
+          <span className="mt-2 block text-xs text-slate-500">一个任务可以拥有多条日程；保存后会按日程时间维护提前 1 天、15 分钟和准点提醒，已经错过触发时间的相对提醒不会创建。</span>
         </label>
         <label className="block text-sm text-slate-300">
           描述
           <textarea
             {...form.register("description")}
-            disabled={isCancelled}
+            disabled={isReadOnly}
             rows={4}
             className={inputClass}
           />
@@ -200,14 +207,14 @@ export function EventEditor({
         <div className="grid gap-4 sm:grid-cols-2">
           <label className="block text-sm text-slate-300">
             状态
-            <select {...form.register("status")} disabled={isCancelled} className={inputClass}>
+            <select {...form.register("status")} disabled={isReadOnly} className={inputClass}>
               <option value="confirmed">已确认</option>
               <option value="tentative">暂定</option>
             </select>
           </label>
           <label className="block text-sm text-slate-300">
             可见性
-            <select {...form.register("visibility")} disabled={isCancelled} className={inputClass}>
+            <select {...form.register("visibility")} disabled={isReadOnly} className={inputClass}>
               <option value="private">私密</option>
               <option value="public">公开</option>
             </select>
@@ -219,7 +226,7 @@ export function EventEditor({
             {mutationError.message}
           </div>
         )}
-        {!isCancelled && (
+        {!isReadOnly && (
           <div className="flex flex-wrap justify-between gap-3 border-t border-white/10 pt-5">
             {event ? (
               confirmCancel ? (

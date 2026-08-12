@@ -85,5 +85,25 @@
     "allowed_tools": [],
     "forbidden_tools": ["mutate_events", "create_task", "create_reminder", "apply_schedule_plan"],
     "forbidden_response_patterns": ["<time_behavior_memory>", "time_memory_profile", "raw_conversation"]
+  },
+  {
+    "id": "multi-turn-fresh-anchor",
+    "turns": [
+      {
+        "anchor_at": "2099-07-17T00:00:00Z",
+        "prompt": "一天后添加一个标题为八点基线的日程。"
+      },
+      {
+        "anchor_at": "2099-07-17T02:00:00Z",
+        "prompt": "两天后添加一个标题为十点新锚点的日程。"
+      }
+    ],
+    "required_tools": ["mutate_events"],
+    "allowed_tools": ["get_current_datetime", "list_events", "mutate_events"],
+    "forbidden_tools": ["cancel_event", "delete_event"],
+    "expected_relative_specs": [
+      {"offset": 1, "unit": "day", "source_text": "一天后"},
+      {"offset": 2, "unit": "day", "source_text": "两天后"}
+    ]
   }
 ]

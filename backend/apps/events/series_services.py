@@ -7,7 +7,9 @@ from django.db import transaction
 from apps.events.models import CalendarEventStatus, EventSeries, EventSeriesStatus
 from apps.events.services import CreateEventCommand, EventService
 from apps.tasks.models import Task
+from common.clock import SystemClock
 from common.database_locks import lock_user_schedule_writes
+from common.time import to_utc
 
 
 @dataclass(frozen=True, slots=True)
@@ -102,7 +104,12 @@ class EventSeriesService:
 
     @staticmethod
     @transaction.atomic
-    def cancel_series(*, series: EventSeries, user: User) -> EventSeries:
+    def cancel_series(
+        *,
+        series: EventSeries,
+        user: User,
+        current_datetime: datetime | None = None,
+    ) -> EventSeries:
         lock_user_schedule_writes(user)
         locked = EventSeries.objects.select_for_update().get(pk=series.pk, user=user)
         if locked.status == EventSeriesStatus.CANCELLED:
@@ -110,8 +117,16 @@ class EventSeriesService:
         locked.status = EventSeriesStatus.CANCELLED
         locked.version += 1
         locked.save(update_fields=["status", "version", "updated_at"])
-        for event in locked.occurrences.exclude(status=CalendarEventStatus.CANCELLED):
-            EventService.cancel_event(event_id=event.pk, user=user, expected_version=event.version)
+        now = SystemClock().now_utc() if current_datetime is None else to_utc(current_datetime)
+        for event in locked.occurrences.exclude(
+            status=CalendarEventStatus.CANCELLED,
+        ).filter(end_at__gt=now):
+            EventService.cancel_event(
+                event_id=event.pk,
+                user=user,
+                expected_version=event.version,
+                current_datetime=now,
+            )
         return locked
 
     @staticmethod

@@ -11,8 +11,7 @@ from uuid import uuid4
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.core.management.base import BaseCommand, CommandError, CommandParser
-from django.db import transaction
-from langchain_core.messages import AIMessage, HumanMessage
+from langchain_core.messages import AIMessage, HumanMessage, ToolMessage
 
 from apps.agents.agents.time_steward import build_time_steward_agent
 from apps.agents.configuration import get_agent_config
@@ -64,17 +63,19 @@ class Command(BaseCommand):
         failures: list[str] = []
         case_results: list[dict[str, Any]] = []
 
-        # Eval write tools exercise real Application Services, but every business
-        # mutation is rolled back so the fixed suite never changes authoritative data.
-        with transaction.atomic():
-            user = User.objects.create_user(username=f"agent-eval-{uuid4().hex}")
+        # Agent tools may run in worker threads with separate database connections,
+        # so an uncommitted fixture user is invisible to their FK validation. Use a
+        # committed, uniquely named user and delete it (with all cascaded eval facts)
+        # in finally instead of pretending one outer transaction covers every thread.
+        user = User.objects.create_user(username=f"agent-eval-{uuid4().hex}")
+        try:
             UserPreferenceService.update_for_user(
                 user,
                 {"timezone": EVAL_TIMEZONE, "locale": EVAL_LOCALE},
             )
             for case in cases:
                 started = time.perf_counter()
-                actual, final_response = self._run_case(agent, user, case)
+                actual, final_response, tool_calls = self._run_case(agent, user, case)
                 duration_seconds = time.perf_counter() - started
                 required = set(case["required_tools"])
                 allowed = set(case["allowed_tools"])
@@ -98,12 +99,14 @@ class Command(BaseCommand):
                     for pattern in required_patterns
                     if not re.search(pattern, final_response, re.IGNORECASE)
                 ]
+                temporal_expectation_errors = self._temporal_expectation_errors(case, tool_calls)
                 passed = not (
                     missing
                     or unexpected
                     or forbidden_used
                     or forbidden_response_matches
                     or missing_response_patterns
+                    or temporal_expectation_errors
                 )
                 result = {
                     "id": case["id"],
@@ -115,6 +118,7 @@ class Command(BaseCommand):
                     "forbidden_tools_used": sorted(forbidden_used),
                     "forbidden_response_matches": forbidden_response_matches,
                     "missing_response_patterns": missing_response_patterns,
+                    "temporal_expectation_errors": temporal_expectation_errors,
                     "response_sha256": hashlib.sha256(final_response.encode()).hexdigest(),
                     "response_characters": len(final_response),
                     "required_tool_recall": len(required & actual) / max(len(required), 1),
@@ -124,7 +128,8 @@ class Command(BaseCommand):
                 self.stdout.write(json.dumps(result, ensure_ascii=False))
                 if not passed:
                     failures.append(case["id"])
-            transaction.set_rollback(True)
+        finally:
+            User.objects.filter(pk=user.pk).delete()
 
         pass_rate = (len(cases) - len(failures)) / max(len(cases), 1)
         report = self._report(
@@ -150,34 +155,132 @@ class Command(BaseCommand):
         self.stdout.write(self.style.SUCCESS(f"Time Steward eval passed: {len(cases)} case(s)"))
 
     @staticmethod
-    def _run_case(agent: Any, user: User, case: dict[str, Any]) -> tuple[set[str], str]:
+    def _run_case(
+        agent: Any, user: User, case: dict[str, Any]
+    ) -> tuple[set[str], str, list[dict[str, Any]]]:
         conversation_id = str(uuid4())
-        context = RuntimeContext(
-            user_id=str(user.pk),
-            request_id=str(uuid4()),
-            timezone=EVAL_TIMEZONE,
-            locale=EVAL_LOCALE,
-            current_datetime=EVAL_NOW,
-            trigger_type="user_message",
-            conversation_id=conversation_id,
-            read_only=False,
-            actor=user,
+        raw_turns = case.get("turns")
+        turns = (
+            raw_turns
+            if isinstance(raw_turns, list)
+            else [{"prompt": case["prompt"], "anchor_at": EVAL_NOW.isoformat()}]
         )
-        result = agent.invoke(
-            {"messages": [HumanMessage(content=case["prompt"])]},
-            context=context,
-        )
-        messages = result.get("messages", [])
-        if not messages or not isinstance(messages[-1], AIMessage):
-            raise CommandError(f"Eval case {case['id']} did not produce a final AIMessage")
+        history: list[Any] = []
+        all_messages: list[Any] = []
+        for turn in turns:
+            if not isinstance(turn, dict) or not isinstance(turn.get("prompt"), str):
+                raise CommandError(f"Eval case {case['id']} has a malformed turn")
+            try:
+                anchor_at = datetime.fromisoformat(
+                    str(turn.get("anchor_at", EVAL_NOW.isoformat())).replace("Z", "+00:00")
+                )
+            except ValueError as exc:
+                raise CommandError(f"Eval case {case['id']} has an invalid turn anchor") from exc
+            prompt = str(turn["prompt"])
+            context = RuntimeContext(
+                user_id=str(user.pk),
+                request_id=str(uuid4()),
+                timezone=EVAL_TIMEZONE,
+                locale=EVAL_LOCALE,
+                current_datetime=anchor_at,
+                trigger_type="user_message",
+                conversation_id=conversation_id,
+                input_message=prompt,
+                read_only=False,
+                actor=user,
+            )
+            current_message = HumanMessage(
+                content=prompt,
+                additional_kwargs={"run_anchor_datetime_utc": anchor_at.isoformat()},
+            )
+            result = agent.invoke(
+                {"messages": [*history, current_message]},
+                context=context,
+            )
+            messages = result.get("messages", [])
+            if not messages or not isinstance(messages[-1], AIMessage):
+                raise CommandError(f"Eval case {case['id']} did not produce a final AIMessage")
+            new_messages = messages[len(history) :] if len(messages) > len(history) else messages
+            all_messages.extend(new_messages)
+            history = list(messages)
         actual_tools = {
             str(tool_call["name"])
-            for message in messages
+            for message in all_messages
             if isinstance(message, AIMessage)
             for tool_call in message.tool_calls
         }
-        final_response = str(messages[-1].content)
-        return actual_tools, final_response
+        tool_calls: list[dict[str, Any]] = []
+        seen_tool_call_ids: set[str] = set()
+        tool_statuses = {
+            str(message.tool_call_id): message.status
+            for message in all_messages
+            if isinstance(message, ToolMessage)
+        }
+        for message in all_messages:
+            if not isinstance(message, AIMessage):
+                continue
+            for tool_call in message.tool_calls:
+                tool_call_id = str(tool_call.get("id", ""))
+                if tool_call_id and tool_call_id in seen_tool_call_ids:
+                    continue
+                if tool_call_id:
+                    seen_tool_call_ids.add(tool_call_id)
+                tool_calls.append(
+                    {
+                        "id": tool_call_id,
+                        "name": str(tool_call["name"]),
+                        "args": dict(tool_call.get("args", {})),
+                        "succeeded": tool_statuses.get(tool_call_id) != "error",
+                    }
+                )
+        final_response = str(history[-1].content)
+        return actual_tools, final_response, tool_calls
+
+    @staticmethod
+    def _temporal_expectation_errors(
+        case: dict[str, Any], tool_calls: list[dict[str, Any]]
+    ) -> list[str]:
+        if "expected_relative_specs" not in case:
+            return []
+        expectations = case.get("expected_relative_specs", [])
+        if not isinstance(expectations, list):
+            return ["expected_relative_specs must be a list"]
+        relative_creates: list[dict[str, Any]] = []
+        for call in tool_calls:
+            if call.get("name") != "mutate_events" or call.get("succeeded") is not True:
+                continue
+            operations = call.get("args", {}).get("operations", [])
+            if not isinstance(operations, list):
+                continue
+            relative_creates.extend(
+                operation
+                for operation in operations
+                if isinstance(operation, dict) and operation.get("action") == "create"
+            )
+        errors: list[str] = []
+        if len(relative_creates) != len(expectations):
+            errors.append(
+                f"expected {len(expectations)} relative creates, got {len(relative_creates)}"
+            )
+            return errors
+        for index, (operation, expectation) in enumerate(
+            zip(relative_creates, expectations, strict=True)
+        ):
+            event_time = operation.get("time")
+            if not isinstance(event_time, dict) or event_time.get("kind") != "relative":
+                errors.append(f"relative create {index} omitted time.kind=relative")
+                continue
+            if event_time.get("start_at") is not None or event_time.get("end_at") is not None:
+                errors.append(f"relative create {index} mixed in absolute time fields")
+            if not isinstance(expectation, dict):
+                errors.append(f"relative expectation {index} is malformed")
+                continue
+            for field in ("offset", "unit", "local_time", "source_text"):
+                if field in expectation and event_time.get(field) != expectation[field]:
+                    errors.append(
+                        f"relative create {index} {field} mismatch: {event_time.get(field)!r}"
+                    )
+        return errors
 
     @staticmethod
     def _default_dataset_path() -> Path:

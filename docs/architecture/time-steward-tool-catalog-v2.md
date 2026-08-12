@@ -241,6 +241,13 @@ def find_free_slots(
 
 ### 5.1 `create_event`（现有，扩充参数）
 
+> 当前 Agent 的统一写入口 `mutate_events` / `create_recurring_event` 使用可辨识联合类型
+> `time`：明确日期使用 `{kind: "absolute", start_at, end_at}`；相对表达使用
+> `{kind: "relative", offset, unit, source_text, local_time?, duration_minutes}`。模型负责按语义
+> 选择类型，后端只校验结构并以不可变 `AgentRun.anchor_at` 和用户 IANA 时区确定性解析，
+> 不使用正则或第二次 LLM 调用猜测原句意图。未指定时长时模型从 Runtime 偏好复制默认日程
+> 时长。解析记录写入 `temporal.resolved` 审计事件。详见 ADR 0021。
+
 ```python
 def create_event(
     title: str,

@@ -62,8 +62,11 @@ function recurringOccurrencePreviewsFromPayload(
   payload: Record<string, unknown>,
 ): RecurringOccurrencePreview[] {
   if (actionType !== "create_recurring_event") return [];
-  const startAt = typeof payload.start_at === "string" ? new Date(payload.start_at) : null;
-  const endAt = typeof payload.end_at === "string" ? new Date(payload.end_at) : null;
+  const time = payload.time && typeof payload.time === "object"
+    ? payload.time as Record<string, unknown>
+    : payload;
+  const startAt = typeof time.start_at === "string" ? new Date(time.start_at) : null;
+  const endAt = typeof time.end_at === "string" ? new Date(time.end_at) : null;
   const frequency = typeof payload.frequency === "string" ? payload.frequency : "daily";
   const occurrenceCount = Number(payload.occurrence_count);
   const interval = Number(payload.interval ?? 1);
@@ -115,8 +118,35 @@ function keepTimezoneOffset(original: unknown, localValue: string): string {
   return `${localValue}${offset ?? ""}`;
 }
 
+function resolvedReviewPayload(proposal: ActionProposal): Record<string, unknown> {
+  const payload = { ...proposal.action_payload };
+  if (proposal.action_type === "mutate_events") {
+    const resolved = proposal.display_context.resolved_operations;
+    if (Array.isArray(resolved) && resolved.length > 0) {
+      return { ...payload, operations: resolved };
+    }
+  }
+  if (proposal.action_type === "create_recurring_event") {
+    const occurrences = recurringOccurrencePreviews(proposal.display_context.occurrences);
+    if (occurrences.length > 0) {
+      return {
+        ...payload,
+        time: {
+          kind: "absolute",
+          start_at: occurrences[0].start_at,
+          end_at: occurrences[0].end_at,
+        },
+      };
+    }
+  }
+  return payload;
+}
+
 function PayloadSummary({ actionType, payload }: { actionType: string; payload: Record<string, unknown> }) {
   const operations = Array.isArray(payload.operations) ? payload.operations : [];
+  const time = payload.time && typeof payload.time === "object"
+    ? payload.time as Record<string, unknown>
+    : payload;
   if (actionType === "mutate_events") {
     return (
       <div className="space-y-2">
@@ -130,8 +160,8 @@ function PayloadSummary({ actionType, payload }: { actionType: string; payload: 
   return (
     <div className="grid gap-2 text-sm text-slate-200 sm:grid-cols-2">
       <p><span className="text-slate-500">标题：</span>{String(payload.title ?? "未命名日程")}</p>
-      {typeof payload.start_at === "string" && <p><span className="text-slate-500">开始：</span>{formatOccurrenceTime(payload.start_at)}</p>}
-      {typeof payload.end_at === "string" && <p><span className="text-slate-500">结束：</span>{formatOccurrenceTime(payload.end_at)}</p>}
+      {typeof time.start_at === "string" && <p><span className="text-slate-500">开始：</span>{formatOccurrenceTime(time.start_at)}</p>}
+      {typeof time.end_at === "string" && <p><span className="text-slate-500">结束：</span>{formatOccurrenceTime(time.end_at)}</p>}
       {actionType === "create_recurring_event" && <p><span className="text-slate-500">重复：</span>{String(payload.frequency ?? "daily")}，共 {String(payload.occurrence_count ?? 1)} 次</p>}
     </div>
   );
@@ -156,18 +186,28 @@ function ApprovalEditor({
         : item);
       setField("operations", next);
     };
+    const setOperationTime = (index: number, field: "start_at" | "end_at", value: string) => {
+      const operation = operations[index] as Record<string, unknown>;
+      const time = operation.time && typeof operation.time === "object"
+        ? operation.time as Record<string, unknown>
+        : {};
+      setOperation(index, "time", { ...time, kind: "absolute", [field]: value });
+    };
     return (
       <div className="space-y-3">
         {operations.map((item, index) => {
           const operation = item as Record<string, unknown>;
           const action = String(operation.action ?? "update");
+          const time = operation.time && typeof operation.time === "object"
+            ? operation.time as Record<string, unknown>
+            : {};
           return (
             <fieldset key={index} className="rounded-xl border border-white/10 bg-slate-950/40 p-3">
               <legend className="px-1 text-xs font-medium text-cyan-200">第 {index + 1} 项：{action}</legend>
               {action !== "cancel" && <label className="block text-xs text-slate-400">日程标题<input value={String(operation.title ?? "")} onChange={(event) => setOperation(index, "title", event.target.value)} className={inputClass} /></label>}
               {action !== "cancel" && <div className="mt-3 grid gap-3 sm:grid-cols-2">
-                <label className="text-xs text-slate-400">开始时间<input type="datetime-local" value={toDateTimeLocal(operation.start_at)} onChange={(event) => setOperation(index, "start_at", keepTimezoneOffset(operation.start_at, event.target.value))} className={inputClass} /></label>
-                <label className="text-xs text-slate-400">结束时间<input type="datetime-local" value={toDateTimeLocal(operation.end_at)} onChange={(event) => setOperation(index, "end_at", keepTimezoneOffset(operation.end_at, event.target.value))} className={inputClass} /></label>
+                <label className="text-xs text-slate-400">开始时间<input type="datetime-local" value={toDateTimeLocal(time.start_at)} onChange={(event) => setOperationTime(index, "start_at", keepTimezoneOffset(time.start_at, event.target.value))} className={inputClass} /></label>
+                <label className="text-xs text-slate-400">结束时间<input type="datetime-local" value={toDateTimeLocal(time.end_at)} onChange={(event) => setOperationTime(index, "end_at", keepTimezoneOffset(time.end_at, event.target.value))} className={inputClass} /></label>
               </div>}
             </fieldset>
           );
@@ -175,11 +215,21 @@ function ApprovalEditor({
       </div>
     );
   }
+  const time = payload.time && typeof payload.time === "object"
+    ? payload.time as Record<string, unknown>
+    : payload;
+  const setTime = (field: "start_at" | "end_at", value: string) => {
+    if (payload.time && typeof payload.time === "object") {
+      setField("time", { ...time, kind: "absolute", [field]: value });
+    } else {
+      setField(field, value);
+    }
+  };
   return (
     <div className="grid gap-3 sm:grid-cols-2">
       <label className="sm:col-span-2 text-xs text-slate-400">日程标题<input value={String(payload.title ?? "")} onChange={(event) => setField("title", event.target.value)} className={inputClass} /></label>
-      <label className="text-xs text-slate-400">开始时间<input type="datetime-local" value={toDateTimeLocal(payload.start_at)} onChange={(event) => setField("start_at", keepTimezoneOffset(payload.start_at, event.target.value))} className={inputClass} /></label>
-      <label className="text-xs text-slate-400">结束时间<input type="datetime-local" value={toDateTimeLocal(payload.end_at)} onChange={(event) => setField("end_at", keepTimezoneOffset(payload.end_at, event.target.value))} className={inputClass} /></label>
+      <label className="text-xs text-slate-400">开始时间<input type="datetime-local" value={toDateTimeLocal(time.start_at)} onChange={(event) => setTime("start_at", keepTimezoneOffset(time.start_at, event.target.value))} className={inputClass} /></label>
+      <label className="text-xs text-slate-400">结束时间<input type="datetime-local" value={toDateTimeLocal(time.end_at)} onChange={(event) => setTime("end_at", keepTimezoneOffset(time.end_at, event.target.value))} className={inputClass} /></label>
       {actionType === "create_recurring_event" && <>
         <label className="text-xs text-slate-400">重复频率<select value={String(payload.frequency ?? "daily")} onChange={(event) => setField("frequency", event.target.value)} className={inputClass}><option value="daily">每天</option><option value="weekly">每周</option><option value="monthly">每月</option></select></label>
         <label className="text-xs text-slate-400">重复次数<input type="number" min="1" value={String(payload.occurrence_count ?? 1)} onChange={(event) => setField("occurrence_count", Number(event.target.value))} className={inputClass} /></label>
@@ -191,7 +241,7 @@ function ApprovalEditor({
 export function ApprovalCard({ proposal, busy = false, onDecision }: ApprovalCardProps) {
   const [editing, setEditing] = useState(false);
   const [editedPayload, setEditedPayload] = useState<Record<string, unknown>>(
-    () => ({ ...proposal.action_payload }),
+    () => resolvedReviewPayload(proposal),
   );
   const [reason, setReason] = useState("");
   const [error, setError] = useState("");
@@ -324,7 +374,7 @@ export function ApprovalCard({ proposal, busy = false, onDecision }: ApprovalCar
             />
           </div>
         ) : (
-          <div className="mt-2"><PayloadSummary actionType={proposal.action_type} payload={proposal.action_payload} /></div>
+          <div className="mt-2"><PayloadSummary actionType={proposal.action_type} payload={resolvedReviewPayload(proposal)} /></div>
         )}
       </div>
 
@@ -339,12 +389,12 @@ export function ApprovalCard({ proposal, busy = false, onDecision }: ApprovalCar
           {editing ? (
             <div className="flex flex-wrap gap-2">
               <button type="button" disabled={busy} onClick={submitEdit} className="rounded-lg bg-amber-200 px-4 py-2 text-sm font-medium text-slate-950 disabled:opacity-50">保存修改并批准</button>
-              <button type="button" onClick={() => { setEditedPayload({ ...proposal.action_payload }); setEditing(false); }} className="rounded-lg border border-white/10 px-4 py-2 text-sm text-slate-300">取消编辑</button>
+              <button type="button" onClick={() => { setEditedPayload(resolvedReviewPayload(proposal)); setEditing(false); }} className="rounded-lg border border-white/10 px-4 py-2 text-sm text-slate-300">取消编辑</button>
             </div>
           ) : (
             <div className="flex flex-wrap gap-2">
               {canApprove && <button type="button" disabled={busy} onClick={() => void submitDecision("approve")} className="inline-flex items-center gap-2 rounded-lg bg-emerald-300 px-4 py-2 text-sm font-medium text-slate-950 disabled:opacity-50"><Check size={16} />批准</button>}
-              {canEdit && <button type="button" disabled={busy} onClick={() => { setEditedPayload({ ...proposal.action_payload }); setEditing(true); }} className="inline-flex items-center gap-2 rounded-lg border border-amber-300/30 px-4 py-2 text-sm text-amber-100 disabled:opacity-50"><Pencil size={16} />调整后批准</button>}
+              {canEdit && <button type="button" disabled={busy} onClick={() => { setEditedPayload(resolvedReviewPayload(proposal)); setEditing(true); }} className="inline-flex items-center gap-2 rounded-lg border border-amber-300/30 px-4 py-2 text-sm text-amber-100 disabled:opacity-50"><Pencil size={16} />调整后批准</button>}
               {canReject && <button type="button" disabled={busy} onClick={() => void submitDecision("reject")} className="inline-flex items-center gap-2 rounded-lg border border-red-300/25 px-4 py-2 text-sm text-red-200 disabled:opacity-50"><X size={16} />拒绝</button>}
             </div>
           )}

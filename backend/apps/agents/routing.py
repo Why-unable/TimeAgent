@@ -44,7 +44,14 @@ def route_trigger(state: AppState) -> Command[RouteTarget]:
 def state_from_trigger(envelope: TriggerEnvelope) -> AppState:
     messages: list[AnyMessage] = []
     if envelope.trigger_type == "user_message":
-        messages = [HumanMessage(content=required_payload_string(envelope.payload, "message"))]
+        messages = [
+            HumanMessage(
+                content=required_payload_string(envelope.payload, "message"),
+                additional_kwargs={
+                    "run_anchor_datetime_utc": envelope.triggered_at.isoformat(),
+                },
+            )
+        ]
     elif envelope.trigger_type in {"manual_briefing", "scheduled_briefing"}:
         synthetic_message = envelope.payload.get("synthetic_message")
         if isinstance(synthetic_message, str) and synthetic_message.strip():
@@ -95,6 +102,11 @@ def runtime_context_from_trigger(
             str(envelope.conversation_id) if envelope.conversation_id is not None else None
         ),
         agent_run_id=agent_run_id,
+        input_message=(
+            required_payload_string(envelope.payload, "message")
+            if envelope.trigger_type == "user_message"
+            else ""
+        ),
         read_only=read_only,
         actor=actor,
         planning_preferences=planning_preferences or PlanningPreferencesSnapshot(),

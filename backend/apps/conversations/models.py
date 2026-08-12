@@ -68,6 +68,8 @@ class AgentRun(models.Model):
         default=AgentRunStatus.PENDING,
     )
     input_message = models.TextField()
+    anchor_at = models.DateTimeField()
+    anchor_timezone = models.CharField(max_length=64)
     final_response = models.TextField(blank=True)
     error = models.TextField(blank=True)
     started_at = models.DateTimeField(null=True, blank=True)

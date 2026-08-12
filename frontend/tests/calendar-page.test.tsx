@@ -51,6 +51,8 @@ function renderPage(children: ReactNode = <CalendarPage />) {
 describe("CalendarPage", () => {
   beforeEach(() => {
     vi.useRealTimers();
+    vi.restoreAllMocks();
+    vi.spyOn(Date, "now").mockReturnValue(new Date("2026-07-19T00:00:00Z").getTime());
   });
 
   it("renders month, week and day calendar with event details", async () => {
@@ -109,6 +111,25 @@ describe("CalendarPage", () => {
     expect(screen.getByRole("button", { name: "删除" })).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "删除" }));
     expect(screen.getByRole("button", { name: "确认删除" })).toBeInTheDocument();
+  });
+
+  it("shows ended events as read-only history", async () => {
+    vi.spyOn(Date, "now").mockReturnValue(new Date("2026-07-21T00:00:00Z").getTime());
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: RequestInfo | URL) => {
+        const body = String(input).includes("preferences") ? preference : [calendarEvent];
+        return new Response(JSON.stringify(body), { status: 200 });
+      }),
+    );
+    renderPage();
+
+    await screen.findAllByText("项目会议");
+    await userEvent.click(screen.getByRole("button", { name: "打开日期" }));
+
+    expect(screen.getByText("已结束，仅可查看")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "修改" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "删除" })).not.toBeInTheDocument();
   });
 
   it("creates an event using the configured user timezone", async () => {

@@ -3,13 +3,19 @@ from typing import Literal
 from uuid import UUID
 
 from langchain.tools import ToolRuntime, tool
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 from apps.agents.context import RuntimeContext
 from apps.agents.tools.common import model_dict, require_actor, require_writable
+from apps.conversations.services import AgentRunService
 from apps.events.models import CalendarEventStatus
 from apps.events.series_services import CreateEventSeriesCommand, EventSeriesService
 from apps.events.services import CreateEventCommand, EventQuery, EventService, UpdateEventCommand
+from apps.events.temporal_services import (
+    EventTemporalResolutionService,
+    EventTime,
+    TemporalResolution,
+)
 from apps.tasks.services import TaskService
 
 EVENT_FIELDS = (
@@ -42,16 +48,43 @@ class EventDraftInput(BaseModel):
 class EventMutationInput(BaseModel):
     """One member of an atomic calendar mutation request."""
 
+    model_config = ConfigDict(extra="forbid")
+
     action: Literal["create", "update", "cancel", "link_task"]
     event_id: UUID | None = None
     expected_version: int | None = None
     title: str | None = None
-    start_at: datetime | None = None
-    end_at: datetime | None = None
-    timezone: str | None = None
+    time: EventTime | None = None
     description: str | None = None
     location: str | None = None
     task_id: UUID | None = None
+def _record_temporal_resolution(
+    runtime: ToolRuntime[RuntimeContext],
+    resolution: TemporalResolution,
+    *,
+    target: str,
+) -> None:
+    if runtime.context.agent_run_id is None:
+        return
+    AgentRunService.record_temporal_resolution(
+        run_id=UUID(runtime.context.agent_run_id),
+        payload={"target": target, **resolution.as_audit_payload()},
+    )
+
+
+def _resolve_event_time(
+    runtime: ToolRuntime[RuntimeContext],
+    specification: EventTime,
+    *,
+    target: str,
+) -> TemporalResolution:
+    resolution = EventTemporalResolutionService.resolve(
+        anchor_at=runtime.context.current_datetime,
+        timezone=runtime.context.timezone,
+        specification=specification,
+    )
+    _record_temporal_resolution(runtime, resolution, target=target)
+    return resolution
 
 
 @tool
@@ -152,6 +185,7 @@ def update_event(
             expected_version=expected_version,
             changes=changes,
             origin="agent",
+            current_datetime=runtime.context.current_datetime,
         )
     )
     return model_dict(event, EVENT_FIELDS)
@@ -175,6 +209,7 @@ def set_event_task_link(
             expected_version=expected_version,
             changes={"task": task},
             origin="agent",
+            current_datetime=runtime.context.current_datetime,
         )
     )
     return model_dict(event, EVENT_FIELDS)
@@ -222,14 +257,15 @@ def mutate_events(
     if not operations:
         raise ValueError("Provide at least one event operation")
     results: list[dict[str, object]] = []
-    for operation in operations:
+    for operation_index, operation in enumerate(operations):
         if operation.action == "create":
-            title = operation.title
-            start_at = operation.start_at
-            end_at = operation.end_at
-            timezone_name = operation.timezone
-            if title is None or start_at is None or end_at is None or timezone_name is None:
-                raise ValueError("Create requires title, start_at, end_at, and timezone")
+            if operation.title is None or operation.time is None:
+                raise ValueError("Create requires title and time")
+            resolution = _resolve_event_time(
+                runtime,
+                operation.time,
+                target=f"mutate_events.operations[{operation_index}].time",
+            )
             task = (
                 TaskService.get_task(user=actor, task_id=operation.task_id)
                 if operation.task_id
@@ -240,10 +276,10 @@ def mutate_events(
                     user=actor,
                     created_by=actor,
                     task=task,
-                    title=title,
-                    start_at=start_at,
-                    end_at=end_at,
-                    timezone=timezone_name,
+                    title=operation.title,
+                    start_at=resolution.start_at,
+                    end_at=resolution.end_at,
+                    timezone=runtime.context.timezone,
                     description=operation.description or "",
                     location=operation.location or "",
                     origin="agent",
@@ -252,13 +288,22 @@ def mutate_events(
         elif operation.action == "update":
             if operation.event_id is None or operation.expected_version is None:
                 raise ValueError("Update requires event_id and expected_version")
+            update_resolution = (
+                _resolve_event_time(
+                    runtime,
+                    operation.time,
+                    target=f"mutate_events.operations[{operation_index}].time",
+                )
+                if operation.time is not None
+                else None
+            )
             changes = {
                 key: value
                 for key, value in {
                     "title": operation.title,
-                    "start_at": operation.start_at,
-                    "end_at": operation.end_at,
-                    "timezone": operation.timezone,
+                    "start_at": update_resolution.start_at if update_resolution else None,
+                    "end_at": update_resolution.end_at if update_resolution else None,
+                    "timezone": runtime.context.timezone if update_resolution else None,
                     "description": operation.description,
                     "location": operation.location,
                 }.items()
@@ -273,6 +318,7 @@ def mutate_events(
                     expected_version=operation.expected_version,
                     changes=changes,
                     origin="agent",
+                    current_datetime=runtime.context.current_datetime,
                 )
             )
         elif operation.action == "cancel":
@@ -283,6 +329,7 @@ def mutate_events(
                 user=actor,
                 expected_version=operation.expected_version,
                 origin="agent",
+                current_datetime=runtime.context.current_datetime,
             )
         elif operation.action == "link_task":
             if operation.event_id is None or operation.expected_version is None:
@@ -299,6 +346,7 @@ def mutate_events(
                     expected_version=operation.expected_version,
                     changes={"task": task},
                     origin="agent",
+                    current_datetime=runtime.context.current_datetime,
                 )
             )
         else:
@@ -310,9 +358,7 @@ def mutate_events(
 @tool
 def create_recurring_event(
     title: str,
-    start_at: datetime,
-    end_at: datetime,
-    timezone: str,
+    time: EventTime,
     frequency: str,
     occurrence_count: int,
     runtime: ToolRuntime[RuntimeContext],
@@ -321,9 +367,14 @@ def create_recurring_event(
     location: str = "",
     task_id: UUID | None = None,
 ) -> dict[str, object]:
-    """Create a finite daily, weekly, or monthly event series after one approval."""
+    """Create a finite event series using an explicit absolute or relative time variant."""
 
     actor = require_writable(runtime)
+    resolution = _resolve_event_time(
+        runtime,
+        time,
+        target="create_recurring_event.time",
+    )
     task = TaskService.get_task(user=actor, task_id=task_id) if task_id else None
     series = EventSeriesService.create_series(
         CreateEventSeriesCommand(
@@ -331,9 +382,9 @@ def create_recurring_event(
             task=task,
             title=title,
             description=description,
-            start_at=start_at,
-            end_at=end_at,
-            timezone=timezone,
+            start_at=resolution.start_at,
+            end_at=resolution.end_at,
+            timezone=runtime.context.timezone,
             location=location,
             frequency=frequency,
             interval=interval,
@@ -357,6 +408,7 @@ def cancel_event(
         user=require_writable(runtime),
         expected_version=expected_version,
         origin="agent",
+        current_datetime=runtime.context.current_datetime,
     )
     return model_dict(event, EVENT_FIELDS)
 

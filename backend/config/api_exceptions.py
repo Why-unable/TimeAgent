@@ -9,6 +9,7 @@ from apps.accounts.services import (
     GuestFeatureUnavailableError,
     GuestQuotaExceededError,
 )
+from apps.events.services import PastEventMutationError
 
 
 def time_agent_exception_handler(exc: Exception, context: dict[str, Any]) -> Response | None:
@@ -18,4 +19,6 @@ def time_agent_exception_handler(exc: Exception, context: dict[str, Any]) -> Res
         return Response({"detail": str(exc)}, status=status.HTTP_403_FORBIDDEN)
     if isinstance(exc, GuestAccountExpiredError):
         return Response({"detail": str(exc)}, status=status.HTTP_401_UNAUTHORIZED)
+    if isinstance(exc, PastEventMutationError):
+        return Response({"detail": str(exc)}, status=status.HTTP_409_CONFLICT)
     return exception_handler(exc, context)

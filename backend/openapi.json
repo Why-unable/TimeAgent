@@ -1810,6 +1810,13 @@ components:
         input_message:
           type: string
           readOnly: true
+        anchor_at:
+          type: string
+          format: date-time
+          readOnly: true
+        anchor_timezone:
+          type: string
+          readOnly: true
         final_response:
           type: string
           readOnly: true
@@ -1831,6 +1838,8 @@ components:
           format: date-time
           readOnly: true
       required:
+      - anchor_at
+      - anchor_timezone
       - completed_at
       - conversation_id
       - created_at

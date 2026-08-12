@@ -3,7 +3,6 @@ from typing import Any, cast
 
 from django.conf import settings
 from django.contrib.auth.models import User
-from django.utils import timezone
 from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_core.messages import AIMessage, AIMessageChunk
 from pydantic import JsonValue
@@ -56,10 +55,11 @@ def execute_agent_run(
     run = claimed
 
     preference = UserPreferenceService.get_for_user(actor)
-    timezone_name = preference.timezone if preference else settings.DEFAULT_USER_TIMEZONE
+    timezone_name = run.anchor_timezone
     locale = preference.locale if preference else settings.DEFAULT_USER_LOCALE
     planning_preferences = UserPreferenceService.planning_snapshot_for_user(actor)
-    current_time = (now or timezone.now()).astimezone(UTC)
+    del now
+    current_time = run.anchor_at.astimezone(UTC)
     payload: dict[str, JsonValue] = cast(dict[str, JsonValue], dict(run.trigger_payload))
     if run.trigger_type == "user_message":
         payload["message"] = run.input_message
@@ -124,10 +124,11 @@ def resume_agent_run(
         return AgentRun.objects.get(pk=run.pk)
     run = claimed
     preference = UserPreferenceService.get_for_user(actor)
-    timezone_name = preference.timezone if preference else settings.DEFAULT_USER_TIMEZONE
+    timezone_name = run.anchor_timezone
     locale = preference.locale if preference else settings.DEFAULT_USER_LOCALE
     planning_preferences = UserPreferenceService.planning_snapshot_for_user(actor)
-    current_time = (now or timezone.now()).astimezone(UTC)
+    del now
+    current_time = run.anchor_at.astimezone(UTC)
     envelope = TriggerEnvelope(
         trigger_type="user_message",
         user_id=str(actor.pk),

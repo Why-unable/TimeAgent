@@ -22,6 +22,7 @@ class RuntimeContext:
     trigger_type: TriggerType
     conversation_id: str | None = None
     agent_run_id: str | None = None
+    input_message: str = ""
     read_only: bool = False
     actor: User | None = field(default=None, repr=False, compare=False)
     planning_preferences: PlanningPreferencesSnapshot = field(

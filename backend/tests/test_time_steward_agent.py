@@ -125,13 +125,18 @@ def test_temporal_context_hides_historical_clock_calls_and_labels_ai_messages() 
     model_messages = TemporalContextMiddleware._model_messages(messages)
 
     historical_ai = next(message for message in model_messages if isinstance(message, AIMessage))
-    assert str(historical_ai.content).startswith("[Historical assistant response.")
+    assert str(historical_ai.content).startswith("[Historical assistant response from run anchor")
     assert historical_ai.tool_calls == []
     assert all(
         not (isinstance(message, ToolMessage) and message.name == "get_current_datetime")
         for message in model_messages
     )
     assert model_messages[-1].content == "Then schedule it tomorrow."
+    historical_human = next(
+        message for message in model_messages if isinstance(message, HumanMessage)
+    )
+    assert str(historical_human.content).startswith("[Historical user request")
+    assert "16:00" in str(historical_ai.content)
 
     # The checkpoint/history source is untouched.
     assert messages[1].content == "It is 2026-07-17 16:00."
@@ -160,8 +165,11 @@ def test_calendar_hitl_preferences_allow_safe_create_and_cancellation_only() -> 
     safe_create = {
         "action": "create",
         "title": "Focus time",
-        "start_at": "2026-07-18T10:00:00+08:00",
-        "end_at": "2026-07-18T11:00:00+08:00",
+        "time": {
+            "kind": "absolute",
+            "start_at": "2026-07-18T10:00:00+08:00",
+            "end_at": "2026-07-18T11:00:00+08:00",
+        },
     }
     assert requires_review(request_for(safe_create)) is False
 
@@ -176,8 +184,11 @@ def test_calendar_hitl_preferences_allow_safe_create_and_cancellation_only() -> 
     )
     conflicting_create = {
         **safe_create,
-        "start_at": "2026-07-18T10:30:00+08:00",
-        "end_at": "2026-07-18T11:30:00+08:00",
+        "time": {
+            "kind": "absolute",
+            "start_at": "2026-07-18T10:30:00+08:00",
+            "end_at": "2026-07-18T11:30:00+08:00",
+        },
     }
     assert requires_review(request_for(conflicting_create)) is True
     assert (
@@ -485,26 +496,43 @@ def test_fixed_eval_command_executes_and_checks_real_trajectories(
     cases = json.loads(
         (Path(__file__).parent / "fixtures" / "time_steward_eval.json").read_text(encoding="utf-8")
     )
-    trajectories = [
-        {
-            "messages": [
-                AIMessage(
-                    content="",
-                    tool_calls=[
-                        {
-                            "name": name,
-                            "args": {},
-                            "id": f"{case['id']}-{index}",
-                            "type": "tool_call",
-                        }
-                        for index, name in enumerate(case["required_tools"])
-                    ],
-                ),
-                AIMessage(content="done"),
-            ]
-        }
-        for case in cases
-    ]
+    trajectories = []
+    for case in cases:
+        turns = case.get("turns", [{"prompt": case.get("prompt", "")}])
+        expectations = case.get("expected_relative_specs", [])
+        for turn_index, _turn in enumerate(turns):
+            tool_calls = []
+            for index, name in enumerate(case["required_tools"]):
+                args: dict[str, Any] = {}
+                if name == "mutate_events" and expectations:
+                    args = {
+                        "operations": [
+                            {
+                                "action": "create",
+                                "time": {
+                                    "kind": "relative",
+                                    "duration_minutes": 60,
+                                    **expectations[turn_index],
+                                },
+                            }
+                        ]
+                    }
+                tool_calls.append(
+                    {
+                        "name": name,
+                        "args": args,
+                        "id": f"{case['id']}-{turn_index}-{index}",
+                        "type": "tool_call",
+                    }
+                )
+            trajectories.append(
+                {
+                    "messages": [
+                        AIMessage(content="", tool_calls=tool_calls),
+                        AIMessage(content="done"),
+                    ]
+                }
+            )
     fake_agent = MagicMock()
     fake_agent.invoke.side_effect = trajectories
     monkeypatch.setattr(
@@ -519,5 +547,6 @@ def test_fixed_eval_command_executes_and_checks_real_trajectories(
 
     call_command("evaluate_time_steward", stdout=output)
 
-    assert fake_agent.invoke.call_count == len(cases)
+    expected_turn_count = sum(len(case.get("turns", [case])) for case in cases)
+    assert fake_agent.invoke.call_count == expected_turn_count
     assert f"Time Steward eval passed: {len(cases)} case(s)" in output.getvalue()

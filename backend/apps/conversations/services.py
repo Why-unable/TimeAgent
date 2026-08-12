@@ -89,6 +89,8 @@ class StartRunCommand:
     trigger_type: str = "user_message"
     trigger_payload: dict[str, Any] | None = None
     synthetic_input: bool = False
+    anchor_at: datetime | None = None
+    anchor_timezone: str | None = None
 
 
 class ConversationService:
@@ -141,6 +143,20 @@ class AgentRunService:
             command.conversation.user,
             operation_id=command.operation_id,
         )
+        anchor_at = command.anchor_at or timezone.now()
+        if anchor_at.tzinfo is None or anchor_at.utcoffset() is None:
+            raise ValueError("anchor_at must be timezone-aware")
+        anchor_timezone = command.anchor_timezone
+        if anchor_timezone is None:
+            from django.conf import settings
+
+            from apps.preferences.services import UserPreferenceService
+
+            preference = UserPreferenceService.get_for_user(command.conversation.user)
+            anchor_timezone = preference.timezone if preference else settings.DEFAULT_USER_TIMEZONE
+        from common.time import to_utc, validate_timezone
+
+        validate_timezone(anchor_timezone)
         run, created = AgentRun.objects.get_or_create(
             operation_id=command.operation_id,
             defaults={
@@ -150,6 +166,8 @@ class AgentRunService:
                 "trigger_type": command.trigger_type,
                 "trigger_payload": command.trigger_payload or {},
                 "synthetic_input": command.synthetic_input,
+                "anchor_at": to_utc(anchor_at),
+                "anchor_timezone": anchor_timezone,
             },
         )
         if (
@@ -394,6 +412,11 @@ class AgentRunService:
                 sequence__gt=cursor,
             )
         )
+
+    @staticmethod
+    def record_temporal_resolution(*, run_id: UUID, payload: dict[str, Any]) -> AgentEvent:
+        run = AgentRun.objects.get(pk=run_id)
+        return AgentRunService.append_event(run, "temporal.resolved", payload)
 
     @staticmethod
     def is_cancelled(run_id: UUID) -> bool:

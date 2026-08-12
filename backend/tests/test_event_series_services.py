@@ -24,7 +24,11 @@ def test_create_and_cancel_finite_event_series_is_atomic() -> None:
     )
 
     assert series.occurrences.count() == 3
-    cancelled = EventSeriesService.cancel_series(series=series, user=user)
+    cancelled = EventSeriesService.cancel_series(
+        series=series,
+        user=user,
+        current_datetime=datetime(2026, 7, 26, 1, tzinfo=UTC),
+    )
     assert cancelled.status == EventSeriesStatus.CANCELLED
     assert set(cancelled.occurrences.values_list("status", flat=True)) == {
         CalendarEventStatus.CANCELLED

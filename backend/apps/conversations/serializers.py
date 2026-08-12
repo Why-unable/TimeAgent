@@ -37,6 +37,8 @@ class AgentRunSerializer(serializers.ModelSerializer[AgentRun]):
             "synthetic_input",
             "status",
             "input_message",
+            "anchor_at",
+            "anchor_timezone",
             "final_response",
             "error",
             "started_at",

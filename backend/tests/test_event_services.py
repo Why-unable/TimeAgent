@@ -18,6 +18,7 @@ pytestmark = pytest.mark.django_db
 
 START_AT = datetime(2026, 7, 20, 1, 0, tzinfo=UTC)
 END_AT = datetime(2026, 7, 20, 2, 0, tzinfo=UTC)
+CURRENT_DATETIME = START_AT - timedelta(days=1)
 
 
 def create_user(username: str = "event-service-user") -> User:
@@ -57,6 +58,7 @@ def test_update_event_increments_version_and_rejects_stale_write() -> None:
             event_id=event.id,
             expected_version=1,
             changes={"title": "Updated review"},
+            current_datetime=CURRENT_DATETIME,
         )
     )
 
@@ -69,11 +71,59 @@ def test_update_event_increments_version_and_rejects_stale_write() -> None:
                 event_id=event.id,
                 expected_version=1,
                 changes={"title": "Stale review"},
+                current_datetime=CURRENT_DATETIME,
             )
         )
     event.refresh_from_db()
     assert event.title == "Updated review"
     assert event.version == 2
+
+
+def test_ended_event_is_read_only() -> None:
+    user = create_user()
+    event = create_event(user)
+    after_event = END_AT + timedelta(seconds=1)
+
+    with pytest.raises(ValueError, match="已结束的日程只读"):
+        EventService.update_event(
+            UpdateEventCommand(
+                user=user,
+                event_id=event.id,
+                expected_version=event.version,
+                changes={"title": "Too late"},
+                current_datetime=after_event,
+            )
+        )
+    with pytest.raises(ValueError, match="已结束的日程只读"):
+        EventService.cancel_event(
+            event_id=event.id,
+            user=user,
+            expected_version=event.version,
+            current_datetime=after_event,
+        )
+
+    event.refresh_from_db()
+    assert event.title == "Project review"
+    assert event.status == CalendarEventStatus.CONFIRMED
+    assert event.version == 1
+
+
+def test_ongoing_event_remains_editable() -> None:
+    user = create_user()
+    event = create_event(user)
+
+    updated = EventService.update_event(
+        UpdateEventCommand(
+            user=user,
+            event_id=event.id,
+            expected_version=event.version,
+            changes={"title": "In progress"},
+            current_datetime=START_AT + timedelta(minutes=30),
+        )
+    )
+
+    assert updated.title == "In progress"
+    assert updated.version == 2
 
 
 def test_cancel_event_is_versioned_and_idempotent() -> None:
@@ -84,11 +134,13 @@ def test_cancel_event_is_versioned_and_idempotent() -> None:
         event_id=event.id,
         user=user,
         expected_version=1,
+        current_datetime=CURRENT_DATETIME,
     )
     repeated = EventService.cancel_event(
         event_id=event.id,
         user=user,
         expected_version=2,
+        current_datetime=CURRENT_DATETIME,
     )
 
     assert cancelled.status == CalendarEventStatus.CANCELLED
@@ -108,6 +160,7 @@ def test_event_service_enforces_user_scope() -> None:
                 event_id=event.id,
                 expected_version=1,
                 changes={"title": "Not allowed"},
+                current_datetime=CURRENT_DATETIME,
             )
         )
 
@@ -154,6 +207,7 @@ def test_update_event_rejects_ownership_and_version_fields() -> None:
                 event_id=event.id,
                 expected_version=1,
                 changes={"version": 10},
+                current_datetime=CURRENT_DATETIME,
             )
         )
 
@@ -228,6 +282,7 @@ def test_event_service_blocks_overlapping_create_and_update() -> None:
                 event_id=later.id,
                 expected_version=later.version,
                 changes={"start_at": START_AT + timedelta(minutes=30), "end_at": END_AT},
+                current_datetime=CURRENT_DATETIME,
             )
         )
     later.refresh_from_db()

@@ -1,4 +1,5 @@
 from collections.abc import AsyncIterator
+from datetime import UTC, datetime
 from types import SimpleNamespace
 from typing import cast
 from uuid import uuid4
@@ -107,6 +108,38 @@ def test_failed_run_reports_partial_success_after_completed_write() -> None:
     assert event.payload["partial_success"] is True
     assert event.payload["completed_write_tools"] == ["mutate_events"]
     assert event.payload["error_code"] == "database_concurrency_conflict"
+
+
+@pytest.mark.django_db
+def test_run_anchor_is_captured_once_and_idempotently_reused() -> None:
+    user = User.objects.create_user(username="run-anchor")
+    conversation = Conversation.objects.create(user=user)
+    operation_id = uuid4()
+    first_anchor = datetime(2026, 8, 12, 0, tzinfo=UTC)
+    command = StartRunCommand(
+        conversation=conversation,
+        operation_id=operation_id,
+        request_id="anchor-request",
+        message="一天后创建日程",
+        anchor_at=first_anchor,
+        anchor_timezone="Asia/Shanghai",
+    )
+
+    created = AgentRunService.start(command)
+    replayed = AgentRunService.start(
+        StartRunCommand(
+            conversation=conversation,
+            operation_id=operation_id,
+            request_id="anchor-request-retry",
+            message="一天后创建日程",
+            anchor_at=datetime(2026, 8, 12, 2, tzinfo=UTC),
+            anchor_timezone="UTC",
+        )
+    )
+
+    assert created.pk == replayed.pk
+    assert replayed.anchor_at == first_anchor
+    assert replayed.anchor_timezone == "Asia/Shanghai"
 
 
 @pytest.mark.django_db

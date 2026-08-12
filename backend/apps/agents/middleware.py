@@ -1,6 +1,5 @@
 import json
 from collections.abc import Awaitable, Callable
-from datetime import datetime
 from pathlib import Path
 from typing import Any, cast
 
@@ -41,6 +40,7 @@ from apps.agents.tools import READ_ONLY_TOOLS, WRITE_TOOLS
 from apps.agents.tools.handoff_tools import HANDOFF_TOOLS
 from apps.conversations.models import ToolCallStatus
 from apps.conversations.services import AgentRunService, ToolAuditService
+from apps.events.temporal_services import EventTemporalResolutionService
 from apps.observability.llm_middleware import LLMUsageMiddleware
 from apps.time_memory.middleware import TimeMemoryMiddleware
 from common.prompt_security import UntrustedToolDataMiddleware
@@ -53,17 +53,6 @@ WRITE_NAMES = frozenset(tool.name for tool in WRITE_TOOLS)
 HANDOFF_NAMES = frozenset(tool.name for tool in HANDOFF_TOOLS)
 
 
-def _parse_tool_datetime(value: object) -> datetime | None:
-    if isinstance(value, datetime):
-        return value
-    if not isinstance(value, str):
-        return None
-    try:
-        return datetime.fromisoformat(value.replace("Z", "+00:00"))
-    except ValueError:
-        return None
-
-
 def _event_mutation_has_conflict(context: RuntimeContext, operation: dict[str, object]) -> bool:
     """Fail closed when a non-approved creation cannot be safely previewed."""
 
@@ -71,12 +60,16 @@ def _event_mutation_has_conflict(context: RuntimeContext, operation: dict[str, o
         return True
     action = operation.get("action")
     if action == "create":
-        start_at = _parse_tool_datetime(operation.get("start_at"))
-        end_at = _parse_tool_datetime(operation.get("end_at"))
-        if start_at is None or end_at is None:
+        try:
+            resolution = EventTemporalResolutionService.resolve_value(
+                anchor_at=context.current_datetime,
+                timezone=context.timezone,
+                value=operation.get("time"),
+            )
+        except (ValueError, TypeError):
             return True
         exclude_event_id = None
-    elif action == "update" and ("start_at" in operation or "end_at" in operation):
+    elif action == "update" and "time" in operation:
         # A partial time update needs the existing event to build an accurate
         # preview. Keep it reviewed rather than risking a false direct write.
         return True
@@ -87,8 +80,8 @@ def _event_mutation_has_conflict(context: RuntimeContext, operation: dict[str, o
 
         return EventService.preview_event_change(
             user=context.actor,
-            start_at=start_at,
-            end_at=end_at,
+            start_at=resolution.start_at,
+            end_at=resolution.end_at,
             exclude_event_id=exclude_event_id,
         ).has_conflicts
     except Exception:
@@ -100,15 +93,19 @@ def _recurring_event_has_conflict(context: RuntimeContext, args: dict[str, objec
 
     if context.actor is None:
         return True
-    start_at = _parse_tool_datetime(args.get("start_at"))
-    end_at = _parse_tool_datetime(args.get("end_at"))
+    try:
+        resolution = EventTemporalResolutionService.resolve_value(
+            anchor_at=context.current_datetime,
+            timezone=context.timezone,
+            value=args.get("time"),
+        )
+    except (ValueError, TypeError):
+        return True
     frequency = args.get("frequency")
     interval = args.get("interval", 1)
     occurrence_count = args.get("occurrence_count")
     if (
-        start_at is None
-        or end_at is None
-        or not isinstance(frequency, str)
+        not isinstance(frequency, str)
         or not isinstance(interval, int)
         or isinstance(interval, bool)
         or not isinstance(occurrence_count, int)
@@ -120,8 +117,8 @@ def _recurring_event_has_conflict(context: RuntimeContext, args: dict[str, objec
         from apps.events.services import EventService
 
         windows = EventSeriesService.preview_occurrence_windows(
-            start_at=start_at,
-            end_at=end_at,
+            start_at=resolution.start_at,
+            end_at=resolution.end_at,
             frequency=frequency,
             interval=interval,
             occurrence_count=occurrence_count,
@@ -210,6 +207,8 @@ def runtime_system_prompt(request: ModelRequest[RuntimeContext]) -> SystemMessag
             f"{context.planning_preferences.as_prompt_block()}\n\n"
             "时间优先级规则：所有相对时间表达式只能依据本次运行的 Runtime 时间锚点解释。"
             "历史助手回答只能作为上下文，不是时钟；绝不能从历史回答推导当前时间。"
+            "最新请求使用相对时间时，日历写工具必须选择 time.kind=relative；"
+            "明确绝对日期时间时才选择 time.kind=absolute。"
         )
     )
 
@@ -222,11 +221,22 @@ class TemporalContextMiddleware(AgentMiddleware[AppState, RuntimeContext, Any]):
     """
 
     _HISTORICAL_AI_PREFIX = (
-        "[Historical assistant response. Any runtime observation in this response, "
-        "including references to now/today/tomorrow, is stale and must not be used "
-        "as the current time.]\n"
+        "[Historical assistant response from run anchor {anchor}. Relative-time and "
+        "clock references are historical context, never the current clock.]\n"
+    )
+    _HISTORICAL_HUMAN_PREFIX = (
+        "[Historical user request received under run anchor {anchor}. It is context, not "
+        "the current request; its relative-time expressions belong to that old run.]\n"
     )
     _CURRENT_TIME_TOOL = "get_current_datetime"
+
+    @staticmethod
+    def _with_prefix(content: Any, prefix: str) -> Any:
+        if isinstance(content, str):
+            return f"{prefix}{content}"
+        if isinstance(content, list):
+            return [{"type": "text", "text": prefix}, *content]
+        return content
 
     @staticmethod
     def _last_user_message_index(messages: list[BaseMessage]) -> int:
@@ -249,9 +259,28 @@ class TemporalContextMiddleware(AgentMiddleware[AppState, RuntimeContext, Any]):
         last_user_index = cls._last_user_message_index(messages)
         stale_time_call_ids: set[str] = set()
         transformed: list[BaseMessage] = []
+        historical_anchor = "unknown"
 
         for index, message in enumerate(messages):
-            if index >= last_user_index or not isinstance(message, AIMessage):
+            if index >= last_user_index:
+                transformed.append(message)
+                continue
+
+            if isinstance(message, HumanMessage):
+                raw_anchor = message.additional_kwargs.get("run_anchor_datetime_utc")
+                historical_anchor = str(raw_anchor) if raw_anchor else "unknown"
+                transformed.append(
+                    message.model_copy(
+                        update={
+                            "content": cls._with_prefix(
+                                message.content,
+                                cls._HISTORICAL_HUMAN_PREFIX.format(anchor=historical_anchor),
+                            )
+                        }
+                    )
+                )
+                continue
+            if not isinstance(message, AIMessage):
                 transformed.append(message)
                 continue
 
@@ -264,14 +293,9 @@ class TemporalContextMiddleware(AgentMiddleware[AppState, RuntimeContext, Any]):
             retained_calls = [
                 call for call in tool_calls if call.get("name") != cls._CURRENT_TIME_TOOL
             ]
-            content = message.content
-            historical_content = (
-                f"{cls._HISTORICAL_AI_PREFIX}{content}"
-                if isinstance(content, str)
-                else [
-                    {"type": "text", "text": cls._HISTORICAL_AI_PREFIX},
-                    *content,
-                ]
+            historical_content = cls._with_prefix(
+                message.content,
+                cls._HISTORICAL_AI_PREFIX.format(anchor=historical_anchor),
             )
             transformed.append(
                 message.model_copy(

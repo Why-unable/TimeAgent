@@ -66,11 +66,13 @@ export function DayAgendaSheet({
               这一天还没有日程。
             </p>
           )}
-          {events.map((event) => (
-            <article
+          {events.map((event) => {
+            const hasEnded = new Date(event.end_at).getTime() <= Date.now();
+            return (
+              <article
               key={event.id}
               className="rounded-2xl border border-white/10 bg-slate-950/55 p-4"
-            >
+              >
               <div className="flex gap-3">
                 <span className="mt-1 size-2 shrink-0 rounded-full bg-cyan-300" />
                 <div className="min-w-0 flex-1">
@@ -87,31 +89,36 @@ export function DayAgendaSheet({
                   )}
                 </div>
               </div>
-              <div className="mt-4 flex justify-end gap-2">
-                <button
-                  type="button"
-                  onClick={() => onEdit(event)}
-                  className="inline-flex items-center gap-1 rounded-lg border border-white/10 px-3 py-2 text-sm text-slate-200 hover:bg-white/5"
-                >
-                  <Pencil size={15} />
-                  修改
-                </button>
-                <button
-                  type="button"
-                  disabled={cancelPending}
-                  onClick={() => onConfirmCancel(event)}
-                  className={`inline-flex items-center gap-1 rounded-lg px-3 py-2 text-sm disabled:opacity-50 ${
-                    confirmCancelId === event.id
-                      ? "bg-red-400 text-slate-950"
-                      : "border border-red-300/30 text-red-200 hover:bg-red-300/10"
-                  }`}
-                >
-                  <Trash2 size={15} />
-                  {confirmCancelId === event.id ? "确认删除" : "删除"}
-                </button>
-              </div>
-            </article>
-          ))}
+                {hasEnded ? (
+                  <p className="mt-4 text-right text-xs text-slate-500">已结束，仅可查看</p>
+                ) : (
+                  <div className="mt-4 flex justify-end gap-2">
+                    <button
+                      type="button"
+                      onClick={() => onEdit(event)}
+                      className="inline-flex items-center gap-1 rounded-lg border border-white/10 px-3 py-2 text-sm text-slate-200 hover:bg-white/5"
+                    >
+                      <Pencil size={15} />
+                      修改
+                    </button>
+                    <button
+                      type="button"
+                      disabled={cancelPending}
+                      onClick={() => onConfirmCancel(event)}
+                      className={`inline-flex items-center gap-1 rounded-lg px-3 py-2 text-sm disabled:opacity-50 ${
+                        confirmCancelId === event.id
+                          ? "bg-red-400 text-slate-950"
+                          : "border border-red-300/30 text-red-200 hover:bg-red-300/10"
+                      }`}
+                    >
+                      <Trash2 size={15} />
+                      {confirmCancelId === event.id ? "确认删除" : "删除"}
+                    </button>
+                  </div>
+                )}
+              </article>
+            );
+          })}
           {cancelError && (
             <p
               role="alert"
