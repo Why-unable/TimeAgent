@@ -8,7 +8,9 @@ from django.contrib.auth.models import User
 from django.db import transaction
 from django.utils import timezone
 
+from apps.accounts.services import GuestAccountPolicyService
 from apps.tasks.models import Task, TaskPriority, TaskStatus
+from common.database_locks import lock_user_schedule_writes
 from common.time import to_utc
 
 
@@ -26,6 +28,7 @@ class CreateTaskCommand:
     planned_end_at: datetime | None = None
     source: str = "local"
     tags: list[str] = field(default_factory=list)
+    origin: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -34,6 +37,7 @@ class UpdateTaskCommand:
     task_id: UUID
     changes: Mapping[str, Any]
     expected_version: int | None = None
+    origin: str = "web"
 
 
 @dataclass(frozen=True, slots=True)
@@ -64,6 +68,8 @@ class TaskService:
     @transaction.atomic
     def create_task(command: CreateTaskCommand) -> Task:
         TaskService._ensure_persisted_user(command.user)
+        GuestAccountPolicyService.assert_resource_creation_allowed(command.user, "task")
+        lock_user_schedule_writes(command.user)
         task = Task(
             user=command.user,
             title=command.title,
@@ -83,6 +89,12 @@ class TaskService:
         from apps.reminders.scheduling import ReminderScheduleService
 
         ReminderScheduleService.sync_task_reminders(task=task)
+        TaskService._record_change(
+            task=task,
+            operation="created",
+            origin=command.origin or ("agent" if task.source == "agent" else "web"),
+            old_snapshot={},
+        )
         return task
 
     @staticmethod
@@ -101,10 +113,12 @@ class TaskService:
     @transaction.atomic
     def update_task(command: UpdateTaskCommand) -> Task:
         TaskService._ensure_persisted_user(command.user)
+        lock_user_schedule_writes(command.user)
         TaskService._validate_changes(command.changes)
         task = Task.objects.select_for_update().get(pk=command.task_id, user=command.user)
         if command.expected_version is not None:
             TaskService._ensure_version(task, command.expected_version)
+        old_snapshot = TaskService._snapshot(task)
         for field_name, value in command.changes.items():
             setattr(task, field_name, value)
         task.full_clean()
@@ -113,6 +127,12 @@ class TaskService:
         from apps.reminders.scheduling import ReminderScheduleService
 
         ReminderScheduleService.sync_task_reminders(task=task)
+        TaskService._record_change(
+            task=task,
+            operation="updated",
+            origin=command.origin,
+            old_snapshot=old_snapshot,
+        )
         return task
 
     @staticmethod
@@ -122,12 +142,15 @@ class TaskService:
         task_id: UUID,
         user: User,
         occurred_at: datetime | None = None,
+        origin: str = "web",
     ) -> Task:
         TaskService._ensure_persisted_user(user)
+        lock_user_schedule_writes(user)
         task = Task.objects.select_for_update().get(pk=task_id, user=user)
         if task.status == TaskStatus.COMPLETED:
             return task
 
+        old_snapshot = TaskService._snapshot(task)
         task.transition_to(TaskStatus.COMPLETED, occurred_at=occurred_at or timezone.now())
         task.version += 1
         task.full_clean()
@@ -135,6 +158,13 @@ class TaskService:
         from apps.reminders.scheduling import ReminderScheduleService
 
         ReminderScheduleService.cancel_task_reminders(task=task)
+        TaskService._record_change(
+            task=task,
+            operation="completed",
+            origin=origin,
+            old_snapshot=old_snapshot,
+            occurred_at=task.completed_at,
+        )
         return task
 
     @staticmethod
@@ -144,14 +174,17 @@ class TaskService:
         task_id: UUID,
         user: User,
         occurred_at: datetime | None = None,
+        origin: str = "web",
     ) -> Task:
         """Cancel an active task without deleting its audit history."""
 
         TaskService._ensure_persisted_user(user)
+        lock_user_schedule_writes(user)
         task = Task.objects.select_for_update().get(pk=task_id, user=user)
         if task.status == TaskStatus.CANCELLED:
             return task
 
+        old_snapshot = TaskService._snapshot(task)
         task.transition_to(TaskStatus.CANCELLED, occurred_at=occurred_at or timezone.now())
         task.version += 1
         task.full_clean()
@@ -159,6 +192,13 @@ class TaskService:
         from apps.reminders.scheduling import ReminderScheduleService
 
         ReminderScheduleService.cancel_task_reminders(task=task)
+        TaskService._record_change(
+            task=task,
+            operation="cancelled",
+            origin=origin,
+            old_snapshot=old_snapshot,
+            occurred_at=occurred_at,
+        )
         return task
 
     @staticmethod
@@ -169,9 +209,12 @@ class TaskService:
         user: User,
         planned_start_at: datetime | None,
         planned_end_at: datetime | None,
+        origin: str = "web",
     ) -> Task:
         TaskService._ensure_persisted_user(user)
+        lock_user_schedule_writes(user)
         task = Task.objects.select_for_update().get(pk=task_id, user=user)
+        old_snapshot = TaskService._snapshot(task)
         task.planned_start_at = planned_start_at
         task.planned_end_at = planned_end_at
         task.version += 1
@@ -180,6 +223,12 @@ class TaskService:
         from apps.reminders.scheduling import ReminderScheduleService
 
         ReminderScheduleService.sync_task_reminders(task=task)
+        TaskService._record_change(
+            task=task,
+            operation="updated",
+            origin=origin,
+            old_snapshot=old_snapshot,
+        )
         return task
 
     @staticmethod
@@ -190,14 +239,17 @@ class TaskService:
         user: User,
         status: TaskStatus | str,
         occurred_at: datetime,
+        origin: str = "web",
     ) -> Task:
         """Apply a valid task state-machine transition and synchronise derived reminders."""
 
         TaskService._ensure_persisted_user(user)
+        lock_user_schedule_writes(user)
         task = Task.objects.select_for_update().get(pk=task_id, user=user)
         normalized_status = TaskStatus(status)
         if task.status == normalized_status:
             return task
+        old_snapshot = TaskService._snapshot(task)
         task.transition_to(normalized_status, occurred_at=occurred_at)
         task.version += 1
         task.full_clean()
@@ -208,6 +260,19 @@ class TaskService:
             ReminderScheduleService.cancel_task_reminders(task=task)
         else:
             ReminderScheduleService.sync_task_reminders(task=task)
+        TaskService._record_change(
+            task=task,
+            operation=(
+                "completed"
+                if normalized_status == TaskStatus.COMPLETED
+                else "cancelled"
+                if normalized_status == TaskStatus.CANCELLED
+                else "updated"
+            ),
+            origin=origin,
+            old_snapshot=old_snapshot,
+            occurred_at=occurred_at,
+        )
         return task
 
     @staticmethod
@@ -218,9 +283,12 @@ class TaskService:
         items: list[tuple[UUID, int]],
         status: TaskStatus | str,
         occurred_at: datetime,
+        origin: str = "web",
     ) -> list[Task]:
         """Atomically transition a versioned, finite set of tasks."""
 
+        TaskService._ensure_persisted_user(user)
+        lock_user_schedule_writes(user)
         if not items:
             raise ValueError("At least one task is required")
         task_ids = [task_id for task_id, _ in items]
@@ -234,10 +302,12 @@ class TaskService:
             raise ValueError("Every task must belong to the current user")
         normalized_status = TaskStatus(status)
         tasks: list[Task] = []
+        old_snapshots: dict[UUID, dict[str, Any]] = {}
         for task_id, expected_version in items:
             task = locked[task_id]
             TaskService._ensure_version(task, expected_version)
             if task.status != normalized_status:
+                old_snapshots[task.pk] = TaskService._snapshot(task)
                 task.transition_to(normalized_status, occurred_at=occurred_at)
                 task.version += 1
                 task.full_clean()
@@ -250,6 +320,20 @@ class TaskService:
                 ReminderScheduleService.cancel_task_reminders(task=task)
             else:
                 ReminderScheduleService.sync_task_reminders(task=task)
+            if task.pk in old_snapshots:
+                TaskService._record_change(
+                    task=task,
+                    operation=(
+                        "completed"
+                        if normalized_status == TaskStatus.COMPLETED
+                        else "cancelled"
+                        if normalized_status == TaskStatus.CANCELLED
+                        else "updated"
+                    ),
+                    origin=origin,
+                    old_snapshot=old_snapshots[task.pk],
+                    occurred_at=occurred_at,
+                )
         return tasks
 
     @staticmethod
@@ -289,3 +373,42 @@ class TaskService:
     def _ensure_persisted_user(user: User) -> None:
         if user.pk is None:
             raise ValueError("Task user must be persisted")
+
+    @staticmethod
+    def _snapshot(task: Task) -> dict[str, Any]:
+        from apps.time_memory.event_handler import json_snapshot
+
+        return json_snapshot(
+            task,
+            (
+                "title",
+                "status",
+                "due_at",
+                "planned_start_at",
+                "planned_end_at",
+                "completed_at",
+                "source",
+            ),
+        )
+
+    @staticmethod
+    def _record_change(
+        *,
+        task: Task,
+        operation: str,
+        origin: str,
+        old_snapshot: dict[str, Any],
+        occurred_at: datetime | None = None,
+    ) -> None:
+        from apps.time_memory.event_handler import record_schedule_change
+
+        record_schedule_change(
+            user=task.user,
+            entity_type="task",
+            entity_id=task.pk,
+            operation=operation,
+            source=origin,
+            old_snapshot=old_snapshot,
+            new_snapshot=TaskService._snapshot(task),
+            occurred_at=occurred_at,
+        )

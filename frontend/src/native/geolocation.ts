@@ -3,6 +3,7 @@ import { Geolocation } from "@capacitor/geolocation";
 export type DeviceCoordinates = {
   latitude: number;
   longitude: number;
+  accuracyMeters?: number;
 };
 
 /**
@@ -22,5 +23,6 @@ export async function getCurrentDeviceCoordinates(): Promise<DeviceCoordinates> 
   return {
     latitude: position.coords.latitude,
     longitude: position.coords.longitude,
+    accuracyMeters: position.coords.accuracy,
   };
 }

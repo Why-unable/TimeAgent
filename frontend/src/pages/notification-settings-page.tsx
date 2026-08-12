@@ -5,15 +5,16 @@ import { useEffect, useState } from "react";
 import type { NotificationPreference } from "../api/notifications";
 import {
   useCreateWebPushSubscription,
-  useDeleteWebPushSubscription,
   useNotificationDeliveries,
   useNotificationPreference,
+  useUnsubscribeWebPushEndpoint,
   useUpdateNotificationPreference,
   useWebPushConfig,
-  useWebPushSubscriptions,
 } from "../features/notifications/hooks";
 import {
   browserPushState,
+  currentBrowserPushEndpoint,
+  isChromeUsingFcm,
   subscribeBrowser,
   unsubscribeBrowser,
 } from "../features/notifications/web-push";
@@ -46,15 +47,9 @@ export function NotificationSettingsPage() {
   const currentUser = useCurrentUser();
   const preference = useNotificationPreference();
   const deliveries = useNotificationDeliveries();
-  const pushConfig = useWebPushConfig();
-  const subscriptions = useWebPushSubscriptions();
   const updatePreference = useUpdateNotificationPreference();
   const userPreference = useCurrentUserPreference();
   const updateUserPreference = useUpdateCurrentUserPreference();
-  const createSubscription = useCreateWebPushSubscription();
-  const deleteSubscription = useDeleteWebPushSubscription();
-  const [pushState, setPushState] = useState(() => browserPushState());
-  const [pushError, setPushError] = useState("");
   const [diagnostics, setDiagnostics] = useState<NotificationDiagnosticEntry[]>([]);
   const [diagnosticsError, setDiagnosticsError] = useState("");
   const [nativePermission, setNativePermission] = useState<NativeReminderPermissionState | null>(null);
@@ -124,40 +119,6 @@ export function NotificationSettingsPage() {
     updatePreference.mutate({ [field]: checked });
   };
 
-  const enablePush = async () => {
-    setPushError("");
-    try {
-      if (!pushConfig.data?.configured || !pushConfig.data.public_key) {
-        throw new Error("后端尚未配置 VAPID 密钥");
-      }
-      await createSubscription.mutateAsync(
-        await subscribeBrowser(pushConfig.data.public_key),
-      );
-      setPushState(browserPushState());
-    } catch (error) {
-      setPushState(browserPushState());
-      setPushError(
-        error instanceof Error && error.message === "notification_permission_denied"
-          ? "你拒绝了通知权限，可在浏览器站点设置中重新开启。"
-          : error instanceof Error
-            ? error.message
-            : "订阅失败",
-      );
-    }
-  };
-
-  const disablePush = async () => {
-    setPushError("");
-    try {
-      await unsubscribeBrowser();
-      await Promise.all(
-        (subscriptions.data ?? []).map((item) => deleteSubscription.mutateAsync(item.id)),
-      );
-    } catch (error) {
-      setPushError(error instanceof Error ? error.message : "取消订阅失败");
-    }
-  };
-
   if (preference.isLoading || userPreference.isLoading) return <p className="text-slate-400">正在加载通知设置…</p>;
   if (
     preference.isError ||
@@ -168,10 +129,7 @@ export function NotificationSettingsPage() {
     return <p role="alert" className="text-red-300">无法读取通知设置，请确认已登录。</p>;
   }
 
-  const subscribed = (subscriptions.data ?? []).some((item) => item.enabled);
-  const invalidated = (subscriptions.data ?? []).some(
-    (item) => !item.enabled && Boolean(item.invalidated_at),
-  );
+  const native = isNativePlatform();
   const visibleDeliveries = (deliveries.data ?? []).filter(
     (item) => item.channel_type !== "console",
   );
@@ -225,27 +183,9 @@ export function NotificationSettingsPage() {
           {!preference.data.email && <p className="text-xs text-amber-300">请先在 Django 用户资料中设置有效邮箱。</p>}
         </ChannelCard>
 
-        <ChannelCard icon={MonitorSmartphone} title="浏览器推送" description={stateLabels[pushState]}>
-          <p className="text-xs text-slate-400">
-            {pushConfig.data?.configured
-              ? subscribed
-                ? "已订阅此浏览器"
-                : invalidated
-                  ? "订阅已失效，请重新启用"
-                  : "此浏览器尚未订阅"
-              : "后端配置缺失"}
-          </p>
-          <p className="text-xs text-slate-400">仅适用于浏览器或 PWA；Android App 请使用“应用提醒”。</p>
-          <div className="flex gap-3">
-            <button type="button" onClick={enablePush} disabled={pushState === "unsupported" || pushState === "denied" || !pushConfig.data?.configured || subscribed} className="rounded-lg bg-cyan-300 px-3 py-2 text-sm font-medium text-slate-950 disabled:opacity-40">启用浏览器通知</button>
-            <button type="button" onClick={disablePush} disabled={!subscribed} className="rounded-lg border border-white/15 px-3 py-2 text-sm disabled:opacity-40">取消订阅</button>
-          </div>
-          <Toggle label="提醒浏览器推送" checked={Boolean(preference.data.reminder_web_push_enabled)} disabled={!subscribed} onChange={(value) => update("reminder_web_push_enabled", value)} />
-          <Toggle label="简报浏览器推送" checked={Boolean(preference.data.briefing_web_push_enabled)} disabled={!subscribed} onChange={(value) => update("briefing_web_push_enabled", value)} />
-          {pushError && <p role="alert" className="text-sm text-red-300">{pushError}</p>}
-        </ChannelCard>
+        {!native && <BrowserPushChannelCard preference={preference.data} update={update} />}
 
-        {isNativePlatform() && <ChannelCard
+        {native && <ChannelCard
           icon={AlarmClock}
           title="应用提醒（Android）"
           description="由系统闹钟投递；应用退出后仍可提醒。"
@@ -282,7 +222,7 @@ export function NotificationSettingsPage() {
         </ul>
       </div>
 
-      {currentUser.data?.is_staff && isNativePlatform() && <div className="rounded-2xl border border-cyan-300/20 bg-slate-900 p-6">
+      {currentUser.data?.is_staff && native && <div className="rounded-2xl border border-cyan-300/20 bg-slate-900 p-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div><h3 className="text-xl font-semibold">设备通知诊断</h3><p className="mt-1 text-sm text-slate-400">仅保存在本机；“已触发”来自 Android 后台 Receiver，即使 App 已关闭也会记录。</p></div>
           <div className="flex gap-2"><button type="button" onClick={() => void refreshDiagnostics()} className="rounded-lg border border-white/15 px-3 py-2 text-sm">刷新</button><button type="button" onClick={() => void clearNativeNotificationDiagnostics().then(refreshDiagnostics)} className="rounded-lg border border-white/15 px-3 py-2 text-sm">清除</button></div>
@@ -292,6 +232,83 @@ export function NotificationSettingsPage() {
       </div>}
     </section>
   );
+}
+
+function BrowserPushChannelCard({
+  preference,
+  update,
+}: {
+  preference: NotificationPreference;
+  update: (field: keyof NotificationPreference, checked: boolean) => void;
+}) {
+  const pushConfig = useWebPushConfig();
+  const createSubscription = useCreateWebPushSubscription();
+  const unsubscribeEndpoint = useUnsubscribeWebPushEndpoint();
+  const [pushState, setPushState] = useState(() => browserPushState());
+  const [endpoint, setEndpoint] = useState<string | null>(null);
+  const [pushError, setPushError] = useState("");
+
+  useEffect(() => {
+    void currentBrowserPushEndpoint().then(setEndpoint);
+  }, []);
+
+  const enablePush = async () => {
+    setPushError("");
+    try {
+      if (!pushConfig.data?.configured || !pushConfig.data.public_key) {
+        throw new Error("后端尚未配置 VAPID 密钥");
+      }
+      const subscription = await subscribeBrowser(pushConfig.data.public_key);
+      await createSubscription.mutateAsync(subscription);
+      setEndpoint(subscription.endpoint);
+      setPushState(browserPushState());
+    } catch (error) {
+      setPushState(browserPushState());
+      setPushError(
+        error instanceof Error && error.message === "notification_permission_denied"
+          ? "你拒绝了通知权限，可在浏览器站点设置中重新开启。"
+          : error instanceof Error
+            ? error.message
+            : "订阅失败",
+      );
+    }
+  };
+
+  const disablePush = async () => {
+    setPushError("");
+    try {
+      const currentEndpoint = await currentBrowserPushEndpoint();
+      if (currentEndpoint) {
+        await unsubscribeEndpoint.mutateAsync(currentEndpoint);
+      }
+      await unsubscribeBrowser();
+      setEndpoint(null);
+    } catch (error) {
+      setPushError(error instanceof Error ? error.message : "取消订阅失败");
+    }
+  };
+
+  const subscribed = Boolean(endpoint);
+  return <ChannelCard icon={MonitorSmartphone} title="浏览器推送" description={stateLabels[pushState]}>
+    {isChromeUsingFcm() && <p role="note" className="rounded-xl border border-amber-300/30 bg-amber-300/10 px-4 py-3 text-sm leading-6 text-amber-100">
+      当前 Time Agent 服务器尚无法连接 FCM，因此 Chrome 暂时不能接收浏览器关闭或页面未打开时的系统通知弹窗。提醒请暂时使用 Android App 的应用提醒或 Email；Safari、Firefox 的推送服务需要单独验证。
+    </p>}
+    <p className="text-xs text-slate-400">
+      {pushConfig.data?.configured
+        ? subscribed
+          ? "当前浏览器已订阅"
+          : "当前浏览器尚未订阅"
+        : "后端配置缺失"}
+    </p>
+    <p className="text-xs text-slate-400">用于电脑浏览器、手机浏览器或 PWA；取消时不会影响其他设备。</p>
+    <div className="flex gap-3">
+      <button type="button" onClick={enablePush} disabled={pushState === "unsupported" || pushState === "denied" || !pushConfig.data?.configured || subscribed} className="rounded-lg bg-cyan-300 px-3 py-2 text-sm font-medium text-slate-950 disabled:opacity-40">启用浏览器通知</button>
+      <button type="button" onClick={disablePush} disabled={!subscribed} className="rounded-lg border border-white/15 px-3 py-2 text-sm disabled:opacity-40">取消当前浏览器订阅</button>
+    </div>
+    <Toggle label="提醒浏览器推送" checked={Boolean(preference.reminder_web_push_enabled)} disabled={!subscribed} onChange={(value) => update("reminder_web_push_enabled", value)} />
+    <Toggle label="简报浏览器推送" checked={Boolean(preference.briefing_web_push_enabled)} disabled={!subscribed} onChange={(value) => update("briefing_web_push_enabled", value)} />
+    {pushError && <p role="alert" className="text-sm text-red-300">{pushError}</p>}
+  </ChannelCard>;
 }
 
 function ChannelCard({ icon: Icon, title, description, children }: { icon: typeof Mail; title: string; description: string; children: ReactNode }) {

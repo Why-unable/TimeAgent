@@ -9,6 +9,7 @@ from django.core.exceptions import ValidationError
 from django.db import IntegrityError, transaction
 from django.utils import timezone
 
+from apps.accounts.services import GuestAccountPolicyService
 from apps.notifications.models import (
     NotificationChannelType,
     NotificationDelivery,
@@ -248,6 +249,7 @@ class NotificationService:
         unknown = set(data) - allowed
         if unknown:
             raise ValueError(f"Unsupported notification preference fields: {', '.join(unknown)}")
+        GuestAccountPolicyService.validate_notification_changes(user, data)
         preference = get_or_create_preference(user)
         for field, value in data.items():
             if not isinstance(value, bool):
@@ -262,6 +264,7 @@ class NotificationService:
     def save_push_subscription(
         *, user: User, endpoint: str, p256dh: str, auth: str, user_agent: str
     ) -> WebPushSubscription:
+        GuestAccountPolicyService.assert_push_allowed(user)
         existing = WebPushSubscription.objects.select_for_update().filter(endpoint=endpoint).first()
         if existing is not None and existing.user_id != user.pk:
             raise PermissionError("Push subscription belongs to another user")
@@ -282,6 +285,14 @@ class NotificationService:
             pk=subscription_id, user=user
         )
         subscription.delete()
+
+    @staticmethod
+    @transaction.atomic
+    def unsubscribe_push_endpoint(*, user: User, endpoint: str) -> None:
+        WebPushSubscription.objects.select_for_update().filter(
+            user=user,
+            endpoint=endpoint.strip(),
+        ).delete()
 
     @staticmethod
     def _ensure_same(existing: NotificationDelivery, candidate: NotificationDelivery) -> None:

@@ -85,7 +85,7 @@ def execute_agent_run(
 
     try:
         with open_langgraph_persistence() as persistence:
-            agent = build_time_steward_agent(model=model)
+            agent = build_time_steward_agent(model=model, store=persistence.store)
             runtime = build_outer_graph_runtime(
                 OuterGraphNodes(
                     time_steward_agent=agent,
@@ -148,7 +148,7 @@ def resume_agent_run(
     try:
         resume_value = ActionProposalService.resume_payload(run.pk)
         with open_langgraph_persistence() as persistence:
-            agent = build_time_steward_agent(model=model)
+            agent = build_time_steward_agent(model=model, store=persistence.store)
             runtime = build_outer_graph_runtime(
                 OuterGraphNodes(
                     time_steward_agent=agent,

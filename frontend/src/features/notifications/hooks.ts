@@ -7,6 +7,7 @@ import {
   getWebPushConfig,
   listNotificationDeliveries,
   listWebPushSubscriptions,
+  unsubscribeWebPushEndpoint,
   updateNotificationPreference,
 } from "../../api/notifications";
 
@@ -46,6 +47,14 @@ export function useDeleteWebPushSubscription() {
   const client = useQueryClient();
   return useMutation({
     mutationFn: deleteWebPushSubscription,
+    onSuccess: () => client.invalidateQueries({ queryKey: notificationKeys.subscriptions }),
+  });
+}
+
+export function useUnsubscribeWebPushEndpoint() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: unsubscribeWebPushEndpoint,
     onSuccess: () => client.invalidateQueries({ queryKey: notificationKeys.subscriptions }),
   });
 }

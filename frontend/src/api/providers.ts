@@ -30,6 +30,7 @@ export interface LocationCandidate {
   province?: string;
   city?: string;
   district?: string;
+  adcode?: string;
 }
 
 export interface AdministrativeAreaOption {

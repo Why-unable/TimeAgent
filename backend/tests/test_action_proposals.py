@@ -29,6 +29,8 @@ from apps.conversations.models import AgentRunStatus
 from apps.conversations.services import AgentRunService, ConversationService, StartRunCommand
 from apps.events.models import CalendarEvent, CalendarEventStatus
 from apps.events.services import CreateEventCommand, EventService
+from apps.preferences.services import UserPreferenceService
+from apps.preferences.snapshots import PlanningPreferencesSnapshot
 from apps.reminders.models import ReminderStatus
 from apps.reminders.services import CreateReminderCommand, ReminderService
 from apps.tasks.models import TaskStatus
@@ -87,6 +89,10 @@ def _setup_run(user: User) -> tuple[Any, RuntimeContext, RunnableConfig]:
         conversation_id=str(conversation.pk),
         agent_run_id=str(run.pk),
         actor=user,
+        planning_preferences=PlanningPreferencesSnapshot(
+            require_event_creation_approval=True,
+            require_event_cancellation_approval=True,
+        ),
     )
     config: RunnableConfig = {"configurable": {"thread_id": str(conversation.pk)}}
     return run, context, config
@@ -263,6 +269,9 @@ def test_cancellation_tools_pause_before_side_effect_and_execute_only_after_appr
     run.input_message = f"请执行 {tool_name}"
     run.save(update_fields=["input_message"])
 
+    target: Any
+    arguments: dict[str, Any]
+    cancelled_status: str
     if tool_name == "mutate_events":
         target = EventService.create_event(
             CreateEventCommand(
@@ -361,6 +370,7 @@ def test_production_outer_graph_run_pauses_and_resumes_same_thread(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     user = User.objects.create_user(username="outer-hitl")
+    UserPreferenceService.update_for_user(user, {"require_event_creation_approval": True})
     run, _, _ = _setup_run(user)
     run.status = AgentRunStatus.PENDING
     run.started_at = None

@@ -36,3 +36,34 @@ def administrative_area_options(
         for code, name in sorted(source.items())
         if not prefix or code.startswith(prefix)
     ]
+
+
+def administrative_area_code(*, province: str, city: str, district: str) -> str:
+    areas = _area_lists()
+    province_code = _find_code(areas["province_list"], province)
+    if not province_code:
+        return ""
+    city_code = _find_code(
+        areas["city_list"],
+        city,
+        prefix=province_code[:2],
+    )
+    if not city_code:
+        return ""
+    return _find_code(
+        areas["county_list"],
+        district,
+        prefix=city_code[:4],
+    )
+
+
+def _find_code(values: dict[str, str], name: str, *, prefix: str = "") -> str:
+    normalized = name.strip()
+    return next(
+        (
+            code
+            for code, candidate in values.items()
+            if candidate == normalized and (not prefix or code.startswith(prefix))
+        ),
+        "",
+    )

@@ -27,7 +27,7 @@ from apps.briefings.schemas import (
 from apps.briefings.state import BriefingAgentState
 from apps.briefings.tools import BRIEFING_RESEARCH_TOOLS
 
-PROMPT_VERSION = "briefing-agent-v1-research-tools"
+PROMPT_VERSION = "briefing-agent-v2-provider-safe-defaults"
 TOOL_SECTION = {
     "research_calendar": "calendar",
     "research_tasks": "tasks",
@@ -107,8 +107,8 @@ def run_briefing_agent(
             content=json.dumps(
                 {
                     "instruction": (
-                        "Return a corrected BriefingAgentReport using only the supplied research "
-                        "evidence. Do not call tools and do not invent sources."
+                        "仅使用已提供的研究证据返回修正后的 BriefingAgentReport。"
+                        "不要调用工具，也不要虚构来源。"
                     ),
                     "validation_errors": errors,
                     "research_evidence": [item.model_dump(mode="json") for item in research],

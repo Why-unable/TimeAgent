@@ -85,4 +85,30 @@ describe("LoginPage", () => {
     expect(await screen.findByText("该邮箱已经注册并可直接登录。请输入密码后登录。")).toBeInTheDocument();
     expect(screen.getByRole("tab", { name: "登录" })).toHaveAttribute("aria-selected", "true");
   });
+
+  it("enters an isolated guest workspace without email registration", async () => {
+    vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      if (url.endsWith("/api/v1/auth/csrf/")) {
+        return new Response(JSON.stringify({ csrfToken: "token" }));
+      }
+      if (url.endsWith("/api/v1/auth/guest/") && init?.method === "POST") {
+        return new Response(JSON.stringify({
+          id: 42,
+          email: "",
+          display_name: "游客",
+          is_email_verified: false,
+          is_staff: false,
+          is_guest: true,
+          guest_expires_at: "2026-08-11T06:00:00Z",
+        }));
+      }
+      throw new Error(`Unexpected request: ${url}`);
+    }));
+    renderLoginPage();
+
+    await userEvent.click(screen.getByRole("button", { name: "游客体验（无需注册）" }));
+
+    await waitFor(() => expect(navigate).toHaveBeenCalledWith("/today", { replace: true }));
+  });
 });

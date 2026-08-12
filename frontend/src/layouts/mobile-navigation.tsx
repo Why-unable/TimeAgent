@@ -1,5 +1,6 @@
 import {
   Bell,
+  Brain,
   CalendarDays,
   Clock3,
   LayoutGrid,
@@ -8,6 +9,7 @@ import {
   Newspaper,
   ShieldCheck,
   SlidersHorizontal,
+  Smartphone,
   UserRound,
 } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -15,14 +17,16 @@ import { Link, NavLink, useLocation } from "react-router-dom";
 
 import { Drawer } from "../components/overlay/drawer";
 import { useCurrentUser } from "../features/accounts/hooks";
+import { isNativePlatform } from "../platform";
 
 const primaryItems = [
-  { to: "/today", label: "今天", icon: Clock3, match: (path: string) => path.startsWith("/today") },
-  { to: "/chat", label: "聊天", icon: MessageSquare, match: (path: string) => path.startsWith("/chat") },
+  { to: "/today", label: "今天", icon: Clock3, onboardingId: "nav-today", match: (path: string) => path.startsWith("/today") },
+  { to: "/chat", label: "聊天", icon: MessageSquare, onboardingId: "nav-chat", match: (path: string) => path.startsWith("/chat") },
   {
     to: "/calendar",
     label: "日程",
     icon: CalendarDays,
+    onboardingId: "nav-schedule",
     match: (path: string) =>
       path.startsWith("/calendar") || path.startsWith("/tasks") || path.startsWith("/reminders"),
   },
@@ -32,9 +36,11 @@ const moreItems = [
   { to: "/briefings", label: "简报", description: "生成与查看每日简报", icon: Newspaper },
   { to: "/reminders", label: "提醒", description: "管理待发送提醒", icon: Bell },
   { to: "/approvals", label: "审批", description: "处理需要确认的操作", icon: ShieldCheck },
-  { to: "/settings/time", label: "时间偏好", description: "时区、天气与新闻偏好", icon: SlidersHorizontal },
+  { to: "/settings/time", label: "时间偏好", description: "时区、天气与新闻偏好", icon: SlidersHorizontal, onboardingId: "nav-time-settings" },
+  { to: "/settings/time-memory", label: "时间行为记忆", description: "查看画像与管理记忆权限", icon: Brain },
   { to: "/settings/account", label: "账户与安全", description: "登录状态与账户操作", icon: UserRound },
   { to: "/settings/notifications", label: "通知设置", description: "邮件与 Web Push 通知", icon: Bell },
+  { to: "/settings/app", label: "应用设置", description: "软件更新与使用引导", icon: Smartphone },
   { to: "/", label: "系统状态", description: "检查服务健康状态", icon: MonitorCog },
 ];
 
@@ -44,6 +50,7 @@ export function MobileNavigation() {
   const currentUser = useCurrentUser();
   const location = useLocation();
   const pathname = location.pathname;
+  const native = isNativePlatform();
 
   useEffect(() => {
     const viewport = window.visualViewport;
@@ -81,6 +88,8 @@ export function MobileNavigation() {
     .map((item) =>
       item.to === "/"
         ? { ...item, to: "/system-status", label: "系统状态", description: "检查服务健康状态" }
+        : native && item.to === "/settings/notifications"
+          ? { ...item, description: "邮件与应用提醒" }
         : item,
     );
 
@@ -92,12 +101,13 @@ export function MobileNavigation() {
           keyboardOpen ? "pointer-events-none translate-y-full" : "translate-y-0"
         }`}
       >
-        {primaryItems.map(({ to, label, icon: Icon, match }) => {
+        {primaryItems.map(({ to, label, icon: Icon, match, onboardingId }) => {
           const isActive = match(pathname);
           return (
             <Link
               key={to}
               to={to}
+              data-onboarding-id={onboardingId}
               aria-current={isActive ? "page" : undefined}
               className={`flex min-h-[4.5rem] flex-col items-center justify-center gap-1.5 rounded-2xl text-sm font-medium transition ${
                 isActive ? "bg-cyan-300/10 text-cyan-200" : "text-slate-400"
@@ -110,6 +120,7 @@ export function MobileNavigation() {
         })}
         <button
           type="button"
+          data-onboarding-id="nav-more"
           onClick={() => setMoreOpen(true)}
           className="flex min-h-[4.5rem] flex-col items-center justify-center gap-1.5 rounded-2xl text-sm font-medium text-slate-400 transition hover:bg-white/5 hover:text-white"
         >
@@ -120,10 +131,11 @@ export function MobileNavigation() {
       {moreOpen && (
         <Drawer title="更多功能" description="个人时间管理工具" onClose={() => setMoreOpen(false)}>
           <nav className="grid gap-2" aria-label="更多功能">
-            {visibleMoreItems.map(({ to, label, description, icon: Icon }) => (
+            {visibleMoreItems.map(({ to, label, description, icon: Icon, onboardingId }) => (
               <NavLink
                 key={to}
                 to={to}
+                data-onboarding-id={onboardingId}
                 end={to === "/system-status"}
                 onClick={() => setMoreOpen(false)}
                 className={({ isActive }) =>

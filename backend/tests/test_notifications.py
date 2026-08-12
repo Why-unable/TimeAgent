@@ -1,11 +1,14 @@
 from datetime import UTC, datetime
+from typing import cast
 from uuid import uuid4
 
 import pytest
 from celery.exceptions import Retry
 from django.contrib.auth.models import User
 from django.core import mail
+from django.core.mail import EmailMultiAlternatives
 from django.test import override_settings
+from requests import Session
 from rest_framework.test import APIClient
 
 from apps.briefings.models import BriefingRun, BriefingRunStatus
@@ -21,6 +24,7 @@ from apps.notifications.models import (
     NotificationChannelType,
     NotificationDeliveryStatus,
     NotificationSourceType,
+    WebPushSubscription,
 )
 from apps.notifications.providers.base import (
     NotificationMessage,
@@ -65,9 +69,7 @@ def command(
 def test_delivery_state_machine_and_illegal_transition() -> None:
     delivery = NotificationService.create_delivery(command(user()))
     delivery = NotificationService.queue_delivery(delivery_id=delivery.id, occurred_at=NOW)
-    sending_delivery = NotificationService.mark_sending(
-        delivery_id=delivery.id, occurred_at=NOW
-    )
+    sending_delivery = NotificationService.mark_sending(delivery_id=delivery.id, occurred_at=NOW)
     assert sending_delivery is not None
     delivery = NotificationService.mark_sent(
         delivery_id=sending_delivery.id,
@@ -124,8 +126,40 @@ def test_email_provider_uses_current_user_recipient_and_returns_message_id() -> 
     )
     assert result.accepted is True
     assert result.provider_message_id.startswith("<")
-    assert mail.outbox[0].to == ["user@example.test"]
-    assert mail.outbox[0].subject == "Subject"
+    sent_email = cast(EmailMultiAlternatives, mail.outbox[0])
+    assert sent_email.to == ["user@example.test"]
+    assert sent_email.subject == "Subject"
+    _, mimetype = sent_email.alternatives[0]
+    assert mimetype == "text/html"
+
+
+@override_settings(EMAIL_FROM_ADDRESS="Time Agent <noreply@example.test>")
+def test_email_provider_renders_safe_briefing_html() -> None:
+    EmailNotificationProvider().send(
+        NotificationMessage(
+            delivery_id="d2",
+            user_id="1",
+            subject="Briefing",
+            body=(
+                "# 每日简报\n\n## 天气\n\n- **高州市**：雷阵雨\n"
+                "- [可信来源](https://example.test/news)\n"
+                "- [不安全链接](javascript:alert(1)) <script>alert(1)</script>"
+            ),
+            payload={},
+            idempotency_key="briefing-email-key",
+            recipient_email="user@example.test",
+        )
+    )
+
+    sent_email = cast(EmailMultiAlternatives, mail.outbox[0])
+    html_body = cast(str, sent_email.alternatives[0][0])
+    assert "<h1" in html_body
+    assert "<h2" in html_body
+    assert "<strong>高州市</strong>" in html_body
+    assert 'href="https://example.test/news"' in html_body
+    assert "javascript:" not in html_body
+    assert "<script>" not in html_body
+    assert "&lt;script&gt;" in html_body
 
 
 def test_email_provider_rejects_missing_current_user_email() -> None:
@@ -170,6 +204,81 @@ def test_web_push_invalid_subscription_is_reported_without_leaking_secret() -> N
     assert result.invalid_subscription_ids == ("sub-1",)
 
 
+@override_settings(
+    WEB_PUSH_VAPID_PRIVATE_KEY="private", WEB_PUSH_VAPID_SUBJECT="mailto:test@example.test"
+)
+def test_web_push_soft_time_limit_is_retryable() -> None:
+    class SoftTimeLimitExceeded(Exception):
+        pass
+
+    def timeout_sender(**kwargs):  # type: ignore[no-untyped-def]
+        del kwargs
+        raise SoftTimeLimitExceeded
+
+    with pytest.raises(TransientNotificationError, match="SoftTimeLimitExceeded"):
+        WebPushNotificationProvider(sender=timeout_sender).send(
+            NotificationMessage(
+                delivery_id="d1",
+                user_id="1",
+                subject="Subject",
+                body="Body",
+                payload={},
+                idempotency_key="push-timeout",
+                web_push_targets=(
+                    WebPushTarget(
+                        subscription_id="sub-1",
+                        endpoint="https://push.example.test/timeout",
+                        p256dh="key",
+                        auth="auth",
+                    ),
+                ),
+            )
+        )
+
+
+@override_settings(
+    WEB_PUSH_VAPID_PRIVATE_KEY="private",
+    WEB_PUSH_VAPID_SUBJECT="mailto:test@example.test",
+    WEB_PUSH_HTTPS_PROXY="http://proxy.example.test:8080",
+)
+def test_web_push_uses_configured_https_proxy() -> None:
+    captured: dict[str, object] = {}
+
+    class Response:
+        status_code = 201
+
+    def sender(**kwargs: object) -> Response:
+        captured.update(kwargs)
+        return Response()
+
+    result = WebPushNotificationProvider(sender=sender).send(
+        NotificationMessage(
+            delivery_id="d1",
+            user_id="1",
+            subject="Subject",
+            body="Body",
+            payload={},
+            idempotency_key="push-proxy",
+            web_push_targets=(
+                WebPushTarget(
+                    subscription_id="sub-1",
+                    endpoint="https://fcm.googleapis.com/fcm/send/example",
+                    p256dh="key",
+                    auth="auth",
+                ),
+            ),
+        )
+    )
+
+    assert result.accepted is True
+    session = captured["requests_session"]
+    assert isinstance(session, Session)
+    assert session.proxies == {
+        "http": "http://proxy.example.test:8080",
+        "https": "http://proxy.example.test:8080",
+    }
+
+
 def test_api_isolates_deliveries_and_push_subscriptions() -> None:
     owner = user("owner")
     other = user("other")
@@ -207,6 +316,53 @@ def test_api_isolates_deliveries_and_push_subscriptions() -> None:
     )
     assert claim.status_code == 400
     assert claim.data == {"endpoint": "Subscription cannot be claimed"}
+
+
+def test_unsubscribe_removes_only_the_current_browser_endpoint() -> None:
+    owner = user("owner")
+    other = user("other")
+    current = NotificationService.save_push_subscription(
+        user=owner,
+        endpoint="https://push.example.test/current-browser",
+        p256dh="current-key",
+        auth="current-auth",
+        user_agent="current browser",
+    )
+    retained = NotificationService.save_push_subscription(
+        user=owner,
+        endpoint="https://push.example.test/other-browser",
+        p256dh="other-key",
+        auth="other-auth",
+        user_agent="other browser",
+    )
+    other_user_subscription = NotificationService.save_push_subscription(
+        user=other,
+        endpoint="https://push.example.test/other-user",
+        p256dh="other-user-key",
+        auth="other-user-auth",
+        user_agent="other user browser",
+    )
+    client = APIClient()
+    client.force_authenticate(owner)
+
+    response = client.post(
+        "/api/v1/web-push/subscriptions/unsubscribe/",
+        {"endpoint": current.endpoint},
+        format="json",
+    )
+
+    assert response.status_code == 204
+    assert not WebPushSubscription.objects.filter(pk=current.pk).exists()
+    assert WebPushSubscription.objects.filter(pk=retained.pk).exists()
+    assert WebPushSubscription.objects.filter(pk=other_user_subscription.pk).exists()
+    assert (
+        client.post(
+            "/api/v1/web-push/subscriptions/unsubscribe/",
+            {"endpoint": current.endpoint},
+            format="json",
+        ).status_code
+        == 204
+    )
 
 
 def test_preferences_are_user_isolated_and_update_channels() -> None:

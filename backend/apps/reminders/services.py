@@ -7,6 +7,7 @@ from uuid import UUID
 from django.contrib.auth.models import User
 from django.db import IntegrityError, transaction
 
+from apps.accounts.services import GuestAccountPolicyService
 from apps.events.models import CalendarEvent
 from apps.reminders.models import (
     Reminder,
@@ -15,6 +16,7 @@ from apps.reminders.models import (
     ReminderTargetType,
 )
 from apps.tasks.models import Task
+from common.database_locks import lock_user_schedule_writes
 
 
 class ReminderIdempotencyConflictError(ValueError):
@@ -35,6 +37,7 @@ class CreateReminderCommand:
     channel: ReminderChannel | str = ReminderChannel.CONSOLE
     target_type: ReminderTargetType | str = ReminderTargetType.CUSTOM
     target_id: UUID | None = None
+    origin: str = "web"
 
 
 @dataclass(frozen=True, slots=True)
@@ -50,12 +53,14 @@ class UpdateReminderCommand:
     reminder_id: UUID
     expected_version: int
     changes: Mapping[str, Any]
+    origin: str = "web"
 
 
 class ReminderService:
     UPDATE_FIELDS = frozenset(
         {"title", "trigger_at", "timezone", "channel", "target_type", "target_id"}
     )
+
     @staticmethod
     def list_reminders(query: ReminderQuery) -> list[Reminder]:
         if query.user.pk is None:
@@ -78,6 +83,9 @@ class ReminderService:
     def create_reminder(command: CreateReminderCommand) -> Reminder:
         if command.user.pk is None:
             raise ValueError("Reminder user must be persisted")
+        GuestAccountPolicyService.assert_resource_creation_allowed(command.user, "reminder")
+        GuestAccountPolicyService.assert_reminder_channel_allowed(command.user, command.channel)
+        lock_user_schedule_writes(command.user)
         ReminderService._validate_target(command)
 
         candidate = Reminder(
@@ -113,6 +121,7 @@ class ReminderService:
             ReminderService._ensure_matching_payload(existing, candidate)
             return existing
 
+        ReminderService._record_change(candidate, "created", command.origin, {})
         return candidate
 
     @staticmethod
@@ -122,7 +131,11 @@ class ReminderService:
         reminder_id: UUID,
         user: User,
         occurred_at: datetime,
+        origin: str = "web",
     ) -> Reminder:
+        if user.pk is None:
+            raise ValueError("Reminder user must be persisted")
+        lock_user_schedule_writes(user)
         reminder = Reminder.objects.select_for_update().get(
             pk=reminder_id,
             user=user,
@@ -134,10 +147,14 @@ class ReminderService:
                 f"Reminder in {reminder.status} status cannot be cancelled"
             )
 
+        old_snapshot = ReminderService._snapshot(reminder)
         reminder.transition_to(ReminderStatus.CANCELLED, occurred_at=occurred_at)
         reminder.full_clean()
         reminder.version += 1
         reminder.save(update_fields=["status", "version", "updated_at"])
+        ReminderService._record_change(
+            reminder, "cancelled", origin, old_snapshot, occurred_at=occurred_at
+        )
         return reminder
 
     @staticmethod
@@ -145,6 +162,11 @@ class ReminderService:
     def update_reminder(command: UpdateReminderCommand) -> Reminder:
         if command.user.pk is None:
             raise ValueError("Reminder user must be persisted")
+        if "channel" in command.changes:
+            GuestAccountPolicyService.assert_reminder_channel_allowed(
+                command.user, command.changes["channel"]
+            )
+        lock_user_schedule_writes(command.user)
         unsupported = set(command.changes) - ReminderService.UPDATE_FIELDS
         if unsupported:
             raise ValueError(f"Unsupported reminder fields: {', '.join(sorted(unsupported))}")
@@ -159,6 +181,7 @@ class ReminderService:
             )
         if reminder.status not in {ReminderStatus.PENDING, ReminderStatus.FAILED}:
             raise ValueError("Only pending or failed reminders can be edited")
+        old_snapshot = ReminderService._snapshot(reminder)
         for field_name, value in command.changes.items():
             setattr(reminder, field_name, value)
         ReminderService._validate_target_values(
@@ -169,7 +192,39 @@ class ReminderService:
         reminder.version += 1
         reminder.full_clean()
         reminder.save()
+        ReminderService._record_change(reminder, "updated", command.origin, old_snapshot)
         return reminder
+
+    @staticmethod
+    def _snapshot(reminder: Reminder) -> dict[str, Any]:
+        from apps.time_memory.event_handler import json_snapshot
+
+        return json_snapshot(
+            reminder,
+            ("title", "trigger_at", "timezone", "status", "target_type", "target_id"),
+        )
+
+    @staticmethod
+    def _record_change(
+        reminder: Reminder,
+        operation: str,
+        origin: str,
+        old_snapshot: dict[str, Any],
+        *,
+        occurred_at: datetime | None = None,
+    ) -> None:
+        from apps.time_memory.event_handler import record_schedule_change
+
+        record_schedule_change(
+            user=reminder.user,
+            entity_type="reminder",
+            entity_id=reminder.pk,
+            operation=operation,
+            source=origin,
+            old_snapshot=old_snapshot,
+            new_snapshot=ReminderService._snapshot(reminder),
+            occurred_at=occurred_at,
+        )
 
     @staticmethod
     def _ensure_matching_payload(existing: Reminder, candidate: Reminder) -> None:

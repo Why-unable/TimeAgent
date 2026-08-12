@@ -111,6 +111,7 @@ def create_event(
             location=location,
             status=CalendarEventStatus.CONFIRMED,
             source="local",
+            origin="agent",
         )
     )
     return model_dict(event, EVENT_FIELDS)
@@ -150,6 +151,7 @@ def update_event(
             event_id=event_id,
             expected_version=expected_version,
             changes=changes,
+            origin="agent",
         )
     )
     return model_dict(event, EVENT_FIELDS)
@@ -172,6 +174,7 @@ def set_event_task_link(
             event_id=event_id,
             expected_version=expected_version,
             changes={"task": task},
+            origin="agent",
         )
     )
     return model_dict(event, EVENT_FIELDS)
@@ -201,6 +204,7 @@ def create_event_batch(
                 task=task,
                 status=CalendarEventStatus.CONFIRMED,
                 source="local",
+                origin="agent",
             )
         )
     created = EventService.create_events(commands=commands)
@@ -220,7 +224,11 @@ def mutate_events(
     results: list[dict[str, object]] = []
     for operation in operations:
         if operation.action == "create":
-            if not all((operation.title, operation.start_at, operation.end_at, operation.timezone)):
+            title = operation.title
+            start_at = operation.start_at
+            end_at = operation.end_at
+            timezone_name = operation.timezone
+            if title is None or start_at is None or end_at is None or timezone_name is None:
                 raise ValueError("Create requires title, start_at, end_at, and timezone")
             task = (
                 TaskService.get_task(user=actor, task_id=operation.task_id)
@@ -232,12 +240,13 @@ def mutate_events(
                     user=actor,
                     created_by=actor,
                     task=task,
-                    title=operation.title,
-                    start_at=operation.start_at,
-                    end_at=operation.end_at,
-                    timezone=operation.timezone,
+                    title=title,
+                    start_at=start_at,
+                    end_at=end_at,
+                    timezone=timezone_name,
                     description=operation.description or "",
                     location=operation.location or "",
+                    origin="agent",
                 )
             )
         elif operation.action == "update":
@@ -263,13 +272,17 @@ def mutate_events(
                     event_id=operation.event_id,
                     expected_version=operation.expected_version,
                     changes=changes,
+                    origin="agent",
                 )
             )
         elif operation.action == "cancel":
             if operation.event_id is None or operation.expected_version is None:
                 raise ValueError("Cancel requires event_id and expected_version")
             event = EventService.cancel_event(
-                event_id=operation.event_id, user=actor, expected_version=operation.expected_version
+                event_id=operation.event_id,
+                user=actor,
+                expected_version=operation.expected_version,
+                origin="agent",
             )
         elif operation.action == "link_task":
             if operation.event_id is None or operation.expected_version is None:
@@ -285,6 +298,7 @@ def mutate_events(
                     event_id=operation.event_id,
                     expected_version=operation.expected_version,
                     changes={"task": task},
+                    origin="agent",
                 )
             )
         else:
@@ -324,6 +338,7 @@ def create_recurring_event(
             frequency=frequency,
             interval=interval,
             occurrence_count=occurrence_count,
+            origin="agent",
         )
     )
     return {"series_id": str(series.pk), "occurrence_count": series.occurrences.count()}
@@ -341,6 +356,7 @@ def cancel_event(
         event_id=event_id,
         user=require_writable(runtime),
         expected_version=expected_version,
+        origin="agent",
     )
     return model_dict(event, EVENT_FIELDS)
 

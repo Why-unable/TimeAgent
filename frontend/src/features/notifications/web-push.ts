@@ -2,6 +2,10 @@ import type { WebPushSubscriptionCreate } from "../../api/notifications";
 
 export type BrowserPushState = "unsupported" | "not_requested" | "granted" | "denied";
 
+export function isChromeUsingFcm(userAgent = navigator.userAgent): boolean {
+  return /\bChrome\/\d+/i.test(userAgent) && !/\b(?:Edg|OPR|SamsungBrowser)\/\d+/i.test(userAgent);
+}
+
 export function browserPushState(): BrowserPushState {
   if (
     !navigator.serviceWorker ||
@@ -21,7 +25,7 @@ export async function subscribeBrowser(publicKey: string): Promise<WebPushSubscr
   }
   // Idempotent: reuses the boot-time registration when present, otherwise
   // registers now (e.g. dev, where the SW is not registered on startup).
-  await navigator.serviceWorker.register("/sw.js");
+  await navigator.serviceWorker.register("/sw.js?v=3");
   const registration = await navigator.serviceWorker.ready;
   const subscription = await registration.pushManager.subscribe({
     userVisibleOnly: true,
@@ -35,10 +39,19 @@ export async function subscribeBrowser(publicKey: string): Promise<WebPushSubscr
 }
 
 export async function unsubscribeBrowser(): Promise<void> {
-  if (!navigator.serviceWorker) return;
-  const registration = await navigator.serviceWorker.getRegistration();
+  const serviceWorker = navigator.serviceWorker;
+  if (!serviceWorker || typeof serviceWorker.getRegistration !== "function") return;
+  const registration = await serviceWorker.getRegistration();
   const subscription = await registration?.pushManager.getSubscription();
   await subscription?.unsubscribe();
+}
+
+export async function currentBrowserPushEndpoint(): Promise<string | null> {
+  const serviceWorker = navigator.serviceWorker;
+  if (!serviceWorker || typeof serviceWorker.getRegistration !== "function") return null;
+  const registration = await serviceWorker.getRegistration();
+  const subscription = await registration?.pushManager.getSubscription();
+  return subscription?.endpoint ?? null;
 }
 
 function urlBase64ToUint8Array(value: string): Uint8Array<ArrayBuffer> {

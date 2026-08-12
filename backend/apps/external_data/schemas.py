@@ -20,6 +20,7 @@ class DailyForecast(BaseModel):
     model_config = ConfigDict(frozen=True)
 
     date: date
+    condition: str = ""
     weather_code: int | None = None
     temperature_min: float | None = None
     temperature_max: float | None = None

@@ -84,6 +84,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/app-updates/android/latest/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["api_v1_app_updates_android_latest_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/auth/csrf/": {
         parameters: {
             query?: never;
@@ -132,6 +148,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/auth/guest/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["api_v1_auth_guest_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/auth/login/": {
         parameters: {
             query?: never;
@@ -174,6 +206,22 @@ export interface paths {
         get: operations["api_v1_auth_me_retrieve"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/native/guest/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["api_v1_auth_native_guest_create"];
         delete?: never;
         options?: never;
         head?: never;
@@ -738,6 +786,54 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/time-memory/me/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["api_v1_time_memory_me_retrieve"];
+        put?: never;
+        post?: never;
+        delete: operations["api_v1_time_memory_me_destroy"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/time-memory/me/patterns/{pattern_id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: operations["api_v1_time_memory_me_patterns_destroy"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/time-memory/me/places/{place_id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: operations["api_v1_time_memory_me_places_destroy"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/today/": {
         parameters: {
             query?: never;
@@ -797,6 +893,22 @@ export interface paths {
         put?: never;
         post?: never;
         delete: operations["api_v1_web_push_subscriptions_destroy"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/web-push/subscriptions/unsubscribe/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["api_v1_web_push_subscriptions_unsubscribe_create"];
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -920,6 +1032,22 @@ export interface components {
          * @enum {string}
          */
         AgentRunStatusEnum: "pending" | "running" | "waiting_approval" | "completed" | "failed" | "cancelled";
+        AndroidRelease: {
+            version_code: number;
+            version_name: string;
+            /** Format: uri */
+            download_url: string;
+            sha256: string;
+            size_bytes: number;
+            release_notes: string;
+            /** Format: date-time */
+            published_at: string;
+            minimum_supported_version_code: number;
+        };
+        AndroidUpdateResponse: {
+            enabled: boolean;
+            release: components["schemas"]["AndroidRelease"] | null;
+        };
         AuthToken: {
             readonly token: string;
             readonly user: components["schemas"]["CurrentUser"];
@@ -1144,6 +1272,9 @@ export interface components {
              * @description 指明用户是否可以登录到这个管理站点。
              */
             readonly is_staff: boolean;
+            readonly is_guest: boolean;
+            /** Format: date-time */
+            readonly guest_expires_at: string | null;
         };
         DependencyChecks: {
             database: components["schemas"]["DependencyStatusEnum"];
@@ -1210,6 +1341,8 @@ export interface components {
             city: string;
             /** @default  */
             district: string;
+            /** @default  */
+            adcode: string;
         };
         Login: {
             identifier: string;
@@ -1370,6 +1503,9 @@ export interface components {
             /** Format: time */
             briefing_time?: string;
             planning_rules?: unknown;
+            time_memory_enabled?: boolean;
+            time_memory_allow_generation?: boolean;
+            time_memory_allow_context_injection?: boolean;
             /** Format: date-time */
             readonly updated_at?: string;
         };
@@ -1558,6 +1694,15 @@ export interface components {
          * @enum {string}
          */
         TaskStatusEnum: "pending" | "in_progress" | "completed" | "cancelled";
+        TimeMemoryStatus: {
+            profile: unknown;
+            refresh_status: string;
+            /** Format: date-time */
+            dirty_at: string | null;
+            /** Format: date-time */
+            last_completed_at: string | null;
+            last_error: string;
+        };
         TodaySummary: {
             /** Format: date */
             date: string;
@@ -1603,6 +1748,9 @@ export interface components {
             /** Format: time */
             briefing_time?: string;
             planning_rules?: unknown;
+            time_memory_enabled?: boolean;
+            time_memory_allow_generation?: boolean;
+            time_memory_allow_context_injection?: boolean;
             /** Format: date-time */
             readonly updated_at: string;
         };
@@ -1633,6 +1781,10 @@ export interface components {
             endpoint: string;
             p256dh: string;
             auth: string;
+        };
+        WebPushSubscriptionUnsubscribe: {
+            /** Format: uri */
+            endpoint: string;
         };
     };
     responses: never;
@@ -1811,6 +1963,25 @@ export interface operations {
             };
         };
     };
+    api_v1_app_updates_android_latest_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AndroidUpdateResponse"];
+                };
+            };
+        };
+    };
     api_v1_auth_csrf_retrieve: {
         parameters: {
             query?: never;
@@ -1877,6 +2048,25 @@ export interface operations {
             };
         };
     };
+    api_v1_auth_guest_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CurrentUser"];
+                };
+            };
+        };
+    };
     api_v1_auth_login_create: {
         parameters: {
             query?: never;
@@ -1935,6 +2125,25 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["CurrentUser"];
+                };
+            };
+        };
+    };
+    api_v1_auth_native_guest_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuthToken"];
                 };
             };
         };
@@ -2999,6 +3208,97 @@ export interface operations {
             };
         };
     };
+    api_v1_time_memory_me_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TimeMemoryStatus"];
+                };
+            };
+        };
+    };
+    api_v1_time_memory_me_destroy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    api_v1_time_memory_me_patterns_destroy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                pattern_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description No response body */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    api_v1_time_memory_me_places_destroy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                place_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description No response body */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     api_v1_today_retrieve: {
         parameters: {
             query?: never;
@@ -3091,6 +3391,30 @@ export interface operations {
             cookie?: never;
         };
         requestBody?: never;
+        responses: {
+            /** @description No response body */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    api_v1_web_push_subscriptions_unsubscribe_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WebPushSubscriptionUnsubscribe"];
+                "application/x-www-form-urlencoded": components["schemas"]["WebPushSubscriptionUnsubscribe"];
+                "multipart/form-data": components["schemas"]["WebPushSubscriptionUnsubscribe"];
+            };
+        };
         responses: {
             /** @description No response body */
             204: {

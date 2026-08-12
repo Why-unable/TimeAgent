@@ -29,12 +29,13 @@ class LocationCandidateSerializer(serializers.Serializer[Any]):
     admin1 = serializers.CharField()
     country = serializers.CharField()
     timezone = serializers.CharField()
-    label = serializers.CharField()
+    label = serializers.CharField()  # type: ignore[assignment]
     latitude = serializers.FloatField()
     longitude = serializers.FloatField()
     province = serializers.CharField(required=False, allow_blank=True, default="")
     city = serializers.CharField(required=False, allow_blank=True, default="")
     district = serializers.CharField(required=False, allow_blank=True, default="")
+    adcode = serializers.CharField(required=False, allow_blank=True, default="")
 
 
 class AdministrativeAreaOptionSerializer(serializers.Serializer[Any]):

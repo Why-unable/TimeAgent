@@ -29,6 +29,8 @@ Feed 由运维方在 `backend/config/providers.yaml` 中维护，用户只保存
 
 ## 边界与降级
 
+- `weather_location` 保存可读文字标签；`weather_location_data` v2 分别保存手动行政区代表点 `administrative_coordinates` 与用户主动授权的手机 GPS `current_coordinates`，并保留省、市、区、时区、Provider 和 `adcode`。
+- 用户保存地点的简报使用 Open-Meteo 对两组经纬度分别查询点位天气，并明确标注来源角色；只配置一组时返回该组结果和缺失提示。高德天气按 `adcode` 工作，不用于伪造 GPS 点位预报。
 - Open-Meteo 负责地点解析和最长 16 天的未来天气；日期范围、用户时区与明确当前时间由 BriefingRequest/RuntimeContext 注入。
 - RSS Provider 支持 ETag/Last-Modified 条件请求、响应大小上限和逐 Feed 超时隔离。
 - `ExternalNewsItem` 保存规范化新闻事实与稳定指纹；BriefingRun 保存本次使用的来源快照。

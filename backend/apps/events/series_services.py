@@ -7,6 +7,7 @@ from django.db import transaction
 from apps.events.models import CalendarEventStatus, EventSeries, EventSeriesStatus
 from apps.events.services import CreateEventCommand, EventService
 from apps.tasks.models import Task
+from common.database_locks import lock_user_schedule_writes
 
 
 @dataclass(frozen=True, slots=True)
@@ -22,6 +23,7 @@ class CreateEventSeriesCommand:
     description: str = ""
     location: str = ""
     interval: int = 1
+    origin: str = "web"
 
 
 class EventSeriesService:
@@ -58,6 +60,7 @@ class EventSeriesService:
     @staticmethod
     @transaction.atomic
     def create_series(command: CreateEventSeriesCommand) -> EventSeries:
+        lock_user_schedule_writes(command.user)
         series = EventSeries(
             user=command.user,
             task=command.task,
@@ -92,6 +95,7 @@ class EventSeriesService:
                     timezone=command.timezone,
                     location=command.location,
                     status=CalendarEventStatus.CONFIRMED,
+                    origin=command.origin,
                 )
             )
         return series
@@ -99,6 +103,7 @@ class EventSeriesService:
     @staticmethod
     @transaction.atomic
     def cancel_series(*, series: EventSeries, user: User) -> EventSeries:
+        lock_user_schedule_writes(user)
         locked = EventSeries.objects.select_for_update().get(pk=series.pk, user=user)
         if locked.status == EventSeriesStatus.CANCELLED:
             return locked

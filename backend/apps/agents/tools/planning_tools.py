@@ -76,6 +76,7 @@ def apply_schedule_plan(
         user=require_writable(runtime),
         plan_id=plan_id,
         expected_version=expected_version,
+        origin="agent",
     )
     return {"plan_id": str(plan.pk), "status": plan.status, "version": plan.version}
 

@@ -62,6 +62,10 @@ class WebPushSubscriptionCreateSerializer(serializers.Serializer[dict[str, objec
     auth = serializers.CharField(max_length=4096)
 
 
+class WebPushSubscriptionUnsubscribeSerializer(serializers.Serializer[dict[str, object]]):
+    endpoint = serializers.URLField(max_length=2048)
+
+
 class WebPushSubscriptionSerializer(serializers.ModelSerializer[WebPushSubscription]):
     endpoint_hint = serializers.SerializerMethodField()
 

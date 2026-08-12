@@ -1,5 +1,7 @@
-from datetime import timedelta
+from datetime import datetime, timedelta
+from uuid import UUID
 
+from django.contrib.auth.models import User
 from django.db import transaction
 from django.utils import timezone
 
@@ -12,6 +14,7 @@ from apps.reminders.models import (
     ReminderTargetType,
 )
 from apps.tasks.models import Task, TaskStatus
+from common.database_locks import lock_user_schedule_writes
 
 
 class ReminderScheduleService:
@@ -57,26 +60,31 @@ class ReminderScheduleService:
 
     @classmethod
     def cancel_task_reminders(cls, *, task: Task) -> None:
-        cls._cancel(target_type=ReminderTargetType.TASK, target_id=task.id)
+        cls._cancel(user=task.user, target_type=ReminderTargetType.TASK, target_id=task.id)
 
     @classmethod
     def cancel_event_reminders(cls, *, event: CalendarEvent) -> None:
-        cls._cancel(target_type=ReminderTargetType.CALENDAR_EVENT, target_id=event.id)
+        cls._cancel(
+            user=event.user,
+            target_type=ReminderTargetType.CALENDAR_EVENT,
+            target_id=event.id,
+        )
 
     @classmethod
     @transaction.atomic
     def _sync(
         cls,
         *,
-        user: object,
+        user: User,
         target_type: str,
-        target_id: object,
+        target_id: UUID,
         title: str,
         timezone_name: str,
         anchor: str,
-        starts_at: object,
+        starts_at: datetime,
         offsets: tuple[int, ...],
     ) -> None:
+        lock_user_schedule_writes(user)
         now = timezone.now()
         desired = {
             offset: starts_at - timedelta(minutes=offset)
@@ -118,8 +126,10 @@ class ReminderScheduleService:
 
     @classmethod
     @transaction.atomic
-    def _cancel(cls, *, target_type: str, target_id: object) -> None:
+    def _cancel(cls, *, user: User, target_type: str, target_id: UUID) -> None:
+        lock_user_schedule_writes(user)
         Reminder.objects.select_for_update().filter(
+            user=user,
             target_type=target_type,
             target_id=target_id,
             schedule_anchor__gt="",

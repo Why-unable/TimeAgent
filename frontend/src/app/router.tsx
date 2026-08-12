@@ -6,10 +6,12 @@ import { RequireAuthentication } from "../features/accounts/require-authenticati
 import { RequireStaff } from "../features/accounts/require-staff";
 import { AppLayout } from "../layouts/app-layout";
 import { AccountSettingsPage } from "../pages/account-settings-page";
+import { AppSettingsPage } from "../pages/app-settings-page";
 import { LoginPage } from "../pages/login-page";
 import { RemindersPage } from "../pages/reminders-page";
 import { SystemStatusPage } from "../pages/system-status-page";
 import { TimeSettingsPage } from "../pages/time-settings-page";
+import { TimeMemoryPage } from "../pages/time-memory-page";
 
 const CalendarPage = lazy(() =>
   import("../pages/calendar-page").then((module) => ({ default: module.CalendarPage })),
@@ -56,7 +58,9 @@ const router = createBrowserRouter([
           { path: "/approvals", element: lazyPage(<ApprovalsPage />) },
           { path: "/briefings", element: lazyPage(<BriefingsPage />) },
           { path: "/settings/time", element: <TimeSettingsPage /> },
+          { path: "/settings/time-memory", element: <TimeMemoryPage /> },
           { path: "/settings/account", element: <AccountSettingsPage /> },
+          { path: "/settings/app", element: <AppSettingsPage /> },
           {
             path: "/settings/notifications",
             element: lazyPage(<NotificationSettingsPage />),

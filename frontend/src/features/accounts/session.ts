@@ -9,11 +9,16 @@ import {
   loginWithToken,
   logoutAccount,
   logoutWithToken,
+  startGuestSession,
 } from "../../api/auth";
 import { isNativePlatform } from "../../platform";
 
 export async function signIn(credentials: Credentials): Promise<CurrentUser> {
   return isNativePlatform() ? loginWithToken(credentials) : loginAccount(credentials);
+}
+
+export async function signInAsGuest(): Promise<CurrentUser> {
+  return startGuestSession();
 }
 
 export async function signOut(): Promise<void> {

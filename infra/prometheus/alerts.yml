@@ -8,10 +8,102 @@ groups:
           severity: critical
         annotations:
           summary: Time Agent Django metrics target is unavailable
+      - alert: TimeAgentMetricsTargetUnavailable
+        expr: up{job=~"time-agent-(prometheus|postgres|redis|celery)"} == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: A Time Agent monitoring target is unavailable
       - alert: TimeAgentServerErrors
-        expr: increase(django_http_responses_total_by_status_total{status=~"5.."}[5m]) > 0
+        expr: sum(rate(django_http_responses_total_by_status_total{status=~"5.."}[5m])) / clamp_min(sum(rate(django_http_responses_total_by_status_total[5m])), 0.001) > 0.05
         for: 5m
         labels:
           severity: warning
         annotations:
           summary: Time Agent returned one or more HTTP 5xx responses
+          description: More than 5% of HTTP responses were 5xx for ten minutes.
+      - alert: TimeAgentHighHttpLatency
+        expr: histogram_quantile(0.95, sum by (le) (rate(django_http_requests_latency_seconds_by_view_method_bucket[5m]))) > 2
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: Time Agent HTTP p95 latency is above two seconds
+      - alert: TimeAgentCeleryWorkerUnavailable
+        expr: sum(celery_worker_up) < 1
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: No Time Agent Celery worker is reporting heartbeats
+      - alert: TimeAgentCeleryTaskFailures
+        expr: increase(celery_task_failed_total[10m]) > 0
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: One or more Celery tasks failed in the last ten minutes
+      - alert: TimeAgentPostgresUnavailable
+        expr: pg_up == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: PostgreSQL exporter cannot reach Time Agent PostgreSQL
+      - alert: TimeAgentRedisUnavailable
+        expr: redis_up == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: Redis exporter cannot reach Time Agent Redis
+      - alert: TimeAgentAgentFailureRatio
+        expr: sum(timeagent_agent_runs_24h{status="failed"}) / clamp_min(sum(timeagent_agent_runs_24h), 1) > 0.05
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: Agent run failure ratio over the rolling 24-hour window exceeds 5%
+      - alert: TimeAgentStaleRuns
+        expr: sum(timeagent_agent_runs_stale) > 0
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: Agent runs have remained pending or running for more than ten minutes
+      - alert: TimeAgentNotificationFailures
+        expr: sum(timeagent_notification_deliveries_24h{status="failed"}) > 0
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: Notification delivery failures occurred in the last 24 hours
+      - alert: TimeAgentReverseGeocodingFailureRatio
+        expr: sum(increase(time_agent_reverse_geocoding_requests_total{result="error"}[15m])) / clamp_min(sum(increase(time_agent_reverse_geocoding_requests_total[15m])), 1) > 0.5 and sum(increase(time_agent_reverse_geocoding_requests_total[15m])) >= 5
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: Reverse geocoding failure ratio exceeds 50 percent
+      - alert: TimeAgentLLMFailures
+        expr: sum(timeagent_llm_calls_24h{status="failed"}) > 0
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: One or more LLM calls failed in the last 24 hours
+      - alert: TimeAgentLLMUsageUnavailable
+        expr: sum(timeagent_llm_calls_24h{status="completed",usage_source="unavailable"}) > 0
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: LLM calls completed without provider or estimated token usage
+      - alert: TimeAgentMemoryPromptRatioHigh
+        expr: timeagent_memory_prompt_ratio_24h{component="time_steward",quantile="0.95"} > 0.35
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: Memory prompt exceeds 35 percent of Time Steward input tokens at p95

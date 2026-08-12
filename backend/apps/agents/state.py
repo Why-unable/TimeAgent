@@ -1,4 +1,5 @@
-from typing import Literal, NotRequired
+import operator
+from typing import Annotated, Literal, NotRequired
 
 from langchain.agents import AgentState
 from langgraph.managed import RemainingSteps
@@ -27,3 +28,6 @@ class AppState(AgentState[None]):
 
 class TimeStewardState(AgentState[None]):
     """Agent-loop state; managed outer-graph channels intentionally stay outside it."""
+
+    time_memory_profile: NotRequired[dict[str, JsonValue] | None]
+    schedule_changed: NotRequired[Annotated[bool, operator.or_]]

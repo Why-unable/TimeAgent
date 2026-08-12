@@ -5,8 +5,25 @@ global:
 rule_files:
   - /etc/prometheus/alerts.yml
 
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: [alertmanager:9093]
+
 scrape_configs:
+  - job_name: time-agent-prometheus
+    static_configs:
+      - targets: [prometheus:9090]
   - job_name: time-agent-django
     metrics_path: /metrics
     static_configs:
       - targets: [django:8000]
+  - job_name: time-agent-postgres
+    static_configs:
+      - targets: [postgres-exporter:9187]
+  - job_name: time-agent-redis
+    static_configs:
+      - targets: [redis-exporter:9121]
+  - job_name: time-agent-celery
+    static_configs:
+      - targets: [celery-exporter:9808]

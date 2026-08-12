@@ -92,6 +92,7 @@ def create_task(
             estimated_minutes=estimated_minutes,
             tags=tags or [],
             source="agent",
+            origin="agent",
         )
     )
     return model_dict(task, TASK_FIELDS)
@@ -117,7 +118,8 @@ def create_task_batch(
             planned_end_at=item.planned_end_at,
             estimated_minutes=item.estimated_minutes,
             tags=item.tags,
-            source="agent",
+                source="agent",
+                origin="agent",
         )
         for item in tasks
     ]
@@ -161,6 +163,7 @@ def update_task(
             task_id=task_id,
             expected_version=expected_version,
             changes=changes,
+            origin="agent",
         )
     )
     return model_dict(task, TASK_FIELDS)
@@ -179,6 +182,7 @@ def change_task_state(
         user=require_writable(runtime),
         status=status,
         occurred_at=runtime.context.current_datetime,
+        origin="agent",
     )
     return model_dict(task, TASK_FIELDS)
 
@@ -194,7 +198,10 @@ def change_task_batch_state(
     parsed: list[tuple[UUID, int]] = []
     for item in items:
         try:
-            parsed.append((UUID(str(item["task_id"])), int(item["expected_version"])))
+            raw_version = item["expected_version"]
+            if not isinstance(raw_version, int | str):
+                raise TypeError
+            parsed.append((UUID(str(item["task_id"])), int(raw_version)))
         except (KeyError, TypeError, ValueError) as exc:
             raise ValueError("Each item needs task_id and expected_version") from exc
     tasks = TaskService.change_tasks_state(
@@ -202,6 +209,7 @@ def change_task_batch_state(
         items=parsed,
         status=status,
         occurred_at=runtime.context.current_datetime,
+        origin="agent",
     )
     return [model_dict(task, TASK_FIELDS) for task in tasks]
 
@@ -214,6 +222,7 @@ def complete_task(task_id: UUID, runtime: ToolRuntime[RuntimeContext]) -> dict[s
         task_id=task_id,
         user=require_writable(runtime),
         occurred_at=runtime.context.current_datetime,
+        origin="agent",
     )
     return model_dict(task, TASK_FIELDS)
 
@@ -226,6 +235,7 @@ def cancel_task(task_id: UUID, runtime: ToolRuntime[RuntimeContext]) -> dict[str
         task_id=task_id,
         user=require_writable(runtime),
         occurred_at=runtime.context.current_datetime,
+        origin="agent",
     )
     return model_dict(task, TASK_FIELDS)
 
@@ -244,6 +254,7 @@ def reschedule_task(
         user=require_writable(runtime),
         planned_start_at=planned_start_at,
         planned_end_at=planned_end_at,
+        origin="agent",
     )
     return model_dict(task, TASK_FIELDS)
 

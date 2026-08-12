@@ -26,6 +26,8 @@ from apps.agents.context import RuntimeContext
 from apps.briefings.schemas import BriefingAgentRequest
 from apps.briefings.state import BriefingAgentState
 from apps.briefings.tools import BRIEFING_RESEARCH_TOOLS, EXTERNAL_RESEARCH_TOOLS
+from apps.observability.llm_middleware import LLMUsageMiddleware
+from common.prompt_security import UntrustedToolDataMiddleware
 
 PROMPT_PATH = Path(__file__).with_name("prompts") / "briefing_agent.md"
 BASE_SYSTEM_PROMPT = PROMPT_PATH.read_text(encoding="utf-8").strip()
@@ -34,7 +36,7 @@ SECTION_TOOLS = {
     "calendar": {"research_calendar"},
     "tasks": {"research_tasks"},
     "weather": {"research_weather"},
-    "news": {"research_news", "get_news_source_catalog"},
+    "news": {"research_news"},
 }
 PER_TOOL_RUN_LIMIT = 2
 
@@ -45,8 +47,8 @@ def briefing_runtime_prompt(request: ModelRequest[RuntimeContext]) -> SystemMess
     return SystemMessage(
         content=(
             f"{BASE_SYSTEM_PROMPT}\n\n"
-            f"Trusted runtime: current UTC time={context.current_datetime.isoformat()}; "
-            f"user timezone={context.timezone}; locale={context.locale}."
+            f"可信运行时：当前 UTC 时间={context.current_datetime.isoformat()}；"
+            f"用户时区={context.timezone}；语言区域={context.locale}。"
         )
     )
 
@@ -64,9 +66,9 @@ def _research_error(exc: Exception, request: ToolCallRequest) -> str | None:
         ),
     ):
         return (
-            f"{name} failed after its permitted retries: {type(exc).__name__}: {exc}. "
-            "Record this in failed_attempts and unmet_requirements, then continue with "
-            "the remaining evidence instead of aborting the briefing."
+            f"{name} 在允许的重试次数用尽后仍然失败：{type(exc).__name__}: {exc}。"
+            "请将此问题记录到 failed_attempts 和 unmet_requirements，"
+            "然后继续收集其他证据，不要中止整份简报。"
         )
     return None
 
@@ -211,8 +213,8 @@ def _repair_mode_tool_message(request: ToolCallRequest) -> ToolMessage:
     name = str(request.tool_call.get("name", "research_tool"))
     return ToolMessage(
         content=(
-            "Research tools are disabled during report repair. Submit the structured report "
-            "using the supplied evidence and disclose unresolved gaps."
+            "报告修复期间禁用研究工具。请使用已提供的证据提交结构化报告，"
+            "并披露仍未解决的缺口。"
         ),
         tool_call_id=str(request.tool_call.get("id", "")),
         name=name,
@@ -228,6 +230,7 @@ def build_briefing_middleware(
     external_tools: list[BaseTool | str] = list(EXTERNAL_RESEARCH_TOOLS)
     middleware: list[Any] = [
         briefing_runtime_prompt,
+        UntrustedToolDataMiddleware(),
         BriefingToolPolicyMiddleware(),
         BriefingToolBudgetMiddleware(),
         ModelCallLimitMiddleware(run_limit=config.model_call_limit, exit_behavior="end"),
@@ -253,4 +256,5 @@ def build_briefing_middleware(
             ),
         ]
     )
+    middleware.append(LLMUsageMiddleware("briefing_agent"))
     return middleware

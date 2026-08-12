@@ -25,7 +25,7 @@ function renderPage() {
   );
 }
 
-function mockApi({ subscriptions = [] as object[] } = {}) {
+function mockApi() {
   const requests: Array<{ url: string; init?: RequestInit }> = [];
   vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
     const url = String(input);
@@ -46,8 +46,8 @@ function mockApi({ subscriptions = [] as object[] } = {}) {
       { id: "delivery-1", source_type: "reminder", source_id: null, channel_type: "email", status: "failed", subject: "Take medicine", scheduled_at: "2026-07-21T00:00:00Z", queued_at: null, sending_at: null, sent_at: null, failed_at: "2026-07-21T00:00:01Z", attempt_count: 4, next_retry_at: null, provider_message_id: "", failure_code: "permanent_notification_error", failure_reason: "Invalid mailbox", created_at: "2026-07-21T00:00:00Z", updated_at: "2026-07-21T00:00:01Z" },
     ]));
     if (url.endsWith("web-push/config/")) return new Response(JSON.stringify({ configured: true, public_key: "AQID" }));
-    if (url.endsWith("web-push/subscriptions/") && (init?.method ?? "GET") === "GET") return new Response(JSON.stringify(subscriptions));
     if (url.endsWith("web-push/subscriptions/") && init?.method === "POST") return new Response(JSON.stringify({ id: "subscription-1", endpoint_hint: "https://push.example…", enabled: true, last_used_at: null, invalidated_at: null, created_at: "2026-07-21T00:00:00Z" }), { status: 201 });
+    if (url.endsWith("web-push/subscriptions/unsubscribe/") && init?.method === "POST") return new Response(null, { status: 204 });
     if (url.includes("web-push/subscriptions/") && init?.method === "DELETE") return new Response(null, { status: 204 });
     throw new Error(`Unexpected request: ${url}`);
   }));
@@ -57,6 +57,7 @@ function mockApi({ subscriptions = [] as object[] } = {}) {
 describe("NotificationSettingsPage", () => {
   afterEach(() => {
     vi.unstubAllGlobals();
+    vi.restoreAllMocks();
     Object.defineProperty(navigator, "serviceWorker", {
       configurable: true,
       value: undefined,
@@ -70,6 +71,18 @@ describe("NotificationSettingsPage", () => {
     expect(await screen.findByText(/Invalid mailbox/)).toBeInTheDocument();
     expect(screen.queryByText("Development-only reminder")).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "启用浏览器通知" })).toBeDisabled();
+  });
+
+  it("warns Chrome users that FCM push is currently unavailable", async () => {
+    mockApi();
+    vi.spyOn(window.navigator, "userAgent", "get").mockReturnValue(
+      "Mozilla/5.0 Chrome/136.0.0.0 Safari/537.36",
+    );
+
+    renderPage();
+
+    expect(await screen.findByRole("note")).toHaveTextContent("Chrome 暂时不能接收");
+    expect(screen.getByRole("note")).toHaveTextContent("Android App 的应用提醒或 Email");
   });
 
   it("enables a daily briefing", async () => {
@@ -111,15 +124,19 @@ describe("NotificationSettingsPage", () => {
     expect(JSON.parse(String(request?.init?.body))).toEqual({ endpoint: "https://push.example.test/id", p256dh: "key", auth: "auth" });
   });
 
-  it("unsubscribes in the browser and removes the backend subscription", async () => {
-    const requests = mockApi({ subscriptions: [{ id: "subscription-1", endpoint_hint: "push…", enabled: true, last_used_at: null, invalidated_at: null, created_at: "2026-07-21T00:00:00Z" }] });
+  it("unsubscribes only the current browser endpoint", async () => {
+    const requests = mockApi();
     const unsubscribe = vi.fn().mockResolvedValue(true);
+    const endpoint = "https://push.example.test/current-browser";
     vi.stubGlobal("PushManager", class PushManager {});
     vi.stubGlobal("Notification", { permission: "granted", requestPermission: vi.fn() });
-    Object.defineProperty(navigator, "serviceWorker", { configurable: true, value: { getRegistration: vi.fn().mockResolvedValue({ pushManager: { getSubscription: vi.fn().mockResolvedValue({ unsubscribe }) } }) } });
+    Object.defineProperty(navigator, "serviceWorker", { configurable: true, value: { getRegistration: vi.fn().mockResolvedValue({ pushManager: { getSubscription: vi.fn().mockResolvedValue({ endpoint, unsubscribe }) } }) } });
     renderPage();
-    await userEvent.click(await screen.findByRole("button", { name: "取消订阅" }));
+    await userEvent.click(await screen.findByRole("button", { name: "取消当前浏览器订阅" }));
     expect(unsubscribe).toHaveBeenCalledOnce();
-    expect(requests.some((item) => item.url.endsWith("/subscription-1/") && item.init?.method === "DELETE")).toBe(true);
+    const request = requests.find((item) => item.url.endsWith("web-push/subscriptions/unsubscribe/"));
+    expect(request?.init?.method).toBe("POST");
+    expect(JSON.parse(String(request?.init?.body))).toEqual({ endpoint });
+    expect(requests.some((item) => item.init?.method === "DELETE")).toBe(false);
   });
 });

@@ -1,19 +1,29 @@
 # Time Agent
 
-## Phase 10：观测、备份与恢复
+## 当前阶段：Phase 10 开发与验收
+
+Phase 0–9 已完成。Phase 10 的账户体系、生产 Compose/Cloudflare 基线、请求关联日志、
+Prometheus 基线和 PostgreSQL 备份恢复已经落地；当前工作区正在继续完成生产安全、完整
+可观测性、发布评测与部署验收。长期时间记忆、Android 自托管更新、同用户日程写串行化、
+双坐标天气和隔离游客空间也已进入代码与本地测试，尚不能替代真实模型、外部 Provider、
+告警送达、备份恢复和 Android 安装链路的生产验收。
+
+## 观测、备份与恢复
 
 生产日志为 JSON，每个 HTTP 响应均携带 `X-Request-ID`；它可用于将浏览器报错、Nginx 请求和 Django 完成日志关联起来。日志不会记录查询参数、Cookie、请求正文、密钥或用户对话内容。
 
-Prometheus 是可选的本机监控覆盖层，不通过 Cloudflare Tunnel 暴露。启动后访问 `http://localhost:9090` 查看目标状态与告警规则：
+完整监控覆盖层包含 Prometheus、Grafana、Alertmanager、Loki、Grafana Alloy，以及
+PostgreSQL、Redis 和 Celery Exporter；它们默认只监听本机，不通过 Cloudflare Tunnel
+暴露。启动方式：
 
 ```powershell
-docker compose -f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.observability.yml up -d prometheus
-# 或：make observability
+make observability
 ```
 
-若 Docker Hub 在本机网络中不可达，可在 `.env` 通过 `PROMETHEUS_IMAGE` 覆盖为团队已验证的镜像地址；仓库默认不会绑定任何第三方镜像加速服务。
-
-它在 Docker 内网抓取 Django 的 `/metrics`；公网入口对该路径返回 404。默认告警涵盖 Django 目标不可达与持续的 HTTP 5xx。将 Prometheus 接入 Alertmanager、邮件或其他告警渠道前，应先在本机确认告警规则符合实际运维策略。
+详细端口、SSH 转发、告警邮件、Dashboard、业务 SLI、LLM Token 审计和发布评测见
+[观测与评测运维指南](docs/operations/observability-and-evaluation.md)。公网入口对 `/metrics`
+返回 404；不要公开 Grafana、Prometheus、Alertmanager 或 Loki。若 Docker Hub 在本机网络
+中不可达，可在 `.env` 覆盖为团队验证过的镜像地址，仓库不绑定第三方镜像加速服务。
 
 PostgreSQL 使用 custom-format 备份，备份文件默认写入被 Git 忽略的 `backups/`。建议定期将备份复制到独立、加密且有保留策略的存储：
 
@@ -36,7 +46,9 @@ Invoke-WebRequest http://localhost:8080/health/ready
 docker compose -f docker-compose.yml -f docker-compose.prod.yml logs --tail=100 django nginx celery-worker
 ```
 
-Time Agent 是以时间为核心的个人智能事务管理系统。本仓库当前已完成 **Phase 9**，具备提醒闭环、结构化事务管理、每日工作台、可恢复的 Time Steward Agent、高风险操作审批、天气与新闻简报，以及持久化的 Console/Email/Web Push 通知投递体系。
+Time Agent 是以时间为核心的个人智能事务管理系统。本仓库当前处于 **Phase 10 开发与
+验收阶段**，具备提醒闭环、结构化事务管理、每日工作台、可恢复的 Time Steward Agent、
+高风险操作审批、天气与新闻简报，以及持久化的 Console/Email/Web Push 通知投递体系。
 
 > Time Steward 使用 LangChain `create_agent()`、LangGraph PostgreSQL 持久化和官方 Middleware；高风险写入通过 ActionProposal/HITL 审批；Briefing Workflow 使用确定性并行 Section、受限 Editor 和结构化输出。
 
@@ -80,6 +92,12 @@ Time Agent 是以时间为核心的个人智能事务管理系统。本仓库当
 - `/briefings` 支持配置、手动运行、结果、来源和“在聊天中继续”；聊天历史按普通聊天、手动简报和自动简报分类。
 - `NotificationDelivery` 状态机、稳定幂等键、Celery 异步投递/有限重试/中断恢复，以及统一 Console、Django Email 和 Web Push Provider Registry；Reminder 和 Briefing 的各渠道结果独立审计。
 - `/settings/notifications` 支持当前用户 Email/Push 渠道开关、显式浏览器权限申请、Subscription 创建/取消和最近投递状态；VAPID 私钥不进入前端。
+- 浏览器 Session 与 Android Token 双认证、邮箱验证/密码重置、隔离且自动过期的游客空间，以及首次使用引导；游客配额和能力限制由后端执行。
+- 基于 PostgreSQL 业务事实确定性派生的 Time Steward 长期时间记忆；用户可关闭生成或注入、清空画像并删除单项记忆，Briefing 不继承该画像。
+- 同一用户的日程、任务、提醒和计划写操作使用统一事务级串行化边界，继续保留乐观锁、幂等键和实体行锁。
+- 天气偏好分别保存手动行政区代表坐标和用户授权的设备 GPS 坐标，简报按坐标角色分别查询、标注和降级。
+- Android 自托管更新清单、APK 大小/摘要/包名/版本号/签名校验及系统安装确认流程；服务端只提供元数据，不承载 APK 大文件。
+- Prometheus/Grafana/Alertmanager/Loki/Alloy 可观测栈、低基数业务 SLI、脱敏 LLM 调用审计、版本化 Agent 评测报告和提示词注入威胁模型。
 - 外部日历已建立 Provider Protocol、Pydantic DTO、能力声明和统一异常契约；尚未实现任何 OAuth、Token、供应商接入或同步。
 
 ## 计划事务与提醒
@@ -195,6 +213,13 @@ docker compose up --build
 注册接口带有 CSRF 保护和匿名访问频率限制。公开部署前请确认 `.env` 中的
 `AUTH_REGISTRATION_ENABLED` 是否符合预期；个人或邀请制部署可在首个账户创建后设为
 `false`。
+
+公开演示部署可设置 `GUEST_ACCESS_ENABLED=true`，登录页会提供“游客体验”入口。每次首次
+进入都会创建一个独立临时账号；同一浏览器在 Session 仍有效时继续使用同一账号，不同
+浏览器、无痕窗口、清除站点数据、退出或过期后会获得新账号。游客数据默认 24 小时后由
+Celery Beat 清理，并受账号创建频率、Agent 请求数以及会话、日程、任务、提醒数量配额
+限制。游客不启用长期记忆、定时简报、邮件通知和 Web Push；不要使用多人共享账号代替
+该隔离机制。
 
 ## Cloudflare Tunnel 生产运行
 
@@ -464,8 +489,9 @@ docker compose restart nginx
 
 - Telegram、SMS、任意第三方收件人通知；
 - 外部日历供应商、OAuth、Token、事件映射和同步；
-- 定时自动简报投递调度（简报结果的通知投递能力已具备）；
-- 生产 TLS、完整监控、备份和发布流水线。
+- 应用商店分发、Google Play In-App Updates 和自动发布流水线；
+- Phase 10 最终生产验收，包括真实模型发布评测、外部通知/天气链路、告警送达、隔离恢复演练、基础负载与安全检查；
+- Kubernetes、微服务拆分、向量数据库和复杂 RBAC。
 
 ## 规范关系与注意事项
 
@@ -475,4 +501,6 @@ development settings 允许本地调试，production settings 强制提供安全
 
 ## 下一步
 
-Phase 9 已完成；下一阶段为 **Phase 10：生产部署与监控**。
+完成 **Phase 10 最终生产验收**：先修复所有本地检查，再在隔离环境执行真实模型发布
+评测、完整观测栈与告警送达、数据库恢复演练、Android 更新安装链路和公开入口安全检查，
+将证据记录到运维文档后再把 Phase 10 标为完成。

@@ -50,11 +50,11 @@ news:
       publisher: Python Software Foundation
       topics: [python, developer tools]
       priority: 90
-    - name: BBC World
-      url: https://feeds.bbci.co.uk/news/world/rss.xml
-      publisher: BBC News
+    - name: UN News World
+      url: https://news.un.org/feed/subscribe/en/news/all/rss.xml
+      publisher: United Nations News
       topics: [world]
-      priority: 70
+      priority: 80
     - name: NASA
       url: https://www.nasa.gov/feed/
       publisher: NASA
@@ -94,9 +94,4 @@ news:
       url: https://www.ifanr.com/feed
       publisher: 爱范儿
       topics: [technology, consumer technology]
-      priority: 75
-    - name: 36Kr
-      url: https://36kr.com/feed
-      publisher: 36氪
-      topics: [finance, startups, technology]
       priority: 75

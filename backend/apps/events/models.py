@@ -197,7 +197,8 @@ class CalendarEvent(models.Model):
             raise ValidationError({"title": "Title cannot be blank"})
         if not self.source:
             raise ValidationError({"source": "Source cannot be blank"})
-        if self.task_id is not None and self.task.user_id != self.user_id:
+        task = self.task
+        if self.task_id is not None and (task is None or task.user_id != self.user_id):
             raise ValidationError({"task": "Linked task must belong to the same user"})
 
         time_errors: dict[str, str] = {}

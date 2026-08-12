@@ -36,10 +36,18 @@ export function AccountSettingsPage() {
       <h2 className="mt-2 text-3xl font-semibold">账户与安全</h2>
       <div className="mt-8 rounded-2xl border border-white/10 bg-slate-900 p-6">
         <p className="text-sm text-slate-400">当前登录账号</p>
-        <p className="mt-2 text-lg font-medium">{user.data?.email}</p>
-        <p className="mt-2 text-sm text-slate-400">
-          邮箱状态：{user.data?.is_email_verified ? "已验证" : "未验证"}
+        <p className="mt-2 text-lg font-medium">
+          {user.data?.is_guest ? "游客临时账号" : user.data?.email}
         </p>
+        {user.data?.is_guest ? (
+          <p className="mt-2 text-sm leading-6 text-amber-200">
+            当前数据为临时数据，将在 {user.data.guest_expires_at ? new Date(user.data.guest_expires_at).toLocaleString("zh-CN") : "体验结束后"} 自动删除。退出后无法恢复该游客空间。
+          </p>
+        ) : (
+          <p className="mt-2 text-sm text-slate-400">
+            邮箱状态：{user.data?.is_email_verified ? "已验证" : "未验证"}
+          </p>
+        )}
         <form className="mt-6" onSubmit={saveNickname}>
           <label className="block text-sm text-slate-300">
             昵称

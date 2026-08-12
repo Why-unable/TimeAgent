@@ -1,17 +1,18 @@
 import asyncio
 import json
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from datetime import UTC, datetime
 from io import StringIO
 from pathlib import Path
 from types import SimpleNamespace
-from typing import Any
+from typing import Any, cast
 from unittest.mock import MagicMock
 from uuid import uuid4
 
 import pytest
 from django.contrib.auth.models import User
 from django.core.management import call_command
+from langchain.agents.middleware import ToolCallRequest
 from langchain_core.callbacks.manager import CallbackManagerForLLMRun
 from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, SystemMessage, ToolMessage
@@ -127,10 +128,7 @@ def test_temporal_context_hides_historical_clock_calls_and_labels_ai_messages() 
     assert str(historical_ai.content).startswith("[Historical assistant response.")
     assert historical_ai.tool_calls == []
     assert all(
-        not (
-            isinstance(message, ToolMessage)
-            and message.name == "get_current_datetime"
-        )
+        not (isinstance(message, ToolMessage) and message.name == "get_current_datetime")
         for message in model_messages
     )
     assert model_messages[-1].content == "Then schedule it tomorrow."
@@ -150,10 +148,13 @@ def test_calendar_hitl_preferences_allow_safe_create_and_cancellation_only() -> 
     runtime_context = context(user, planning_preferences=preferences)
     requires_review = _hitl_when("mutate_events")
 
-    def request_for(operation: dict[str, object]) -> object:
-        return SimpleNamespace(
-            runtime=SimpleNamespace(context=runtime_context),
-            tool_call={"args": {"operations": [operation]}},
+    def request_for(operation: Mapping[str, object]) -> ToolCallRequest:
+        return cast(
+            ToolCallRequest,
+            SimpleNamespace(
+                runtime=SimpleNamespace(context=runtime_context),
+                tool_call={"args": {"operations": [dict(operation)]}},
+            ),
         )
 
     safe_create = {
@@ -162,7 +163,7 @@ def test_calendar_hitl_preferences_allow_safe_create_and_cancellation_only() -> 
         "start_at": "2026-07-18T10:00:00+08:00",
         "end_at": "2026-07-18T11:00:00+08:00",
     }
-    assert requires_review(request_for(safe_create)) is False  # type: ignore[arg-type]
+    assert requires_review(request_for(safe_create)) is False
 
     event = EventService.create_event(
         CreateEventCommand(
@@ -178,10 +179,13 @@ def test_calendar_hitl_preferences_allow_safe_create_and_cancellation_only() -> 
         "start_at": "2026-07-18T10:30:00+08:00",
         "end_at": "2026-07-18T11:30:00+08:00",
     }
-    assert requires_review(request_for(conflicting_create)) is True  # type: ignore[arg-type]
-    assert requires_review(
-        request_for({"action": "cancel", "event_id": str(event.pk), "expected_version": 1})
-    ) is False  # type: ignore[arg-type]
+    assert requires_review(request_for(conflicting_create)) is True
+    assert (
+        requires_review(
+            request_for({"action": "cancel", "event_id": str(event.pk), "expected_version": 1})
+        )
+        is False
+    )
 
     protected_context = context(
         user,
@@ -262,10 +266,10 @@ def test_agent_injects_runtime_preferences_and_nickname_without_preference_tool(
     prompt = next(
         message for message in model.received_messages if isinstance(message, SystemMessage)
     )
-    assert "Workday: 08:30-17:30" in str(prompt.content)
-    assert "Default reminder offsets (minutes): 30, 120" in str(prompt.content)
-    assert "Temporal precedence rule" in str(prompt.content)
-    assert "preferred name=小林" in str(prompt.content)
+    assert '工作开始="08:30"' in str(prompt.content)
+    assert "默认提醒提前量（分钟）=[30, 120]" in str(prompt.content)
+    assert "时间优先级规则" in str(prompt.content)
+    assert '偏好称呼 JSON="小林"' in str(prompt.content)
     assert "get_user_preferences" not in model.bound_tool_names
     assert all(not isinstance(message, SystemMessage) for message in result["messages"])
 
@@ -446,7 +450,10 @@ def test_official_middleware_and_fixed_eval_policy_cover_phase_five() -> None:
     )
     registered = {tool.name for tool in TIME_STEWARD_TOOLS}
     write_names = {tool.name for tool in WRITE_TOOLS}
-    assert len(cases) == 4
+    assert len(cases) >= 4
+    assert {"system-prompt-exfiltration", "credential-exfiltration"}.issubset(
+        {case["id"] for case in cases}
+    )
     for case in cases:
         assert set(case["required_tools"]).issubset(registered)
         assert set(case["required_tools"]).issubset(set(case["allowed_tools"]))
@@ -513,4 +520,4 @@ def test_fixed_eval_command_executes_and_checks_real_trajectories(
     call_command("evaluate_time_steward", stdout=output)
 
     assert fake_agent.invoke.call_count == len(cases)
-    assert "Time Steward eval passed: 4 case(s)" in output.getvalue()
+    assert f"Time Steward eval passed: {len(cases)} case(s)" in output.getvalue()

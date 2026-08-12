@@ -1,13 +1,25 @@
+import logging
+from time import monotonic
+
 import httpx
+from django.conf import settings
 from drf_spectacular.utils import extend_schema
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from apps.external_data.administrative_areas import administrative_area_options
+from apps.external_data.administrative_areas import (
+    administrative_area_code,
+    administrative_area_options,
+)
 from apps.external_data.configuration import get_provider_config
-from apps.external_data.providers.geocoding import NominatimReverseGeocodingProvider
+from apps.external_data.metrics import REVERSE_GEOCODING_DURATION, REVERSE_GEOCODING_REQUESTS
+from apps.external_data.providers.geocoding import (
+    AmapReverseGeocodingProvider,
+    NominatimReverseGeocodingProvider,
+    ReverseGeocodingProvider,
+)
 from apps.external_data.providers.weather import OpenMeteoWeatherProvider
 from apps.external_data.schemas import ResolvedLocation
 from apps.external_data.serializers import (
@@ -17,6 +29,7 @@ from apps.external_data.serializers import (
 )
 
 CHINA_TIMEZONES = ("Asia/Shanghai",)
+logger = logging.getLogger(__name__)
 
 
 class ProviderCatalogView(APIView):
@@ -111,26 +124,50 @@ class CurrentLocationView(APIView):
         if not -90 <= latitude <= 90 or not -180 <= longitude <= 180:
             return Response({"detail": "coordinates are out of range"}, status=400)
 
-        try:
-            address = NominatimReverseGeocodingProvider().reverse(
-                latitude=latitude,
-                longitude=longitude,
-                language=request.query_params.get("locale", "zh-CN"),
-            )
-        except (httpx.HTTPError, LookupError):
-            return Response(
-                {
-                    "detail": (
-                        "Unable to resolve a complete province, city, and district "
-                        "from this location"
-                    )
-                },
-                status=422,
-            )
+        address = None
+        for provider in _reverse_geocoding_providers():
+            started_at = monotonic()
+            try:
+                address = provider.reverse(
+                    latitude=latitude,
+                    longitude=longitude,
+                    language=request.query_params.get("locale", "zh-CN"),
+                )
+            except (httpx.HTTPError, LookupError) as exc:
+                REVERSE_GEOCODING_REQUESTS.labels(provider=provider.name, result="error").inc()
+                logger.warning(
+                    "reverse_geocoding_provider_failed",
+                    extra={"provider": provider.name, "error_type": type(exc).__name__},
+                )
+            else:
+                REVERSE_GEOCODING_REQUESTS.labels(provider=provider.name, result="success").inc()
+                break
+            finally:
+                REVERSE_GEOCODING_DURATION.labels(provider=provider.name).observe(
+                    monotonic() - started_at
+                )
+
+        if address is None:
+            payload = {
+                "provider": "device_geolocation",
+                "provider_location_id": f"{latitude:.5f},{longitude:.5f}",
+                "name": "当前位置",
+                "admin1": "",
+                "country": "",
+                "timezone": request.query_params.get("timezone", "Asia/Shanghai"),
+                "label": "当前位置（精确坐标）",
+                "latitude": latitude,
+                "longitude": longitude,
+                "province": "",
+                "city": "",
+                "district": "",
+                "adcode": "",
+            }
+            return Response(LocationCandidateSerializer(payload).data)
 
         payload = {
             "provider": "device_geolocation",
-            "provider_location_id": f"{latitude:.5f},{longitude:.5f}",
+            "provider_location_id": address.adcode or f"{latitude:.5f},{longitude:.5f}",
             "name": address.district,
             "admin1": address.province,
             "country": address.country or "China",
@@ -141,6 +178,7 @@ class CurrentLocationView(APIView):
             "province": address.province,
             "city": address.city,
             "district": address.district,
+            "adcode": address.adcode,
         }
         return Response(LocationCandidateSerializer(payload).data)
 
@@ -186,6 +224,11 @@ class AdministrativeLocationResolveView(APIView):
                 "province": province,
                 "city": city,
                 "district": district,
+                "adcode": administrative_area_code(
+                    province=province,
+                    city=city,
+                    district=district,
+                ),
             }
         )
         return Response(LocationCandidateSerializer(payload).data)
@@ -208,4 +251,22 @@ def _location_payload(item: ResolvedLocation) -> dict[str, object]:
         "province": "",
         "city": "",
         "district": "",
+        "adcode": "",
     }
+
+
+def _reverse_geocoding_providers() -> list[ReverseGeocodingProvider]:
+    providers: list[ReverseGeocodingProvider] = []
+    if settings.AMAP_WEB_SERVICE_KEY:
+        providers.append(
+            AmapReverseGeocodingProvider(
+                api_key=settings.AMAP_WEB_SERVICE_KEY,
+                timeout_seconds=settings.AMAP_REVERSE_GEOCODING_TIMEOUT_SECONDS,
+            )
+        )
+    providers.append(
+        NominatimReverseGeocodingProvider(
+            timeout_seconds=settings.NOMINATIM_REVERSE_GEOCODING_TIMEOUT_SECONDS
+        )
+    )
+    return providers

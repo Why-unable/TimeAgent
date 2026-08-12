@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import logging
 import time
 from collections.abc import Callable
@@ -12,6 +13,48 @@ from django.http import HttpRequest, HttpResponse
 
 request_id_context: ContextVar[str] = ContextVar("request_id", default="-")
 logger = logging.getLogger("time_agent.request")
+
+
+class SafeJsonFormatter(logging.Formatter):
+    """Serialize an allowlisted log record without exception messages or tracebacks."""
+
+    extra_fields = (
+        "request_id",
+        "method",
+        "path",
+        "status_code",
+        "duration_ms",
+        "agent_run_id",
+        "error_code",
+        "tool_name",
+        "provider",
+        "error_type",
+        "component",
+        "model",
+        "llm_status",
+        "usage_source",
+        "input_tokens",
+        "output_tokens",
+        "total_tokens",
+        "memory_prompt_tokens",
+        "memory_prompt_ratio",
+    )
+
+    def format(self, record: logging.LogRecord) -> str:
+        payload: dict[str, object] = {
+            "time": self.formatTime(record, "%Y-%m-%dT%H:%M:%S%z"),
+            "level": record.levelname,
+            "logger": record.name,
+            "message": record.getMessage(),
+            "source": f"{record.module}:{record.funcName}:{record.lineno}",
+        }
+        for field in self.extra_fields:
+            value = getattr(record, field, None)
+            if value not in (None, "-"):
+                payload[field] = value
+        if record.exc_info and record.exc_info[0] is not None:
+            payload["exception_type"] = record.exc_info[0].__name__
+        return json.dumps(payload, ensure_ascii=False, default=str)
 
 
 def current_request_id() -> str:

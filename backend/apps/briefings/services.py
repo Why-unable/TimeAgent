@@ -9,6 +9,7 @@ from django.contrib.auth.models import User
 from django.db import transaction
 from django.utils import timezone
 
+from apps.accounts.services import GuestAccountPolicyService
 from apps.briefings.models import (
     BriefingDefinition,
     BriefingRun,
@@ -75,6 +76,10 @@ class BriefingDefinitionService:
             raise ValueError(f"Unknown briefing sections: {', '.join(sorted(unknown))}")
         if timezone_name:
             validate_timezone(timezone_name)
+        if definition is None:
+            GuestAccountPolicyService.assert_resource_creation_allowed(
+                user, "briefing_definition"
+            )
         item = definition or BriefingDefinition(user=user)
         if item.pk and item.user_id != user.pk:
             raise PermissionError("Briefing definition belongs to another user")

@@ -5,7 +5,7 @@ import pytest
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import User
 
-from apps.events.models import CalendarEventStatus
+from apps.events.models import CalendarEvent, CalendarEventStatus
 from apps.events.services import CreateEventCommand, EventService
 from apps.planning.schemas import PlanningConstraints, TimeSlot
 from apps.planning.services import PlanningService
@@ -95,11 +95,12 @@ def test_free_slot_search_merges_busy_intervals_and_ignores_cancelled_events() -
         start_at=local_datetime(20, 9, 30),
         end_at=local_datetime(20, 11),
     )
-    create_event(
-        user,
+    CalendarEvent.objects.create(
+        user=user,
         title="Second overlap",
         start_at=local_datetime(20, 10, 30),
         end_at=local_datetime(20, 12),
+        timezone="Asia/Shanghai",
     )
     create_event(
         user,

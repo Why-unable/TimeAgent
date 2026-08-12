@@ -8,6 +8,8 @@ export type CurrentUser = {
   display_name: string;
   is_email_verified: boolean;
   is_staff: boolean;
+  is_guest: boolean;
+  guest_expires_at: string | null;
 };
 
 export type Credentials = {
@@ -19,6 +21,20 @@ type TokenLoginResponse = {
   token: string;
   user: CurrentUser;
 };
+
+export async function startGuestSession(): Promise<CurrentUser> {
+  const native = isNativePlatform();
+  if (!native) await ensureCsrfToken();
+  const result = await apiRequest<CurrentUser | TokenLoginResponse>(
+    native ? "/api/v1/auth/native/guest/" : "/api/v1/auth/guest/",
+    { method: "POST" },
+  );
+  if (native && "token" in result) {
+    await setAuthToken(result.token);
+    return result.user;
+  }
+  return result as CurrentUser;
+}
 
 export async function ensureCsrfToken() {
   return apiRequest<{ csrfToken: string }>("/api/v1/auth/csrf/");

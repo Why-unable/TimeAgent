@@ -1,9 +1,10 @@
 from collections.abc import Mapping
-from typing import Any
+from typing import Any, cast
 
 from django.contrib.auth.models import AbstractBaseUser, User
 from django.db import transaction
 
+from apps.accounts.services import GuestAccountPolicyService
 from apps.preferences.models import UserPreference
 from apps.preferences.snapshots import PlanningPreferencesSnapshot
 
@@ -29,6 +30,9 @@ class UserPreferenceService:
             "daily_briefing_enabled",
             "briefing_time",
             "planning_rules",
+            "time_memory_enabled",
+            "time_memory_allow_generation",
+            "time_memory_allow_context_injection",
         }
     )
 
@@ -61,10 +65,19 @@ class UserPreferenceService:
         if unsupported_fields:
             fields = ", ".join(sorted(unsupported_fields))
             raise ValueError(f"Unsupported preference fields: {fields}")
+        GuestAccountPolicyService.validate_preference_changes(cast(User, user), changes)
 
         preference, _ = UserPreference.objects.select_for_update().get_or_create(user=user)
         for field_name, value in changes.items():
             setattr(preference, field_name, value)
         preference.full_clean()
         preference.save()
+        if set(changes) & {
+            "timezone",
+            "time_memory_enabled",
+            "time_memory_allow_generation",
+        }:
+            from apps.time_memory.event_handler import mark_time_memory_dirty
+
+            mark_time_memory_dirty(user=preference.user)
         return preference

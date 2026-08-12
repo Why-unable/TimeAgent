@@ -5,6 +5,7 @@ from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import models
 
+from apps.preferences.weather_location import validate_weather_location_data
 from common.time import InvalidTimezoneError, validate_timezone
 
 
@@ -45,6 +46,9 @@ class UserPreference(models.Model):
     daily_briefing_enabled = models.BooleanField(default=False)
     briefing_time = models.TimeField(default=time(8, 0))
     planning_rules = models.JSONField(default=dict, blank=True)
+    time_memory_enabled = models.BooleanField(default=True)
+    time_memory_allow_generation = models.BooleanField(default=True)
+    time_memory_allow_context_injection = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -93,22 +97,4 @@ class UserPreference(models.Model):
             raise ValidationError({field_name: "Must be a list of non-empty strings"})
 
     def _validate_weather_location_data(self) -> None:
-        value = self.weather_location_data
-        if not isinstance(value, dict):
-            raise ValidationError({"weather_location_data": "Must be an object"})
-        if not value:
-            return
-        required_text = ("provider", "name", "timezone", "label")
-        if any(
-            not isinstance(value.get(field), str) or not value[field].strip()
-            for field in required_text
-        ):
-            raise ValidationError({"weather_location_data": "Selected location is incomplete"})
-        for field in ("latitude", "longitude"):
-            coordinate = value.get(field)
-            if not isinstance(coordinate, (int, float)) or isinstance(coordinate, bool):
-                raise ValidationError({"weather_location_data": "Coordinates must be numbers"})
-        latitude = float(value["latitude"])
-        longitude = float(value["longitude"])
-        if not -90 <= latitude <= 90 or not -180 <= longitude <= 180:
-            raise ValidationError({"weather_location_data": "Coordinates are out of range"})
+        validate_weather_location_data(self.weather_location_data)

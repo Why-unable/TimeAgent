@@ -62,19 +62,51 @@ INSTALLED_APPS = [
     "drf_spectacular",
     "apps.accounts",
     "apps.action_proposals",
+    "apps.app_updates",
     "apps.agents",
     "apps.briefings",
     "apps.conversations",
     "apps.health",
     "apps.notifications",
+    "apps.observability",
     "apps.preferences",
     "apps.reminders",
     "apps.events",
     "apps.external_data",
     "apps.tasks",
+    "apps.time_memory",
     "apps.planning",
     "apps.today",
 ]
+
+ANDROID_UPDATE_ENABLED = os.getenv("ANDROID_UPDATE_ENABLED", "false").lower() in {
+    "1",
+    "true",
+    "yes",
+}
+ANDROID_UPDATE_VERSION_CODE = int(os.getenv("ANDROID_UPDATE_VERSION_CODE", "1"))
+ANDROID_UPDATE_VERSION_NAME = os.getenv("ANDROID_UPDATE_VERSION_NAME", "1.0.0")
+ANDROID_UPDATE_DOWNLOAD_URL = os.getenv("ANDROID_UPDATE_DOWNLOAD_URL", "")
+ANDROID_UPDATE_SHA256 = os.getenv("ANDROID_UPDATE_SHA256", "")
+ANDROID_UPDATE_SIZE_BYTES = int(os.getenv("ANDROID_UPDATE_SIZE_BYTES", "1"))
+ANDROID_UPDATE_RELEASE_NOTES = os.getenv("ANDROID_UPDATE_RELEASE_NOTES", "")
+ANDROID_UPDATE_PUBLISHED_AT = os.getenv("ANDROID_UPDATE_PUBLISHED_AT", "1970-01-01T00:00:00Z")
+ANDROID_UPDATE_MINIMUM_SUPPORTED_VERSION_CODE = int(
+    os.getenv("ANDROID_UPDATE_MINIMUM_SUPPORTED_VERSION_CODE", "1")
+)
+AMAP_WEB_SERVICE_KEY = os.getenv("AMAP_WEB_SERVICE_KEY", "").strip()
+AMAP_REVERSE_GEOCODING_TIMEOUT_SECONDS = float(
+    os.getenv("AMAP_REVERSE_GEOCODING_TIMEOUT_SECONDS", "5")
+)
+AMAP_WEATHER_ENABLED = os.getenv("AMAP_WEATHER_ENABLED", "false").lower() in {
+    "1",
+    "true",
+    "yes",
+}
+AMAP_WEATHER_TIMEOUT_SECONDS = float(os.getenv("AMAP_WEATHER_TIMEOUT_SECONDS", "8"))
+NOMINATIM_REVERSE_GEOCODING_TIMEOUT_SECONDS = float(
+    os.getenv("NOMINATIM_REVERSE_GEOCODING_TIMEOUT_SECONDS", "5")
+)
 
 MIDDLEWARE = [
     "django_prometheus.middleware.PrometheusBeforeMiddleware",
@@ -146,6 +178,15 @@ DEFAULT_USER_TIMEZONE = os.getenv("DEFAULT_TIMEZONE", "Asia/Shanghai")
 DEFAULT_USER_LOCALE = os.getenv("DEFAULT_LOCALE", "zh-CN")
 ACTION_PROPOSAL_TTL_SECONDS = int(os.getenv("ACTION_PROPOSAL_TTL_SECONDS", "86400"))
 AUTH_REGISTRATION_ENABLED = os.getenv("AUTH_REGISTRATION_ENABLED", "true").lower() == "true"
+GUEST_ACCESS_ENABLED = os.getenv("GUEST_ACCESS_ENABLED", "false").lower() == "true"
+GUEST_ACCOUNT_TTL_HOURS = int(os.getenv("GUEST_ACCOUNT_TTL_HOURS", "24"))
+GUEST_AGENT_RUN_LIMIT = int(os.getenv("GUEST_AGENT_RUN_LIMIT", "10"))
+GUEST_MAX_CONVERSATIONS = int(os.getenv("GUEST_MAX_CONVERSATIONS", "20"))
+GUEST_MAX_EVENTS = int(os.getenv("GUEST_MAX_EVENTS", "50"))
+GUEST_MAX_TASKS = int(os.getenv("GUEST_MAX_TASKS", "50"))
+GUEST_MAX_REMINDERS = int(os.getenv("GUEST_MAX_REMINDERS", "80"))
+GUEST_MAX_BRIEFING_DEFINITIONS = int(os.getenv("GUEST_MAX_BRIEFING_DEFINITIONS", "10"))
+GUEST_CLEANUP_BATCH_SIZE = int(os.getenv("GUEST_CLEANUP_BATCH_SIZE", "100"))
 NOTIFICATION_MAX_RETRIES = int(os.getenv("NOTIFICATION_MAX_RETRIES", "4"))
 NOTIFICATION_DEFAULT_CHANNEL = os.getenv("NOTIFICATION_DEFAULT_CHANNEL", "console")
 NOTIFICATION_SENDING_STALE_SECONDS = int(os.getenv("NOTIFICATION_SENDING_STALE_SECONDS", "300"))
@@ -162,6 +203,7 @@ WEB_PUSH_VAPID_PUBLIC_KEY = os.getenv("WEB_PUSH_VAPID_PUBLIC_KEY", "")
 WEB_PUSH_VAPID_PRIVATE_KEY = os.getenv("WEB_PUSH_VAPID_PRIVATE_KEY", "")
 WEB_PUSH_VAPID_SUBJECT = os.getenv("WEB_PUSH_VAPID_SUBJECT", "")
 WEB_PUSH_TIMEOUT_SECONDS = int(os.getenv("WEB_PUSH_TIMEOUT_SECONDS", "10"))
+WEB_PUSH_HTTPS_PROXY = os.getenv("WEB_PUSH_HTTPS_PROXY", "")
 
 STATIC_URL = "/static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
@@ -178,10 +220,14 @@ REST_FRAMEWORK = {
     # token auth is the additive channel for the native Android (Capacitor) app,
     # whose WebView origin is cross-origin and cannot rely on session cookies.
     "DEFAULT_AUTHENTICATION_CLASSES": [
-        "rest_framework.authentication.TokenAuthentication",
-        "rest_framework.authentication.SessionAuthentication",
+        "apps.accounts.authentication.ActiveAccountTokenAuthentication",
+        "apps.accounts.authentication.ActiveAccountSessionAuthentication",
     ],
-    "DEFAULT_THROTTLE_RATES": {"authentication": "10/min"},
+    "DEFAULT_THROTTLE_RATES": {
+        "authentication": "10/min",
+        "guest_authentication": os.getenv("GUEST_ACCOUNT_CREATION_RATE", "3/hour"),
+    },
+    "EXCEPTION_HANDLER": "config.api_exceptions.time_agent_exception_handler",
 }
 
 SPECTACULAR_SETTINGS = {
@@ -212,9 +258,19 @@ CACHES = {
 CELERY_BROKER_URL = os.getenv("CELERY_BROKER_URL", REDIS_URL)
 CELERY_RESULT_BACKEND = os.getenv("CELERY_RESULT_BACKEND", REDIS_URL)
 CELERY_TASK_TRACK_STARTED = True
+CELERY_WORKER_SEND_TASK_EVENTS = True
+CELERY_TASK_SEND_SENT_EVENT = True
 CELERY_TASK_TIME_LIMIT = 300
 CELERY_TIMEZONE = "UTC"
 CELERY_BEAT_SCHEDULE = {
+    "cleanup-expired-guest-accounts": {
+        "task": "accounts.cleanup_expired_guests",
+        "schedule": 900.0,
+    },
+    "recover-stale-agent-runs": {
+        "task": "conversations.recover_stale_runs",
+        "schedule": 300.0,
+    },
     "dispatch-due-reminders": {
         "task": "reminders.dispatch_due",
         "schedule": 30.0,
@@ -231,31 +287,31 @@ CELERY_BEAT_SCHEDULE = {
         "task": "briefings.schedule_due",
         "schedule": 60.0,
     },
+    "refresh-daily-time-memories": {
+        "task": "time_memory.refresh_daily",
+        "schedule": 86400.0,
+    },
 }
+AGENT_RUN_STALE_MINUTES = int(os.getenv("AGENT_RUN_STALE_MINUTES", "10"))
+
+TIME_MEMORY_PROMPT_TOKEN_BUDGET = int(os.getenv("TIME_MEMORY_PROMPT_TOKEN_BUDGET", "800"))
+TIME_MEMORY_REFRESH_DELAY_SECONDS = int(os.getenv("TIME_MEMORY_REFRESH_DELAY_SECONDS", "5"))
+TIME_MEMORY_AUTO_REFRESH_ENABLED = (
+    os.getenv("TIME_MEMORY_AUTO_REFRESH_ENABLED", "true").lower() == "true"
+)
 
 LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
-    "formatters": {
-        "json": {
-            "format": (
-                '{{"time":"{asctime}","level":"{levelname}",'
-                '"logger":"{name}","message":"{message}",'
-                '"request_id":"{request_id}","method":"{method}",'
-                '"path":"{path}","status_code":"{status_code}",'
-                '"duration_ms":"{duration_ms}"}}'
-            ),
-            "style": "{",
-            "defaults": {
-                "request_id": "-",
-                "method": "-",
-                "path": "-",
-                "status_code": "-",
-                "duration_ms": "-",
-            },
-        }
-    },
+    "formatters": {"json": {"()": "config.observability.SafeJsonFormatter"}},
     "handlers": {"console": {"class": "logging.StreamHandler", "formatter": "json"}},
+    "loggers": {
+        "httpx": {
+            "handlers": ["console"],
+            "level": "WARNING",
+            "propagate": False,
+        },
+    },
     "root": {"handlers": ["console"], "level": LOG_LEVEL},
 }

@@ -11,7 +11,7 @@ import {
 import { ApiError } from "../api/client";
 import { queryClient } from "../app/query-client";
 import { currentUserQueryKey } from "../features/accounts/hooks";
-import { signIn } from "../features/accounts/session";
+import { signIn, signInAsGuest } from "../features/accounts/session";
 
 type Mode = "login" | "register" | "reset";
 type LoginLocationState = { from?: string; notice?: string; email?: string };
@@ -122,6 +122,21 @@ export function LoginPage() {
     }
   }
 
+  async function enterGuestExperience() {
+    setPending(true);
+    setError("");
+    setStatus("");
+    try {
+      const user = await signInAsGuest();
+      queryClient.setQueryData(currentUserQueryKey, user);
+      navigate(destination, { replace: true });
+    } catch (requestError) {
+      setError(errorMessage(requestError));
+    } finally {
+      setPending(false);
+    }
+  }
+
   return (
     <main className="flex min-h-screen items-center justify-center bg-slate-950 px-5 py-12 text-slate-100">
       <section className="w-full max-w-md rounded-3xl border border-white/10 bg-slate-900 p-7 shadow-2xl shadow-black/30">
@@ -208,6 +223,21 @@ export function LoginPage() {
             </button>
           )}
         </form>
+        {!resetConfirmation && !verificationConfirmation && mode !== "reset" && (
+          <div className="mt-6 border-t border-white/10 pt-6">
+            <button
+              type="button"
+              disabled={pending}
+              onClick={() => void enterGuestExperience()}
+              className="w-full rounded-xl border border-cyan-300/50 bg-cyan-300/5 px-5 py-3 font-medium text-cyan-200 transition hover:bg-cyan-300/10 disabled:opacity-50"
+            >
+              {pending ? "正在进入…" : "游客体验（无需注册）"}
+            </button>
+            <p className="mt-3 text-xs leading-5 text-slate-400">
+              将创建独立的临时空间，预置少量示例数据；数据默认保留 24 小时，且不启用邮件通知与长期记忆。
+            </p>
+          </div>
+        )}
       </section>
     </main>
   );

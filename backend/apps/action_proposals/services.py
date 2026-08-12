@@ -274,12 +274,15 @@ class ActionProposalService:
         args: dict[str, Any],
     ) -> dict[str, Any]:
         try:
+            raw_occurrence_count = args.get("occurrence_count")
+            if not isinstance(raw_occurrence_count, int | str):
+                raise TypeError
             windows = EventSeriesService.preview_occurrence_windows(
                 start_at=DATETIME_ADAPTER.validate_python(args.get("start_at")),
                 end_at=DATETIME_ADAPTER.validate_python(args.get("end_at")),
                 frequency=str(args.get("frequency")),
                 interval=int(args.get("interval", 1)),
-                occurrence_count=int(args.get("occurrence_count")),
+                occurrence_count=int(raw_occurrence_count),
             )
         except (ValidationError, ValueError, TypeError):
             context["conflict_check"] = "unavailable_until_arguments_are_valid"

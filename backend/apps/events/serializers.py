@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, cast
 
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError as DjangoValidationError
@@ -78,7 +78,8 @@ class CreateCalendarEventSerializer(StrictSerializer):
         super().__init__(*args, **kwargs)
         user = getattr(self.context.get("request"), "user", None)
         if isinstance(user, User):
-            self.fields["task"].queryset = Task.objects.filter(user=user)  # type: ignore[union-attr]
+            task_field = cast(serializers.PrimaryKeyRelatedField[Any], self.fields["task"])
+            task_field.queryset = Task.objects.filter(user=user)
 
     def create(self, validated_data: dict[str, Any]) -> CalendarEvent:
         user = self.context["request"].user
@@ -122,7 +123,8 @@ class UpdateCalendarEventSerializer(StrictSerializer):
         super().__init__(*args, **kwargs)
         user = getattr(self.context.get("request"), "user", None)
         if isinstance(user, User):
-            self.fields["task"].queryset = Task.objects.filter(user=user)  # type: ignore[union-attr]
+            task_field = cast(serializers.PrimaryKeyRelatedField[Any], self.fields["task"])
+            task_field.queryset = Task.objects.filter(user=user)
 
     def update(
         self,

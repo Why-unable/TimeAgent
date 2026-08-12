@@ -1,9 +1,13 @@
+from datetime import timedelta
 from uuid import UUID
 
 from celery import shared_task
+from django.conf import settings
+from django.utils import timezone
 
 from apps.conversations.execution import execute_agent_run, resume_agent_run
 from apps.conversations.models import AgentRun
+from apps.conversations.services import AgentRunService
 
 
 @shared_task(
@@ -40,3 +44,12 @@ def resume_agent_run_task(self: object, run_id: str) -> str:
         task_id=task_id,
     )
     return result.status
+
+
+@shared_task(name="conversations.recover_stale_runs")  # type: ignore[untyped-decorator]
+def recover_stale_agent_runs(batch_size: int = 100) -> int:
+    stale_minutes = int(getattr(settings, "AGENT_RUN_STALE_MINUTES", 10))
+    return AgentRunService.fail_stale_runs(
+        cutoff=timezone.now() - timedelta(minutes=stale_minutes),
+        batch_size=batch_size,
+    )

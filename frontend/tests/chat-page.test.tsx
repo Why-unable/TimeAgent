@@ -212,6 +212,27 @@ describe("ChatPage", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent("模型暂不可用");
   });
 
+  it("shows a persisted failure reason and request reference with readable colors", async () => {
+    const failedRun = {
+      ...run,
+      status: "failed",
+      error: "模型服务响应超时，请检查网络后重试。",
+    };
+    vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url.endsWith("/conversations/")) return new Response(JSON.stringify([conversation]));
+      if (url.endsWith(`/conversations/${conversation.id}/`)) {
+        return new Response(JSON.stringify({ ...conversation, runs: [failedRun] }));
+      }
+      if (url.endsWith("/api/v1/action-proposals/")) return new Response(JSON.stringify([]));
+      throw new Error(`Unexpected request: ${url}`);
+    }));
+    renderChatPage(`/chat/${conversation.id}`);
+    const notice = await screen.findByText(/模型服务响应超时/);
+    expect(notice).toHaveTextContent("请求编号：request-1");
+    expect(notice).toHaveClass("bg-red-50", "text-red-900");
+  });
+
   it("resumes SSE from the approval cursor and renders the final reply", async () => {
     const proposal = {
       id: "44444444-4444-4444-8444-444444444444",

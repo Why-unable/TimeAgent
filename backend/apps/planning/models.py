@@ -28,7 +28,12 @@ class SchedulePlan(models.Model):
     applied_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
-        indexes = [models.Index(fields=["user", "status", "created_at"])]
+        indexes = [
+            models.Index(
+                fields=["user", "status", "created_at"],
+                name="plan_user_status_created_idx",
+            )
+        ]
 
     def __str__(self) -> str:
         return f"Schedule plan {self.pk} ({self.status})"

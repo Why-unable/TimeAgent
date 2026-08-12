@@ -1,7 +1,7 @@
 // Time Agent service worker: PWA offline shell + Web Push.
 // One SW controls the page scope, so both concerns live here.
 
-const CACHE_VERSION = "v2";
+const CACHE_VERSION = "v3";
 const APP_SHELL_CACHE = `time-agent-shell-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `time-agent-runtime-${CACHE_VERSION}`;
 
@@ -49,9 +49,13 @@ self.addEventListener("fetch", (event) => {
 
   const url = new URL(request.url);
 
-  // Never intercept API or health traffic — always hit the network so auth
-  // and freshness are never served from cache.
-  if (url.pathname.startsWith("/api") || url.pathname.startsWith("/health")) {
+  // Never intercept API, health, or release downloads. APK requests must reach
+  // Nginx directly and must never fall back to or poison the cached SPA shell.
+  if (
+    url.pathname.startsWith("/api") ||
+    url.pathname.startsWith("/health") ||
+    url.pathname.startsWith("/releases/")
+  ) {
     return;
   }
 
@@ -60,8 +64,11 @@ self.addEventListener("fetch", (event) => {
     event.respondWith(
       fetch(request)
         .then((response) => {
-          const copy = response.clone();
-          caches.open(RUNTIME_CACHE).then((cache) => cache.put("/index.html", copy));
+          const contentType = response.headers.get("content-type") || "";
+          if (response.ok && contentType.includes("text/html")) {
+            const copy = response.clone();
+            caches.open(RUNTIME_CACHE).then((cache) => cache.put("/index.html", copy));
+          }
           return response;
         })
         .catch(() =>

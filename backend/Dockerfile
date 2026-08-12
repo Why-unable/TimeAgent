@@ -15,9 +15,8 @@ WORKDIR /app
 COPY pyproject.toml uv.lock ./
 RUN uv sync --frozen --no-dev
 
-COPY . .
-RUN useradd --create-home --uid 10001 appuser \
-    && chown -R appuser:appuser /app
+RUN useradd --create-home --uid 10001 appuser
+COPY --chown=appuser:appuser . .
 USER appuser
 ENV PATH="/app/.venv/bin:$PATH"
 

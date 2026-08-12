@@ -1,5 +1,6 @@
 import json
 from typing import Any
+from urllib.parse import urlsplit
 
 from django.conf import settings
 
@@ -44,16 +45,24 @@ class WebPushNotificationProvider:
         invalid_ids: list[str] = []
         for target in message.web_push_targets:
             try:
-                response = self._sender(
-                    subscription_info={
-                        "endpoint": target.endpoint,
-                        "keys": {"p256dh": target.p256dh, "auth": target.auth},
-                    },
-                    data=data,
-                    vapid_private_key=private_key,
-                    vapid_claims={"sub": subject},
-                    timeout=int(getattr(settings, "WEB_PUSH_TIMEOUT_SECONDS", 10)),
-                )
+                requests_session = _build_proxy_session()
+                try:
+                    send_options = {
+                        "subscription_info": {
+                            "endpoint": target.endpoint,
+                            "keys": {"p256dh": target.p256dh, "auth": target.auth},
+                        },
+                        "data": data,
+                        "vapid_private_key": private_key,
+                        "vapid_claims": {"sub": subject},
+                        "timeout": int(getattr(settings, "WEB_PUSH_TIMEOUT_SECONDS", 10)),
+                    }
+                    if requests_session is not None:
+                        send_options["requests_session"] = requests_session
+                    response = self._sender(**send_options)
+                finally:
+                    if requests_session is not None:
+                        requests_session.close()
             except Exception as exc:
                 status_code = _status_code(exc)
                 if status_code in {404, 410}:
@@ -65,6 +74,7 @@ class WebPushNotificationProvider:
                     "ConnectTimeout",
                     "ConnectionError",
                     "ReadTimeout",
+                    "SoftTimeLimitExceeded",
                     "Timeout",
                 }:
                     raise TransientNotificationError(type(exc).__name__) from exc
@@ -96,3 +106,18 @@ def _status_code(exc: Exception) -> int | None:
     response = getattr(exc, "response", None)
     value = getattr(response, "status_code", None)
     return value if isinstance(value, int) else None
+
+
+def _build_proxy_session() -> Any | None:
+    proxy_url = str(getattr(settings, "WEB_PUSH_HTTPS_PROXY", "")).strip()
+    if not proxy_url:
+        return None
+    parsed = urlsplit(proxy_url)
+    if parsed.scheme not in {"http", "https"} or not parsed.hostname:
+        raise NotificationConfigurationError("WEB_PUSH_HTTPS_PROXY must be an HTTP(S) URL")
+    import requests
+
+    session = requests.Session()
+    session.trust_env = False
+    session.proxies.update({"http": proxy_url, "https": proxy_url})
+    return session

@@ -38,6 +38,11 @@ Cloudflare Tunnel 只建立出站连接，因此不需要向公网开放 80、44
 - Cloudflare Zero Trust 账户的操作权限；
 - 现有的 `DJANGO_SECRET_KEY`、模型/邮件密钥、SMTP 密码、Web Push VAPID 密钥。
 
+中国境内天气可复用高德 Web Service Key：设置 `AMAP_WEATHER_ENABLED=true` 后，
+简报天气只向高德发送已确认地点对应的六位行政区 `adcode`。高德预报通常覆盖当天起
+4 天，且不提供 Open-Meteo 的降水概率、降水量、日出和日落字段；高德失败时系统自动
+降级到 Open-Meteo。不要把高德 Key 写入前端 `VITE_*` 变量。
+
 其中 PostgreSQL 备份保存用户、业务数据、ActionProposal、通知投递记录、聊天与
 LangGraph 持久化（当 `LANGGRAPH_DATABASE_URL` 为空时）。请保留相同的 VAPID
 密钥对，否则已存在的 Web Push 订阅不能继续按原身份投递。
@@ -269,6 +274,13 @@ Windows 的 `cloudflared` 和 Compose 服务。保留旧机与最终切换前的
 因此，正式切换最好设置一个短暂维护窗口，并且先在临时 hostname 上完成新机验收。
 
 ## 7. 自启动、日常更新与验收
+
+每次生产更新前先执行真实模型发布门禁。该命令失败时不得继续构建或重启生产服务：
+
+```bash
+cd /home/hyj/Project/TimeAgent
+make release-gate EVALUATION_MODEL=deepseek
+```
 
 Compose 中所有长期服务已使用 `restart: unless-stopped`；Docker daemon 和
 `cloudflared` systemd 服务启用后，服务器重启会自动带起它们。首次部署后、每次内核

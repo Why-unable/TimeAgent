@@ -8,7 +8,7 @@ export async function registerServiceWorker(): Promise<void> {
   // and is meaningful only against the built app, so register it in prod builds.
   if (import.meta.env.DEV) return;
   try {
-    await navigator.serviceWorker.register("/sw.js");
+    await navigator.serviceWorker.register("/sw.js?v=3");
   } catch {
     // Registration failure must never block app startup.
   }

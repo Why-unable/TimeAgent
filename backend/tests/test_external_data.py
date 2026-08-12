@@ -16,15 +16,19 @@ from apps.briefings.schemas import (
     SectionResult,
     SourceReference,
 )
+from apps.external_data.administrative_areas import administrative_area_code
 from apps.external_data.configuration import (
     NewsProviderConfig,
     WeatherProviderConfig,
     get_provider_config,
 )
 from apps.external_data.models import ExternalNewsItem
-from apps.external_data.providers.geocoding import AdministrativeAddress
+from apps.external_data.providers.geocoding import (
+    AdministrativeAddress,
+    AmapReverseGeocodingProvider,
+)
 from apps.external_data.providers.news import RssNewsProvider, canonicalize_url
-from apps.external_data.providers.weather import OpenMeteoWeatherProvider
+from apps.external_data.providers.weather import AmapWeatherProvider, OpenMeteoWeatherProvider
 from apps.external_data.schemas import (
     DailyForecast,
     NewsItemData,
@@ -86,7 +90,7 @@ def test_provider_catalog_contains_only_https_trusted_feeds() -> None:
         "OSChina",
         "Solidot",
         "Ifanr",
-        "36Kr",
+        "UN News World",
     }
     assert all(str(feed.url).startswith("https://") for feed in config.news.feeds)
 
@@ -113,7 +117,7 @@ def test_domestic_topic_alias_routes_only_declared_trusted_feeds() -> None:
         limit=10,
     )
 
-    assert result.selected_feeds == ["China News Service Finance", "36Kr"]
+    assert result.selected_feeds == ["China News Service Finance"]
     assert result.uncovered_topics == []
 
 
@@ -503,7 +507,7 @@ def test_rss_provider_bypasses_unavailable_cache(
 
     config = _news_config(_feed("Python Feed", "https://example.test/feed.xml", ["python"]))
     monkeypatch.setattr(news_module, "_cache_unavailable_until", 0.0)
-    monkeypatch.setattr(news_module.cache, "get", lambda key: (_ for _ in ()).throw(OSError()))
+    monkeypatch.setattr(cache, "get", lambda key: (_ for _ in ()).throw(OSError()))
     provider = RssNewsProvider(
         config,
         client=httpx.Client(
@@ -610,6 +614,9 @@ class RecordingWeatherProvider:
             country="China",
         )
 
+    def search_locations(self, query: str, *, language: str) -> list[ResolvedLocation]:
+        return [self.resolve_location(query, language=language)]
+
     def forecast(
         self,
         location: ResolvedLocation,
@@ -693,6 +700,168 @@ def test_weather_service_uses_confirmed_coordinates_without_regeocoding() -> Non
 
 
 @pytest.mark.django_db
+def test_weather_service_recognizes_saved_location_label_without_regeocoding() -> None:
+    user = User.objects.create_user(username="saved-label-weather-location-user")
+    UserPreferenceService.update_for_user(
+        user,
+        {
+            "weather_location": "广东省 / 茂名市 / 高州市",
+            "weather_location_data": {
+                "provider": "device_geolocation",
+                "provider_location_id": "22.09060,110.87708",
+                "name": "高州市",
+                "admin1": "广东省",
+                "country": "中国",
+                "timezone": "Asia/Shanghai",
+                "label": "广东省 / 茂名市 / 高州市",
+                "latitude": 22.0906,
+                "longitude": 110.87708,
+            },
+        },
+    )
+    provider = RecordingWeatherProvider()
+
+    forecast = WeatherDataService.forecast_for_user(
+        user=user,
+        start_date=date(2026, 8, 9),
+        requested_at=datetime(2026, 8, 9, tzinfo=UTC),
+        locale="zh-CN",
+        location_query="广东省/茂名市/高州市",
+        provider=provider,
+    )
+
+    assert provider.resolve_calls == 0
+    assert forecast.location.latitude == 22.0906
+
+
+@pytest.mark.django_db
+def test_weather_service_returns_administrative_and_device_coordinate_forecasts() -> None:
+    user = User.objects.create_user(username="dual-coordinate-weather-user")
+    UserPreferenceService.update_for_user(
+        user,
+        {
+            "weather_location": "广东省 / 茂名市 / 高州市",
+            "weather_location_data": {
+                "schema_version": 2,
+                "provider": "open_meteo",
+                "provider_location_id": "123",
+                "adcode": "440981",
+                "name": "高州市",
+                "admin1": "广东省",
+                "country": "中国",
+                "timezone": "Asia/Shanghai",
+                "label": "广东省 / 茂名市 / 高州市",
+                "province": "广东省",
+                "city": "茂名市",
+                "district": "高州市",
+                "administrative_coordinates": {
+                    "provider": "open_meteo",
+                    "provider_location_id": "123",
+                    "coordinate_role": "administrative_center",
+                    "latitude": 21.91965,
+                    "longitude": 110.85678,
+                    "label": "广东省 / 茂名市 / 高州市",
+                },
+                "current_coordinates": {
+                    "provider": "device_geolocation",
+                    "provider_location_id": "22.09060,110.87708",
+                    "coordinate_role": "device_gps",
+                    "latitude": 22.0906,
+                    "longitude": 110.87708,
+                    "label": "广东省 / 茂名市 / 高州市",
+                    "accuracy_meters": 8.5,
+                },
+            },
+        },
+    )
+
+    collection = WeatherDataService.forecast_variants_for_user(
+        user=user,
+        start_date=date(2026, 8, 9),
+        requested_at=datetime(2026, 8, 9, tzinfo=UTC),
+        locale="zh-CN",
+        coordinate_provider=RecordingWeatherProvider(),
+    )
+
+    assert [item.coordinate_role for item in collection.forecasts] == [
+        "administrative_center",
+        "device_gps",
+    ]
+    assert [item.forecast.location.latitude for item in collection.forecasts] == [
+        21.91965,
+        22.0906,
+    ]
+    assert collection.warnings == []
+
+
+def test_amap_weather_provider_uses_adcode_and_returns_forecast() -> None:
+    requests: list[httpx.Request] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        requests.append(request)
+        return httpx.Response(
+            200,
+            json={
+                "status": "1",
+                "forecasts": [
+                    {
+                        "city": "高州市",
+                        "province": "广东省",
+                        "casts": [
+                            {
+                                "date": "2026-08-09",
+                                "dayweather": "雷阵雨",
+                                "nightweather": "多云",
+                                "daytemp": "34",
+                                "nighttemp": "27",
+                            }
+                        ],
+                    }
+                ],
+            },
+        )
+
+    provider = AmapWeatherProvider(
+        api_key="test-key",
+        client=httpx.Client(transport=httpx.MockTransport(handler)),
+    )
+    forecast = provider.forecast(
+        ResolvedLocation(
+            name="高州市",
+            latitude=22.0906,
+            longitude=110.87708,
+            timezone="Asia/Shanghai",
+            country="中国",
+            admin1="广东省",
+            provider_location_id="440981",
+        ),
+        start_date=date(2026, 8, 9),
+        days=1,
+        requested_at=datetime(2026, 8, 8, 23, 55, tzinfo=UTC),
+    )
+
+    assert [request.url.path for request in requests] == ["/v3/weather/weatherInfo"]
+    assert requests[0].url.params["city"] == "440981"
+    assert forecast.provider == "amap"
+    assert forecast.location.provider_location_id == "440981"
+    assert forecast.daily[0].condition == "白天雷阵雨，夜间多云"
+    assert forecast.daily[0].weather_code == 95
+    assert forecast.daily[0].temperature_min == 27
+    assert "key=" not in forecast.source_url
+
+
+def test_administrative_area_code_resolves_county_level_city() -> None:
+    assert (
+        administrative_area_code(
+            province="广东省",
+            city="茂名市",
+            district="高州市",
+        )
+        == "440981"
+    )
+
+
+@pytest.mark.django_db
 def test_provider_catalog_api_requires_authentication_and_lists_feeds() -> None:
     client = APIClient()
     assert client.get("/api/v1/providers/catalog/").status_code in {401, 403}
@@ -734,6 +903,139 @@ def test_current_location_api_returns_a_confirmable_coordinate_candidate(
     assert response.data["latitude"] == 22.27
     assert response.data["label"] == "广东省 / 珠海市 / 香洲区"
     assert response.data["district"] == "香洲区"
+
+
+def test_amap_reverse_geocoding_converts_gps_and_returns_administrative_address() -> None:
+    requests: list[httpx.Request] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        requests.append(request)
+        if request.url.path.endswith("/coordinate/convert"):
+            return httpx.Response(
+                200,
+                json={"status": "1", "info": "ok", "locations": "116.404,39.915"},
+            )
+        return httpx.Response(
+            200,
+            json={
+                "status": "1",
+                "info": "ok",
+                "regeocode": {
+                    "addressComponent": {
+                        "country": "中国",
+                        "province": "北京市",
+                        "city": [],
+                        "district": "东城区",
+                    }
+                },
+            },
+        )
+
+    provider = AmapReverseGeocodingProvider(
+        api_key="test-key",
+        client=httpx.Client(transport=httpx.MockTransport(handler)),
+    )
+
+    address = provider.reverse(latitude=39.9087, longitude=116.3975, language="zh-CN")
+
+    assert address == AdministrativeAddress(
+        province="北京市",
+        city="北京市",
+        district="东城区",
+        country="中国",
+    )
+    assert requests[0].url.params["coordsys"] == "gps"
+    assert requests[0].url.params["locations"] == "116.397500,39.908700"
+    assert requests[1].url.params["location"] == "116.404,39.915"
+
+
+@pytest.mark.django_db
+def test_current_location_api_prefers_amap(
+    monkeypatch: pytest.MonkeyPatch,
+    settings: Any,
+) -> None:
+    settings.AMAP_WEB_SERVICE_KEY = "test-key"
+    monkeypatch.setattr(
+        "apps.external_data.views.AmapReverseGeocodingProvider.reverse",
+        lambda *args, **kwargs: AdministrativeAddress(
+            province="广东省",
+            city="深圳市",
+            district="罗湖区",
+            country="中国",
+        ),
+    )
+    monkeypatch.setattr(
+        "apps.external_data.views.NominatimReverseGeocodingProvider.reverse",
+        lambda *args, **kwargs: pytest.fail("Nominatim must not run after AMap succeeds"),
+    )
+    client = APIClient()
+    client.force_authenticate(user=User.objects.create_user(username="amap-location-user"))
+
+    response = client.get(
+        "/api/v1/providers/locations/current/",
+        {"latitude": "22.565", "longitude": "114.117", "timezone": "Asia/Shanghai"},
+    )
+
+    assert response.status_code == 200
+    assert response.data["label"] == "广东省 / 深圳市 / 罗湖区"
+
+
+@pytest.mark.django_db
+def test_current_location_api_falls_back_from_amap_to_nominatim(
+    monkeypatch: pytest.MonkeyPatch,
+    settings: Any,
+) -> None:
+    settings.AMAP_WEB_SERVICE_KEY = "test-key"
+    monkeypatch.setattr(
+        "apps.external_data.views.AmapReverseGeocodingProvider.reverse",
+        lambda *args, **kwargs: (_ for _ in ()).throw(httpx.ConnectTimeout("timed out")),
+    )
+    monkeypatch.setattr(
+        "apps.external_data.views.NominatimReverseGeocodingProvider.reverse",
+        lambda *args, **kwargs: AdministrativeAddress(
+            province="广东省",
+            city="深圳市",
+            district="罗湖区",
+            country="中国",
+        ),
+    )
+    client = APIClient()
+    client.force_authenticate(user=User.objects.create_user(username="fallback-location-user"))
+
+    response = client.get(
+        "/api/v1/providers/locations/current/",
+        {"latitude": "22.565", "longitude": "114.117", "timezone": "Asia/Shanghai"},
+    )
+
+    assert response.status_code == 200
+    assert response.data["label"] == "广东省 / 深圳市 / 罗湖区"
+
+
+@pytest.mark.django_db
+def test_current_location_api_falls_back_to_authorized_coordinates(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        "apps.external_data.views.NominatimReverseGeocodingProvider.reverse",
+        lambda *args, **kwargs: (_ for _ in ()).throw(httpx.ConnectTimeout("timed out")),
+    )
+    client = APIClient()
+    user = User.objects.create_user(username="current-location-fallback-user")
+    client.force_authenticate(user=user)
+
+    response = client.get(
+        "/api/v1/providers/locations/current/",
+        {"latitude": "22.27", "longitude": "113.57", "timezone": "Asia/Shanghai"},
+    )
+
+    assert response.status_code == 200
+    assert response.data["provider"] == "device_geolocation"
+    assert response.data["label"] == "当前位置（精确坐标）"
+    assert response.data["latitude"] == 22.27
+    assert response.data["longitude"] == 113.57
+    assert response.data["province"] == ""
+    assert response.data["city"] == ""
+    assert response.data["district"] == ""
 
 
 @pytest.mark.django_db

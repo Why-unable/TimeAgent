@@ -25,6 +25,21 @@ def validate_draft(draft: BriefingDraft, sections: list[SectionResult]) -> None:
         raise ValueError("Every briefing task item must reference a source")
     if any(not item.source_ids for item in draft.weather_items):
         raise ValueError("Every briefing weather item must reference a source")
+    weather_section = next((item for item in sections if item.key == "weather"), None)
+    if weather_section and weather_section.status == "completed":
+        expected_weather_roles = {
+            str(item.get("coordinate_role", ""))
+            for item in weather_section.data.get("daily", [])
+            if item.get("coordinate_role")
+        }
+        referenced_weather_roles = {
+            str(item.get("coordinate_role", ""))
+            for item in weather_section.data.get("daily", [])
+            if item.get("coordinate_role")
+            and str(item.get("id", "")) in referenced_ids
+        }
+        if referenced_weather_roles != expected_weather_roles:
+            raise ValueError("Briefing output must include every saved weather coordinate role")
     if any(not item.source_ids for item in draft.news_items):
         raise ValueError("Every briefing news item must reference a source")
     if not draft.title.strip() or not draft.overview.strip():

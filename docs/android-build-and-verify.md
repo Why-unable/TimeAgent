@@ -14,13 +14,13 @@
 
 ## 1. 一次性环境准备
 
-### 1.1 安装 JDK 17
+### 1.1 安装 JDK 21
 
-Capacitor / Android Gradle Plugin 需要 JDK 17。
+当前 Capacitor 插件工具链需要 JDK 21。
 
-- 下载 Temurin 17（https://adoptium.net）或用 Android Studio 自带的 JDK。
+- 下载 Temurin 21（https://adoptium.net）或用 Android Studio 自带的 JDK。
 - 设置 `JAVA_HOME` 指向 JDK 17，并把 `%JAVA_HOME%\bin` 加入 PATH。
-- 验证：`java -version` 应显示 17.x。
+- 验证：`java -version` 应显示 21.x。
 
 ### 1.2 安装 Android Studio（含 Android SDK）
 
@@ -128,9 +128,9 @@ cd frontend/android
 
 debug APK 用自带 debug 签名，适合自测/侧载。要分发正式包：
 
-1. 生成签名 keystore：`keytool -genkey -v -keystore timeagent.keystore -alias timeagent -keyalg RSA -keysize 2048 -validity 10000`
-2. 在 `android/app/build.gradle` 配置 signingConfigs，或用 Android Studio 的 Build → Generate Signed Bundle/APK。
-3. `./gradlew assembleRelease`。
+1. 在仓库外生成并离线备份签名 keystore：`keytool -genkey -v -keystore timeagent.keystore -alias timeagent -keyalg RSA -keysize 2048 -validity 10000`
+2. 在当前 shell 中设置 `TIME_AGENT_ANDROID_KEYSTORE_PATH`、`TIME_AGENT_ANDROID_KEYSTORE_PASSWORD`、`TIME_AGENT_ANDROID_KEY_ALIAS`、`TIME_AGENT_ANDROID_KEY_PASSWORD`。这些值不得写入仓库或项目 `.env`。
+3. 执行 `./gradlew assembleRelease`。构建脚本会在缺少任一签名变量时拒绝生成 release 包，避免误发未签名或临时签名的 APK。
 
 首次安装仍需用户允许「未知来源」。上应用商店需软著等资质，侧载则不需要。
 
@@ -144,3 +144,14 @@ VITE_API_BASE_URL=https://你的域名 npm run build
 npx cap sync android
 # 重新 assembleDebug 并安装
 ```
+
+## 7. 应用内更新发布
+
+包含应用内更新能力的 APK 需要先由用户手动安装一次。之后每个版本必须提高 `frontend/android/app/build.gradle` 的 `versionCode`，并使用同一份 release keystore 签名。将 APK 放到 HTTPS 静态地址后计算：
+
+```bash
+sha256sum app-release.apk
+stat -c %s app-release.apk
+```
+
+仓库网关将主机 `releases/` 只读发布到 `/releases/<文件名>.apk`，不提供目录列表。先执行 `install -d -m 0755 releases`，确保 Nginx 可以遍历只读挂载目录；再将正式签名包复制到 `releases/timeagent-<版本>.apk`，并保持 APK 为 `0644`。把版本号、`https://steward.uresofa.me/releases/...` URL、SHA-256、字节数、发布时间和更新说明写入服务器 `.env` 的 `ANDROID_UPDATE_*`，重建或重启 Django 与 Nginx。App 会在“应用设置 → 检查更新”中读取清单。Android 仍要求用户授权“安装未知应用”并确认安装，这是系统安全边界，不能静默绕过。

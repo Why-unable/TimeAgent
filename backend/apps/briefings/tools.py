@@ -205,7 +205,7 @@ def research_weather(
     if preference is not None:
         configured_end = start_date + timedelta(days=preference.weather_forecast_days - 1)
         end_date = min(end_date, configured_end)
-    forecast = WeatherDataService.forecast_for_user(
+    collection = WeatherDataService.forecast_variants_for_user(
         user=actor,
         start_date=start_date,
         end_date=end_date,
@@ -213,25 +213,26 @@ def research_weather(
         locale=runtime.context.locale,
         location_query=location or None,
     )
-    location_label = ", ".join(
-        item
-        for item in [forecast.location.name, forecast.location.admin1, forecast.location.country]
-        if item
-    )
     daily = []
     sources = []
-    for item in forecast.daily:
-        source_id = (
-            f"weather:{forecast.location.latitude:.4f}:"
-            f"{forecast.location.longitude:.4f}:{item.date.isoformat()}"
-        )
-        daily.append(
-            {
+    forecast_payloads = []
+    for variant in collection.forecasts:
+        forecast = variant.forecast
+        variant_daily = []
+        for item in forecast.daily:
+            source_id = (
+                f"weather:{variant.coordinate_role}:{forecast.location.latitude:.4f}:"
+                f"{forecast.location.longitude:.4f}:{item.date.isoformat()}"
+            )
+            item_payload = {
                 "id": source_id,
                 "date": item.date.isoformat(),
-                "location": location_label,
+                "location": variant.display_label,
+                "coordinate_role": variant.coordinate_role,
+                "latitude": forecast.location.latitude,
+                "longitude": forecast.location.longitude,
                 "weather_code": item.weather_code,
-                "condition": _weather_condition(item.weather_code),
+                "condition": item.condition or _weather_condition(item.weather_code),
                 "temperature_min": item.temperature_min,
                 "temperature_max": item.temperature_max,
                 "precipitation_probability": item.precipitation_probability,
@@ -240,23 +241,39 @@ def research_weather(
                 "sunrise": item.sunrise.isoformat() if item.sunrise else None,
                 "sunset": item.sunset.isoformat() if item.sunset else None,
             }
-        )
-        sources.append(
-            SourceReference(
-                kind="weather_forecast",
-                id=source_id,
-                title=f"{location_label} {item.date.isoformat()} 天气",
-                occurred_at=runtime.context.current_datetime,
-                url=str(forecast.source_url),
-                publisher=forecast.provider,
+            daily.append(item_payload)
+            variant_daily.append(item_payload)
+            sources.append(
+                SourceReference(
+                    kind="weather_forecast",
+                    id=source_id,
+                    title=f"{variant.display_label} {item.date.isoformat()} 天气",
+                    occurred_at=runtime.context.current_datetime,
+                    url=str(forecast.source_url),
+                    publisher=forecast.provider,
+                )
             )
+        forecast_payloads.append(
+            {
+                "coordinate_role": variant.coordinate_role,
+                "display_label": variant.display_label,
+                "provider": forecast.provider,
+                "location": forecast.location.model_dump(mode="json"),
+                "daily": variant_daily,
+                "units": forecast.units,
+                "generated_at": forecast.generated_at.isoformat(),
+            }
         )
     expected_days = (end_date - start_date).days + 1
-    warnings = []
+    expected_items = expected_days * len(collection.forecasts)
+    warnings = list(collection.warnings)
     status: Literal["completed", "partial", "no_results", "failed"] = "completed"
-    if len(daily) < expected_days:
+    if len(daily) < expected_items:
         status = "partial"
-        warnings.append(f"天气 Provider 仅返回 {len(daily)}/{expected_days} 天数据。")
+        warnings.append(f"天气 Provider 仅返回 {len(daily)}/{expected_items} 组日数据。")
+    if warnings:
+        status = "partial"
+    primary = collection.forecasts[0].forecast
     return _command(
         runtime,
         ResearchToolResult(
@@ -266,11 +283,15 @@ def research_weather(
             range_start=start_date.isoformat(),
             range_end=end_date.isoformat(),
             data={
-                "provider": forecast.provider,
-                "location": forecast.location.model_dump(mode="json"),
+                "provider": primary.provider,
+                "providers": sorted(
+                    {variant.forecast.provider for variant in collection.forecasts}
+                ),
+                "location": primary.location.model_dump(mode="json"),
+                "forecasts": forecast_payloads,
                 "daily": daily,
-                "units": forecast.units,
-                "generated_at": forecast.generated_at.isoformat(),
+                "units": primary.units,
+                "generated_at": primary.generated_at.isoformat(),
             },
             sources=sources,
             warnings=warnings,
@@ -281,22 +302,26 @@ def research_weather(
 @tool
 def research_news(
     topics: list[str],
-    start_at: datetime,
-    end_at: datetime,
     runtime: ToolRuntime[RuntimeContext, BriefingAgentState],
+    start_at: datetime | None = None,
+    end_at: datetime | None = None,
     limit: int = 12,
 ) -> Command[Any]:
     """Search trusted RSS feeds for arbitrary topics; unknown topics use catalog-wide fallback."""
 
-    if end_at < start_at:
+    effective_end = end_at or runtime.context.current_datetime
+    effective_start = start_at or (
+        effective_end - timedelta(hours=get_provider_config().news.lookback_hours)
+    )
+    if effective_end < effective_start:
         raise ValueError("end_at must not be earlier than start_at")
-    if end_at - start_at > timedelta(days=7):
+    if effective_end - effective_start > timedelta(days=7):
         raise ValueError("news search range cannot exceed 7 days")
     actor = require_actor(runtime)
     collection = NewsDataService.collect_for_user(
         user=actor,
-        start_at=to_utc(start_at),
-        end_at=to_utc(end_at),
+        start_at=to_utc(effective_start),
+        end_at=to_utc(effective_end),
         topics=topics,
         limit=limit,
     )
@@ -340,8 +365,8 @@ def research_news(
             tool_name="research_news",
             section="news",
             status=status,
-            range_start=to_utc(start_at).isoformat(),
-            range_end=to_utc(end_at).isoformat(),
+            range_start=to_utc(effective_start).isoformat(),
+            range_end=to_utc(effective_end).isoformat(),
             data={
                 "topics": topics,
                 "items": items,

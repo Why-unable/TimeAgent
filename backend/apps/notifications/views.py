@@ -22,6 +22,7 @@ from apps.notifications.serializers import (
     WebPushConfigSerializer,
     WebPushSubscriptionCreateSerializer,
     WebPushSubscriptionSerializer,
+    WebPushSubscriptionUnsubscribeSerializer,
 )
 from apps.notifications.services import NotificationService
 
@@ -133,4 +134,21 @@ class WebPushSubscriptionDestroyView(APIView):
             )
         except WebPushSubscription.DoesNotExist as exc:
             raise Http404 from exc
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class WebPushSubscriptionUnsubscribeView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    @extend_schema(
+        request=WebPushSubscriptionUnsubscribeSerializer,
+        responses={status.HTTP_204_NO_CONTENT: None},
+    )
+    def post(self, request: Request) -> Response:
+        serializer = WebPushSubscriptionUnsubscribeSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        NotificationService.unsubscribe_push_endpoint(
+            user=_user(request),
+            endpoint=str(serializer.validated_data["endpoint"]),
+        )
         return Response(status=status.HTTP_204_NO_CONTENT)

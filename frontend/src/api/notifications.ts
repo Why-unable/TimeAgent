@@ -33,3 +33,9 @@ export function createWebPushSubscription(input: WebPushSubscriptionCreate) {
 
 export const deleteWebPushSubscription = (id: string) =>
   apiRequest<void>(`/api/v1/web-push/subscriptions/${id}/`, { method: "DELETE" });
+
+export const unsubscribeWebPushEndpoint = (endpoint: string) =>
+  apiRequest<void>("/api/v1/web-push/subscriptions/unsubscribe/", {
+    method: "POST",
+    body: JSON.stringify({ endpoint }),
+  });

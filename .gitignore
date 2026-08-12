@@ -9,6 +9,7 @@ __pycache__/
 .ruff_cache/
 .uv-cache/
 backend/staticfiles/
+backend/evaluation_reports/
 frontend/node_modules/
 frontend/dist/
 frontend/playwright-report/
@@ -18,5 +19,6 @@ frontend/android/**/build/
 frontend/android/app/src/main/assets/
 *.log
 backups/
+releases/*.apk
 celerybeat-schedule*
 .DS_Store

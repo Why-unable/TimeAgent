@@ -1,4 +1,6 @@
+import logging
 from dataclasses import dataclass
+from datetime import datetime
 from typing import Any
 from uuid import UUID
 
@@ -7,6 +9,7 @@ from django.db import transaction
 from django.db.models import Max
 from django.utils import timezone
 
+from apps.accounts.services import GuestAccountPolicyService
 from apps.conversations.models import (
     AgentEvent,
     AgentRun,
@@ -22,6 +25,61 @@ class RunCancellationError(ValueError):
     pass
 
 
+class StaleAgentRunError(TimeoutError):
+    pass
+
+
+logger = logging.getLogger(__name__)
+
+
+@dataclass(frozen=True, slots=True)
+class AgentRunFailure:
+    code: str
+    message: str
+    retryable: bool
+
+
+def classify_agent_run_failure(error: Exception) -> AgentRunFailure:
+    if isinstance(error, StaleAgentRunError):
+        return AgentRunFailure(
+            "agent_execution_stale",
+            "本次处理因执行进程异常中断，请重新发送请求。",
+            True,
+        )
+    name = type(error).__name__.lower()
+    status_code = getattr(error, "status_code", None)
+    text = str(error).lower()
+    database_error = getattr(error, "__cause__", None)
+    sqlstate = getattr(database_error, "sqlstate", None)
+    if sqlstate == "40P01" or "deadlock detected" in text:
+        return AgentRunFailure(
+            "database_concurrency_conflict",
+            "写入时发生并发冲突，请重试未完成的操作。",
+            True,
+        )
+    if status_code in {401, 403} or "authentication" in name or "invalid api key" in text:
+        return AgentRunFailure(
+            "model_authentication_failed", "模型服务认证失败，请联系管理员检查 API Key。", False
+        )
+    if status_code == 429 or "ratelimit" in name or "rate limit" in text:
+        return AgentRunFailure("model_rate_limited", "模型服务当前请求过多，请稍后重试。", True)
+    if "timeout" in name or isinstance(error, TimeoutError):
+        return AgentRunFailure("model_timeout", "模型服务响应超时，请检查网络后重试。", True)
+    if any(token in name for token in ("connection", "connect", "network")):
+        return AgentRunFailure(
+            "model_unreachable", "暂时无法连接模型服务，请检查网络或服务地址。", True
+        )
+    if "empty final ai message" in text or "without a final ai message" in text:
+        return AgentRunFailure(
+            "empty_model_response", "模型没有返回有效回复，请重新发送或稍后重试。", True
+        )
+    if "recursion" in name or "limit" in text:
+        return AgentRunFailure(
+            "agent_limit_reached", "本次请求达到处理上限，请缩短或拆分请求后重试。", True
+        )
+    return AgentRunFailure("agent_internal_error", "处理请求时发生内部错误，请稍后重试。", True)
+
+
 @dataclass(frozen=True, slots=True)
 class StartRunCommand:
     conversation: Conversation
@@ -35,6 +93,7 @@ class StartRunCommand:
 
 class ConversationService:
     @staticmethod
+    @transaction.atomic
     def create(
         *,
         user: User,
@@ -45,6 +104,7 @@ class ConversationService:
             raise ValueError("Conversation user must be persisted")
         if kind not in ConversationKind.values:
             raise ValueError("Unknown conversation kind")
+        GuestAccountPolicyService.assert_resource_creation_allowed(user, "conversation")
         return Conversation.objects.create(user=user, title=title.strip(), kind=kind)
 
     @staticmethod
@@ -77,6 +137,10 @@ class AgentRunService:
         request_id = command.request_id.strip()
         if not message or not request_id:
             raise ValueError("message and request_id cannot be empty")
+        GuestAccountPolicyService.assert_agent_run_allowed(
+            command.conversation.user,
+            operation_id=command.operation_id,
+        )
         run, created = AgentRun.objects.get_or_create(
             operation_id=command.operation_id,
             defaults={
@@ -220,16 +284,72 @@ class AgentRunService:
     @transaction.atomic
     def fail(run: AgentRun, error: Exception) -> AgentRun:
         locked = AgentRun.objects.select_for_update().get(pk=run.pk)
-        if locked.status == AgentRunStatus.CANCELLED:
+        if locked.status in {
+            AgentRunStatus.COMPLETED,
+            AgentRunStatus.FAILED,
+            AgentRunStatus.CANCELLED,
+        }:
             return locked
+        failure = classify_agent_run_failure(error)
+        completed_write_tools = list(
+            ToolCallAudit.objects.filter(run=locked, status=ToolCallStatus.COMPLETED)
+            .exclude(risk_level="read")
+            .values_list("tool_name", flat=True)
+        )
+        partial_success = bool(completed_write_tools)
+        message = failure.message
+        if partial_success:
+            message = (
+                "本次请求仅部分完成：部分日程、任务或提醒已经保存，但仍有操作失败。"
+                f"失败原因：{failure.message}请先查看相应页面确认结果，再重试未完成的部分。"
+            )
+        logger.exception(
+            "agent_run_failed",
+            extra={
+                "agent_run_id": str(locked.pk),
+                "request_id": locked.request_id,
+                "error_code": failure.code,
+                "partial_success": partial_success,
+                "completed_write_tools": completed_write_tools,
+            },
+        )
         locked.status = AgentRunStatus.FAILED
-        locked.error = "The agent run could not be completed"
+        locked.error = message
         locked.completed_at = timezone.now()
         locked.save(update_fields=["status", "error", "completed_at"])
         AgentRunService.append_event(
-            locked, "run.failed", {"error": "The agent run could not be completed"}
+            locked,
+            "run.failed",
+            {
+                "error": message,
+                "error_code": failure.code,
+                "retryable": failure.retryable,
+                "partial_success": partial_success,
+                "completed_write_tools": completed_write_tools,
+                "request_id": locked.request_id,
+            },
         )
         return locked
+
+    @staticmethod
+    def fail_stale_runs(*, cutoff: datetime, batch_size: int = 100) -> int:
+        if batch_size < 1:
+            raise ValueError("batch_size must be positive")
+        run_ids = list(
+            AgentRun.objects.filter(
+                status__in=[AgentRunStatus.PENDING, AgentRunStatus.RUNNING],
+                created_at__lt=cutoff,
+            )
+            .order_by("created_at", "id")
+            .values_list("id", flat=True)[:batch_size]
+        )
+        recovered = 0
+        for run_id in run_ids:
+            run = AgentRun.objects.get(pk=run_id)
+            result = AgentRunService.fail(run, StaleAgentRunError("Agent run exceeded deadline"))
+            if result.status == AgentRunStatus.FAILED:
+                recovered += 1
+        return recovered
 
     @staticmethod
     @transaction.atomic

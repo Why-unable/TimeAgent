@@ -7,6 +7,7 @@ from uuid import UUID
 from django.contrib.auth.models import User
 from django.db import transaction
 
+from apps.accounts.services import GuestAccountPolicyService
 from apps.events.models import (
     CalendarEvent,
     CalendarEventStatus,
@@ -14,6 +15,7 @@ from apps.events.models import (
     EventSeries,
 )
 from apps.tasks.models import Task
+from common.database_locks import lock_user_schedule_writes
 from common.time import to_utc
 
 
@@ -73,6 +75,7 @@ class CreateEventCommand:
     source: str = "local"
     external_id: str = ""
     created_by: User | None = None
+    origin: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -81,6 +84,7 @@ class UpdateEventCommand:
     event_id: UUID
     expected_version: int
     changes: Mapping[str, Any]
+    origin: str = "web"
 
 
 @dataclass(frozen=True, slots=True)
@@ -115,6 +119,8 @@ class EventService:
         EventService._ensure_persisted_user(command.user)
         created_by = command.created_by or command.user
         EventService._ensure_persisted_user(created_by)
+        GuestAccountPolicyService.assert_resource_creation_allowed(command.user, "event")
+        EventService._lock_schedule(command.user)
 
         event = CalendarEvent(
             user=command.user,
@@ -134,7 +140,6 @@ class EventService:
             external_id=command.external_id,
         )
         event.full_clean()
-        EventService._lock_schedule(command.user)
         if event.status != CalendarEventStatus.CANCELLED:
             EventService._assert_conflict_free(
                 user=command.user,
@@ -145,6 +150,12 @@ class EventService:
         from apps.reminders.scheduling import ReminderScheduleService
 
         ReminderScheduleService.sync_event_reminders(event=event)
+        EventService._record_change(
+            event=event,
+            operation="created",
+            origin=command.origin or ("external_calendar" if event.source != "local" else "web"),
+            old_snapshot={},
+        )
         return event
 
     @staticmethod
@@ -158,6 +169,7 @@ class EventService:
             user=command.user,
         )
         EventService._ensure_version(event, command.expected_version)
+        old_snapshot = EventService._snapshot(event)
 
         for field_name, value in command.changes.items():
             setattr(event, field_name, value)
@@ -174,6 +186,12 @@ class EventService:
         from apps.reminders.scheduling import ReminderScheduleService
 
         ReminderScheduleService.sync_event_reminders(event=event)
+        EventService._record_change(
+            event=event,
+            operation="updated",
+            origin=command.origin,
+            old_snapshot=old_snapshot,
+        )
         return event
 
     @staticmethod
@@ -183,13 +201,16 @@ class EventService:
         event_id: UUID,
         user: User,
         expected_version: int,
+        origin: str = "web",
     ) -> CalendarEvent:
         EventService._ensure_persisted_user(user)
+        EventService._lock_schedule(user)
         event = CalendarEvent.objects.select_for_update().get(pk=event_id, user=user)
         EventService._ensure_version(event, expected_version)
         if event.status == CalendarEventStatus.CANCELLED:
             return event
 
+        old_snapshot = EventService._snapshot(event)
         event.status = CalendarEventStatus.CANCELLED
         event.version += 1
         event.full_clean()
@@ -197,6 +218,12 @@ class EventService:
         from apps.reminders.scheduling import ReminderScheduleService
 
         ReminderScheduleService.cancel_event_reminders(event=event)
+        EventService._record_change(
+            event=event,
+            operation="cancelled",
+            origin=origin,
+            old_snapshot=old_snapshot,
+        )
         return event
 
     @staticmethod
@@ -305,9 +332,7 @@ class EventService:
 
     @staticmethod
     def _lock_schedule(user: User) -> None:
-        """Serialize one user's schedule writes around their final conflict check."""
-
-        User.objects.select_for_update().get(pk=user.pk)
+        lock_user_schedule_writes(user)
 
     @staticmethod
     def _validate_changes(changes: Mapping[str, Any]) -> None:
@@ -327,3 +352,40 @@ class EventService:
     def _ensure_persisted_user(user: User) -> None:
         if user.pk is None:
             raise ValueError("Event user must be persisted")
+
+    @staticmethod
+    def _snapshot(event: CalendarEvent) -> dict[str, Any]:
+        from apps.time_memory.event_handler import json_snapshot
+
+        return json_snapshot(
+            event,
+            (
+                "title",
+                "start_at",
+                "end_at",
+                "timezone",
+                "location",
+                "status",
+                "source",
+            ),
+        )
+
+    @staticmethod
+    def _record_change(
+        *,
+        event: CalendarEvent,
+        operation: str,
+        origin: str,
+        old_snapshot: dict[str, Any],
+    ) -> None:
+        from apps.time_memory.event_handler import record_schedule_change
+
+        record_schedule_change(
+            user=event.user,
+            entity_type="event",
+            entity_id=event.pk,
+            operation=operation,
+            source=origin,
+            old_snapshot=old_snapshot,
+            new_snapshot=EventService._snapshot(event),
+        )

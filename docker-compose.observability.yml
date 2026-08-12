@@ -3,12 +3,30 @@
 #
 # docker compose -f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.observability.yml up -d
 services:
+  alertmanager-config:
+    build:
+      context: ./backend
+      args:
+        UV_IMAGE: ${UV_IMAGE:-ghcr.io/astral-sh/uv:0.11.29}
+        PYTHON_IMAGE: ${PYTHON_IMAGE:-python:3.12-slim}
+    env_file:
+      - .env
+    environment:
+      ALERTMANAGER_EMAIL_TO: ${ALERTMANAGER_EMAIL_TO:-}
+      ALERTMANAGER_CONFIG_OUTPUT: /generated/alertmanager.yml
+    user: "0:0"
+    command: ["python", "-m", "apps.observability.alertmanager_config"]
+    volumes:
+      - alertmanager-config:/generated
+    restart: "no"
+
   prometheus:
     image: ${PROMETHEUS_IMAGE:-prom/prometheus:v3.5.0}
     command:
       - --config.file=/etc/prometheus/prometheus.yml
       - --storage.tsdb.path=/prometheus
       - --web.enable-lifecycle
+      - --web.external-url=http://localhost:${PROMETHEUS_PORT:-9090}
     volumes:
       - ./infra/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - ./infra/prometheus/alerts.yml:/etc/prometheus/alerts.yml:ro
@@ -18,6 +36,12 @@ services:
     depends_on:
       django:
         condition: service_healthy
+      postgres-exporter:
+        condition: service_started
+      redis-exporter:
+        condition: service_started
+      celery-exporter:
+        condition: service_started
     restart: unless-stopped
     logging:
       driver: json-file
@@ -25,5 +49,93 @@ services:
         max-size: "10m"
         max-file: "3"
 
+  alertmanager:
+    image: ${ALERTMANAGER_IMAGE:-prom/alertmanager:v0.32.1}
+    command:
+      - --config.file=/etc/alertmanager/alertmanager.yml
+      - --storage.path=/alertmanager
+    volumes:
+      - alertmanager-config:/etc/alertmanager:ro
+      - alertmanager-data:/alertmanager
+    ports:
+      - "127.0.0.1:${ALERTMANAGER_PORT:-9093}:9093"
+    depends_on:
+      alertmanager-config:
+        condition: service_completed_successfully
+    restart: unless-stopped
+
+  grafana:
+    image: ${GRAFANA_IMAGE:-grafana/grafana:12.1.0}
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:?set GRAFANA_ADMIN_PASSWORD}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_AUTH_ANONYMOUS_ENABLED: "false"
+    volumes:
+      - ./infra/grafana/provisioning/datasources:/etc/grafana/provisioning/datasources:ro
+      - ./infra/grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ./infra/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana-data:/var/lib/grafana
+    ports:
+      - "127.0.0.1:${GRAFANA_PORT:-3000}:3000"
+    depends_on:
+      - prometheus
+      - loki
+    restart: unless-stopped
+
+  postgres-exporter:
+    image: ${POSTGRES_EXPORTER_IMAGE:-quay.io/prometheuscommunity/postgres-exporter:v0.20.1}
+    environment:
+      DATA_SOURCE_URI: postgres:5432/${POSTGRES_DB:-time_agent}?sslmode=disable
+      DATA_SOURCE_USER: ${POSTGRES_USER:-time_agent}
+      DATA_SOURCE_PASS: ${POSTGRES_PASSWORD:-replace-with-a-local-password}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+  redis-exporter:
+    image: ${REDIS_EXPORTER_IMAGE:-quay.io/oliver006/redis_exporter:v1.84.0}
+    environment:
+      REDIS_ADDR: redis://redis:6379
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  celery-exporter:
+    image: ${CELERY_EXPORTER_IMAGE:-danihodovic/celery-exporter:0.11.1}
+    command: ["--broker-url=redis://redis:6379/0", "--retry-interval=5"]
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  loki:
+    image: ${LOKI_IMAGE:-grafana/loki:3.5.3}
+    command: ["-config.file=/etc/loki/local-config.yaml"]
+    volumes:
+      - ./infra/loki/loki.yml:/etc/loki/local-config.yaml:ro
+      - loki-data:/loki
+    ports:
+      - "127.0.0.1:${LOKI_PORT:-3100}:3100"
+    restart: unless-stopped
+
+  alloy:
+    image: ${ALLOY_IMAGE:-grafana/alloy:v1.10.0}
+    command: ["run", "/etc/alloy/config.alloy", "--storage.path=/var/lib/alloy/data"]
+    volumes:
+      - ./infra/alloy/config.alloy:/etc/alloy/config.alloy:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - alloy-data:/var/lib/alloy/data
+    depends_on:
+      - loki
+    restart: unless-stopped
+
 volumes:
+  alertmanager-config:
   prometheus-data:
+  alertmanager-data:
+  grafana-data:
+  loki-data:
+  alloy-data:

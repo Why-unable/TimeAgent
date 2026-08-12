@@ -121,7 +121,15 @@ function entriesFromRuns(runs: AgentRun[]): ChatEntry[] {
         timestamp: run.completed_at ?? run.created_at,
       });
     } else if (run.status === "failed") {
-      entries.push({ id: `notice-${run.id}`, kind: "notice", content: "这次回复生成失败。", tone: "error" });
+      const detail = run.error && run.error !== "The agent run could not be completed"
+        ? run.error
+        : "处理请求时发生内部错误，请稍后重试。";
+      entries.push({
+        id: `notice-${run.id}`,
+        kind: "notice",
+        content: `${detail} 请求编号：${run.request_id}`,
+        tone: "error",
+      });
     } else if (run.status === "cancelled") {
       entries.push({ id: `notice-${run.id}`, kind: "notice", content: "这次运行已取消。", tone: "muted" });
     }
@@ -307,7 +315,9 @@ export function ChatPage() {
         });
       }
     } else if (event.type === "run.failed") {
-      setError(String(event.data.error ?? "Agent 运行失败"));
+      const detail = String(event.data.error ?? "处理请求时发生内部错误，请稍后重试。");
+      const reference = String(event.data.request_id ?? "");
+      setError(reference ? `${detail} 请求编号：${reference}` : detail);
     } else if (event.type === "run.cancelled") {
       setError("Agent 运行已取消");
     }
@@ -593,7 +603,7 @@ export function ChatPage() {
               );
             }
             if (entry.kind === "notice") {
-              return <p key={entry.id} className={`w-full rounded-xl border px-4 py-3 text-sm lg:mx-auto lg:max-w-xl ${entry.tone === "error" ? "border-red-400/30 bg-red-400/10 text-red-100" : "border-white/10 bg-white/5 text-slate-400"}`}>{entry.content}</p>;
+              return <p key={entry.id} className={`w-full rounded-xl border px-4 py-3 text-sm font-medium leading-6 lg:mx-auto lg:max-w-xl ${entry.tone === "error" ? "border-red-300 bg-red-50 text-red-900" : "border-slate-200 bg-slate-50 text-slate-700"}`}>{entry.content}</p>;
             }
             const assistantRunId = entry.kind === "assistant"
               ? entry.id.replace(/^assistant-/, "")
@@ -642,7 +652,7 @@ export function ChatPage() {
             );
           })}
           {busy && <p className="mx-auto flex max-w-3xl items-center gap-2 text-sm text-slate-400"><LoaderCircle className="animate-spin" size={16} /> Time Steward 正在处理…</p>}
-          {error && <p role="alert" className="mx-auto max-w-3xl rounded-xl border border-red-400/30 bg-red-400/10 p-3 text-sm text-red-100">{error}</p>}
+          {error && <p role="alert" className="mx-auto max-w-3xl rounded-xl border border-red-300 bg-red-50 p-3 text-sm font-medium leading-6 text-red-900 shadow-sm">{error}</p>}
           <div ref={messagesEnd} />
         </div>
 

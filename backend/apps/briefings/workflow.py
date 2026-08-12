@@ -127,23 +127,19 @@ def briefing_workflow_node(
 
     try:
         execution = execute_runner(request, runtime.context)
-        section_results = research_section_results(execution.research_results)
+        section_results = _complete_section_results(
+            requested_sections,
+            research_section_results(execution.research_results),
+        )
         _persist_sections(run, requested_sections, section_results)
         sources = [source for item in section_results for source in item.sources]
         warnings = _deduplicate(
-            [
-                *(warning for item in section_results for warning in item.warnings),
-                *execution.report.warnings,
-                *execution.report.failed_attempts,
-                *execution.report.unmet_requirements,
-            ]
+            [warning for item in section_results for warning in item.warnings]
         )
         partial = bool(
             execution.used_fallback
-            or execution.report.failed_attempts
-            or execution.report.unmet_requirements
             or execution.report.coverage.missing_sections
-            or any(item.status == "failed" for item in section_results)
+            or any(item.status == "failed" or item.warnings for item in section_results)
         )
         status: Literal["completed", "partial"] = "partial" if partial else "completed"
         markdown = render_markdown(
@@ -239,6 +235,33 @@ def _persist_sections(
         )
         BriefingRunService.finish_section(run, result)
         _emit("briefing.section.completed", {"section": section, "status": result.status})
+
+
+def _complete_section_results(
+    requested_sections: list[BriefingSectionKey],
+    results: list[SectionResult],
+) -> list[SectionResult]:
+    by_key = {item.key: item for item in results}
+    labels = {"calendar": "日程", "tasks": "任务", "weather": "天气", "news": "新闻"}
+    completed: list[SectionResult] = []
+    for section in requested_sections:
+        result = by_key.get(section)
+        if result is None:
+            completed.append(
+                SectionResult(
+                    key=section,
+                    status="failed",
+                    warnings=[f"{labels[section]}数据暂时不可用。"],
+                    error_code="ResearchResultMissing",
+                )
+            )
+        elif result.status == "failed" and not result.warnings:
+            completed.append(
+                result.model_copy(update={"warnings": [f"{labels[section]}数据暂时不可用。"]})
+            )
+        else:
+            completed.append(result)
+    return completed
 
 
 def _objective(payload: dict[str, Any], state: AppState) -> str:

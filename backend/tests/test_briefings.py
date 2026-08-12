@@ -510,7 +510,7 @@ def test_handoff_command_pairs_tool_call_and_routes_to_parent() -> None:
     command = handoff_function(
         request="生成今天的简报",
         target_date=date(2026, 7, 19),
-        runtime=runtime,
+        runtime=cast(Any, runtime),
     )
 
     assert command.goto == "briefing_workflow"
@@ -739,7 +739,7 @@ def test_blocked_parallel_research_call_still_gets_matching_tool_message() -> No
         },
         tool=None,
         state={"messages": messages},
-        runtime=runtime,
+        runtime=cast(Any, runtime),
     )
 
     result = BriefingToolBudgetMiddleware().wrap_tool_call(
@@ -806,7 +806,7 @@ def test_external_tool_retries_then_returns_failure_to_briefing_agent(
         raise httpx.ReadTimeout("weather relay timed out")
 
     monkeypatch.setattr(
-        "apps.briefings.tools.WeatherDataService.forecast_for_user",
+        "apps.briefings.tools.WeatherDataService.forecast_variants_for_user",
         unavailable_forecast,
     )
     context = RuntimeContext(

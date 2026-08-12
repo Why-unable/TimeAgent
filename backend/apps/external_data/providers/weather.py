@@ -27,6 +27,162 @@ class WeatherProvider(Protocol):
     ) -> WeatherForecast: ...
 
 
+class AmapWeatherProvider:
+    name = "amap"
+    geocoding_url = "https://restapi.amap.com/v3/geocode/geo"
+    forecast_url = "https://restapi.amap.com/v3/weather/weatherInfo"
+
+    def __init__(
+        self,
+        *,
+        api_key: str,
+        client: httpx.Client | None = None,
+        timeout_seconds: float = 8,
+    ) -> None:
+        if not api_key.strip():
+            raise ValueError("AMap Web Service key is required")
+        self.api_key = api_key.strip()
+        self._client = client
+        self.timeout_seconds = timeout_seconds
+
+    def _request(
+        self,
+        url: str,
+        *,
+        params: dict[str, str],
+    ) -> httpx.Response:
+        if self._client is not None:
+            response = self._client.get(url, params=params)
+        else:
+            with httpx.Client(
+                timeout=self.timeout_seconds,
+                follow_redirects=True,
+                headers={"User-Agent": "TimeAgent/0.1 amap-weather-provider"},
+            ) as client:
+                response = client.get(url, params=params)
+        response.raise_for_status()
+        return response
+
+    def search_locations(self, query: str, *, language: str) -> list[ResolvedLocation]:
+        try:
+            return [self.resolve_location(query, language=language)]
+        except LookupError:
+            return []
+
+    def resolve_location(self, query: str, *, language: str) -> ResolvedLocation:
+        del language
+        normalized = query.strip()
+        if len(normalized) < 2:
+            raise ValueError("Weather location must contain at least two characters")
+        payload = _amap_payload(
+            self._request(
+                self.geocoding_url,
+                params={"key": self.api_key, "address": normalized, "output": "JSON"},
+            )
+        )
+        geocodes = payload.get("geocodes")
+        item = geocodes[0] if isinstance(geocodes, list) and geocodes else None
+        if not isinstance(item, dict):
+            raise LookupError(f"AMap weather location was not found: {normalized}")
+        coordinate = _text(item.get("location"))
+        parts = coordinate.split(",")
+        if len(parts) != 2:
+            raise LookupError("AMap geocoding returned no location")
+        province = _text(item.get("province"))
+        city = _text(item.get("city"))
+        district = _text(item.get("district"))
+        return ResolvedLocation(
+            name=district or city or _text(item.get("formatted_address")) or normalized,
+            latitude=float(parts[1]),
+            longitude=float(parts[0]),
+            timezone="Asia/Shanghai",
+            country=_text(item.get("country")) or "中国",
+            admin1=province,
+            provider_location_id=_text(item.get("adcode")),
+        )
+
+    def forecast(
+        self,
+        location: ResolvedLocation,
+        *,
+        start_date: date,
+        days: int,
+        requested_at: datetime,
+    ) -> WeatherForecast:
+        adcode = location.provider_location_id.strip()
+        if len(adcode) != 6 or not adcode.isdigit():
+            raise LookupError("AMap weather requires a six-digit administrative adcode")
+        payload = _amap_payload(
+            self._request(
+                self.forecast_url,
+                params={
+                    "key": self.api_key,
+                    "city": adcode,
+                    "extensions": "all",
+                    "output": "JSON",
+                },
+            )
+        )
+        forecasts = payload.get("forecasts")
+        forecast = forecasts[0] if isinstance(forecasts, list) and forecasts else None
+        if not isinstance(forecast, dict):
+            raise ValueError("AMap weather provider returned no forecast")
+        casts = forecast.get("casts")
+        requested_end = start_date + timedelta(days=max(1, days) - 1)
+        daily: list[DailyForecast] = []
+        if isinstance(casts, list):
+            for cast in casts:
+                if not isinstance(cast, dict):
+                    continue
+                forecast_date = date.fromisoformat(_text(cast.get("date")))
+                if not start_date <= forecast_date <= requested_end:
+                    continue
+                day_condition = _text(cast.get("dayweather"))
+                night_condition = _text(cast.get("nightweather"))
+                condition = (
+                    day_condition
+                    if day_condition == night_condition or not night_condition
+                    else f"白天{day_condition}，夜间{night_condition}"
+                )
+                temperatures = [
+                    value
+                    for value in (
+                        _optional_float(cast.get("daytemp")),
+                        _optional_float(cast.get("nighttemp")),
+                    )
+                    if value is not None
+                ]
+                daily.append(
+                    DailyForecast(
+                        date=forecast_date,
+                        condition=condition,
+                        weather_code=_amap_weather_code(f"{day_condition} {night_condition}"),
+                        temperature_min=min(temperatures) if temperatures else None,
+                        temperature_max=max(temperatures) if temperatures else None,
+                    )
+                )
+        if not daily:
+            raise ValueError("AMap weather provider returned no forecast for the requested dates")
+        source_params = urlencode(
+            {"city": adcode, "extensions": "all", "output": "JSON"}
+        )
+        resolved_location = location.model_copy(
+            update={
+                "name": _text(forecast.get("city")) or location.name,
+                "admin1": _text(forecast.get("province")) or location.admin1,
+                "country": location.country or "中国",
+                "provider_location_id": adcode,
+            }
+        )
+        return WeatherForecast(
+            provider=self.name,
+            location=resolved_location,
+            generated_at=requested_at,
+            daily=daily,
+            source_url=f"{self.forecast_url}?{source_params}",
+            units={"temperature_max": "°C", "temperature_min": "°C"},
+        )
+
 class OpenMeteoWeatherProvider:
     name = "open_meteo"
 
@@ -286,3 +442,49 @@ def _datetime_at(
     from common.time import get_timezone
 
     return datetime.fromisoformat(str(values[index])).replace(tzinfo=get_timezone(timezone_name))
+
+
+def _amap_payload(response: httpx.Response) -> dict[str, Any]:
+    payload = response.json()
+    if not isinstance(payload, dict):
+        raise LookupError("AMap returned an invalid response")
+    if str(payload.get("status", "")) != "1":
+        info = _text(payload.get("info")) or "unknown error"
+        info_code = _text(payload.get("infocode"))
+        suffix = f" ({info_code})" if info_code else ""
+        raise LookupError(f"AMap request failed: {info}{suffix}")
+    return payload
+
+
+def _text(value: object) -> str:
+    if isinstance(value, str):
+        return value.strip()
+    if isinstance(value, list):
+        return next((item.strip() for item in value if isinstance(item, str) and item.strip()), "")
+    return ""
+
+
+def _optional_float(value: object) -> float | None:
+    normalized = _text(value)
+    try:
+        return float(normalized) if normalized else None
+    except ValueError:
+        return None
+
+
+def _amap_weather_code(condition: str) -> int | None:
+    if "雷" in condition:
+        return 95
+    if "雪" in condition:
+        return 71
+    if "雨" in condition:
+        return 61
+    if "雾" in condition or "霾" in condition:
+        return 45
+    if "阴" in condition:
+        return 3
+    if "云" in condition:
+        return 2
+    if "晴" in condition:
+        return 0
+    return None

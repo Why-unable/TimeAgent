@@ -30,6 +30,9 @@ class UserPreferenceSerializer(serializers.ModelSerializer[UserPreference]):
             "daily_briefing_enabled",
             "briefing_time",
             "planning_rules",
+            "time_memory_enabled",
+            "time_memory_allow_generation",
+            "time_memory_allow_context_injection",
             "updated_at",
         ]
         read_only_fields = ["updated_at"]

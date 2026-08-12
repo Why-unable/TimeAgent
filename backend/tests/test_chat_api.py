@@ -6,13 +6,19 @@ from uuid import uuid4
 import pytest
 from asgiref.sync import async_to_sync
 from django.contrib.auth.models import User
+from django.db import OperationalError
 from django.http import StreamingHttpResponse
 from langchain_core.messages import AIMessage, AIMessageChunk
 from rest_framework.test import APIClient
 
 from apps.conversations.execution import _last_ai_text, _message_text, _stream_mode_data
 from apps.conversations.models import AgentRun, Conversation
-from apps.conversations.services import AgentRunService, StartRunCommand
+from apps.conversations.services import (
+    AgentRunService,
+    StartRunCommand,
+    ToolAuditService,
+    classify_agent_run_failure,
+)
 from apps.conversations.tasks import execute_agent_run_task
 
 
@@ -41,9 +47,7 @@ def test_native_subgraph_stream_shape_is_normalized() -> None:
 
 def test_final_ai_message_accepts_content_blocks() -> None:
     assert (
-        _last_ai_text(
-            {"messages": [AIMessage(content=[{"type": "text", "text": "done"}])]}
-        )
+        _last_ai_text({"messages": [AIMessage(content=[{"type": "text", "text": "done"}])]})
         == "done"
     )
 
@@ -51,6 +55,58 @@ def test_final_ai_message_accepts_content_blocks() -> None:
 def test_empty_final_ai_message_is_rejected() -> None:
     with pytest.raises(RuntimeError, match="empty final AI message"):
         _last_ai_text({"messages": [AIMessage(content="")]})
+
+
+def test_agent_failures_are_safe_specific_and_retryable() -> None:
+    timeout = classify_agent_run_failure(TimeoutError("secret upstream detail"))
+    assert timeout.code == "model_timeout"
+    assert timeout.retryable is True
+    assert "secret" not in timeout.message
+
+    class AuthenticationError(Exception):
+        pass
+
+    authentication = classify_agent_run_failure(AuthenticationError("invalid api key: secret"))
+    assert authentication.code == "model_authentication_failed"
+    assert "secret" not in authentication.message
+
+    deadlock = classify_agent_run_failure(OperationalError("deadlock detected"))
+    assert deadlock.code == "database_concurrency_conflict"
+    assert deadlock.retryable is True
+
+
+@pytest.mark.django_db
+def test_failed_run_reports_partial_success_after_completed_write() -> None:
+    user = User.objects.create_user(username="partial-agent-run")
+    run = AgentRunService.start(
+        StartRunCommand(
+            conversation=Conversation.objects.create(user=user),
+            operation_id=uuid4(),
+            request_id="partial-request",
+            message="创建日程并设置提醒",
+        )
+    )
+    run = AgentRunService.mark_running(run)
+    audit, created = ToolAuditService.begin(
+        run_id=str(run.pk),
+        user=user,
+        tool_call_id="completed-write",
+        tool_name="mutate_events",
+        arguments={},
+        risk_level="high",
+    )
+    assert created is True
+    ToolAuditService.complete(audit, [{"id": "event-id"}])
+
+    failed = AgentRunService.fail(run, OperationalError("deadlock detected"))
+
+    assert failed.status == "failed"
+    assert "仅部分完成" in failed.error
+    assert "并发冲突" in failed.error
+    event = failed.events.get(event_type="run.failed")
+    assert event.payload["partial_success"] is True
+    assert event.payload["completed_write_tools"] == ["mutate_events"]
+    assert event.payload["error_code"] == "database_concurrency_conflict"
 
 
 @pytest.mark.django_db

@@ -85,6 +85,13 @@ body::-webkit-scrollbar {
     background-color: #edf3fa !important;
   }
 
+  [data-color-scheme="workspace"] [class*="bg-slate-800"],
+  [data-color-scheme="workspace"] [class*="from-slate-800"],
+  [data-color-scheme="workspace"] [class*="to-slate-900"] {
+    background-color: #ffffff !important;
+    background-image: linear-gradient(135deg, #ffffff, #edf3fa) !important;
+  }
+
   [data-color-scheme="workspace"] [class*="text-slate-100"],
   [data-color-scheme="workspace"] [class*="text-white"] {
     color: #172033 !important;
@@ -154,6 +161,13 @@ body::-webkit-scrollbar {
 
   [data-color-scheme="workspace"] [class*="bg-slate-900"] {
     background-color: #ffffff !important;
+  }
+
+  [data-color-scheme="workspace"] [class*="bg-slate-800"],
+  [data-color-scheme="workspace"] [class*="from-slate-800"],
+  [data-color-scheme="workspace"] [class*="to-slate-900"] {
+    background-color: #ffffff !important;
+    background-image: linear-gradient(135deg, #ffffff, #edf3fa) !important;
   }
 
   [data-color-scheme="workspace"] [class*="text-slate-100"],

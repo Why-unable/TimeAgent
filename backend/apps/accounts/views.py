@@ -30,11 +30,12 @@ from apps.accounts.services import (
     AuthenticationFailedError,
     EmailVerificationRequest,
     EmailVerificationTokenError,
+    GuestAccessDisabledError,
     PasswordResetRequest,
     PasswordResetTokenError,
     RegistrationDisabledError,
 )
-from apps.accounts.throttles import AuthenticationThrottle
+from apps.accounts.throttles import AuthenticationThrottle, GuestAuthenticationThrottle
 
 
 @method_decorator(ensure_csrf_cookie, name="dispatch")
@@ -80,6 +81,37 @@ class NativeRegisterView(APIView):
     authentication_classes: list[type] = []
     throttle_classes = [AuthenticationThrottle]
     post = RegisterView.post
+
+
+@method_decorator(csrf_protect, name="dispatch")
+class GuestSessionView(APIView):
+    permission_classes = [AllowAny]
+    authentication_classes: list[type] = []
+    throttle_classes = [GuestAuthenticationThrottle]
+
+    @extend_schema(request=None, responses={200: CurrentUserSerializer})
+    def post(self, request: Request) -> Response:
+        try:
+            user = AccountService.start_guest_session(request._request)
+        except GuestAccessDisabledError as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_403_FORBIDDEN)
+        return Response(CurrentUserSerializer(user).data)
+
+
+class NativeGuestTokenView(APIView):
+    permission_classes = [AllowAny]
+    authentication_classes: list[type] = []
+    throttle_classes = [GuestAuthenticationThrottle]
+
+    @extend_schema(request=None, responses={200: AuthTokenSerializer})
+    def post(self, request: Request) -> Response:
+        del request
+        try:
+            user = AccountService.create_guest()
+        except GuestAccessDisabledError as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_403_FORBIDDEN)
+        token = AccountService.issue_native_token(user=user)
+        return Response(AuthTokenSerializer({"token": token.key, "user": user}).data)
 
 
 class EmailVerificationConfirmView(APIView):

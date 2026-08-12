@@ -1,9 +1,11 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { describe, expect, it, vi } from "vitest";
 
 import { AppLayout } from "../src/layouts/app-layout";
+import { ONBOARDING_START_EVENT } from "../src/features/onboarding/storage";
 
 vi.mock("../src/features/accounts/hooks", () => ({
   useCurrentUser: () => ({
@@ -59,5 +61,20 @@ describe("AppLayout desktop navigation", () => {
 
     expect(within(sidebar).getByText("桌面用户")).toBeInTheDocument();
     expect(within(sidebar).queryByRole("link", { name: /系统状态/ })).not.toBeInTheDocument();
+    expect(within(sidebar).getByRole("link", { name: /应用设置/ })).toHaveAttribute(
+      "href",
+      "/settings/app",
+    );
+  });
+
+  it("starts the onboarding tour from the workspace brand", async () => {
+    const listener = vi.fn();
+    window.addEventListener(ONBOARDING_START_EVENT, listener);
+    renderLayout("/today");
+
+    await userEvent.click(screen.getByRole("button", { name: "开始使用指引" }));
+
+    expect(listener).toHaveBeenCalledOnce();
+    window.removeEventListener(ONBOARDING_START_EVENT, listener);
   });
 });

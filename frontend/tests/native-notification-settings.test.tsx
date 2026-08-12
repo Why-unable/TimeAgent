@@ -7,6 +7,11 @@ const nativePermissionMocks = vi.hoisted(() => ({
   requestDisplayPermission: vi.fn(),
   requestExactAlarmPermission: vi.fn(),
 }));
+const webPushHookMocks = vi.hoisted(() => ({
+  config: vi.fn(),
+  create: vi.fn(),
+  unsubscribe: vi.fn(),
+}));
 
 vi.mock("../src/platform", () => ({ isNativePlatform: () => true }));
 vi.mock("../src/features/accounts/hooks", () => ({
@@ -27,11 +32,12 @@ vi.mock("../src/features/notifications/hooks", () => ({
     reminder_web_push_enabled: false, briefing_web_push_enabled: false,
   }, isLoading: false, isError: false }),
   useNotificationDeliveries: () => ({ data: [], isLoading: false }),
-  useWebPushConfig: () => ({ data: { configured: false, public_key: "" } }),
+  useWebPushConfig: webPushHookMocks.config,
   useWebPushSubscriptions: () => ({ data: [] }),
   useUpdateNotificationPreference: () => ({ mutate: vi.fn() }),
-  useCreateWebPushSubscription: () => ({ mutateAsync: vi.fn() }),
+  useCreateWebPushSubscription: webPushHookMocks.create,
   useDeleteWebPushSubscription: () => ({ mutateAsync: vi.fn() }),
+  useUnsubscribeWebPushEndpoint: webPushHookMocks.unsubscribe,
 }));
 vi.mock("../src/features/preferences/hooks", () => ({
   useCurrentUserPreference: () => ({
@@ -53,6 +59,10 @@ describe("native notification permission guidance", () => {
 
     render(<NotificationSettingsPage />);
     expect(await screen.findByText("应用提醒（Android）")).toBeInTheDocument();
+    expect(screen.queryByText("浏览器推送")).not.toBeInTheDocument();
+    expect(webPushHookMocks.config).not.toHaveBeenCalled();
+    expect(webPushHookMocks.create).not.toHaveBeenCalled();
+    expect(webPushHookMocks.unsubscribe).not.toHaveBeenCalled();
     expect(nativePermissionMocks.requestDisplayPermission).not.toHaveBeenCalled();
 
     await userEvent.click(screen.getByRole("button", { name: "允许应用通知" }));

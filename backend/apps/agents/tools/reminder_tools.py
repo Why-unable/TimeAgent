@@ -85,6 +85,7 @@ def create_reminder(
             deduplication_key=tool_idempotency_key(runtime, purpose="create-reminder"),
             target_type=target_type,
             target_id=target_id,
+            origin="agent",
         )
     )
     return model_dict(reminder, REMINDER_FIELDS)
@@ -120,6 +121,7 @@ def update_reminder(
             reminder_id=reminder_id,
             expected_version=expected_version,
             changes=changes,
+            origin="agent",
         )
     )
     return model_dict(reminder, REMINDER_FIELDS)
@@ -141,6 +143,7 @@ def set_reminder_target(
             reminder_id=reminder_id,
             expected_version=expected_version,
             changes={"target_type": target_type, "target_id": target_id},
+            origin="agent",
         )
     )
     return model_dict(reminder, REMINDER_FIELDS)
@@ -157,6 +160,7 @@ def cancel_reminder(
         reminder_id=reminder_id,
         user=require_writable(runtime),
         occurred_at=runtime.context.current_datetime,
+        origin="agent",
     )
     return model_dict(reminder, REMINDER_FIELDS)
 

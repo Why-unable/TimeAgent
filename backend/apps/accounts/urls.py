@@ -9,10 +9,12 @@ from apps.accounts.views import (
     CurrentUserView,
     EmailVerificationConfirmView,
     EmailVerificationRequestView,
+    GuestSessionView,
     LoginView,
+    LogoutView,
+    NativeGuestTokenView,
     NativePasswordResetRequestView,
     NativeRegisterView,
-    LogoutView,
     PasswordResetConfirmView,
     PasswordResetRequestView,
     RegisterView,
@@ -21,6 +23,12 @@ from apps.accounts.views import (
 urlpatterns = [
     path("csrf/", CsrfTokenView.as_view(), name="csrf"),
     path("register/", RegisterView.as_view(), name="register"),
+    path("guest/", GuestSessionView.as_view(), name="guest"),
+    path(
+        "native/guest/",
+        csrf_exempt(NativeGuestTokenView.as_view()),
+        name="native-guest",
+    ),
     path("native/register/", csrf_exempt(NativeRegisterView.as_view()), name="native-register"),
     path(
         "email-verification/confirm/",
@@ -39,7 +47,11 @@ urlpatterns = [
     path("me/", CurrentUserView.as_view(), name="me"),
     path("profile/", AccountProfileView.as_view(), name="profile"),
     path("password-reset/", PasswordResetRequestView.as_view(), name="password-reset-request"),
-    path("native/password-reset/", csrf_exempt(NativePasswordResetRequestView.as_view()), name="native-password-reset-request"),
+    path(
+        "native/password-reset/",
+        csrf_exempt(NativePasswordResetRequestView.as_view()),
+        name="native-password-reset-request",
+    ),
     path(
         "password-reset/confirm/",
         PasswordResetConfirmView.as_view(),
