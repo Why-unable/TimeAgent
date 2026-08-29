@@ -1,8 +1,10 @@
 from datetime import UTC, datetime
+from types import SimpleNamespace
 from unittest.mock import Mock
 from uuid import uuid4
 
 import pytest
+from asgiref.sync import async_to_sync
 from django.contrib.auth.models import User
 from django.test import override_settings
 
@@ -41,7 +43,7 @@ def test_append_event_publishes_only_after_commit(monkeypatch: pytest.MonkeyPatc
 def test_publish_failure_is_best_effort(monkeypatch: pytest.MonkeyPatch) -> None:
     client = Mock()
     client.xadd.side_effect = RuntimeError("redis down")
-    monkeypatch.setattr("apps.conversations.event_stream.Redis.from_url", lambda *a, **k: client)
+    monkeypatch.setattr("apps.conversations.event_stream._sync_client", lambda url: client)
 
     assert RedisAgentEventStream("redis://unused").publish(
         run_id=uuid4(),
@@ -55,7 +57,7 @@ def test_publish_failure_is_best_effort(monkeypatch: pytest.MonkeyPatch) -> None
 @override_settings(AGENT_EVENT_STREAM_ENABLED=True)
 def test_publish_writes_complete_sse_fields(monkeypatch: pytest.MonkeyPatch) -> None:
     client = Mock()
-    monkeypatch.setattr("apps.conversations.event_stream.Redis.from_url", lambda *a, **k: client)
+    monkeypatch.setattr("apps.conversations.event_stream._sync_client", lambda url: client)
     created_at = datetime(2026, 8, 29, 12, 0, tzinfo=UTC)
 
     assert RedisAgentEventStream("redis://unused").publish(
@@ -73,3 +75,60 @@ def test_publish_writes_complete_sse_fields(monkeypatch: pytest.MonkeyPatch) -> 
     assert fields["payload"] == '{"value":"ok"}'
     assert fields["created_at"] == created_at.isoformat()
     client.expire.assert_called_once()
+
+
+@override_settings(AGENT_EVENT_STREAM_ENABLED=True)
+def test_empty_stream_uses_replayable_baseline(monkeypatch: pytest.MonkeyPatch) -> None:
+    client = Mock()
+    client.xrevrange.return_value = []
+    monkeypatch.setattr("apps.conversations.event_stream._sync_client", lambda url: client)
+
+    assert RedisAgentEventStream("redis://unused").baseline_sync(run_id="run-1") == "0-0"
+
+
+def test_sse_reconciles_sequence_gap_from_postgres(monkeypatch: pytest.MonkeyPatch) -> None:
+    from apps.conversations import views
+
+    first_run = SimpleNamespace(status="running", execution_task_id="task")
+    terminal_run = SimpleNamespace(status="completed", execution_task_id=None)
+    missing = SimpleNamespace(
+        sequence=1,
+        event_type="agent.started",
+        payload={"n": 1},
+        created_at=datetime(2026, 8, 29, 12, 0, tzinfo=UTC),
+    )
+    calls = 0
+
+    def poll(**_: object) -> tuple[object, list[object]]:
+        nonlocal calls
+        calls += 1
+        return (first_run, [missing]) if calls == 1 else (terminal_run, [])
+
+    class FakeStream:
+        async def read(self, **_: object):
+            yield {
+                "redis_id": "2-0",
+                "sequence": 2,
+                "event_type": "agent.completed",
+                "payload": {"n": 2},
+                "created_at": "2026-08-29T12:00:01+00:00",
+            }
+
+    monkeypatch.setattr(views, "_sse_poll", poll)
+    monkeypatch.setattr(views, "RedisAgentEventStream", FakeStream)
+    async def collect() -> list[bytes]:
+        return [
+            frame
+            async for frame in views._sse(
+                user_id=1,
+                run_id=uuid4(),
+                cursor=0,
+                initial_snapshot=(first_run, []),
+                stream_baseline="0-0",
+            )
+        ]
+
+    frames = async_to_sync(collect)()
+
+    assert b"id: 1" in frames[0]
+    assert b"id: 2" in frames[1]

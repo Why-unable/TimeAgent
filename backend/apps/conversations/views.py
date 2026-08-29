@@ -169,6 +169,10 @@ class AgentRunEventStreamView(APIView):
                 content_type="text/event-stream",
             )
         user = _user(request)
+        try:
+            _sse_authorize(user_id=user.pk, run_id=run_id)
+        except AgentRun.DoesNotExist as exc:
+            raise Http404 from exc
         stream_baseline: str | None = None
         if settings.AGENT_EVENT_STREAM_ENABLED:
             try:
@@ -176,10 +180,7 @@ class AgentRunEventStreamView(APIView):
             except Exception:
                 # Redis is an accelerator; PostgreSQL polling remains the fallback.
                 pass
-        try:
-            initial_snapshot = _sse_poll(user_id=user.pk, run_id=run_id, cursor=cursor)
-        except AgentRun.DoesNotExist as exc:
-            raise Http404 from exc
+        initial_snapshot = _sse_poll(user_id=user.pk, run_id=run_id, cursor=cursor)
         response = StreamingHttpResponse(
             _sse(
                 user_id=user.pk,
@@ -248,6 +249,27 @@ async def _sse(
                     redis_id = item["redis_id"]
                     if item["sequence"] <= current_cursor:
                         continue
+                    if item["sequence"] > current_cursor + 1:
+                        _, missing_events = await sync_to_async(
+                            _sse_poll, thread_sensitive=True
+                        )(user_id=user_id, run_id=run_id, cursor=current_cursor)
+                        for missing in missing_events:
+                            event_data = {
+                                **missing.payload,
+                                "event_created_at": missing.created_at.isoformat(),
+                            }
+                            data = json.dumps(
+                                event_data, ensure_ascii=False, separators=(",", ":")
+                            )
+                            yield (
+                                f"id: {missing.sequence}\nevent: {missing.event_type}\n"
+                                f"data: {data}\n\n"
+                            ).encode()
+                            current_cursor = missing.sequence
+                        if item["sequence"] <= current_cursor:
+                            continue
+                        if item["sequence"] != current_cursor + 1:
+                            continue
                     event_data = {
                         **item["payload"],
                         "event_created_at": item["created_at"],
@@ -280,6 +302,10 @@ def _sse_poll(*, user_id: int, run_id: UUID, cursor: int) -> tuple[AgentRun, lis
     )
     events = list(run.events.filter(sequence__gt=cursor).order_by("sequence"))
     return run, events
+
+
+def _sse_authorize(*, user_id: int, run_id: UUID) -> AgentRun:
+    return AgentRun.objects.only("pk").get(pk=run_id, conversation__user_id=user_id)
 
 
 def _close_stale_sse_connections() -> None:
