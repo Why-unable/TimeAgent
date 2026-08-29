@@ -17,6 +17,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from apps.conversations.event_stream import RedisAgentEventStream
 from apps.conversations.models import AgentRun, AgentRunStatus, Conversation
 from apps.conversations.renderers import EventStreamRenderer
 from apps.conversations.serializers import (
@@ -167,6 +168,12 @@ class AgentRunEventStreamView(APIView):
                 content_type="text/event-stream",
             )
         user = _user(request)
+        stream_baseline: str | None = None
+        try:
+            stream_baseline = RedisAgentEventStream().baseline_sync(run_id=run_id)
+        except Exception:
+            # Redis is an accelerator; PostgreSQL polling remains the fallback.
+            pass
         try:
             initial_snapshot = _sse_poll(user_id=user.pk, run_id=run_id, cursor=cursor)
         except AgentRun.DoesNotExist as exc:
@@ -177,6 +184,7 @@ class AgentRunEventStreamView(APIView):
                 run_id=run_id,
                 cursor=cursor,
                 initial_snapshot=initial_snapshot,
+                stream_baseline=stream_baseline,
             ),
             content_type="text/event-stream",
         )
@@ -191,6 +199,7 @@ async def _sse(
     run_id: UUID,
     cursor: int,
     initial_snapshot: tuple[AgentRun, list[Any]] | None = None,
+    stream_baseline: str | None = None,
 ) -> AsyncIterator[bytes]:
     """Yield persisted run events without blocking Django's ASGI event loop.
 
@@ -201,6 +210,9 @@ async def _sse(
 
     current_cursor = cursor
     last_heartbeat = time.monotonic()
+    stream = RedisAgentEventStream()
+    redis_id = stream_baseline
+    redis_enabled = redis_id is not None
     while True:
         if initial_snapshot is not None:
             run, events = initial_snapshot
@@ -222,11 +234,40 @@ async def _sse(
         if _event_stream_is_terminal(run):
             return
 
+        if redis_enabled and redis_id is not None:
+            try:
+                received = False
+                async for item in stream.read(
+                    run_id=run_id,
+                    after_id=redis_id,
+                    block_ms=int(SSE_HEARTBEAT_INTERVAL_SECONDS * 1000),
+                ):
+                    received = True
+                    redis_id = item["redis_id"]
+                    if item["sequence"] <= current_cursor:
+                        continue
+                    event_data = {
+                        **item["payload"],
+                        "event_created_at": item["created_at"],
+                    }
+                    data = json.dumps(event_data, ensure_ascii=False, separators=(",", ":"))
+                    yield (
+                        f"id: {item['sequence']}\nevent: {item['event_type']}\n"
+                        f"data: {data}\n\n"
+                    ).encode()
+                    current_cursor = item["sequence"]
+                if received:
+                    continue
+            except Exception:
+                # Fall back to the existing database path for this connection.
+                redis_enabled = False
+
         now = time.monotonic()
         if now - last_heartbeat >= SSE_HEARTBEAT_INTERVAL_SECONDS:
             yield b": heartbeat\n\n"
             last_heartbeat = now
-        await asyncio.sleep(SSE_POLL_INTERVAL_SECONDS)
+        if not redis_enabled:
+            await asyncio.sleep(SSE_POLL_INTERVAL_SECONDS)
 
 
 def _sse_poll(*, user_id: int, run_id: UUID, cursor: int) -> tuple[AgentRun, list[Any]]:

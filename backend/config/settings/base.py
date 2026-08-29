@@ -288,6 +288,9 @@ SPECTACULAR_SETTINGS = {
 }
 
 REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
+AGENT_EVENT_STREAM_REDIS_URL = os.getenv(
+    "AGENT_EVENT_STREAM_REDIS_URL", "redis://localhost:6379/2"
+)
 CACHES = {
     "default": {
         "BACKEND": "django.core.cache.backends.redis.RedisCache",

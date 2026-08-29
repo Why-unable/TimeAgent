@@ -10,6 +10,7 @@ from django.db.models import Max
 from django.utils import timezone
 
 from apps.accounts.services import GuestAccountPolicyService
+from apps.conversations.event_stream import publish_agent_event
 from apps.conversations.models import (
     AgentEvent,
     AgentRun,
@@ -396,12 +397,23 @@ class AgentRunService:
         maximum = AgentEvent.objects.filter(run=locked_run).aggregate(value=Max("sequence"))[
             "value"
         ]
-        return AgentEvent.objects.create(
+        event = AgentEvent.objects.create(
             run=locked_run,
             sequence=(maximum or 0) + 1,
             event_type=event_type,
             payload=payload,
         )
+        transaction.on_commit(
+            lambda: publish_agent_event(
+                run_id=event.run_id,
+                sequence=event.sequence,
+                event_type=event.event_type,
+                payload=event.payload,
+                created_at=event.created_at,
+            ),
+            robust=True,
+        )
+        return event
 
     @staticmethod
     def events_after(*, user: User, run_id: UUID, cursor: int) -> list[AgentEvent]:
