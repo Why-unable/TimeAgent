@@ -29,6 +29,8 @@ class RedisAgentEventStream:
 
     def publish(self, *, run_id: UUID | str, sequence: int, event_type: str,
                 payload: dict[str, Any], created_at: datetime) -> bool:
+        if not settings.AGENT_EVENT_STREAM_ENABLED:
+            return False
         client = Redis.from_url(
             self.url, decode_responses=True, socket_connect_timeout=1, socket_timeout=2
         )

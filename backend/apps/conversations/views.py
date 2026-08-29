@@ -6,6 +6,7 @@ from typing import Any, Protocol
 from uuid import UUID, uuid4
 
 from asgiref.sync import sync_to_async
+from django.conf import settings
 from django.contrib.auth.models import User
 from django.db import connections
 from django.http import Http404, StreamingHttpResponse
@@ -169,11 +170,12 @@ class AgentRunEventStreamView(APIView):
             )
         user = _user(request)
         stream_baseline: str | None = None
-        try:
-            stream_baseline = RedisAgentEventStream().baseline_sync(run_id=run_id)
-        except Exception:
-            # Redis is an accelerator; PostgreSQL polling remains the fallback.
-            pass
+        if settings.AGENT_EVENT_STREAM_ENABLED:
+            try:
+                stream_baseline = RedisAgentEventStream().baseline_sync(run_id=run_id)
+            except Exception:
+                # Redis is an accelerator; PostgreSQL polling remains the fallback.
+                pass
         try:
             initial_snapshot = _sse_poll(user_id=user.pk, run_id=run_id, cursor=cursor)
         except AgentRun.DoesNotExist as exc:

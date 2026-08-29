@@ -288,6 +288,12 @@ SPECTACULAR_SETTINGS = {
 }
 
 REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
+AGENT_EVENT_STREAM_ENABLED = os.getenv("AGENT_EVENT_STREAM_ENABLED", "true").lower() in {
+    "1",
+    "true",
+    "yes",
+    "on",
+}
 AGENT_EVENT_STREAM_REDIS_URL = os.getenv(
     "AGENT_EVENT_STREAM_REDIS_URL", "redis://localhost:6379/2"
 )
