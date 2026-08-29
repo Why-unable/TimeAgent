@@ -22,5 +22,8 @@ urlpatterns = [
     path("api/v1/app-updates/", include("apps.app_updates.urls")),
     path("api/v1/briefings/", include("apps.briefings.urls")),
     path("api/v1/providers/", include("apps.external_data.urls")),
+    path("api/v1/integrations/", include("apps.integrations.urls")),
+    path("api/v1/insights/", include("apps.insights.urls")),
+    path("api/v1/planning/", include("apps.planning.urls")),
     path("api/v1/", include("apps.notifications.urls")),
 ]

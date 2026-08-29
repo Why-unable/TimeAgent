@@ -1,14 +1,37 @@
-import { CircleCheck, CirclePlus, Clock, ListTodo, Pencil, Tag } from "lucide-react";
+import {
+  BarChart3,
+  CircleCheck,
+  CirclePlus,
+  Clock,
+  ListTodo,
+  Pause,
+  Pencil,
+  Play,
+  SkipForward,
+  Sparkles,
+  Tag,
+} from "lucide-react";
 import { useMemo, useState } from "react";
 
 import { getTaskTags, type Task } from "../api/tasks";
 import { useCurrentUserPreference } from "../features/preferences/hooks";
+import {
+  useDurationRecommendation,
+  useRecordDecisionFeedback,
+} from "../features/preferences/time-memory-hooks";
+import { useFreeTimeRecommendations } from "../features/planning/hooks";
 import { filterTasks, type TaskFilter } from "../features/tasks/filters";
-import { useCompleteTask, useTasks } from "../features/tasks/hooks";
+import {
+  useCompleteTask,
+  useRecordTaskExecutionSignal,
+  useTaskExecutionSummary,
+  useTasks,
+} from "../features/tasks/hooks";
 import { TaskEditor } from "../features/tasks/task-editor";
 import { TaskEmptyState } from "../features/tasks/task-empty-state";
 import { ScheduleWorkspaceTabs } from "../features/workspace/schedule-workspace-tabs";
 import { formatInUserTimezone } from "../utils/datetime";
+import { isNativePlatform } from "../platform";
 
 const primaryFilters: { id: TaskFilter; label: string }[] = [
   { id: "inbox", label: "Inbox" },
@@ -37,9 +60,22 @@ export function TasksPage() {
   const locale = preference.data?.locale ?? "zh-CN";
   const tasks = useTasks();
   const completeMutation = useCompleteTask();
+  const executionMutation = useRecordTaskExecutionSignal();
+  const [executionTaskId, setExecutionTaskId] = useState<string>();
+  const [recommendationTaskId, setRecommendationTaskId] = useState<string>();
+  const executionSummary = useTaskExecutionSummary(executionTaskId);
+  const durationRecommendation = useDurationRecommendation(recommendationTaskId);
+  const durationFeedback = useRecordDecisionFeedback();
   const [filter, setFilter] = useState<TaskFilter>("inbox");
   const [editingTask, setEditingTask] = useState<Task>();
   const [creating, setCreating] = useState(false);
+  const [recommendationRequested, setRecommendationRequested] = useState(false);
+  const recommendationRange = useMemo(() => {
+    const start = new Date();
+    const end = new Date(start.getTime() + 7 * 24 * 60 * 60 * 1000);
+    return { range_start: start.toISOString(), range_end: end.toISOString(), duration_minutes: 30, max_results: 6 };
+  }, []);
+  const recommendations = useFreeTimeRecommendations(recommendationRange, recommendationRequested);
   const visibleTasks = useMemo(
     () => filterTasks(tasks.data ?? [], filter, timezone),
     [filter, tasks.data, timezone],
@@ -52,6 +88,22 @@ export function TasksPage() {
     });
     return [...groups.entries()];
   }, [visibleTasks]);
+
+  const sendDurationFeedback = (action: "accept" | "too_short" | "too_long" | "disable") => {
+    const recommendation = durationRecommendation.data;
+    if (!recommendation) return;
+    durationFeedback.mutate({
+      category: "duration_estimate",
+      action,
+      value: action === "disable" ? {} : {
+        task_id: recommendation.task_id,
+        segment: recommendation.segment,
+        recommended_minutes: recommendation.recommended_minutes,
+      },
+      idempotency_key: `${isNativePlatform() ? "android" : "web"}-${action}-${recommendation.task_id}-${Date.now()}`,
+      source: isNativePlatform() ? "android" : "web",
+    });
+  };
 
   return (
     <section className="mx-auto max-w-6xl">
@@ -121,6 +173,28 @@ export function TasksPage() {
       {!tasks.isPending && !tasks.isError && visibleTasks.length === 0 && <TaskEmptyState />}
 
       <div className="mt-8 space-y-7">
+        <section className="rounded-2xl border border-cyan-300/20 bg-cyan-300/5 p-5">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h3 className="font-medium text-cyan-100">未来空闲时间</h3>
+              <p className="mt-1 text-xs text-slate-400">按工作时间、日程和已计划任务寻找 30 分钟候选，不会自动创建安排。</p>
+            </div>
+            <button type="button" onClick={() => setRecommendationRequested(true)} disabled={recommendations.isFetching} className="rounded-lg border border-cyan-300/30 px-3 py-2 text-xs text-cyan-100 hover:bg-cyan-300/10 disabled:opacity-50">
+              {recommendations.isFetching ? "查找中…" : "查找候选"}
+            </button>
+          </div>
+          {recommendations.data && (
+            <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+              {recommendations.data.slots.map((slot) => (
+                <div key={`${slot.start_at}-${slot.end_at}`} className="rounded-xl bg-slate-950/50 p-3 text-xs text-slate-300">
+                  {formatInUserTimezone(slot.start_at, timezone, locale)} — {formatInUserTimezone(slot.end_at, timezone, locale)}
+                </div>
+              ))}
+              {recommendations.data.slots.length === 0 && <p className="text-sm text-amber-200">未来范围内没有满足约束的候选时间。</p>}
+            </div>
+          )}
+          {recommendations.isError && <p role="alert" className="mt-3 text-xs text-red-200">空闲时间推荐暂时不可用。</p>}
+        </section>
         {groupedTasks.map(([project, projectTasks]) => (
           <section key={project}>
             <div className="mb-3 flex items-center gap-3">
@@ -171,6 +245,45 @@ export function TasksPage() {
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
+                        {task.status === "pending" && (
+                          <button
+                            type="button"
+                            aria-label={`开始任务：${task.title}`}
+                            disabled={executionMutation.isPending}
+                            onClick={() =>
+                              executionMutation.mutate({ taskId: task.id, signalType: "started" })
+                            }
+                            className="rounded-xl p-2 text-cyan-300 hover:bg-cyan-400/10 disabled:opacity-50"
+                          >
+                            <Play size={19} />
+                          </button>
+                        )}
+                        {task.status === "in_progress" && (
+                          <button
+                            type="button"
+                            aria-label={`暂停任务：${task.title}`}
+                            disabled={executionMutation.isPending}
+                            onClick={() =>
+                              executionMutation.mutate({ taskId: task.id, signalType: "paused" })
+                            }
+                            className="rounded-xl p-2 text-amber-300 hover:bg-amber-400/10 disabled:opacity-50"
+                          >
+                            <Pause size={19} />
+                          </button>
+                        )}
+                        {canComplete && (
+                          <button
+                            type="button"
+                            aria-label={`跳过任务：${task.title}`}
+                            disabled={executionMutation.isPending}
+                            onClick={() =>
+                              executionMutation.mutate({ taskId: task.id, signalType: "skipped" })
+                            }
+                            className="rounded-xl p-2 text-slate-400 hover:bg-white/5 hover:text-white disabled:opacity-50"
+                          >
+                            <SkipForward size={19} />
+                          </button>
+                        )}
                         {canComplete && (
                           <button
                             type="button"
@@ -190,8 +303,91 @@ export function TasksPage() {
                         >
                           <Pencil size={18} />
                         </button>
+                        <button
+                          type="button"
+                          aria-label={`查看执行摘要：${task.title}`}
+                          onClick={() =>
+                            setExecutionTaskId((current) => (current === task.id ? undefined : task.id))
+                          }
+                          className="rounded-xl p-2 text-slate-400 hover:bg-white/5 hover:text-white"
+                        >
+                          <BarChart3 size={18} />
+                        </button>
+                        <button
+                          type="button"
+                          aria-label={`查看估时建议：${task.title}`}
+                          onClick={() =>
+                            setRecommendationTaskId((current) =>
+                              current === task.id ? undefined : task.id
+                            )
+                          }
+                          className="rounded-xl p-2 text-slate-400 hover:bg-white/5 hover:text-cyan-200"
+                        >
+                          <Sparkles size={18} />
+                        </button>
                       </div>
                     </div>
+                    {executionTaskId === task.id && (
+                      <div className="mt-4 rounded-xl border border-white/10 bg-slate-950/50 p-3 text-sm text-slate-300">
+                        {executionSummary.isPending && <p>正在读取执行摘要…</p>}
+                        {executionSummary.isError && <p className="text-amber-200">暂时无法读取执行摘要。</p>}
+                        {executionSummary.data && (
+                          <div className="flex flex-wrap gap-x-5 gap-y-2">
+                            <span>已记录 {executionSummary.data.signal_count} 次动作</span>
+                            {executionSummary.data.evidence_status === "no_execution_evidence" ? (
+                              <span className="text-amber-200">暂无执行证据，无法比较计划与实际。</span>
+                            ) : (
+                              <span>实际投入 {Math.round(executionSummary.data.active_seconds / 60)} 分钟</span>
+                            )}
+                            {executionSummary.data.variance_vs_plan_seconds !== null && (
+                              <span>
+                                相对计划块 {Math.round(executionSummary.data.variance_vs_plan_seconds / 60)} 分钟
+                              </span>
+                            )}
+                            {executionSummary.data.variance_vs_estimate_seconds !== null && (
+                              <span>
+                                相对估时 {Math.round(executionSummary.data.variance_vs_estimate_seconds / 60)} 分钟
+                              </span>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    {recommendationTaskId === task.id && (
+                      <div className="mt-4 rounded-xl border border-cyan-300/20 bg-cyan-300/5 p-4 text-sm">
+                        {durationRecommendation.isPending && <p className="text-slate-400">正在读取估时建议…</p>}
+                        {durationRecommendation.isError && <p className="text-amber-200">估时建议暂时不可用。</p>}
+                        {durationRecommendation.data && (
+                          <div className="space-y-3">
+                            <div className="flex flex-wrap items-center justify-between gap-3">
+                              <p className="font-medium text-cyan-100">
+                                建议预留 {durationRecommendation.data.recommended_minutes} 分钟
+                              </p>
+                              <span className="text-xs text-slate-400">
+                                {durationRecommendation.data.sample_count} 个样本 · 置信度 {Math.round(durationRecommendation.data.confidence * 100)}%
+                              </span>
+                            </div>
+                            <p className="text-xs leading-5 text-slate-400">
+                              {durationRecommendation.data.evidence.join("；")}
+                            </p>
+                            <p className="text-xs leading-5 text-slate-500">
+                              {durationRecommendation.data.classification.category === "unclassified"
+                                ? "未使用文本分类"
+                                : `任务类型 ${durationRecommendation.data.classification.category} · 分类置信度 ${Math.round(durationRecommendation.data.classification.confidence * 100)}%`}
+                              {` · ${durationRecommendation.data.decay_half_life_days} 天半衰期 · 建议有效至 ${new Date(durationRecommendation.data.expires_at).toLocaleDateString()}`}
+                            </p>
+                            <div className="flex flex-wrap gap-2">
+                              <button type="button" disabled={durationFeedback.isPending} onClick={() => sendDurationFeedback("accept")} className="rounded-lg border border-emerald-300/30 px-3 py-2 text-xs text-emerald-200 disabled:opacity-50">建议准确</button>
+                              <button type="button" disabled={durationFeedback.isPending} onClick={() => sendDurationFeedback("too_short")} className="rounded-lg border border-amber-300/30 px-3 py-2 text-xs text-amber-200 disabled:opacity-50">太短</button>
+                              <button type="button" disabled={durationFeedback.isPending} onClick={() => sendDurationFeedback("too_long")} className="rounded-lg border border-sky-300/30 px-3 py-2 text-xs text-sky-200 disabled:opacity-50">太长</button>
+                              <button type="button" disabled={durationFeedback.isPending} onClick={() => sendDurationFeedback("disable")} className="rounded-lg border border-white/10 px-3 py-2 text-xs text-slate-400 disabled:opacity-50">关闭此类建议</button>
+                            </div>
+                            {durationFeedback.isSuccess && <p role="status" className="text-xs text-emerald-200">估时反馈已记录。</p>}
+                            {durationFeedback.isError && <p role="alert" className="text-xs text-red-200">估时反馈保存失败。</p>}
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </article>
                 );
               })}
@@ -203,6 +399,11 @@ export function TasksPage() {
       {completeMutation.isError && (
         <div role="alert" className="fixed bottom-24 right-6 rounded-xl border border-red-400/30 bg-slate-900 p-4 text-sm text-red-200 shadow-xl">
           {completeMutation.error.message}
+        </div>
+      )}
+      {executionMutation.isError && (
+        <div role="alert" className="fixed bottom-24 right-6 rounded-xl border border-red-400/30 bg-slate-900 p-4 text-sm text-red-200 shadow-xl">
+          {executionMutation.error.message}
         </div>
       )}
       {creating && <TaskEditor timezone={timezone} onClose={() => setCreating(false)} />}

@@ -178,4 +178,46 @@ describe("TodayPage", () => {
 
     expect(await screen.findByRole("alert")).toHaveTextContent("无法读取今日工作台");
   });
+
+  it("records explicit false-positive feedback without silently disabling the kind", async () => {
+    let actionBody: Record<string, unknown> | undefined;
+    const insight = {
+      id: "61111111-1111-4111-8111-111111111111",
+      kind: "deadline_risk",
+      severity: "medium",
+      status: "open",
+      title: "截止风险",
+      summary: "任务可能无法按时完成。",
+      evidence: { due_at: "2026-07-20T10:00:00Z" },
+      deduplication_key: "deadline:e2e",
+      detected_at: "2026-07-20T04:00:00Z",
+      expires_at: "2026-07-21T04:00:00Z",
+      snoozed_until: null,
+      acted_at: null,
+      attention_decision: "NORMAL_NOTIFICATION",
+      attention_reason: "within_policy",
+      attention_decided_at: "2026-07-20T04:00:00Z",
+    };
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+        const url = String(input);
+        if (url.includes(`/insights/${insight.id}/action/`)) {
+          actionBody = JSON.parse(String(init?.body)) as Record<string, unknown>;
+          return new Response(JSON.stringify({ ...insight, status: "false_positive" }));
+        }
+        if (url.endsWith("/api/v1/insights/")) {
+          return new Response(JSON.stringify([insight]));
+        }
+        return new Response(JSON.stringify(summary));
+      }),
+    );
+    renderPage();
+
+    await userEvent.click(await screen.findByRole("button", { name: "标记为不准确" }));
+    await waitFor(() => expect(actionBody).toEqual({
+      action: "false_positive",
+      disable_kind: false,
+    }));
+  });
 });

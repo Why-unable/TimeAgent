@@ -79,6 +79,8 @@ class CreateEventCommand:
     recurrence_rule: str = ""
     source: str = "local"
     external_id: str = ""
+    external_account_reference: str = ""
+    external_calendar_id: str = ""
     created_by: User | None = None
     origin: str | None = None
 
@@ -113,8 +115,6 @@ class EventService:
             "status",
             "visibility",
             "recurrence_rule",
-            "source",
-            "external_id",
             "task",
         }
     )
@@ -144,6 +144,8 @@ class EventService:
             recurrence_rule=command.recurrence_rule,
             source=command.source,
             external_id=command.external_id,
+            external_account_reference=command.external_account_reference,
+            external_calendar_id=command.external_calendar_id,
         )
         event.full_clean()
         if event.status != CalendarEventStatus.CANCELLED:
@@ -389,6 +391,8 @@ class EventService:
                 "location",
                 "status",
                 "source",
+                "external_account_reference",
+                "external_calendar_id",
             ),
         )
 

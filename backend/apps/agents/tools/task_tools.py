@@ -6,6 +6,10 @@ from pydantic import BaseModel, Field
 
 from apps.agents.context import RuntimeContext
 from apps.agents.tools.common import model_dict, require_actor, require_writable
+from apps.tasks.execution_services import (
+    RecordExecutionSignalCommand,
+    TaskExecutionSignalService,
+)
 from apps.tasks.services import CreateTaskCommand, TaskQuery, TaskService, UpdateTaskCommand
 
 TASK_FIELDS = (
@@ -62,6 +66,34 @@ def get_task(task_id: UUID, runtime: ToolRuntime[RuntimeContext]) -> dict[str, o
 
     task = TaskService.get_task(user=require_actor(runtime), task_id=task_id)
     return model_dict(task, TASK_FIELDS)
+
+
+@tool
+def get_task_execution_summary(
+    task_id: UUID,
+    runtime: ToolRuntime[RuntimeContext],
+) -> dict[str, object]:
+    """Get recorded task execution time and its variance from plan and estimate."""
+
+    summary = TaskExecutionSignalService.summary(
+        user=require_actor(runtime),
+        task_id=task_id,
+        now=runtime.context.current_datetime,
+    )
+    return {
+        "task_id": str(summary.task_id),
+        "signal_count": summary.signal_count,
+        "active_seconds": summary.active_seconds,
+        "planned_seconds": summary.planned_seconds,
+        "estimated_seconds": summary.estimated_seconds,
+        "variance_vs_plan_seconds": summary.variance_vs_plan_seconds,
+        "variance_vs_estimate_seconds": summary.variance_vs_estimate_seconds,
+        "evidence_status": summary.evidence_status,
+        "open_started_at": (
+            summary.open_started_at.isoformat() if summary.open_started_at is not None else None
+        ),
+        "last_signal_type": summary.last_signal_type,
+    }
 
 
 @tool
@@ -218,12 +250,18 @@ def change_task_batch_state(
 def complete_task(task_id: UUID, runtime: ToolRuntime[RuntimeContext]) -> dict[str, object]:
     """Mark one task owned by the current user as completed."""
 
-    task = TaskService.complete_task(
-        task_id=task_id,
-        user=require_writable(runtime),
-        occurred_at=runtime.context.current_datetime,
-        origin="agent",
+    signal = TaskExecutionSignalService.record(
+        RecordExecutionSignalCommand(
+            task_id=task_id,
+            user=require_writable(runtime),
+            signal_type="completed",
+            occurred_at=runtime.context.current_datetime,
+            idempotency_key=f"agent-complete:{runtime.context.request_id}:{task_id}",
+            source="agent",
+        )
     )
+    task = signal.task
+    task.refresh_from_db()
     return model_dict(task, TASK_FIELDS)
 
 
@@ -259,7 +297,7 @@ def reschedule_task(
     return model_dict(task, TASK_FIELDS)
 
 
-TASK_READ_TOOLS = [list_tasks, get_task]
+TASK_READ_TOOLS = [list_tasks, get_task, get_task_execution_summary]
 TASK_WRITE_TOOLS = [
     create_task,
     create_task_batch,

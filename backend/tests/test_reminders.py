@@ -19,6 +19,7 @@ from apps.reminders.services import (
     CreateReminderCommand,
     ReminderIdempotencyConflictError,
     ReminderService,
+    ReminderTriggerNotFutureError,
 )
 
 pytestmark = pytest.mark.django_db
@@ -124,6 +125,7 @@ def test_service_creates_validated_reminder() -> None:
             user=user,
             title="  Submit report  ",
             trigger_at=FIXED_TRIGGER,
+            current_time=FIXED_NOW,
             timezone="Asia/Shanghai",
             deduplication_key="  submit-report-service  ",
         )
@@ -142,6 +144,7 @@ def test_service_returns_existing_reminder_for_idempotent_retry() -> None:
         user=user,
         title="Submit report",
         trigger_at=FIXED_TRIGGER,
+        current_time=FIXED_NOW,
         timezone="Asia/Shanghai",
         deduplication_key="service-idempotency-key",
     )
@@ -153,6 +156,24 @@ def test_service_returns_existing_reminder_for_idempotent_retry() -> None:
     assert Reminder.objects.filter(user=user).count() == 1
 
 
+def test_service_rejects_new_reminder_that_is_not_in_the_future() -> None:
+    user = create_user()
+
+    with pytest.raises(ReminderTriggerNotFutureError, match="must be in the future"):
+        ReminderService.create_reminder(
+            CreateReminderCommand(
+                user=user,
+                title="Already passed",
+                trigger_at=FIXED_NOW,
+                current_time=FIXED_NOW,
+                timezone="Asia/Shanghai",
+                deduplication_key="past-service-reminder",
+            )
+        )
+
+    assert not Reminder.objects.filter(user=user).exists()
+
+
 def test_service_rejects_reused_key_with_different_payload() -> None:
     user = create_user()
     ReminderService.create_reminder(
@@ -160,6 +181,7 @@ def test_service_rejects_reused_key_with_different_payload() -> None:
             user=user,
             title="Submit report",
             trigger_at=FIXED_TRIGGER,
+            current_time=FIXED_NOW,
             timezone="Asia/Shanghai",
             deduplication_key="conflicting-service-key",
         )
@@ -174,6 +196,7 @@ def test_service_rejects_reused_key_with_different_payload() -> None:
                 user=user,
                 title="Submit another report",
                 trigger_at=FIXED_TRIGGER,
+                current_time=FIXED_NOW,
                 timezone="Asia/Shanghai",
                 deduplication_key="conflicting-service-key",
             )
@@ -188,6 +211,7 @@ def test_service_scopes_idempotency_key_to_user() -> None:
             user=create_user("service-first-user"),
             title="Submit report",
             trigger_at=FIXED_TRIGGER,
+            current_time=FIXED_NOW,
             timezone="Asia/Shanghai",
             deduplication_key="shared-service-key",
         )
@@ -197,6 +221,7 @@ def test_service_scopes_idempotency_key_to_user() -> None:
             user=create_user("service-second-user"),
             title="Submit report",
             trigger_at=FIXED_TRIGGER,
+            current_time=FIXED_NOW,
             timezone="Asia/Shanghai",
             deduplication_key="shared-service-key",
         )
@@ -215,6 +240,7 @@ def test_service_rejects_invalid_command_before_writing() -> None:
                 user=user,
                 title="Submit report",
                 trigger_at=datetime(2026, 7, 17, 15, 0),
+                current_time=FIXED_NOW,
                 timezone="UTC+8",
                 deduplication_key="invalid-service-command",
             )
@@ -230,6 +256,7 @@ def test_service_cancels_pending_reminder_idempotently() -> None:
             user=user,
             title="Cancel me",
             trigger_at=FIXED_TRIGGER,
+            current_time=FIXED_NOW,
             timezone="Asia/Shanghai",
             deduplication_key="cancel-reminder-service",
         )
@@ -354,7 +381,7 @@ def test_reminder_api_creates_via_service_and_retries_idempotently() -> None:
     client.force_login(user)
     payload = {
         "title": "Submit API report",
-        "trigger_at": "2026-07-17T15:00:00+08:00",
+        "trigger_at": "2036-07-17T15:00:00+08:00",
         "timezone": "Asia/Shanghai",
         "channel": "console",
         "deduplication_key": "api-create-reminder",
@@ -374,7 +401,7 @@ def test_reminder_api_creates_via_service_and_retries_idempotently() -> None:
     assert first.status_code == 201
     assert retried.status_code == 201
     assert retried.json()["id"] == first.json()["id"]
-    assert first.json()["trigger_at"] == "2026-07-17T07:00:00Z"
+    assert first.json()["trigger_at"] == "2036-07-17T07:00:00Z"
     assert Reminder.objects.filter(user=user).count() == 1
 
 
@@ -390,6 +417,26 @@ def test_reminder_api_rejects_datetime_without_explicit_offset() -> None:
             "trigger_at": "2026-07-17T15:00:00",
             "timezone": "Asia/Shanghai",
             "deduplication_key": "ambiguous-api-reminder",
+        },
+        content_type="application/json",
+    )
+
+    assert response.status_code == 400
+    assert "trigger_at" in response.json()
+
+
+def test_reminder_api_rejects_past_trigger_time() -> None:
+    user = create_user()
+    client = Client()
+    client.force_login(user)
+
+    response = client.post(
+        "/api/v1/reminders/",
+        data={
+            "title": "Past reminder",
+            "trigger_at": "2020-07-17T15:00:00+08:00",
+            "timezone": "Asia/Shanghai",
+            "deduplication_key": "past-api-reminder",
         },
         content_type="application/json",
     )

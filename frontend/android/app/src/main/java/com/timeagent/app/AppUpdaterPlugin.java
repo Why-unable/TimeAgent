@@ -60,8 +60,15 @@ public class AppUpdaterPlugin extends Plugin {
         String downloadUrl = call.getString("downloadUrl", "");
         String expectedSha256 = call.getString("sha256", "").toLowerCase(Locale.ROOT);
         Integer expectedVersionCode = call.getInt("expectedVersionCode");
+        String expectedVersionName = call.getString("expectedVersionName", "").trim();
         Long expectedSizeBytes = call.getLong("expectedSizeBytes");
-        if (!downloadUrl.startsWith("https://") || !expectedSha256.matches("[0-9a-f]{64}") || expectedVersionCode == null) {
+        if (
+            !downloadUrl.startsWith("https://")
+                || !expectedSha256.matches("[0-9a-f]{64}")
+                || expectedVersionCode == null
+                || expectedVersionCode <= 0
+                || expectedVersionName.isEmpty()
+        ) {
             call.reject("更新清单无效。", "INVALID_UPDATE_MANIFEST");
             return;
         }
@@ -75,10 +82,14 @@ public class AppUpdaterPlugin extends Plugin {
                 if (!updateDirectory.exists() && !updateDirectory.mkdirs()) {
                     throw new IllegalStateException("无法创建更新缓存目录");
                 }
-                File apk = new File(updateDirectory, "timeagent-update.apk");
+                clearStaleUpdateFiles(updateDirectory);
+                File apk = new File(
+                    updateDirectory,
+                    buildUpdateFilename(expectedVersionCode.longValue(), expectedSha256)
+                );
                 download(downloadUrl, apk, expectedSizeBytes == null ? -1L : expectedSizeBytes);
                 verifyDigest(apk, expectedSha256);
-                verifyPackage(apk, expectedVersionCode.longValue());
+                verifyPackage(apk, expectedVersionCode.longValue(), expectedVersionName);
                 getActivity().runOnUiThread(() -> launchInstaller(apk, call));
             } catch (Exception exception) {
                 call.reject("更新包下载或校验失败：" + exception.getMessage(), "UPDATE_VERIFICATION_FAILED", exception);
@@ -96,7 +107,9 @@ public class AppUpdaterPlugin extends Plugin {
         connection.setConnectTimeout(15_000);
         connection.setReadTimeout(60_000);
         connection.setInstanceFollowRedirects(false);
+        connection.setUseCaches(false);
         connection.setRequestProperty("Accept", "application/vnd.android.package-archive");
+        connection.setRequestProperty("Cache-Control", "no-cache");
         int status = connection.getResponseCode();
         if (status != HttpURLConnection.HTTP_OK) throw new IllegalStateException("下载服务返回 HTTP " + status);
         long declaredSize = connection.getContentLengthLong();
@@ -129,7 +142,7 @@ public class AppUpdaterPlugin extends Plugin {
         if (!actual.toString().equals(expectedSha256)) throw new SecurityException("SHA-256 校验失败");
     }
 
-    private void verifyPackage(File apk, long expectedVersionCode) throws Exception {
+    private void verifyPackage(File apk, long expectedVersionCode, String expectedVersionName) throws Exception {
         PackageManager manager = getContext().getPackageManager();
         int flags = Build.VERSION.SDK_INT >= Build.VERSION_CODES.P
             ? PackageManager.GET_SIGNING_CERTIFICATES
@@ -142,6 +155,9 @@ public class AppUpdaterPlugin extends Plugin {
         long candidateVersion = longVersionCode(candidate);
         if (candidateVersion != expectedVersionCode || candidateVersion <= longVersionCode(current)) {
             throw new SecurityException("安装包版本号无效");
+        }
+        if (!expectedVersionName.equals(candidate.versionName)) {
+            throw new SecurityException("安装包版本名称与发布清单不一致");
         }
         if (!signatureSet(candidate).equals(signatureSet(current))) {
             throw new SecurityException("安装包签名证书不匹配");
@@ -163,6 +179,18 @@ public class AppUpdaterPlugin extends Plugin {
 
     private long longVersionCode(PackageInfo info) {
         return Build.VERSION.SDK_INT >= Build.VERSION_CODES.P ? info.getLongVersionCode() : info.versionCode;
+    }
+
+    static String buildUpdateFilename(long versionCode, String sha256) {
+        return String.format(Locale.ROOT, "timeagent-update-%d-%s.apk", versionCode, sha256.substring(0, 12));
+    }
+
+    private void clearStaleUpdateFiles(File updateDirectory) {
+        File[] files = updateDirectory.listFiles();
+        if (files == null) return;
+        for (File file : files) {
+            if (file.isFile() && file.getName().startsWith("timeagent-update")) file.delete();
+        }
     }
 
     private void launchInstaller(File apk, PluginCall call) {

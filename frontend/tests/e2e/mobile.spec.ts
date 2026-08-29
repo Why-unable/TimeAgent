@@ -34,6 +34,9 @@ const emptyTodaySummary = {
 };
 
 test.beforeEach(async ({ page }) => {
+  await page.addInitScript(() => {
+    window.localStorage.setItem("time-agent:onboarding:1:v1", "completed");
+  });
   await page.route("**/api/v1/auth/me/", (route) =>
     route.fulfill({
       json: { id: 1, email: "e2e@example.test", display_name: "E2E User", is_staff: false },
@@ -47,6 +50,26 @@ test.beforeEach(async ({ page }) => {
   await page.route("**/api/v1/tasks/**", (route) => route.fulfill({ json: [] }));
   await page.route("**/api/v1/events/**", (route) => route.fulfill({ json: [] }));
   await page.route("**/api/v1/reminders/**", (route) => route.fulfill({ json: [] }));
+  await page.route("**/api/v1/insights/", (route) => route.fulfill({ json: [] }));
+  await page.route("**/api/v1/integrations/calendar/connections/", (route) =>
+    route.fulfill({ json: [] }),
+  );
+  await page.route("**/api/v1/planning/automation-policies/", (route) =>
+    route.fulfill({ json: [] }),
+  );
+  await page.route("**/api/v1/time-memory/me/capacity-forecast/**", (route) =>
+    route.fulfill({
+      json: {
+        range_start: "2026-07-20T01:00:00Z",
+        range_end: "2026-07-27T01:00:00Z",
+        available_minutes: 480,
+        committed_minutes: 120,
+        unplanned_minutes: 60,
+        risk: "within_capacity",
+        reason_codes: [],
+      },
+    }),
+  );
   await page.route("**/api/v1/chat/conversations/**", (route) => {
     if (route.request().url().endsWith("/conversations/")) {
       route.fulfill({ json: [] });
@@ -79,7 +102,7 @@ test.describe("mobile shell", () => {
     await expect(nav.getByText("日历", { exact: true })).toHaveCount(0);
   });
 
-  for (const path of ["/calendar", "/tasks", "/reminders"]) {
+  for (const path of ["/calendar", "/tasks", "/planning", "/reminders"]) {
     test(`highlights 日程 tab on ${path}`, async ({ page }) => {
       await page.goto(path);
       const nav = page.getByRole("navigation", { name: "移动端主导航" });
@@ -88,8 +111,14 @@ test.describe("mobile shell", () => {
     });
   }
 
-  test("no horizontal scroll on /today /chat /calendar /tasks", async ({ page }) => {
-    for (const path of ["/today", "/chat", "/calendar", "/tasks"]) {
+  test("exposes briefings from the more drawer", async ({ page }) => {
+    await page.goto("/today");
+    await page.getByRole("button", { name: "更多" }).click();
+    await expect(page.getByRole("link", { name: /简报/ })).toHaveAttribute("href", "/briefings");
+  });
+
+  test("no horizontal scroll on primary workspaces", async ({ page }) => {
+    for (const path of ["/today", "/chat", "/calendar", "/tasks", "/planning"]) {
       await page.goto(path);
       await page.waitForLoadState("networkidle");
       await assertNoHorizontalScroll(page);

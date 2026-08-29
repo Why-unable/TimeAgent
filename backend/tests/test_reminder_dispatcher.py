@@ -25,6 +25,7 @@ def create_reminder(user: User, *, key: str, trigger_at: datetime) -> Reminder:
             user=user,
             title=f"Reminder {key}",
             trigger_at=trigger_at,
+            current_time=trigger_at - timedelta(hours=1),
             timezone="Asia/Shanghai",
             deduplication_key=key,
         )
@@ -64,6 +65,48 @@ def test_dispatcher_respects_batch_size() -> None:
     assert count == 2
     assert len(enqueued) == 2
     assert Reminder.objects.filter(status=ReminderStatus.QUEUED).count() == 2
+
+
+def test_dispatcher_marks_stale_reminder_missed_without_enqueuing() -> None:
+    user = create_user()
+    stale = create_reminder(
+        user,
+        key="stale",
+        trigger_at=FIXED_NOW - timedelta(minutes=11),
+    )
+    enqueued: list[UUID] = []
+
+    count = ReminderDispatcher.dispatch_due_reminders(
+        now=FIXED_NOW,
+        enqueue=enqueued.append,
+        max_lateness=timedelta(minutes=10),
+    )
+
+    stale.refresh_from_db()
+    assert count == 0
+    assert enqueued == []
+    assert stale.status == ReminderStatus.MISSED
+    assert not NotificationDelivery.objects.filter(source_id=stale.id).exists()
+
+
+def test_send_drops_reminder_that_became_stale_after_queueing() -> None:
+    reminder = create_reminder(
+        create_user(),
+        key="stale-in-queue",
+        trigger_at=FIXED_NOW - timedelta(minutes=1),
+    )
+    ReminderDispatcher.dispatch_due_reminders(now=FIXED_NOW, enqueue=lambda reminder_id: None)
+
+    sent = ReminderDispatcher.send_reminder(
+        reminder.id,
+        now=FIXED_NOW + timedelta(minutes=10),
+        max_lateness=timedelta(minutes=10),
+    )
+
+    reminder.refresh_from_db()
+    assert sent is False
+    assert reminder.status == ReminderStatus.MISSED
+    assert not NotificationDelivery.objects.filter(source_id=reminder.id).exists()
 
 
 def test_send_hands_reminder_to_durable_deliveries_and_is_idempotent() -> None:

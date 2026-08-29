@@ -45,6 +45,9 @@ const todaySummary = {
 };
 
 test.beforeEach(async ({ page }) => {
+  await page.addInitScript(() => {
+    window.localStorage.setItem("time-agent:onboarding:1:v1", "completed");
+  });
   await page.route("**/api/v1/auth/me/", (route) =>
     route.fulfill({
       json: {
@@ -60,6 +63,27 @@ test.beforeEach(async ({ page }) => {
   await page.route("**/api/v1/tasks/**", (route) => route.fulfill({ json: [] }));
   await page.route("**/api/v1/events/**", (route) => route.fulfill({ json: [] }));
   await page.route("**/api/v1/reminders/**", (route) => route.fulfill({ json: [] }));
+  await page.route("**/api/v1/insights/", (route) => route.fulfill({ json: [] }));
+  await page.route("**/api/v1/integrations/calendar/connections/", (route) =>
+    route.fulfill({ json: [] }),
+  );
+  await page.route("**/api/v1/app-updates/android/latest/", (route) =>
+    route.fulfill({
+      json: {
+        enabled: true,
+        release: {
+          version_code: 12,
+          version_name: "1.1.8",
+          download_url: "https://steward.example.test/releases/timeagent-1.1.8.apk",
+          sha256: "a".repeat(64),
+          size_bytes: 4_194_304,
+          release_notes: "测试版本",
+          published_at: "2026-08-27T00:00:00Z",
+          minimum_supported_version_code: 1,
+        },
+      },
+    }),
+  );
   await page.route("**/api/v1/chat/conversations/**", (route) => {
     if (route.request().url().endsWith("/conversations/")) {
       return route.fulfill({ json: [] });
@@ -106,5 +130,50 @@ test.describe("desktop workspace", () => {
         .attach(`desktop-${name}`, { path: screenshotPath, contentType: "image/png" })
         .catch(() => undefined);
     }
+  });
+
+  test("shows a scannable Android download dialog without overflowing", async ({ page }, testInfo) => {
+    await page.goto("/today");
+    await page.getByRole("button", { name: "下载手机 App" }).click();
+
+    const dialog = page.getByRole("dialog", { name: "下载 Time Agent" });
+    await expect(dialog).toBeVisible();
+    await expect(dialog.getByLabel("手机扫码下载")).toBeVisible();
+    await expect(dialog.getByRole("link", { name: "直接下载 APK" })).toHaveAttribute(
+      "href",
+      "https://steward.example.test/releases/timeagent-1.1.8.apk",
+    );
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(
+      true,
+    );
+
+    const screenshotPath = "test-results/desktop-android-download.png";
+    await page.screenshot({ path: screenshotPath, fullPage: true });
+    await testInfo
+      .attach("desktop-android-download", { path: screenshotPath, contentType: "image/png" })
+      .catch(() => undefined);
+  });
+
+  test("keeps all sidebar settings reachable in a short desktop viewport", async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 620 });
+    await page.goto("/today");
+
+    const navigation = page.getByTestId("desktop-sidebar-navigation");
+    const appSettings = navigation.getByRole("link", { name: /应用设置/ });
+    const scrollState = await navigation.evaluate((element) => ({
+      clientHeight: element.clientHeight,
+      overflowY: getComputedStyle(element).overflowY,
+      scrollHeight: element.scrollHeight,
+    }));
+
+    expect(scrollState.overflowY).toBe("auto");
+    expect(scrollState.scrollHeight).toBeGreaterThan(scrollState.clientHeight);
+    await expect(appSettings).not.toBeInViewport();
+
+    await navigation.evaluate((element) => {
+      element.scrollTop = element.scrollHeight;
+    });
+
+    await expect(appSettings).toBeInViewport();
   });
 });

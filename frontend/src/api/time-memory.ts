@@ -2,6 +2,10 @@ import type { components } from "./generated/schema";
 import { apiRequest } from "./client";
 
 export type TimeMemoryStatus = components["schemas"]["TimeMemoryStatus"];
+export type DecisionProfile = components["schemas"]["DecisionProfile"];
+export type DecisionFeedback = components["schemas"]["DecisionFeedback"];
+export type DurationRecommendation = components["schemas"]["DurationRecommendation"];
+export type CapacityForecast = components["schemas"]["CapacityForecast"];
 
 export type TimeMemoryProfile = {
   schema_version: number;
@@ -46,6 +50,7 @@ export type BehaviorWindow = {
   schedule_pattern: SchedulePattern;
   planning_pattern: PlanningPattern;
   change_pattern: ChangePattern;
+  adaptive_planning_pattern?: AdaptivePlanningPattern;
   summary: string;
   confidence: number;
 };
@@ -97,6 +102,17 @@ export type ChangePattern = {
   summary: string;
 };
 
+export type AdaptivePlanningPattern = {
+  automated_move_count: number;
+  reverted_move_count: number;
+  user_modified_after_move_count: number;
+  accepted_move_count: number;
+  median_move_minutes: number;
+  revert_or_modify_ratio: number;
+  confidence: number;
+  summary: string;
+};
+
 export type StablePattern = {
   pattern_id: string;
   pattern_type: string;
@@ -112,6 +128,30 @@ export type StablePattern = {
 
 export function getCurrentTimeMemory() {
   return apiRequest<TimeMemoryStatus>("/api/v1/time-memory/me/");
+}
+
+export function getDecisionProfile() {
+  return apiRequest<DecisionProfile>("/api/v1/time-memory/me/decision-profile/");
+}
+
+export function recordDecisionFeedback(input: DecisionFeedback) {
+  return apiRequest<{ id: string }>("/api/v1/time-memory/me/decision-profile/", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+export function getDurationRecommendation(taskId: string) {
+  return apiRequest<DurationRecommendation>(
+    `/api/v1/time-memory/me/duration-recommendations/${encodeURIComponent(taskId)}/`,
+  );
+}
+
+export function getCapacityForecast(input: { range_start: string; range_end: string }) {
+  const query = new URLSearchParams(input);
+  return apiRequest<CapacityForecast>(
+    `/api/v1/time-memory/me/capacity-forecast/?${query.toString()}`,
+  );
 }
 
 export function clearCurrentTimeMemory() {

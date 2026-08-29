@@ -6,7 +6,7 @@ from django.db import models
 
 from apps.events.models import CalendarEvent
 from apps.reminders.models import Reminder
-from apps.tasks.models import Task
+from apps.tasks.models import Task, TaskExecutionSignal
 from apps.time_memory.models import ScheduleChange
 
 
@@ -16,6 +16,7 @@ class TimeMemorySourceData:
     tasks: tuple[Task, ...] = ()
     reminders: tuple[Reminder, ...] = ()
     changes: tuple[ScheduleChange, ...] = ()
+    execution_signals: tuple[TaskExecutionSignal, ...] = ()
 
 
 class TimeMemorySourceRepository:
@@ -52,9 +53,15 @@ class TimeMemorySourceRepository:
             created_at__gte=since,
             created_at__lte=until,
         )
+        execution_signals = TaskExecutionSignal.objects.filter(
+            user=user,
+            occurred_at__gte=since,
+            occurred_at__lte=until,
+        )
         return TimeMemorySourceData(
             events=tuple(events),
             tasks=tuple(tasks),
             reminders=tuple(reminders),
             changes=tuple(changes),
+            execution_signals=tuple(execution_signals),
         )

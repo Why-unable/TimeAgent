@@ -2,12 +2,12 @@ import asyncio
 import json
 import time
 from collections.abc import AsyncIterator
-from typing import Any
+from typing import Any, Protocol
 from uuid import UUID, uuid4
 
 from asgiref.sync import sync_to_async
 from django.contrib.auth.models import User
-from django.db import close_old_connections
+from django.db import connections
 from django.http import Http404, StreamingHttpResponse
 from drf_spectacular.utils import OpenApiResponse, extend_schema
 from rest_framework import status
@@ -167,10 +167,17 @@ class AgentRunEventStreamView(APIView):
                 content_type="text/event-stream",
             )
         user = _user(request)
-        if not AgentRun.objects.filter(pk=run_id, conversation__user=user).exists():
-            raise Http404
+        try:
+            initial_snapshot = _sse_poll(user_id=user.pk, run_id=run_id, cursor=cursor)
+        except AgentRun.DoesNotExist as exc:
+            raise Http404 from exc
         response = StreamingHttpResponse(
-            _sse(user_id=user.pk, run_id=run_id, cursor=cursor),
+            _sse(
+                user_id=user.pk,
+                run_id=run_id,
+                cursor=cursor,
+                initial_snapshot=initial_snapshot,
+            ),
             content_type="text/event-stream",
         )
         response["Cache-Control"] = "no-cache"
@@ -178,7 +185,13 @@ class AgentRunEventStreamView(APIView):
         return response
 
 
-async def _sse(*, user_id: int, run_id: UUID, cursor: int) -> AsyncIterator[bytes]:
+async def _sse(
+    *,
+    user_id: int,
+    run_id: UUID,
+    cursor: int,
+    initial_snapshot: tuple[AgentRun, list[Any]] | None = None,
+) -> AsyncIterator[bytes]:
     """Yield persisted run events without blocking Django's ASGI event loop.
 
     ``StreamingHttpResponse`` must receive an asynchronous iterator under
@@ -188,37 +201,36 @@ async def _sse(*, user_id: int, run_id: UUID, cursor: int) -> AsyncIterator[byte
 
     current_cursor = cursor
     last_heartbeat = time.monotonic()
-    try:
-        while True:
+    while True:
+        if initial_snapshot is not None:
+            run, events = initial_snapshot
+            initial_snapshot = None
+        else:
             run, events = await sync_to_async(
                 _sse_poll,
                 thread_sensitive=True,
             )(user_id=user_id, run_id=run_id, cursor=current_cursor)
-            for event in events:
-                event_data = {
-                    **event.payload,
-                    "event_created_at": event.created_at.isoformat(),
-                }
-                data = json.dumps(event_data, ensure_ascii=False, separators=(",", ":"))
-                yield (
-                    f"id: {event.sequence}\nevent: {event.event_type}\ndata: {data}\n\n".encode()
-                )
-                current_cursor = event.sequence
+        for event in events:
+            event_data = {
+                **event.payload,
+                "event_created_at": event.created_at.isoformat(),
+            }
+            data = json.dumps(event_data, ensure_ascii=False, separators=(",", ":"))
+            yield f"id: {event.sequence}\nevent: {event.event_type}\ndata: {data}\n\n".encode()
+            current_cursor = event.sequence
 
-            if _event_stream_is_terminal(run):
-                return
+        if _event_stream_is_terminal(run):
+            return
 
-            now = time.monotonic()
-            if now - last_heartbeat >= SSE_HEARTBEAT_INTERVAL_SECONDS:
-                yield b": heartbeat\n\n"
-                last_heartbeat = now
-            await asyncio.sleep(SSE_POLL_INTERVAL_SECONDS)
-    finally:
-        await sync_to_async(close_old_connections, thread_sensitive=True)()
+        now = time.monotonic()
+        if now - last_heartbeat >= SSE_HEARTBEAT_INTERVAL_SECONDS:
+            yield b": heartbeat\n\n"
+            last_heartbeat = now
+        await asyncio.sleep(SSE_POLL_INTERVAL_SECONDS)
 
 
 def _sse_poll(*, user_id: int, run_id: UUID, cursor: int) -> tuple[AgentRun, list[Any]]:
-    close_old_connections()
+    _close_stale_sse_connections()
     run = AgentRun.objects.only("status", "execution_task_id").get(
         pk=run_id,
         conversation__user_id=user_id,
@@ -227,7 +239,22 @@ def _sse_poll(*, user_id: int, run_id: UUID, cursor: int) -> tuple[AgentRun, lis
     return run, events
 
 
-def _event_stream_is_terminal(run: AgentRun) -> bool:
+def _close_stale_sse_connections() -> None:
+    """Refresh polling-thread connections without breaking an enclosing transaction."""
+    for connection in connections.all(initialized_only=True):
+        if not connection.in_atomic_block:
+            connection.close_if_unusable_or_obsolete()
+
+
+class _RunTerminalState(Protocol):
+    @property
+    def status(self) -> str: ...
+
+    @property
+    def execution_task_id(self) -> str | None: ...
+
+
+def _event_stream_is_terminal(run: _RunTerminalState) -> bool:
     """Keep SSE open while an approved run is reserved for Celery resume."""
 
     if run.status == AgentRunStatus.WAITING_APPROVAL:

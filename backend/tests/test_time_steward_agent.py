@@ -1,4 +1,3 @@
-import asyncio
 import json
 from collections.abc import Callable, Mapping, Sequence
 from datetime import UTC, datetime
@@ -19,11 +18,14 @@ from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, System
 from langchain_core.outputs import ChatGeneration, ChatResult
 from langchain_core.runnables import Runnable
 from langchain_core.tools import BaseTool
+from langgraph.store.memory import InMemoryStore
 
 from apps.agents.agents.time_steward import build_time_steward_agent
 from apps.agents.context import RuntimeContext
+from apps.agents.management.commands.evaluate_time_steward import Command as AgentEvalCommand
 from apps.agents.middleware import (
     TemporalContextMiddleware,
+    ToolAuditMiddleware,
     ToolPolicyMiddleware,
     _hitl_when,
     build_time_steward_middleware,
@@ -32,9 +34,13 @@ from apps.agents.tools import READ_ONLY_TOOLS, TIME_STEWARD_TOOLS, WRITE_TOOLS
 from apps.conversations.models import AgentRunStatus, ToolCallAudit, ToolCallStatus
 from apps.conversations.services import AgentRunService, ConversationService, StartRunCommand
 from apps.events.services import CreateEventCommand, EventService
+from apps.integrations.calendar.sync_services import CalendarSyncService
+from apps.observability.models import LLMCallAudit
 from apps.preferences.snapshots import PlanningPreferencesSnapshot
+from apps.tasks.execution_services import RecordExecutionSignalCommand, TaskExecutionSignalService
 from apps.tasks.models import Task
-from apps.tasks.services import TaskService
+from apps.tasks.services import CreateTaskCommand, TaskService
+from apps.time_memory.models import TimeDecisionFeedback
 from common.clock import FixedClock
 
 
@@ -378,10 +384,8 @@ def test_low_risk_write_is_audited_and_bound_to_current_user() -> None:
     assert run.status == AgentRunStatus.RUNNING
 
 
-@pytest.mark.django_db(transaction=True)
-def test_async_tool_failure_is_audited_and_emitted(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
+@pytest.mark.django_db
+def test_tool_failure_is_audited_and_emitted() -> None:
     user = User.objects.create_user(username="async-writer")
     conversation = ConversationService.create(user=user)
     run = AgentRunService.start(
@@ -393,36 +397,24 @@ def test_async_tool_failure_is_audited_and_emitted(
         )
     )
     run = AgentRunService.mark_running(run)
-    model = ScriptedChatModel(
-        responses=[
-            AIMessage(
-                content="",
-                tool_calls=[
-                    {
-                        "name": "create_task",
-                        "args": {"title": "失败任务"},
-                        "id": "create-task-failure",
-                        "type": "tool_call",
-                    }
-                ],
-            )
-        ]
+    request = cast(
+        ToolCallRequest,
+        SimpleNamespace(
+            runtime=SimpleNamespace(context=context(user, agent_run_id=str(run.pk))),
+            tool_call={
+                "name": "create_task",
+                "args": {"title": "失败任务"},
+                "id": "create-task-failure",
+                "type": "tool_call",
+            },
+        ),
     )
 
-    def fail_create(*args: Any, **kwargs: Any) -> None:
-        del args, kwargs
+    def fail_create(_request: ToolCallRequest) -> None:
         raise RuntimeError("database unavailable")
 
-    monkeypatch.setattr(TaskService, "create_task", fail_create)
-    agent = build_time_steward_agent(model=model)
-
     with pytest.raises(RuntimeError, match="database unavailable"):
-        asyncio.run(
-            agent.ainvoke(
-                {"messages": [HumanMessage(content="创建失败任务")]},
-                context=context(user, agent_run_id=str(run.pk)),
-            )
-        )
+        ToolAuditMiddleware().wrap_tool_call(request, fail_create)
 
     audit = ToolCallAudit.objects.get(tool_call_id="create-task-failure")
     assert audit.status == ToolCallStatus.FAILED
@@ -448,6 +440,13 @@ def test_official_middleware_and_fixed_eval_policy_cover_phase_five() -> None:
         "SummarizationMiddleware",
     }.issubset(names)
     assert any(isinstance(item, ToolPolicyMiddleware) for item in middleware)
+    assert any(isinstance(item, TemporalContextMiddleware) for item in middleware)
+    ablated_names = {
+        type(item).__name__
+        for item in build_time_steward_middleware(model, temporal_context_enabled=False)
+    }
+    assert "TemporalContextMiddleware" not in ablated_names
+    assert "ToolPolicyMiddleware" in ablated_names
 
     fallback = ScriptedChatModel(responses=[AIMessage(content="fallback")])
     fallback_names = {
@@ -486,7 +485,191 @@ def test_official_middleware_and_fixed_eval_policy_cover_phase_five() -> None:
         "set_reminder_target",
         "cancel_reminder",
         "apply_schedule_plan",
+        "apply_local_replan",
+        "record_task_duration_feedback",
+        "act_on_temporal_insight",
+        "validate_schedule_plan",
+        "set_schedule_plan_item_lock",
+        "abandon_schedule_plan",
     }
+
+
+@pytest.mark.django_db(transaction=True)
+def test_agent_reads_duration_recommendation_and_capacity_from_services() -> None:
+    user = User.objects.create_user(username="decision-tool-reader")
+    task = TaskService.create_task(
+        CreateTaskCommand(
+            user=user,
+            title="Prepare review",
+            project="Research",
+            estimated_minutes=45,
+            due_at=datetime(2026, 7, 17, 12, tzinfo=UTC),
+        )
+    )
+    TaskExecutionSignalService.record(
+        RecordExecutionSignalCommand(
+            user=user,
+            task_id=task.pk,
+            signal_type="started",
+            occurred_at=datetime(2026, 7, 17, 7, tzinfo=UTC),
+            idempotency_key="decision-tool-started",
+        )
+    )
+    TaskExecutionSignalService.record(
+        RecordExecutionSignalCommand(
+            user=user,
+            task_id=task.pk,
+            signal_type="paused",
+            occurred_at=datetime(2026, 7, 17, 7, 30, tzinfo=UTC),
+            idempotency_key="decision-tool-paused",
+        )
+    )
+    CalendarSyncService.create_connection(
+        user=user,
+        provider_name="ics",
+        account_reference="private-account-reference",
+        calendar_id="private-calendar-id",
+        calendar_name="Read-only calendar",
+        timezone_name="Asia/Shanghai",
+    )
+    model = ScriptedChatModel(
+        responses=[
+            AIMessage(
+                content="",
+                tool_calls=[
+                    {
+                        "name": "recommend_task_duration",
+                        "args": {"task_id": str(task.pk)},
+                        "id": "duration-read-1",
+                        "type": "tool_call",
+                    }
+                ],
+            ),
+            AIMessage(
+                content="",
+                tool_calls=[
+                    {
+                        "name": "get_capacity_forecast",
+                        "args": {
+                            "range_start": "2026-07-17T01:00:00Z",
+                            "range_end": "2026-07-17T13:00:00Z",
+                        },
+                        "id": "capacity-read-1",
+                        "type": "tool_call",
+                    }
+                ],
+            ),
+            AIMessage(
+                content="",
+                tool_calls=[
+                    {
+                        "name": "get_task_execution_summary",
+                        "args": {"task_id": str(task.pk)},
+                        "id": "execution-read-1",
+                        "type": "tool_call",
+                    }
+                ],
+            ),
+            AIMessage(
+                content="",
+                tool_calls=[
+                    {
+                        "name": "list_calendar_sync_status",
+                        "args": {},
+                        "id": "calendar-sync-read-1",
+                        "type": "tool_call",
+                    }
+                ],
+            ),
+            AIMessage(content="The recommendation and capacity are based on saved facts."),
+        ]
+    )
+    agent = build_time_steward_agent(model=model, store=InMemoryStore())
+
+    result = agent.invoke(
+        {"messages": [HumanMessage(content="How long will this take, and can it fit today?")]},
+        context=context(user, read_only=True),
+    )
+
+    payloads = {
+        message.name: json.loads(str(message.content))
+        for message in result["messages"]
+        if isinstance(message, ToolMessage)
+    }
+    assert payloads["recommend_task_duration"]["task_id"] == str(task.pk)
+    assert payloads["recommend_task_duration"]["recommended_minutes"] == 45
+    assert "fallback_reason" in payloads["recommend_task_duration"]
+    assert payloads["get_capacity_forecast"]["unplanned_minutes"] == 45
+    assert payloads["get_capacity_forecast"]["risk"] in {
+        "within_capacity",
+        "tight",
+        "over_capacity",
+    }
+    assert isinstance(payloads["get_capacity_forecast"]["reason_codes"], list)
+    assert payloads["get_task_execution_summary"]["active_seconds"] == 30 * 60
+    assert payloads["get_task_execution_summary"]["evidence_status"] == "complete"
+    assert payloads["list_calendar_sync_status"] == [
+        {
+            "connection_id": payloads["list_calendar_sync_status"][0]["connection_id"],
+            "provider_name": "ics",
+            "calendar_name": "Read-only calendar",
+            "timezone": "Asia/Shanghai",
+            "enabled": True,
+            "status": "ready",
+            "last_synced_at": None,
+            "last_error": "",
+        }
+    ]
+    assert "private-account-reference" not in str(payloads["list_calendar_sync_status"])
+    assert "record_task_duration_feedback" not in model.bound_tool_names
+
+
+@pytest.mark.django_db(transaction=True)
+def test_agent_records_duration_feedback_with_trusted_segment_and_idempotency() -> None:
+    user = User.objects.create_user(username="decision-tool-writer")
+    task = TaskService.create_task(
+        CreateTaskCommand(
+            user=user,
+            title="Prepare review",
+            project="Research",
+            estimated_minutes=45,
+        )
+    )
+    model = ScriptedChatModel(
+        responses=[
+            AIMessage(
+                content="",
+                tool_calls=[
+                    {
+                        "name": "record_task_duration_feedback",
+                        "args": {"task_id": str(task.pk), "action": "too_short"},
+                        "id": "duration-feedback-1",
+                        "type": "tool_call",
+                    }
+                ],
+            ),
+            AIMessage(content="Feedback recorded."),
+        ]
+    )
+    agent = build_time_steward_agent(model=model, store=InMemoryStore())
+
+    result = agent.invoke(
+        {"messages": [HumanMessage(content="That estimate was too short.")]},
+        context=context(user),
+    )
+
+    message = next(
+        item
+        for item in result["messages"]
+        if isinstance(item, ToolMessage) and item.name == "record_task_duration_feedback"
+    )
+    payload = json.loads(str(message.content))
+    feedback = TimeDecisionFeedback.objects.get(user=user)
+    assert payload["feedback_id"] == str(feedback.pk)
+    assert feedback.action == "too_short"
+    assert feedback.source == "agent"
+    assert feedback.value["segment"] == "project:research"
+    assert feedback.idempotency_key.startswith("agent:")
 
 
 @pytest.mark.django_db(transaction=True)
@@ -541,7 +724,7 @@ def test_fixed_eval_command_executes_and_checks_real_trajectories(
     )
     monkeypatch.setattr(
         "apps.agents.management.commands.evaluate_time_steward.build_time_steward_agent",
-        lambda model: fake_agent,
+        lambda **_kwargs: fake_agent,
     )
     output = StringIO()
 
@@ -549,4 +732,75 @@ def test_fixed_eval_command_executes_and_checks_real_trajectories(
 
     expected_turn_count = sum(len(case.get("turns", [case])) for case in cases)
     assert fake_agent.invoke.call_count == expected_turn_count
-    assert f"Time Steward eval passed: {len(cases)} case(s)" in output.getvalue()
+    assert f"Time Steward eval completed: {len(cases)}/{len(cases)} case(s) passed" in output.getvalue()
+
+
+@pytest.mark.django_db
+def test_eval_usage_metrics_report_token_coverage() -> None:
+    LLMCallAudit.objects.create(
+        request_id="eval-request-1",
+        component="time_steward",
+        model_name="test-model",
+        status="completed",
+        usage_source="provider",
+        input_tokens=80,
+        output_tokens=20,
+        total_tokens=100,
+        duration_ms=10,
+    )
+    LLMCallAudit.objects.create(
+        request_id="eval-request-2",
+        component="time_steward",
+        model_name="test-model",
+        status="completed",
+        usage_source="unavailable",
+        input_tokens=None,
+        output_tokens=None,
+        total_tokens=None,
+        duration_ms=10,
+    )
+    LLMCallAudit.objects.create(
+        request_id="eval-request-1",
+        component="briefing",
+        model_name="test-model",
+        status="completed",
+        usage_source="provider",
+        input_tokens=1,
+        output_tokens=1,
+        total_tokens=2,
+        duration_ms=10,
+    )
+
+    assert AgentEvalCommand._usage_for_requests(["eval-request-1", "eval-request-2"]) == {
+        "model_call_count": 2,
+        "completed_model_call_count": 2,
+        "total_tokens": 100,
+        "token_call_coverage": 0.5,
+    }
+
+
+def test_temporal_eval_compares_equivalent_time_formats() -> None:
+    errors = AgentEvalCommand._temporal_expectation_errors(
+        {"expected_relative_specs": [{"offset": 1, "unit": "day", "local_time": "09:00:00"}]},
+        [
+            {
+                "name": "mutate_events",
+                "succeeded": True,
+                "args": {
+                    "operations": [
+                        {
+                            "action": "create",
+                            "time": {
+                                "kind": "relative",
+                                "offset": 1,
+                                "unit": "day",
+                                "local_time": "09:00",
+                            },
+                        }
+                    ]
+                },
+            }
+        ],
+    )
+
+    assert errors == []

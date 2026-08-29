@@ -21,7 +21,7 @@ class ExternalCalendarContext(CalendarDTO):
 
 
 class ExternalCalendarSummary(CalendarDTO):
-    external_id: str = Field(min_length=1, max_length=1024)
+    external_id: str = Field(min_length=1, max_length=255)
     name: str = Field(min_length=1, max_length=255)
     timezone: str
     is_primary: bool = False
@@ -35,7 +35,7 @@ class ExternalCalendarSummary(CalendarDTO):
 
 
 class ExternalEventQuery(CalendarDTO):
-    calendar_id: str = Field(min_length=1, max_length=1024)
+    calendar_id: str = Field(min_length=1, max_length=255)
     starts_at_or_after: datetime
     starts_before: datetime
     sync_cursor: str = ""
@@ -55,8 +55,8 @@ class ExternalEventQuery(CalendarDTO):
 
 
 class ExternalEvent(CalendarDTO):
-    external_id: str = Field(min_length=1, max_length=1024)
-    calendar_id: str = Field(min_length=1, max_length=1024)
+    external_id: str = Field(min_length=1, max_length=255)
+    calendar_id: str = Field(min_length=1, max_length=255)
     title: str = Field(min_length=1, max_length=255)
     starts_at: datetime
     ends_at: datetime
@@ -81,8 +81,19 @@ class ExternalEvent(CalendarDTO):
         return self
 
 
+class ExternalEventTombstone(CalendarDTO):
+    external_id: str = Field(min_length=1, max_length=255)
+    calendar_id: str = Field(min_length=1, max_length=255)
+
+
+class ExternalEventPage(CalendarDTO):
+    events: tuple[ExternalEvent | ExternalEventTombstone, ...]
+    next_sync_cursor: str = ""
+    cursor_was_reset: bool = False
+
+
 class ExternalEventCreate(CalendarDTO):
-    calendar_id: str = Field(min_length=1, max_length=1024)
+    calendar_id: str = Field(min_length=1, max_length=255)
     title: str = Field(min_length=1, max_length=255)
     starts_at: datetime
     ends_at: datetime

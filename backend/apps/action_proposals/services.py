@@ -227,6 +227,19 @@ class ActionProposalService:
                 }
             )
             return context
+        if tool_name == "apply_local_replan":
+            movable_ids = args.get("movable_task_ids", [])
+            context.update(
+                {
+                    "impact_scope": f"Moves up to {len(movable_ids)} explicitly selected tasks",
+                    "proposed_start_at": args.get("blocked_start"),
+                    "proposed_end_at": args.get("blocked_end"),
+                    "movable_task_ids": movable_ids,
+                    "automation_policy_id": args.get("policy_id"),
+                    "operation_id": args.get("operation_id"),
+                }
+            )
+            return context
         if tool_name == "create_recurring_event":
             return ActionProposalService._recurring_event_display_context(
                 context=context,

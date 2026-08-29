@@ -17,7 +17,9 @@ Phase 9 同时需要为未来外部日历接入建立稳定边界，但当前不
 4. 第一版只允许通知当前用户本人。Email 地址来自 `user.email`，Web Push Subscription 必须属于当前用户。第三方收件人未来必须走 ActionProposal/HITL。
 5. Reminder 的 `sent` 表示到期 occurrence 已可靠移交给通知子系统，不代表每个渠道都成功。每个渠道的最终结果由 Delivery 独立记录。
 6. BriefingRun 只有在 `completed` 或 `partial` 且结果已持久化后才能创建 Delivery；失败 Run 不发送成功内容。
-7. 外部日历本阶段只提供不依赖 Django ORM 的 Provider Protocol、Pydantic DTO、能力声明和统一异常。不得注册 Google/Microsoft Provider，不创建 OAuth、Token、映射、同步任务或前端页面。
+7. 外部日历在 Phase 9 只提供不依赖 Django ORM 的 Provider Protocol、Pydantic DTO、能力声明；Phase A
+   的只读连接/同步基础由 ADR 0023 取代。Google/Microsoft Provider、OAuth、Token、Webhook 和外部写回
+   仍不在当前范围。
 
 ## 理由
 

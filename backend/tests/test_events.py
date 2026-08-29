@@ -89,14 +89,19 @@ def test_external_identity_must_match_source() -> None:
     assert "external_id" in external_error.value.message_dict
 
 
-def test_external_identity_is_unique_per_user_and_source() -> None:
+def test_external_identity_is_unique_per_user_account_and_calendar() -> None:
     user = create_user()
-    first = build_event(user, source="google", external_id="google-event-123")
+    identity = {
+        "source": "google",
+        "external_account_reference": "account@example.test",
+        "external_calendar_id": "primary",
+        "external_id": "google-event-123",
+    }
+    first = build_event(user, **identity)
     duplicate = build_event(
         user,
         title="Duplicate external event",
-        source="google",
-        external_id="google-event-123",
+        **identity,
     )
     first.full_clean()
     first.save()
@@ -106,6 +111,31 @@ def test_external_identity_is_unique_per_user_and_source() -> None:
     with pytest.raises(IntegrityError):
         with transaction.atomic():
             duplicate.save()
+
+
+def test_external_event_id_can_repeat_in_another_calendar() -> None:
+    user = create_user("multi-calendar-event-user")
+    first = build_event(
+        user,
+        source="google",
+        external_account_reference="account@example.test",
+        external_calendar_id="primary",
+        external_id="shared-event-id",
+    )
+    second = build_event(
+        user,
+        title="Other calendar copy",
+        source="google",
+        external_account_reference="account@example.test",
+        external_calendar_id="team@example.test",
+        external_id="shared-event-id",
+    )
+    first.full_clean()
+    first.save()
+    second.full_clean()
+    second.save()
+
+    assert CalendarEvent.objects.filter(user=user, external_id="shared-event-id").count() == 2
 
 
 def test_overlapping_events_are_allowed_at_model_layer() -> None:

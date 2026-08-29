@@ -136,6 +136,8 @@ class CalendarEvent(models.Model):
     recurrence_rule = models.TextField(blank=True)
     source = models.CharField(max_length=64, default="local")
     external_id = models.CharField(max_length=255, blank=True)
+    external_account_reference = models.CharField(max_length=255, blank=True)
+    external_calendar_id = models.CharField(max_length=255, blank=True)
     created_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
@@ -159,13 +161,29 @@ class CalendarEvent(models.Model):
             ),
             models.CheckConstraint(
                 condition=(
-                    models.Q(source="local", external_id="")
-                    | (~models.Q(source="local") & ~models.Q(external_id=""))
+                    models.Q(
+                        source="local",
+                        external_id="",
+                        external_account_reference="",
+                        external_calendar_id="",
+                    )
+                    | (
+                        ~models.Q(source="local")
+                        & ~models.Q(external_id="")
+                        & ~models.Q(external_account_reference="")
+                        & ~models.Q(external_calendar_id="")
+                    )
                 ),
                 name="calendar_event_external_identity_consistent",
             ),
             models.UniqueConstraint(
-                fields=["user", "source", "external_id"],
+                fields=[
+                    "user",
+                    "source",
+                    "external_account_reference",
+                    "external_calendar_id",
+                    "external_id",
+                ],
                 condition=~models.Q(external_id=""),
                 name="calendar_event_unique_external_identity",
             ),
@@ -191,6 +209,8 @@ class CalendarEvent(models.Model):
         self.location = self.location.strip()
         self.source = self.source.strip()
         self.external_id = self.external_id.strip()
+        self.external_account_reference = self.external_account_reference.strip()
+        self.external_calendar_id = self.external_calendar_id.strip()
         self.recurrence_rule = self.recurrence_rule.strip()
 
         if not self.title:
@@ -212,7 +232,24 @@ class CalendarEvent(models.Model):
 
         if self.end_at <= self.start_at:
             raise ValidationError({"end_at": "end_at must be later than start_at"})
-        if self.source == "local" and self.external_id:
-            raise ValidationError({"external_id": "Local events cannot have external_id"})
-        if self.source != "local" and not self.external_id:
-            raise ValidationError({"external_id": "External events require external_id"})
+        external_identity = {
+            "external_id": self.external_id,
+            "external_account_reference": self.external_account_reference,
+            "external_calendar_id": self.external_calendar_id,
+        }
+        if self.source == "local" and any(external_identity.values()):
+            raise ValidationError(
+                {
+                    field_name: "Local events cannot have external identity"
+                    for field_name in external_identity
+                }
+            )
+        if self.source != "local":
+            missing = [field_name for field_name, value in external_identity.items() if not value]
+            if missing:
+                raise ValidationError(
+                    {
+                        field_name: "External events require complete identity"
+                        for field_name in missing
+                    }
+                )

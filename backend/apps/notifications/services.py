@@ -110,6 +110,35 @@ class NotificationService:
 
     @staticmethod
     @transaction.atomic
+    def cancel_source_deliveries(
+        *,
+        user: User,
+        source_type: NotificationSourceType | str,
+        source_ids: list[UUID],
+        occurred_at: datetime,
+    ) -> int:
+        """Cancel every delivery for source facts that has not started sending."""
+        if not source_ids:
+            return 0
+        deliveries = NotificationDelivery.objects.select_for_update().filter(
+            user=user,
+            source_type=source_type,
+            source_id__in=source_ids,
+            status__in=[
+                NotificationDeliveryStatus.PENDING,
+                NotificationDeliveryStatus.QUEUED,
+                NotificationDeliveryStatus.FAILED,
+            ],
+        )
+        cancelled = 0
+        for delivery in deliveries:
+            delivery.transition_to(NotificationDeliveryStatus.CANCELLED, occurred_at=occurred_at)
+            delivery.save(update_fields=["status", "updated_at"])
+            cancelled += 1
+        return cancelled
+
+    @staticmethod
+    @transaction.atomic
     def mark_sending(*, delivery_id: UUID, occurred_at: datetime) -> NotificationDelivery | None:
         delivery = (
             NotificationDelivery.objects.select_for_update()

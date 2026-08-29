@@ -81,6 +81,7 @@ def create_reminder(
             user=require_writable(runtime),
             title=title,
             trigger_at=trigger_at,
+            current_time=runtime.context.current_datetime,
             timezone=timezone,
             deduplication_key=tool_idempotency_key(runtime, purpose="create-reminder"),
             target_type=target_type,
@@ -121,6 +122,7 @@ def update_reminder(
             reminder_id=reminder_id,
             expected_version=expected_version,
             changes=changes,
+            current_time=runtime.context.current_datetime,
             origin="agent",
         )
     )
@@ -143,6 +145,7 @@ def set_reminder_target(
             reminder_id=reminder_id,
             expected_version=expected_version,
             changes={"target_type": target_type, "target_id": target_id},
+            current_time=runtime.context.current_datetime,
             origin="agent",
         )
     )

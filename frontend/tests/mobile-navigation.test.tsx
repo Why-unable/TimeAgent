@@ -37,7 +37,7 @@ describe("MobileNavigation", () => {
     expect(screen.queryByText("日历")).not.toBeInTheDocument();
   });
 
-  it.each(["/calendar", "/tasks", "/reminders"])(
+  it.each(["/calendar", "/tasks", "/planning", "/reminders"])(
     "highlights the 日程 tab on %s",
     (path) => {
       renderNav(path);
@@ -61,6 +61,7 @@ describe("MobileNavigation", () => {
   it("exposes application settings and onboarding from the more drawer", async () => {
     renderNav("/today");
     await userEvent.click(screen.getByRole("button", { name: "更多" }));
+    expect(screen.getByRole("link", { name: /简报/ })).toHaveAttribute("href", "/briefings");
     expect(screen.getByText("邮件与应用提醒")).toBeInTheDocument();
     expect(screen.queryByText(/Web Push/)).not.toBeInTheDocument();
     expect(screen.getByRole("link", { name: /应用设置/ })).toHaveAttribute(

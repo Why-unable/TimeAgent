@@ -36,7 +36,7 @@ Cloudflare Tunnel 只建立出站连接，因此不需要向公网开放 80、44
 - `frontend/.env.production.local`（APK/Web 前端构建用的公网 API 地址）；
 - 最终 PostgreSQL custom-format 备份；
 - Cloudflare Zero Trust 账户的操作权限；
-- 现有的 `DJANGO_SECRET_KEY`、模型/邮件密钥、SMTP 密码、Web Push VAPID 密钥。
+- 现有的 `DJANGO_SECRET_KEY`、模型/邮件密钥、SMTP 密码、Web Push VAPID 密钥，以及 Calendar OAuth Fernet key。
 
 中国境内天气可复用高德 Web Service Key：设置 `AMAP_WEATHER_ENABLED=true` 后，
 简报天气只向高德发送已确认地点对应的六位行政区 `adcode`。高德预报通常覆盖当天起
@@ -46,6 +46,9 @@ Cloudflare Tunnel 只建立出站连接，因此不需要向公网开放 80、44
 其中 PostgreSQL 备份保存用户、业务数据、ActionProposal、通知投递记录、聊天与
 LangGraph 持久化（当 `LANGGRAPH_DATABASE_URL` 为空时）。请保留相同的 VAPID
 密钥对，否则已存在的 Web Push 订阅不能继续按原身份投递。
+同样必须保留 `CALENDAR_OAUTH_FERNET_KEY`（轮换期间还包括 `CALENDAR_OAUTH_FERNET_OLD_KEYS`）；数据库中的
+Google Calendar Token 只保存密文，丢失全部旧 key 后无法恢复，只能让用户重新授权。Fernet key 应与数据库备份
+分开加密保管。
 
 ## 1. 在旧 Windows 机器制作最终备份
 
@@ -153,6 +156,10 @@ CSRF_COOKIE_SECURE=true
 SECURE_SSL_REDIRECT=false
 SECURE_HSTS_SECONDS=0
 TIME_AGENT_CONFIG_PATH=config/agent.yaml
+CALENDAR_OAUTH_FERNET_KEY=<server-only-fernet-key>
+GOOGLE_CALENDAR_CLIENT_ID=<server-only-client-id>
+GOOGLE_CALENDAR_CLIENT_SECRET=<server-only-client-secret>
+GOOGLE_CALENDAR_REDIRECT_URI=https://steward.example.com/api/v1/integrations/calendar/oauth/google/callback/
 ```
 
 `SECURE_SSL_REDIRECT=false` 是当前 Tunnel 终止 TLS、再以 HTTP 转发到本机 Nginx 的
@@ -167,6 +174,28 @@ VITE_API_BASE_URL=https://steward.example.com
 
 它在前端镜像构建时被 Vite 写入静态产物；更改该值后必须重建 `frontend` 镜像。它不应
 包含密钥。
+
+轮换 Calendar OAuth key 时，先把旧 key 放入逗号分隔的 `CALENDAR_OAUTH_FERNET_OLD_KEYS`，部署新主 key 并重启
+Django，再执行 `uv run python manage.py rotate_calendar_oauth_credentials`。确认 Google 连接可读取后移除旧 key；
+命令输出只包含处理数量，不包含 Token。
+
+专用沙箱账号完成 Web OAuth 后，用明确时间窗生成脱敏 Provider 验收报告：
+
+```bash
+cd /opt/time-agent/backend
+mkdir -p evaluation_reports
+GIT_COMMIT_SHA="$(git -C .. rev-parse HEAD)" \
+  uv run python manage.py verify_google_calendar \
+  --user-id <SANDBOX_USER_ID> \
+  --connection-id <SANDBOX_CONNECTION_UUID> \
+  --starts-at 2026-08-24T00:00:00Z \
+  --starts-before 2026-09-24T00:00:00Z \
+  --output evaluation_reports/google-calendar-<SCENARIO>-<GIT_SHA>.json
+```
+
+分别为首次同步、分页、更新、删除、游标失效、限流和撤权场景保存报告。命令失败会返回非零状态；报告中不得出现
+账号、calendar ID、URL、游标、authorization code 或 Token。报告目录已被 Git 忽略，生产留存时应使用权限受限的
+验收制品存储。
 
 ## 4. 先恢复 PostgreSQL，再启动完整应用
 
@@ -321,6 +350,7 @@ curl --fail http://127.0.0.1:8080/health/ready
 - [ ] 一次聊天 SSE、一次审批恢复、一次简报均能完成；
 - [ ] Celery Beat/Worker 日志无持续错误；
 - [ ] 邮件与 Web Push 以非敏感测试数据做过一次投递；
+- [ ] Google Calendar 若启用，专用沙箱的授权、同步、删除、游标失效、限流和撤权报告均已保存且不含敏感字段；
 - [ ] Android APK 的 `VITE_API_BASE_URL` 仍指向生产 HTTPS 域名；
 - [ ] `docker` 与 `cloudflared` 都是 enabled；
 - [ ] PostgreSQL 备份已复制到独立、加密且具有保留策略的存储。

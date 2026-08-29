@@ -52,6 +52,9 @@ def test_task_defaults_and_normalized_fields() -> None:
     assert task.status == TaskStatus.PENDING
     assert task.priority == TaskPriority.MEDIUM
     assert task.source == "local"
+    assert task.buffer_before_minutes == 0
+    assert task.buffer_after_minutes == 0
+    assert task.planning_locked is False
 
 
 def test_task_requires_aware_datetimes() -> None:

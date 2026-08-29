@@ -55,6 +55,11 @@ HIGH_RISK_TOOL_POLICIES: dict[str, RiskPolicy] = {
         allowed_decisions=("approve", "reject"),
         description="Applies a saved schedule plan to tasks or calendar events atomically.",
     ),
+    "apply_local_replan": RiskPolicy(
+        risk_level="high",
+        allowed_decisions=("approve", "reject"),
+        description="Moves an explicitly selected set of flexible tasks as one reversible batch.",
+    ),
     "change_task_batch_state": RiskPolicy(
         risk_level="high",
         allowed_decisions=("approve", "reject"),

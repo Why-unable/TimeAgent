@@ -17,6 +17,7 @@ class ReminderStatus(models.TextChoices):
     SENT = "sent", "Sent"
     FAILED = "failed", "Failed"
     CANCELLED = "cancelled", "Cancelled"
+    MISSED = "missed", "Missed"
 
 
 class ReminderTargetType(models.TextChoices):
@@ -47,6 +48,7 @@ class Reminder(models.Model):
             {
                 ReminderStatus.QUEUED,
                 ReminderStatus.CANCELLED,
+                ReminderStatus.MISSED,
             }
         ),
         ReminderStatus.QUEUED: frozenset(
@@ -54,6 +56,7 @@ class Reminder(models.Model):
                 ReminderStatus.SENDING,
                 ReminderStatus.FAILED,
                 ReminderStatus.CANCELLED,
+                ReminderStatus.MISSED,
             }
         ),
         ReminderStatus.SENDING: frozenset(
@@ -66,10 +69,12 @@ class Reminder(models.Model):
             {
                 ReminderStatus.QUEUED,
                 ReminderStatus.CANCELLED,
+                ReminderStatus.MISSED,
             }
         ),
         ReminderStatus.SENT: frozenset(),
         ReminderStatus.CANCELLED: frozenset(),
+        ReminderStatus.MISSED: frozenset(),
     }
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)

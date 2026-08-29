@@ -73,6 +73,8 @@ INSTALLED_APPS = [
     "apps.reminders",
     "apps.events",
     "apps.external_data",
+    "apps.integrations",
+    "apps.insights",
     "apps.tasks",
     "apps.time_memory",
     "apps.planning",
@@ -190,6 +192,7 @@ GUEST_CLEANUP_BATCH_SIZE = int(os.getenv("GUEST_CLEANUP_BATCH_SIZE", "100"))
 NOTIFICATION_MAX_RETRIES = int(os.getenv("NOTIFICATION_MAX_RETRIES", "4"))
 NOTIFICATION_DEFAULT_CHANNEL = os.getenv("NOTIFICATION_DEFAULT_CHANNEL", "console")
 NOTIFICATION_SENDING_STALE_SECONDS = int(os.getenv("NOTIFICATION_SENDING_STALE_SECONDS", "300"))
+REMINDER_MAX_LATENESS_SECONDS = int(os.getenv("REMINDER_MAX_LATENESS_SECONDS", "600"))
 EMAIL_BACKEND = os.getenv("EMAIL_BACKEND", "django.core.mail.backends.console.EmailBackend")
 EMAIL_HOST = os.getenv("EMAIL_HOST", "localhost")
 EMAIL_PORT = int(os.getenv("EMAIL_PORT", "25"))
@@ -204,6 +207,41 @@ WEB_PUSH_VAPID_PRIVATE_KEY = os.getenv("WEB_PUSH_VAPID_PRIVATE_KEY", "")
 WEB_PUSH_VAPID_SUBJECT = os.getenv("WEB_PUSH_VAPID_SUBJECT", "")
 WEB_PUSH_TIMEOUT_SECONDS = int(os.getenv("WEB_PUSH_TIMEOUT_SECONDS", "10"))
 WEB_PUSH_HTTPS_PROXY = os.getenv("WEB_PUSH_HTTPS_PROXY", "")
+
+CALENDAR_OAUTH_FERNET_KEY = os.getenv("CALENDAR_OAUTH_FERNET_KEY", "")
+CALENDAR_OAUTH_FERNET_OLD_KEYS = [
+    key.strip()
+    for key in os.getenv("CALENDAR_OAUTH_FERNET_OLD_KEYS", "").split(",")
+    if key.strip()
+]
+CALENDAR_OAUTH_STATE_TTL_SECONDS = int(os.getenv("CALENDAR_OAUTH_STATE_TTL_SECONDS", "600"))
+CALENDAR_OAUTH_SUCCESS_URL = os.getenv(
+    "CALENDAR_OAUTH_SUCCESS_URL",
+    "/calendar?calendar_oauth=connected",
+)
+CALENDAR_OAUTH_FAILURE_URL = os.getenv(
+    "CALENDAR_OAUTH_FAILURE_URL",
+    "/calendar?calendar_oauth=failed",
+)
+GOOGLE_CALENDAR_CLIENT_ID = os.getenv("GOOGLE_CALENDAR_CLIENT_ID", "")
+GOOGLE_CALENDAR_CLIENT_SECRET = os.getenv("GOOGLE_CALENDAR_CLIENT_SECRET", "")
+GOOGLE_CALENDAR_REDIRECT_URI = os.getenv("GOOGLE_CALENDAR_REDIRECT_URI", "")
+CALENDAR_POLL_ENABLED = os.getenv("CALENDAR_POLL_ENABLED", "true").lower() in {
+    "1",
+    "true",
+    "yes",
+}
+CALENDAR_POLL_INTERVAL_SECONDS = int(os.getenv("CALENDAR_POLL_INTERVAL_SECONDS", "300"))
+CALENDAR_POLL_BATCH_SIZE = int(os.getenv("CALENDAR_POLL_BATCH_SIZE", "100"))
+CALENDAR_POLL_LOOKBACK_DAYS = int(os.getenv("CALENDAR_POLL_LOOKBACK_DAYS", "30"))
+CALENDAR_POLL_LOOKAHEAD_DAYS = int(os.getenv("CALENDAR_POLL_LOOKAHEAD_DAYS", "90"))
+ADAPTIVE_REPLAN_DISPATCH_ENABLED = os.getenv(
+    "ADAPTIVE_REPLAN_DISPATCH_ENABLED", "true"
+).lower() in {"1", "true", "yes"}
+ADAPTIVE_REPLAN_DISPATCH_INTERVAL_SECONDS = int(
+    os.getenv("ADAPTIVE_REPLAN_DISPATCH_INTERVAL_SECONDS", "300")
+)
+ADAPTIVE_REPLAN_HORIZON_HOURS = int(os.getenv("ADAPTIVE_REPLAN_HORIZON_HOURS", "48"))
 
 STATIC_URL = "/static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
@@ -226,6 +264,7 @@ REST_FRAMEWORK = {
     "DEFAULT_THROTTLE_RATES": {
         "authentication": "10/min",
         "guest_authentication": os.getenv("GUEST_ACCOUNT_CREATION_RATE", "3/hour"),
+        "calendar_oauth": os.getenv("CALENDAR_OAUTH_RATE", "10/hour"),
     },
     "EXCEPTION_HANDLER": "config.api_exceptions.time_agent_exception_handler",
 }
@@ -263,6 +302,10 @@ CELERY_TASK_SEND_SENT_EVENT = True
 CELERY_TASK_TIME_LIMIT = 300
 CELERY_TIMEZONE = "UTC"
 CELERY_BEAT_SCHEDULE = {
+    "poll-external-calendars": {
+        "task": "integrations.poll_calendars",
+        "schedule": float(CALENDAR_POLL_INTERVAL_SECONDS),
+    },
     "cleanup-expired-guest-accounts": {
         "task": "accounts.cleanup_expired_guests",
         "schedule": 900.0,
@@ -287,6 +330,18 @@ CELERY_BEAT_SCHEDULE = {
         "task": "briefings.schedule_due",
         "schedule": 60.0,
     },
+    "schedule-evening-briefings": {
+        "task": "briefings.schedule_evening",
+        "schedule": 60.0,
+    },
+    "scan-temporal-insights": {
+        "task": "insights.scan",
+        "schedule": 300.0,
+    },
+    "dispatch-authorized-local-replans": {
+        "task": "planning.dispatch_authorized_replans",
+        "schedule": float(ADAPTIVE_REPLAN_DISPATCH_INTERVAL_SECONDS),
+    },
     "refresh-daily-time-memories": {
         "task": "time_memory.refresh_daily",
         "schedule": 86400.0,
@@ -299,6 +354,7 @@ TIME_MEMORY_REFRESH_DELAY_SECONDS = int(os.getenv("TIME_MEMORY_REFRESH_DELAY_SEC
 TIME_MEMORY_AUTO_REFRESH_ENABLED = (
     os.getenv("TIME_MEMORY_AUTO_REFRESH_ENABLED", "true").lower() == "true"
 )
+SCHEDULE_PLAN_TTL_SECONDS = int(os.getenv("SCHEDULE_PLAN_TTL_SECONDS", "3600"))
 
 LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
 LOGGING = {

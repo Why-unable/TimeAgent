@@ -4,20 +4,19 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('preferences', '0003_userpreference_weather_location_data'),
+        ("preferences", "0003_userpreference_weather_location_data"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='userpreference',
-            name='require_event_cancellation_approval',
+            model_name="userpreference",
+            name="require_event_cancellation_approval",
             field=models.BooleanField(default=True),
         ),
         migrations.AddField(
-            model_name='userpreference',
-            name='require_event_creation_approval',
+            model_name="userpreference",
+            name="require_event_creation_approval",
             field=models.BooleanField(default=True),
         ),
     ]

@@ -60,6 +60,7 @@ export function AppSettingsPage() {
         downloadUrl: release.download_url,
         sha256: release.sha256,
         expectedVersionCode: release.version_code,
+        expectedVersionName: release.version_name,
         expectedSizeBytes: release.size_bytes,
       });
       setStatus("安装包校验通过，已交给 Android 系统安装器。请确认安装。");

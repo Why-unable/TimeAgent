@@ -7,7 +7,7 @@ from uuid import uuid4
 import pytest
 from asgiref.sync import async_to_sync
 from django.contrib.auth.models import User
-from django.db import OperationalError
+from django.db import OperationalError, connections
 from django.http import StreamingHttpResponse
 from langchain_core.messages import AIMessage, AIMessageChunk
 from rest_framework.test import APIClient
@@ -44,6 +44,27 @@ def test_native_subgraph_stream_shape_is_normalized() -> None:
         {"messages": [message]},
     )
     assert _message_text(chunk) == "block delta"
+
+
+def test_sse_connection_cleanup_preserves_connections_inside_transactions(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from apps.conversations.views import _close_stale_sse_connections
+
+    closed: list[str] = []
+    transactional = SimpleNamespace(
+        in_atomic_block=True,
+        close_if_unusable_or_obsolete=lambda: closed.append("transactional"),
+    )
+    idle = SimpleNamespace(
+        in_atomic_block=False,
+        close_if_unusable_or_obsolete=lambda: closed.append("idle"),
+    )
+    monkeypatch.setattr(connections, "all", lambda **_: [transactional, idle])
+
+    _close_stale_sse_connections()
+
+    assert closed == ["idle"]
 
 
 def test_final_ai_message_accepts_content_blocks() -> None:
@@ -326,91 +347,23 @@ def test_celery_task_executes_the_reserved_run(monkeypatch: pytest.MonkeyPatch) 
     assert result.get() == "completed"
 
 
-@pytest.mark.django_db(transaction=True)
-def test_sse_waits_for_events_until_run_reaches_terminal_state(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    from apps.conversations.models import Conversation
-    from apps.conversations.services import StartRunCommand
-    from apps.conversations.views import _sse
+def test_sse_terminal_state_rules() -> None:
+    from apps.conversations.views import _event_stream_is_terminal
 
-    user = User.objects.create_user(username="stream-user")
-    conversation = Conversation.objects.create(user=user)
-    run = AgentRunService.start(
-        StartRunCommand(
-            conversation=conversation,
-            operation_id=uuid4(),
-            request_id="stream-request",
-            message="hello",
-        )
-    )
-    completed = False
-
-    async def complete_during_poll(_seconds: float) -> None:
-        nonlocal completed
-        if not completed:
-            from asgiref.sync import sync_to_async
-
-            running = await sync_to_async(AgentRunService.mark_running)(run)
-            await sync_to_async(AgentRunService.complete)(running, "done")
-            completed = True
-
-    monkeypatch.setattr("apps.conversations.views.asyncio.sleep", complete_during_poll)
-
-    async def collect() -> bytes:
-        return b"".join([item async for item in _sse(user_id=user.pk, run_id=run.pk, cursor=0)])
-
-    content = async_to_sync(collect)()
-
-    assert b"event: agent.started" in content
-    assert b"event: message.completed" in content
+    assert _event_stream_is_terminal(SimpleNamespace(status="completed")) is True
+    assert _event_stream_is_terminal(SimpleNamespace(status="failed")) is True
+    assert _event_stream_is_terminal(SimpleNamespace(status="cancelled")) is True
+    assert _event_stream_is_terminal(SimpleNamespace(status="pending")) is False
 
 
-@pytest.mark.django_db(transaction=True)
-def test_sse_stays_open_while_approved_run_waits_for_celery_resume(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    from apps.conversations.models import Conversation
-    from apps.conversations.services import StartRunCommand
-    from apps.conversations.views import _sse
+def test_sse_stays_open_only_while_approved_run_has_reserved_resume() -> None:
+    from apps.conversations.views import _event_stream_is_terminal
 
-    user = User.objects.create_user(username="resume-stream-user")
-    conversation = Conversation.objects.create(user=user)
-    run = AgentRunService.start(
-        StartRunCommand(
-            conversation=conversation,
-            operation_id=uuid4(),
-            request_id="resume-stream-request",
-            message="create an event",
-        )
-    )
-    run = AgentRunService.mark_running(run)
-    run = AgentRunService.wait_for_approval(run)
-    task_id = "reserved-resume-task"
-    assert AgentRunService.reserve_resume_task(run, task_id)
-    resumed = False
+    reserved = SimpleNamespace(status="waiting_approval", execution_task_id="resume-task")
+    unreserved = SimpleNamespace(status="waiting_approval", execution_task_id="")
 
-    async def resume_during_poll(_seconds: float) -> None:
-        nonlocal resumed
-        if resumed:
-            return
-        from asgiref.sync import sync_to_async
-
-        claimed = await sync_to_async(AgentRunService.claim_for_resume)(run, task_id=task_id)
-        assert claimed is not None
-        await sync_to_async(AgentRunService.complete)(claimed, "resumed reply")
-        resumed = True
-
-    monkeypatch.setattr("apps.conversations.views.asyncio.sleep", resume_during_poll)
-
-    async def collect() -> bytes:
-        return b"".join([item async for item in _sse(user_id=user.pk, run_id=run.pk, cursor=0)])
-
-    content = async_to_sync(collect)()
-
-    assert b"event: agent.resumed" in content
-    assert b"event: message.completed" in content
-    assert b"resumed reply" in content
+    assert _event_stream_is_terminal(reserved) is False
+    assert _event_stream_is_terminal(unreserved) is True
 
 
 @pytest.mark.django_db

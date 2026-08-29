@@ -116,6 +116,11 @@ def collect_candidates(
             parts.append(window.planning_pattern.summary)
         if intent in {"schedule_changes", "long_term_habit"}:
             parts.append(window.change_pattern.summary)
+        if (
+            intent in {"schedule_changes", "general_planning", "long_term_habit"}
+            and window.adaptive_planning_pattern.automated_move_count > 0
+        ):
+            parts.append(window.adaptive_planning_pattern.summary)
         text = " ".join(part for part in parts if part)
         if text:
             candidates.append(

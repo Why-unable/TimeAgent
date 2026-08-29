@@ -2,6 +2,11 @@
 
 每个阶段必须可独立验收；未列入阶段目标的功能不应顺带实现。
 
+> 本文记录 Phase 0 至 Phase 10 的既有交付路线和当前实施状态。Phase 10 之后的 AI 原生产品定位、
+> 智能闭环、自治边界和未来阶段规划，见
+> [Time Agent：AI 原生产品战略与未来演进路线](docs/product/ai-native-time-agent-strategy.md)。
+> 新文档不改变本文已经记录的完成状态，也不覆盖现有 ADR。
+
 当前进度：Phase 0 至 Phase 9 已完成；Phase 10 正在开发与验收。
 
 ## Phase 0：工程骨架

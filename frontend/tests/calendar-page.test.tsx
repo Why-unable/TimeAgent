@@ -37,12 +37,12 @@ const calendarEvent = {
   updated_at: "2026-07-19T01:00:00Z",
 };
 
-function renderPage(children: ReactNode = <CalendarPage />) {
+function renderPage(children: ReactNode = <CalendarPage />, initialEntry = "/calendar") {
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   });
   return render(
-    <MemoryRouter>
+    <MemoryRouter initialEntries={[initialEntry]}>
       <QueryClientProvider client={client}>{children}</QueryClientProvider>
     </MemoryRouter>,
   );
@@ -74,6 +74,80 @@ describe("CalendarPage", () => {
     expect(screen.getByText("日视图")).toBeInTheDocument();
     expect(await screen.findAllByText("项目会议")).toHaveLength(2);
     expect(screen.getByText("会议室 A")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "连接 Google" })).toBeInTheDocument();
+  });
+
+  it("syncs and disconnects an existing Google Calendar connection", async () => {
+    const writes: { url: string; method?: string }[] = [];
+    const connection = {
+      id: "33333333-3333-4333-8333-333333333333",
+      provider_name: "google",
+      account_reference: "account@example.test",
+      calendar_id: "account@example.test",
+      calendar_name: "主日历",
+      timezone: "Asia/Shanghai",
+      enabled: true,
+      status: "ready",
+      last_synced_at: null,
+      last_error: "",
+      created_at: "2026-07-19T01:00:00Z",
+      updated_at: "2026-07-19T01:00:00Z",
+    };
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+        const url = String(input);
+        if (url.includes("preferences")) return new Response(JSON.stringify(preference));
+        if (url.includes("integrations/calendar/connections/")) {
+          if (init?.method === "POST") {
+            writes.push({ url, method: init.method });
+            return new Response(
+              JSON.stringify({
+                connection_id: connection.id,
+                fetched_count: 0,
+                created_count: 0,
+                updated_count: 0,
+                cancelled_count: 0,
+                synced_at: "2026-07-19T02:00:00Z",
+              }),
+            );
+          }
+          if (init?.method === "DELETE") {
+            writes.push({ url, method: init.method });
+            return new Response(null, { status: 204 });
+          }
+          return new Response(JSON.stringify([connection]));
+        }
+        return new Response(JSON.stringify([]));
+      }),
+    );
+
+    renderPage();
+
+    expect(await screen.findByText("google · 主日历")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "连接 Google" })).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "同步 Google Calendar" }));
+    await waitFor(() => expect(writes[0]?.method).toBe("POST"));
+    expect(writes[0]?.url).toContain(`${connection.id}/sync/`);
+    await userEvent.click(screen.getByRole("button", { name: "断开 Google Calendar" }));
+    await waitFor(() => expect(writes[1]?.method).toBe("DELETE"));
+    expect(writes[1]?.url).toContain(`${connection.id}/disconnect/`);
+  });
+
+  it("shows and dismisses the OAuth callback result", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: RequestInfo | URL) => {
+        const body = String(input).includes("preferences") ? preference : [];
+        return new Response(JSON.stringify(body));
+      }),
+    );
+
+    renderPage(<CalendarPage />, "/calendar?calendar_oauth=connected");
+
+    expect(await screen.findByText("Google Calendar 已连接。")).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "关闭连接状态" }));
+    expect(screen.queryByText("Google Calendar 已连接。")).not.toBeInTheDocument();
   });
 
   it("does not render cancelled events in the calendar or range list", async () => {

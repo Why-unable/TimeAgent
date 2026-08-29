@@ -98,7 +98,15 @@ Time Agent 是以时间为核心的个人智能事务管理系统。本仓库当
 - 天气偏好分别保存手动行政区代表坐标和用户授权的设备 GPS 坐标，简报按坐标角色分别查询、标注和降级。
 - Android 自托管更新清单、APK 大小/摘要/包名/版本号/签名校验及系统安装确认流程；服务端只提供元数据，不承载 APK 大文件。
 - Prometheus/Grafana/Alertmanager/Loki/Alloy 可观测栈、低基数业务 SLI、脱敏 LLM 调用审计、版本化 Agent 评测报告和提示词注入威胁模型。
-- 外部日历已建立 Provider Protocol、Pydantic DTO、能力声明和统一异常契约；尚未实现任何 OAuth、Token、供应商接入或同步。
+- 外部日历已建立 Provider Protocol、Pydantic DTO、能力声明、只读同步连接状态和 Provider 驱动的
+  `CalendarSyncService`；现已接入 Google Calendar 只读 OAuth、加密 Token 生命周期、分页/增量游标、410 全量对账、
+  删除 tombstone、账号/日历级事件身份、Web 连接/同步/断开入口和有界 Celery 后台轮询。Microsoft、Webhook 和外部写回仍未实现；
+  Google 沙箱验收仍需使用专用账号实际执行，不能由 fake transport 测试替代。
+- 任务执行信号记录开始、暂停、恢复、完成和跳过事实；执行摘要对比计划、原始估时与实际投入，并为个体估时提供可审计证据。
+- Decision Profile 使用版本化中英双语分类、时间衰减、样本门槛、置信度和过期策略生成估时与容量建议；Time Steward 通过 Application Service Tool 读取建议和写入显式反馈。
+- 确定性 Planner v2 支持 Plan My Day/Week、草案 TTL/版本/锁定/编辑/比较/局部重生成、buffer、可拆分任务、不可行 reason codes 和应用前事务复验；未来空闲候选保持只读。
+- 独立 Temporal Insight 收件箱、具体洞察 deep link、安静时间/配额/冷却策略和确定性晚报已接入 Web/Capacitor；定时路径直接进入 Briefing Workflow，不经过 Time Steward。
+- 受控局部重排支持真实 Task/Event 扰动检测、预览、对象级 Task allowlist、move cap、暂停/恢复、HITL、幂等变更批次与版本保护撤销；免审批后台执行仅由确定性 Celery Dispatcher 在持久授权范围内运行。
 
 ## 计划事务与提醒
 
@@ -149,6 +157,45 @@ cp .env.example .env
 `TIME_AGENT_CONFIG_PATH=config/agent.yaml`。API Key 等密钥仍只保存在 `.env`，YAML 通过
 `$AGENT_API_KEY` 引用。所有数据库时间以 UTC 保存；`DEFAULT_TIMEZONE` 使用 IANA 名称。任何
 密钥都不得放进 `VITE_*`，因为 Vite 变量会进入浏览器产物。
+
+Google Calendar 只读连接需要在 Google OAuth Web application 中注册后端 callback，并配置以下服务端变量：
+
+```env
+CALENDAR_OAUTH_FERNET_KEY=<Fernet.generate_key() 生成的独立密钥>
+GOOGLE_CALENDAR_CLIENT_ID=<server-side client id>
+GOOGLE_CALENDAR_CLIENT_SECRET=<server-side client secret>
+GOOGLE_CALENDAR_REDIRECT_URI=https://your-domain.example/api/v1/integrations/calendar/oauth/google/callback/
+```
+
+四项全部留空表示关闭 Google Calendar；只配置一部分会使 Django security check 失败。Fernet key 必须与数据库备份
+一起安全备份，但不得进入 Git、前端或日志。轮换时先把新 key 写入 `CALENDAR_OAUTH_FERNET_KEY`、旧 key 写入
+`CALENDAR_OAUTH_FERNET_OLD_KEYS`，重启 Django 后执行：
+
+```bash
+cd backend
+uv run python manage.py rotate_calendar_oauth_credentials
+```
+
+命令成功后验证连接，再移除旧 key。丢失所有可解密旧凭据的 key 后只能让用户重新授权。OAuth callback 的 Nginx
+access log 已对精确路径关闭，避免 authorization code/state 查询串进入默认 combined log。
+
+完成 Web OAuth 后，可对专用 Google 沙箱连接运行一次真实、只读的脱敏验收。时间窗必须带显式 UTC offset：
+
+```bash
+cd backend
+mkdir -p evaluation_reports
+uv run python manage.py verify_google_calendar \
+  --user-id <USER_ID> \
+  --connection-id <CONNECTION_UUID> \
+  --starts-at 2026-08-24T00:00:00Z \
+  --starts-before 2026-09-24T00:00:00Z \
+  --output evaluation_reports/google-calendar-<GIT_SHA>.json
+```
+
+命令先读取 CalendarList，再经 `CalendarSyncService` 执行真实同步；失败时写出脱敏报告并返回非零退出码。报告只含
+连接 UUID、时间窗、同步计数、分页/HTTP 状态计数、游标是否重置、数据库类型和 `GIT_COMMIT_SHA`，不含账号、
+calendar ID、URL、游标或 Token。它能保存真实调用证据，但不能自行制造更新、删除、410、429 或撤权场景；这些仍需
+在专用沙箱中逐项触发并分别保存报告。
 
 ActionProposal 默认 24 小时过期，可用 `ACTION_PROPOSAL_TTL_SECONDS` 调整。过期只会拒绝待执行 Tool，不会自动批准或产生业务写入。
 
@@ -409,6 +456,31 @@ npx playwright install chromium
 npm run test:e2e
 ```
 
+完整后端测试默认使用内存 SQLite 以保持快速反馈。需要验证 PostgreSQL 特有的事务、连接与约束语义时，
+使用专用设置并指向一次性测试实例；pytest 会创建并删除以 `test_` 为前缀的数据库：
+
+```bash
+cd backend
+DJANGO_SETTINGS_MODULE=config.settings.postgres_test \
+POSTGRES_DB=time_agent_validation \
+POSTGRES_USER=time_agent_validation \
+POSTGRES_PASSWORD=time_agent_validation \
+POSTGRES_HOST=localhost \
+uv run pytest
+```
+
+真实后端浏览器链路默认跳过，且不得连接生产数据。先在隔离 PostgreSQL 上执行 `migrate` 和
+`setup_langgraph`、启动 Redis/Django/Vite 并创建专用账号，然后显式运行：
+
+```bash
+cd frontend
+TIME_AGENT_E2E_EMAIL=phase-a-e@example.test \
+TIME_AGENT_E2E_PASSWORD='<isolated-test-password>' \
+npx playwright test tests/e2e/real-backend.spec.ts --project=chromium
+```
+
+该用例不注册 API route mock，覆盖 Phase A-E 的任务执行、估时反馈、计划应用、洞察处置和局部重排/撤销。
+
 ## 用户时间偏好 API
 
 当前用户偏好端点：
@@ -455,6 +527,11 @@ GET|PATCH         /api/v1/briefings/definitions/{id}/
 GET|POST          /api/v1/briefings/runs/
 GET               /api/v1/briefings/runs/{id}/
 GET               /api/v1/providers/catalog/
+GET|POST          /api/v1/integrations/calendar/connections/
+POST              /api/v1/integrations/calendar/connections/{id}/sync/
+DELETE            /api/v1/integrations/calendar/connections/{id}/disconnect/
+POST              /api/v1/integrations/calendar/oauth/google/start/
+GET               /api/v1/integrations/calendar/oauth/google/callback/
 ```
 
 事件 PATCH/DELETE 需要 `expected_version` 查询参数；DELETE 执行取消而非物理删除。
@@ -488,7 +565,8 @@ docker compose restart nginx
 ## 尚未实现
 
 - Telegram、SMS、任意第三方收件人通知；
-- 外部日历供应商、OAuth、Token、事件映射和同步；
+- Microsoft Calendar、Google/Microsoft Webhook、自动选择额外日历和任何外部写回；Google 只读 OAuth 与有界后台轮询已实现，
+  但真实 Google 沙箱的授权、撤权、限流和长期增量同步仍待验收；
 - 应用商店分发、Google Play In-App Updates 和自动发布流水线；
 - Phase 10 最终生产验收，包括真实模型发布评测、外部通知/天气链路、告警送达、隔离恢复演练、基础负载与安全检查；
 - Kubernetes、微服务拆分、向量数据库和复杂 RBAC。
@@ -496,6 +574,10 @@ docker compose restart nginx
 ## 规范关系与注意事项
 
 `PROJECT_SPEC.md` 描述完整后端和 Agent 架构，`FRONTEND_SPEC.md` 描述完整工作台体验。当前实现保持 PostgreSQL 权威数据、Application Service 写入、UTC 存储和 IANA 时区展示等边界。两份规范对职责边界没有实质冲突，路线图以开发指南给出的 Phase 0–10 编号统一后续交付。
+
+面向简历与面试准备的代码事实、核心贡献候选、真实量化证据和补测清单，见
+[项目经历技术底稿](docs/product/project-experience-technical-draft.md)。该文档不替代产品战略、Feature Contract 或 ADR，
+也不会把路线规划和未验证指标写成已交付成果。
 
 development settings 允许本地调试，production settings 强制提供安全密钥；生产环境仍需进一步限制 Host、Cookie、TLS、静态文件与日志策略。Docker 构建依赖外部镜像和 Python/npm 包仓库。
 

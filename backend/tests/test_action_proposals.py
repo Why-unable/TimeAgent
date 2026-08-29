@@ -333,6 +333,7 @@ def test_cancellation_tools_pause_before_side_effect_and_execute_only_after_appr
                 user=user,
                 title="待取消提醒",
                 trigger_at=datetime(2026, 7, 21, 7, tzinfo=UTC),
+                current_time=context.current_datetime,
                 timezone="Asia/Shanghai",
                 deduplication_key=f"hitl-{tool_name}",
             )

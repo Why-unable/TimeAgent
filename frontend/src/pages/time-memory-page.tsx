@@ -20,6 +20,8 @@ import {
   useCurrentTimeMemory,
   useForgetTimeMemoryPattern,
   useForgetTimeMemoryPlace,
+  useDecisionProfile,
+  useRecordDecisionFeedback,
 } from "../features/preferences/time-memory-hooks";
 
 const WINDOW_LABELS = { "7d": "最近 7 天", "30d": "最近 30 天", "180d": "最近 180 天" } as const;
@@ -65,12 +67,15 @@ export function TimeMemoryPage() {
   const clearMemory = useClearCurrentTimeMemory();
   const forgetPlace = useForgetTimeMemoryPlace();
   const forgetPattern = useForgetTimeMemoryPattern();
+  const decisionProfile = useDecisionProfile();
+  const recordFeedback = useRecordDecisionFeedback();
   const profile = parseTimeMemoryProfile(memory.data?.profile);
   const isBusy =
     updatePreference.isPending
     || clearMemory.isPending
     || forgetPlace.isPending
-    || forgetPattern.isPending;
+    || forgetPattern.isPending
+    || recordFeedback.isPending;
 
   const updateMemoryPreference = (
     field: "time_memory_enabled" | "time_memory_allow_generation" | "time_memory_allow_context_injection",
@@ -154,6 +159,64 @@ export function TimeMemoryPage() {
         </div>
         {updatePreference.isError && <p role="alert" className="mt-4 text-sm text-red-200">权限保存失败：{updatePreference.error.message}</p>}
         {updatePreference.isSuccess && <p role="status" className="mt-4 text-sm text-emerald-200">记忆权限已更新。</p>}
+      </section>
+
+      <section className="rounded-2xl border border-white/10 bg-slate-900 p-5 sm:p-6">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h3 className="font-semibold text-slate-100">时间决策建议</h3>
+            <p className="mt-1 text-sm leading-6 text-slate-400">
+              只使用可审计的执行证据与明确反馈，不保存原始推理，也不会自动修改任务或日程。
+            </p>
+          </div>
+          <span className="text-xs text-slate-500">{decisionProfile.data?.source ?? "读取中"}</span>
+        </div>
+        {decisionProfile.isError ? (
+          <p role="alert" className="mt-4 text-sm text-red-200">暂时无法读取建议状态。</p>
+        ) : decisionProfile.data ? (
+          <div className="mt-4 space-y-4">
+            <div className="grid gap-3 sm:grid-cols-3">
+              <StatCard label="建议倍率" value={`${decisionProfile.data.duration_multiplier.toFixed(2)}x`} icon={<CalendarClock size={17} />} />
+              <StatCard label="样本量" value={`${decisionProfile.data.sample_count} 个`} icon={<Sparkles size={17} />} />
+              <StatCard label="置信度" value={percent(decisionProfile.data.confidence)} icon={<Check size={17} />} />
+            </div>
+            <p className="text-xs leading-5 text-slate-500">依据：{decisionProfile.data.evidence.join("；")}</p>
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                disabled={isBusy}
+                onClick={() => recordFeedback.mutate({
+                  category: "duration_estimate",
+                  action: "accept",
+                  value: {},
+                  idempotency_key: `web-accept-${Date.now()}`,
+                  source: "web",
+                })}
+                className="rounded-lg border border-emerald-300/30 px-3 py-2 text-xs text-emerald-200 hover:bg-emerald-300/10 disabled:opacity-50"
+              >
+                建议准确
+              </button>
+              <button
+                type="button"
+                disabled={isBusy}
+                onClick={() => recordFeedback.mutate({
+                  category: "duration_estimate",
+                  action: "disable",
+                  value: {},
+                  idempotency_key: `web-disable-${Date.now()}`,
+                  source: "web",
+                })}
+                className="rounded-lg border border-white/15 px-3 py-2 text-xs text-slate-300 hover:bg-white/5 disabled:opacity-50"
+              >
+                关闭此类建议
+              </button>
+            </div>
+            {recordFeedback.isSuccess && <p role="status" className="text-xs text-emerald-200">反馈已记录。</p>}
+            {recordFeedback.isError && <p role="alert" className="text-xs text-red-200">反馈保存失败：{recordFeedback.error.message}</p>}
+          </div>
+        ) : (
+          <p className="mt-4 text-sm text-slate-500">正在读取建议状态…</p>
+        )}
       </section>
 
       <section className="rounded-2xl border border-white/10 bg-slate-900 p-5 sm:p-6">
@@ -277,12 +340,13 @@ function BehaviorWindowCard({ windowName, item }: { windowName: keyof typeof WIN
   const schedule = item.schedule_pattern;
   const planning = item.planning_pattern;
   const changes = item.change_pattern;
+  const adaptive = item.adaptive_planning_pattern;
   return (
     <article className="rounded-xl border border-white/10 bg-slate-950/50 p-4">
       <div className="flex items-center justify-between gap-3"><h4 className="font-medium text-slate-100">{WINDOW_LABELS[windowName]}</h4><span className="text-xs text-slate-500">{percent(item.confidence)} 置信度</span></div>
       <p className="mt-1 text-xs text-slate-500">{item.start_date} 至 {item.end_date}</p>
       <div className="mt-4 grid grid-cols-2 gap-3 text-sm"><Metric label="日程" value={`${item.event_count} 项`} /><Metric label="日均占用" value={`${schedule.average_daily_scheduled_hours.toFixed(1)} 小时`} /><Metric label="忙碌日" value={`${schedule.busy_day_count} 天`} /><Metric label="任务" value={`${item.task_count} 项`} /></div>
-      <div className="mt-4 space-y-2 text-xs leading-5 text-slate-400"><p><span className="text-slate-500">安排强度：</span>{schedule.summary}</p><p><span className="text-slate-500">规划方式：</span>{planning.summary}</p><p><span className="text-slate-500">调整情况：</span>{changes.summary}</p></div>
+      <div className="mt-4 space-y-2 text-xs leading-5 text-slate-400"><p><span className="text-slate-500">安排强度：</span>{schedule.summary}</p><p><span className="text-slate-500">规划方式：</span>{planning.summary}</p><p><span className="text-slate-500">调整情况：</span>{changes.summary}</p>{adaptive && <p><span className="text-slate-500">自动维护：</span>{adaptive.summary}</p>}</div>
     </article>
   );
 }

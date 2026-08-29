@@ -35,7 +35,6 @@ class CalendarEventSerializer(serializers.ModelSerializer[CalendarEvent]):
             "visibility",
             "recurrence_rule",
             "source",
-            "external_id",
             "created_by",
             "version",
             "created_at",
@@ -64,15 +63,6 @@ class CreateCalendarEventSerializer(StrictSerializer):
         required=False,
     )
     recurrence_rule = serializers.CharField(required=False, allow_blank=True)
-    source = serializers.CharField(  # type: ignore[assignment]
-        required=False,
-        max_length=64,
-    )
-    external_id = serializers.CharField(
-        required=False,
-        allow_blank=True,
-        max_length=255,
-    )
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
@@ -116,8 +106,6 @@ class UpdateCalendarEventSerializer(StrictSerializer):
         choices=CalendarEventVisibility.choices,
     )
     recurrence_rule = serializers.CharField(required=False, allow_blank=True)
-    source = serializers.CharField(required=False, max_length=64)  # type: ignore[assignment]
-    external_id = serializers.CharField(required=False, allow_blank=True, max_length=255)
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)

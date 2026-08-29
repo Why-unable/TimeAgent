@@ -21,6 +21,20 @@ const taskFormSchema = z
       (value) => value === "" || (Number.isInteger(Number(value)) && Number(value) > 0),
       "预计时长必须是正整数",
     ),
+    buffer_before_minutes: z.string().refine(
+      (value) => Number.isInteger(Number(value)) && Number(value) >= 0,
+      "缓冲必须是非负整数",
+    ),
+    buffer_after_minutes: z.string().refine(
+      (value) => Number.isInteger(Number(value)) && Number(value) >= 0,
+      "缓冲必须是非负整数",
+    ),
+    planning_locked: z.boolean(),
+    splittable: z.boolean(),
+    minimum_chunk_minutes: z.string().refine(
+      (value) => Number.isInteger(Number(value)) && Number(value) >= 15,
+      "最小片段必须至少 15 分钟",
+    ),
     tags: z.string(),
   })
   .refine(
@@ -55,6 +69,11 @@ function initialValues(task: Task | undefined, timezone: string): TaskForm {
       ? toDateTimeLocalValue(task.planned_end_at, timezone)
       : "",
     estimated_minutes: task?.estimated_minutes?.toString() ?? "",
+    buffer_before_minutes: String(task?.buffer_before_minutes ?? 0),
+    buffer_after_minutes: String(task?.buffer_after_minutes ?? 0),
+    planning_locked: task?.planning_locked ?? false,
+    splittable: task?.splittable ?? false,
+    minimum_chunk_minutes: String(task?.minimum_chunk_minutes ?? 30),
     tags: task ? getTaskTags(task).join(", ") : "",
   };
 }
@@ -85,6 +104,11 @@ export function TaskEditor({ task, timezone, onClose }: TaskEditorProps) {
         ? toUtcISOString(values.planned_end_at, timezone)
         : null,
       estimated_minutes: values.estimated_minutes ? Number(values.estimated_minutes) : null,
+      buffer_before_minutes: Number(values.buffer_before_minutes),
+      buffer_after_minutes: Number(values.buffer_after_minutes),
+      planning_locked: values.planning_locked,
+      splittable: values.splittable,
+      minimum_chunk_minutes: Number(values.minimum_chunk_minutes),
       tags: values.tags
         .split(",")
         .map((tag) => tag.trim())
@@ -124,6 +148,30 @@ export function TaskEditor({ task, timezone, onClose }: TaskEditorProps) {
               <option value="high">高</option>
               <option value="urgent">紧急</option>
             </select>
+          </label>
+        </div>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <label className="block text-sm text-slate-300">
+            前置缓冲（分钟）
+            <input type="number" min="0" max="1440" {...form.register("buffer_before_minutes")} className={inputClass} />
+          </label>
+          <label className="block text-sm text-slate-300">
+            后置缓冲（分钟）
+            <input type="number" min="0" max="1440" {...form.register("buffer_after_minutes")} className={inputClass} />
+          </label>
+        </div>
+        <label className="flex min-h-11 items-center gap-3 border-t border-white/10 pt-4 text-sm text-slate-300">
+          <input type="checkbox" {...form.register("planning_locked")} />
+          锁定当前任务，不允许规划器自动移动
+        </label>
+        <div className="grid gap-4 border-t border-white/10 pt-4 sm:grid-cols-2">
+          <label className="flex min-h-11 items-center gap-3 text-sm text-slate-300">
+            <input type="checkbox" {...form.register("splittable")} />
+            允许拆成多个日历工作块
+          </label>
+          <label className="block text-sm text-slate-300">
+            最小片段（分钟）
+            <input type="number" min="15" max="1440" step="15" {...form.register("minimum_chunk_minutes")} className={inputClass} />
           </label>
         </div>
         <label className="block text-sm text-slate-300">

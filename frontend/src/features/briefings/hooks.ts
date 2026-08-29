@@ -5,6 +5,7 @@ import {
   launchBriefing,
   listBriefingDefinitions,
   listBriefingRuns,
+  getEveningBriefingPreview,
   updateBriefingDefinition,
 } from "../../api/briefings";
 import type { BriefingDefinition } from "../../api/briefings";
@@ -20,6 +21,14 @@ export function useBriefingDefinitions() {
 
 export function useBriefingRuns() {
   return useQuery({ queryKey: briefingKeys.runs, queryFn: listBriefingRuns });
+}
+
+export function useEveningBriefingPreview() {
+  return useQuery({
+    queryKey: ["briefings", "evening-preview"],
+    queryFn: getEveningBriefingPreview,
+    retry: false,
+  });
 }
 
 export function useCreateBriefingDefinition() {

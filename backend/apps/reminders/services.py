@@ -17,6 +17,7 @@ from apps.reminders.models import (
 )
 from apps.tasks.models import Task
 from common.database_locks import lock_user_schedule_writes
+from common.time import to_utc
 
 
 class ReminderIdempotencyConflictError(ValueError):
@@ -27,11 +28,16 @@ class ReminderCannotCancelError(ValueError):
     pass
 
 
+class ReminderTriggerNotFutureError(ValueError):
+    pass
+
+
 @dataclass(frozen=True, slots=True)
 class CreateReminderCommand:
     user: User
     title: str
     trigger_at: datetime
+    current_time: datetime
     timezone: str
     deduplication_key: str
     channel: ReminderChannel | str = ReminderChannel.CONSOLE
@@ -53,6 +59,7 @@ class UpdateReminderCommand:
     reminder_id: UUID
     expected_version: int
     changes: Mapping[str, Any]
+    current_time: datetime
     origin: str = "web"
 
 
@@ -107,6 +114,11 @@ class ReminderService:
         if existing is not None:
             ReminderService._ensure_matching_payload(existing, candidate)
             return existing
+
+        ReminderService._validate_future_trigger(
+            trigger_at=candidate.trigger_at,
+            current_time=command.current_time,
+        )
 
         try:
             with transaction.atomic():
@@ -191,6 +203,11 @@ class ReminderService:
         )
         reminder.version += 1
         reminder.full_clean()
+        if "trigger_at" in command.changes:
+            ReminderService._validate_future_trigger(
+                trigger_at=reminder.trigger_at,
+                current_time=command.current_time,
+            )
         reminder.save()
         ReminderService._record_change(reminder, "updated", command.origin, old_snapshot)
         return reminder
@@ -254,6 +271,11 @@ class ReminderService:
             target_type=command.target_type,
             target_id=command.target_id,
         )
+
+    @staticmethod
+    def _validate_future_trigger(*, trigger_at: datetime, current_time: datetime) -> None:
+        if to_utc(trigger_at) <= to_utc(current_time):
+            raise ReminderTriggerNotFutureError("Reminder time must be in the future")
 
     @staticmethod
     def _validate_target_values(*, user: User, target_type: str, target_id: UUID | None) -> None:

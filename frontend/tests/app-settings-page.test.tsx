@@ -54,6 +54,7 @@ describe("AppSettingsPage", () => {
     await userEvent.click(screen.getByRole("button", { name: "下载并更新" }));
     expect(downloadAndInstall).toHaveBeenCalledWith(expect.objectContaining({
       expectedVersionCode: 4,
+      expectedVersionName: "1.1.0",
       sha256: "a".repeat(64),
     }));
     expect(await screen.findByText(/已交给 Android 系统安装器/)).toBeInTheDocument();

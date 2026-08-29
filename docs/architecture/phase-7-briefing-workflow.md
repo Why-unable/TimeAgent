@@ -1,5 +1,9 @@
 # Phase 7：Briefing Workflow
 
+> 本文描述当前已实现的 Briefing Workflow。晨报/晚报多调度、每日收尾 Section、明日容量和
+> 计划草案联动的未来方向，见
+> [AI 原生产品战略与未来演进路线](../product/ai-native-time-agent-strategy.md)。
+
 ## 边界
 
 Phase 7 建立手动简报、Handoff 和持久化边界；Phase 8 增加天气/新闻，并依据 ADR 0007 将固定

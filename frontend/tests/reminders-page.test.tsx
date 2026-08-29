@@ -49,7 +49,7 @@ describe("RemindersPage", () => {
     );
   });
 
-  it("renders the shared 日程/任务/提醒 workspace tabs", async () => {
+  it("renders the shared 日程/任务/规划/提醒 workspace tabs", async () => {
     vi.stubGlobal(
       "fetch",
       vi.fn(async (input: RequestInfo | URL) => {
@@ -61,7 +61,8 @@ describe("RemindersPage", () => {
     renderPage();
     const nav = await screen.findByRole("navigation", { name: "时间管理工作区" });
     expect(nav).toBeInTheDocument();
-    expect(nav.querySelectorAll("a")).toHaveLength(3);
+    expect(nav.querySelectorAll("a")).toHaveLength(4);
+    expect(nav).toHaveTextContent("规划");
   });
 
   it("shows reminder status, retry count and failure reason", async () => {

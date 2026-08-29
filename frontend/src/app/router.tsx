@@ -19,6 +19,9 @@ const CalendarPage = lazy(() =>
 const TasksPage = lazy(() =>
   import("../pages/tasks-page").then((module) => ({ default: module.TasksPage })),
 );
+const PlanningPage = lazy(() =>
+  import("../pages/planning-page").then((module) => ({ default: module.PlanningPage })),
+);
 const TodayPage = lazy(() =>
   import("../pages/today-page").then((module) => ({ default: module.TodayPage })),
 );
@@ -30,6 +33,9 @@ const ApprovalsPage = lazy(() =>
 );
 const BriefingsPage = lazy(() =>
   import("../pages/briefings-page").then((module) => ({ default: module.BriefingsPage })),
+);
+const InsightsPage = lazy(() =>
+  import("../pages/insights-page").then((module) => ({ default: module.InsightsPage })),
 );
 const NotificationSettingsPage = lazy(() =>
   import("../pages/notification-settings-page").then((module) => ({
@@ -54,9 +60,11 @@ const router = createBrowserRouter([
           { path: "/chat/:conversationId?", element: lazyPage(<ChatPage />) },
           { path: "/calendar", element: lazyPage(<CalendarPage />) },
           { path: "/tasks", element: lazyPage(<TasksPage />) },
+          { path: "/planning", element: lazyPage(<PlanningPage />) },
           { path: "/reminders", element: <RemindersPage /> },
           { path: "/approvals", element: lazyPage(<ApprovalsPage />) },
           { path: "/briefings", element: lazyPage(<BriefingsPage />) },
+          { path: "/insights/:insightId?", element: lazyPage(<InsightsPage />) },
           { path: "/settings/time", element: <TimeSettingsPage /> },
           { path: "/settings/time-memory", element: <TimeMemoryPage /> },
           { path: "/settings/account", element: <AccountSettingsPage /> },

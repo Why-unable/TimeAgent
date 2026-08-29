@@ -87,6 +87,7 @@ def test_today_summary_uses_user_timezone_and_builds_all_buckets() -> None:
             user=user,
             title="下午提醒",
             trigger_at=local_datetime(20, 15),
+            current_time=current_at,
             timezone="Asia/Shanghai",
             deduplication_key="today-afternoon",
         )

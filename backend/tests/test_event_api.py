@@ -189,6 +189,28 @@ def test_event_api_rejects_unknown_write_fields() -> None:
     assert "version" in response.json()
 
 
+def test_event_api_cannot_forge_or_mutate_provider_identity() -> None:
+    client = authenticated_client(create_user("event-api-provider-identity"))
+
+    create_response = client.post(
+        EVENTS_URL,
+        data=event_payload(source="google", external_id="forged-event"),
+        content_type="application/json",
+    )
+    created = create_event(client)
+    update_response = client.patch(
+        f"{EVENTS_URL}{created['id']}/?expected_version=1",
+        data={"source": "google", "external_id": "forged-event"},
+        content_type="application/json",
+    )
+
+    assert create_response.status_code == 400
+    assert update_response.status_code == 400
+    event = CalendarEvent.objects.get(pk=created["id"])
+    assert event.source == "local"
+    assert event.external_id == ""
+
+
 def test_event_api_stores_utc_values() -> None:
     client = authenticated_client(create_user())
     created = create_event(client)

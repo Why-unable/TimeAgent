@@ -1,9 +1,11 @@
 import { apiRequest } from "./client";
+import type { components } from "./generated/schema";
 import type { AgentRun, Conversation } from "./chat";
 
 export type BriefingSectionKey = "calendar" | "tasks" | "weather" | "news";
 export type BriefingStyle = "concise" | "balanced" | "detailed";
 export type BriefingRunStatus = "pending" | "running" | "completed" | "partial" | "failed";
+export type EveningBriefingPreview = components["schemas"]["EveningBriefing"];
 
 export interface BriefingDefinition {
   id: string;
@@ -91,6 +93,10 @@ export function updateBriefingDefinition(
 
 export function listBriefingRuns() {
   return apiRequest<BriefingRun[]>("/api/v1/briefings/runs/");
+}
+
+export function getEveningBriefingPreview() {
+  return apiRequest<EveningBriefingPreview>("/api/v1/briefings/evening-preview/");
 }
 
 export function launchBriefing(definitionId: string | null, targetDate: string) {

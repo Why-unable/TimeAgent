@@ -12,14 +12,19 @@ import {
   Sparkles,
   Smartphone,
   CircleHelp,
+  Lightbulb,
+  Download,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
+import { useState } from "react";
 import { Link, Outlet, useLocation } from "react-router-dom";
 
+import { AndroidAppDownloadDialog } from "../components/android-app-download-dialog";
 import { useCurrentUser } from "../features/accounts/hooks";
 import { useCurrentUserPreference } from "../features/preferences/hooks";
 import { OnboardingTour } from "../components/onboarding/onboarding-tour";
 import { requestOnboardingStart } from "../features/onboarding/storage";
+import { isNativePlatform } from "../platform";
 import { MobileNavigation } from "./mobile-navigation";
 
 type NavigationItem = {
@@ -43,10 +48,12 @@ const workspaceNavigation: NavigationItem[] = [
     match: (pathname) =>
       pathname.startsWith("/calendar")
       || pathname.startsWith("/tasks")
+      || pathname.startsWith("/planning")
       || pathname.startsWith("/reminders"),
     onboardingId: "nav-schedule",
   },
   { to: "/briefings", label: "简报", description: "每日信息汇总", icon: Newspaper },
+  { to: "/insights", label: "洞察", description: "需要处理的时间风险", icon: Lightbulb },
   { to: "/approvals", label: "审批", description: "待确认操作", icon: ShieldCheck },
 ];
 
@@ -95,6 +102,8 @@ export function AppLayout() {
   const currentUser = useCurrentUser();
   const preference = useCurrentUserPreference();
   const location = useLocation();
+  const [downloadDialogOpen, setDownloadDialogOpen] = useState(false);
+  const native = isNativePlatform();
   const timezone =
     preference.data?.timezone ?? import.meta.env.VITE_DEFAULT_TIMEZONE ?? "Asia/Shanghai";
   const displayName = currentUser.data?.display_name || currentUser.data?.email || "Time Agent 用户";
@@ -113,8 +122,8 @@ export function AppLayout() {
         data-testid="desktop-sidebar"
         className="fixed inset-y-0 left-0 z-30 hidden w-72 flex-col border-r border-white/10 bg-slate-900/80 px-5 py-6 backdrop-blur lg:flex"
       >
-        <div className="flex items-center gap-1">
-          <Link to="/today" className="flex min-w-0 flex-1 items-center gap-3 rounded-2xl px-3 py-2">
+        <div className="shrink-0">
+          <Link to="/today" className="flex min-w-0 items-center gap-3 rounded-2xl px-3 py-2">
             <span className="grid size-11 shrink-0 place-items-center rounded-2xl bg-cyan-300 text-slate-950 shadow-sm">
               <Sparkles size={22} />
             </span>
@@ -125,32 +134,52 @@ export function AppLayout() {
               <span className="mt-0.5 block truncate text-lg font-semibold">时间工作台</span>
             </span>
           </Link>
-          <button
-            type="button"
-            onClick={requestOnboardingStart}
-            className="inline-flex shrink-0 items-center gap-1 rounded-xl border border-cyan-300/20 bg-cyan-300/10 px-2 py-2 text-xs font-medium text-cyan-200 transition hover:border-cyan-300/40 hover:bg-cyan-300/15 hover:text-cyan-100"
-            aria-label="开始使用指引"
-            title="开始使用指引"
-          >
-            <CircleHelp size={15} />
-            <span>使用指引</span>
-          </button>
+          <div className="ml-14 mt-1.5 flex flex-col items-start gap-1.5">
+            <button
+              type="button"
+              onClick={requestOnboardingStart}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-cyan-300/20 bg-cyan-300/10 px-2 py-1.5 text-xs font-medium text-cyan-200 transition hover:border-cyan-300/40 hover:bg-cyan-300/15 hover:text-cyan-100"
+              aria-label="开始使用指引"
+              title="开始使用指引"
+            >
+              <CircleHelp size={14} />
+              <span>使用指引</span>
+            </button>
+            {!native && (
+              <button
+                type="button"
+                onClick={() => setDownloadDialogOpen(true)}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-2 py-1.5 text-xs font-medium text-slate-300 transition hover:border-white/20 hover:bg-white/10 hover:text-white"
+                aria-label="下载手机 App"
+                title="下载手机 App"
+              >
+                <Download size={14} />
+                <span>下载手机 App</span>
+              </button>
+            )}
+          </div>
         </div>
 
-        <DesktopNavigation
-          label="工作区"
-          items={workspaceNavigation}
-          pathname={location.pathname}
-          isStaff={Boolean(currentUser.data?.is_staff)}
-        />
-        <DesktopNavigation
-          label="设置"
-          items={settingsNavigation}
-          pathname={location.pathname}
-          isStaff={Boolean(currentUser.data?.is_staff)}
-        />
+        <div
+          data-testid="desktop-sidebar-navigation"
+          className="min-h-0 flex-1 overflow-y-auto overscroll-contain pr-1 [scrollbar-gutter:stable]"
+        >
+          <DesktopNavigation
+            label="工作区"
+            items={workspaceNavigation}
+            pathname={location.pathname}
+            isStaff={Boolean(currentUser.data?.is_staff)}
+          />
+          <DesktopNavigation
+            label="设置"
+            items={settingsNavigation}
+            pathname={location.pathname}
+            isStaff={Boolean(currentUser.data?.is_staff)}
+          />
+          <div className="h-4" aria-hidden="true" />
+        </div>
 
-        <div className="mt-auto rounded-2xl border border-white/10 bg-slate-950/50 p-4">
+        <div className="mt-4 shrink-0 rounded-2xl border border-white/10 bg-slate-950/50 p-4">
           <div className="flex items-center gap-3">
             <span className="grid size-10 shrink-0 place-items-center rounded-full bg-cyan-300/15 text-cyan-300">
               <UserRound size={19} />
@@ -175,6 +204,10 @@ export function AppLayout() {
       </main>
       <MobileNavigation />
       <OnboardingTour userId={currentUser.data?.id} />
+      <AndroidAppDownloadDialog
+        open={downloadDialogOpen}
+        onClose={() => setDownloadDialogOpen(false)}
+      />
     </div>
   );
 }

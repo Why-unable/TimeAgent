@@ -11,6 +11,7 @@ from apps.integrations.calendar.dto import (
     ExternalCalendarSummary,
     ExternalEvent,
     ExternalEventCreate,
+    ExternalEventPage,
     ExternalEventQuery,
     ExternalEventUpdate,
 )
@@ -28,9 +29,9 @@ class ContractProvider:
 
     def list_events(
         self, context: ExternalCalendarContext, query: ExternalEventQuery
-    ) -> list[ExternalEvent]:
+    ) -> ExternalEventPage:
         del context, query
-        return []
+        return ExternalEventPage(events=())
 
     def create_event(
         self, context: ExternalCalendarContext, event: ExternalEventCreate

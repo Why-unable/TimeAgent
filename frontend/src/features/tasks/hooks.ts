@@ -4,6 +4,8 @@ import {
   completeTask,
   createTask,
   listTasks,
+  recordTaskExecutionSignal,
+  getTaskExecutionSummary,
   type CreateTask,
   type UpdateTask,
   updateTask,
@@ -42,5 +44,34 @@ export function useCompleteTask() {
         queryClient.invalidateQueries({ queryKey: ["today"] }),
       ]);
     },
+  });
+}
+
+export function useRecordTaskExecutionSignal() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      taskId,
+      signalType,
+    }: {
+      taskId: string;
+      signalType: "started" | "paused" | "resumed" | "skipped";
+    }) => recordTaskExecutionSignal(taskId, signalType),
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: taskQueryKey }),
+        queryClient.invalidateQueries({ queryKey: ["today"] }),
+        queryClient.invalidateQueries({ queryKey: ["task-execution-summary"] }),
+      ]);
+    },
+  });
+}
+
+export function useTaskExecutionSummary(taskId: string | undefined) {
+  return useQuery({
+    queryKey: ["task-execution-summary", taskId],
+    queryFn: () => getTaskExecutionSummary(taskId as string),
+    enabled: Boolean(taskId),
+    retry: false,
   });
 }

@@ -29,10 +29,16 @@ class UserPreferenceService:
             "news_topics",
             "daily_briefing_enabled",
             "briefing_time",
+            "evening_briefing_enabled",
+            "evening_briefing_time",
             "planning_rules",
             "time_memory_enabled",
             "time_memory_allow_generation",
             "time_memory_allow_context_injection",
+            "proactive_insights_enabled",
+            "insight_daily_notification_limit",
+            "insight_cooldown_minutes",
+            "disabled_insight_kinds",
         }
     )
 

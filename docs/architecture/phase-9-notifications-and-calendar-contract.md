@@ -31,9 +31,21 @@ Email 只发送给 Django 当前用户的 `email`。Web Push Provider 接收 Ser
 
 ## 外部日历状态
 
-本阶段仅完成接口契约，未实现任何供应商接入或同步。
+Phase 9 的 Provider Protocol 仍是外部供应商的边界；Phase A 在其上增加了只读同步基础。
 
-`apps.integrations.calendar` 包含 Provider Protocol、可 JSON 序列化的 Pydantic DTO、能力声明和统一异常。它不依赖 Django ORM，不注册 Google/Microsoft Provider，不包含 OAuth、Token、连接表、事件映射、同步任务、Webhook 或网络调用。
+`apps.integrations.calendar` 保持 Provider Protocol、可 JSON 序列化的 Pydantic DTO、能力声明和统一异常；
+`apps.integrations` 增加 `CalendarSyncConnection`、只读同步 Service 和连接状态 API。Phase A 后续注册了
+`GoogleCalendarProvider`：服务端 OAuth state 只存 SHA-256 摘要，Token 以独立 Fernet key 加密并可轮换；
+CalendarList/Events 分页有上限，sync token 410 只触发一次指定时间窗全量对账，删除以 tombstone 进入本地取消状态。
+外部事件身份包含 provider/account/calendar/event 四个维度，公共 Event API 不能伪造这些字段。
+
+前端只接收 authorization URL、连接 UUID、展示名和同步状态，不接收 account/calendar 原始标识或 Token。Nginx 对
+OAuth callback 精确路径关闭 access log，Django 请求日志只记录不含 query string 的 `request.path`。集成保持只读；
+`verify_google_calendar` 复用同一 Provider 与 `CalendarSyncService` 生成版本化脱敏沙箱报告，报告只记录计数、状态、
+耗时和是否重置游标，不输出外部身份、URL、游标或凭据。它是验收入口，不是后台同步任务。
+Microsoft、Webhook 和外部写回不在当前边界；当前仅实现有界 Celery 后台轮询。具体见
+[ADR 0023](../decisions/0023-read-only-calendar-sync-foundation.md) 与
+[ADR 0030](../decisions/0030-google-calendar-oauth-read-only.md)。
 
 ## 已知投递语义
 

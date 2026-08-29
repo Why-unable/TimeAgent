@@ -4,6 +4,9 @@ import { apiRequest } from "./client";
 export type Task = components["schemas"]["Task"];
 export type CreateTask = components["schemas"]["CreateTask"];
 export type UpdateTask = components["schemas"]["PatchedUpdateTask"];
+export type CreateTaskExecutionSignal = components["schemas"]["CreateTaskExecutionSignal"];
+export type TaskExecutionSignal = components["schemas"]["TaskExecutionSignal"];
+export type TaskExecutionSummary = components["schemas"]["TaskExecutionSummary"];
 
 export function getTaskTags(task: Task): string[] {
   return Array.isArray(task.tags)
@@ -46,4 +49,35 @@ export function updateTask(taskId: string, input: UpdateTask) {
 
 export function completeTask(taskId: string) {
   return apiRequest<Task>(`/api/v1/tasks/${taskId}/complete/`, { method: "POST" });
+}
+
+function createIdempotencyKey(): string {
+  if (typeof globalThis.crypto?.randomUUID === "function") {
+    return globalThis.crypto.randomUUID();
+  }
+  return `execution-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
+
+export function recordTaskExecutionSignal(
+  taskId: string,
+  signalType: CreateTaskExecutionSignal["signal_type"],
+  options: Pick<CreateTaskExecutionSignal, "occurred_at" | "idempotency_key"> = {
+    occurred_at: new Date().toISOString(),
+    idempotency_key: createIdempotencyKey(),
+  },
+) {
+  const input: CreateTaskExecutionSignal = {
+    signal_type: signalType,
+    occurred_at: options.occurred_at,
+    idempotency_key: options.idempotency_key,
+    source: "web",
+  };
+  return apiRequest<TaskExecutionSignal>(`/api/v1/tasks/${taskId}/execution-signals/`, {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+export function getTaskExecutionSummary(taskId: string) {
+  return apiRequest<TaskExecutionSummary>(`/api/v1/tasks/${taskId}/execution-summary/`);
 }

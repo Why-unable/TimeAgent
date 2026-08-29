@@ -11,6 +11,7 @@ import {
   SlidersHorizontal,
   Smartphone,
   UserRound,
+  Lightbulb,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link, NavLink, useLocation } from "react-router-dom";
@@ -28,11 +29,15 @@ const primaryItems = [
     icon: CalendarDays,
     onboardingId: "nav-schedule",
     match: (path: string) =>
-      path.startsWith("/calendar") || path.startsWith("/tasks") || path.startsWith("/reminders"),
+      path.startsWith("/calendar")
+      || path.startsWith("/tasks")
+      || path.startsWith("/planning")
+      || path.startsWith("/reminders"),
   },
 ];
 
 const moreItems = [
+  { to: "/insights", label: "洞察", description: "查看并处理时间风险", icon: Lightbulb },
   { to: "/briefings", label: "简报", description: "生成与查看每日简报", icon: Newspaper },
   { to: "/reminders", label: "提醒", description: "管理待发送提醒", icon: Bell },
   { to: "/approvals", label: "审批", description: "处理需要确认的操作", icon: ShieldCheck },
@@ -83,7 +88,7 @@ export function MobileNavigation() {
   }, []);
 
   const visibleMoreItems = moreItems
-    .filter((item) => !["/briefings", "/reminders"].includes(item.to))
+    .filter((item) => item.to !== "/reminders")
     .filter((item) => currentUser.data?.is_staff || item.to !== "/")
     .map((item) =>
       item.to === "/"

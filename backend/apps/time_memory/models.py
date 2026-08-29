@@ -1,6 +1,7 @@
 import uuid
 
 from django.conf import settings
+from django.core.exceptions import ValidationError
 from django.db import models
 
 
@@ -91,6 +92,60 @@ class TimeMemoryRefreshState(models.Model):
 class TimeMemoryExclusionType(models.TextChoices):
     PLACE = "place", "Place"
     PATTERN = "pattern", "Pattern"
+
+
+class TimeDecisionFeedbackAction(models.TextChoices):
+    ACCEPT = "accept", "Accept"
+    OVERRIDE = "override", "Override"
+    DISABLE = "disable", "Disable"
+    TOO_SHORT = "too_short", "Too short"
+    TOO_LONG = "too_long", "Too long"
+
+
+class TimeDecisionFeedback(models.Model):
+    """User correction or consent for a derived time decision profile."""
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="time_decision_feedback",
+    )
+    category = models.CharField(max_length=64)
+    action = models.CharField(max_length=16, choices=TimeDecisionFeedbackAction.choices)
+    value = models.JSONField(default=dict, blank=True)
+    idempotency_key = models.CharField(max_length=128)
+    source = models.CharField(max_length=32, default="web")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at", "-id"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["user", "idempotency_key"],
+                name="time_decision_feedback_user_key_uniq",
+            )
+        ]
+        indexes = [
+            models.Index(
+                fields=["user", "category", "created_at"],
+                name="time_decision_feedback_idx",
+            )
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.user_id}:{self.category}:{self.action}:{self.idempotency_key}"
+
+    def clean(self) -> None:
+        super().clean()
+        if not self.category.strip():
+            raise ValidationError({"category": "category cannot be blank"})
+        if not self.idempotency_key.strip():
+            raise ValidationError({"idempotency_key": "idempotency_key cannot be blank"})
+        if not self.source.strip():
+            raise ValidationError({"source": "source cannot be blank"})
+        if not isinstance(self.value, dict):
+            raise ValidationError({"value": "value must be an object"})
 
 
 class TimeMemoryExclusion(models.Model):

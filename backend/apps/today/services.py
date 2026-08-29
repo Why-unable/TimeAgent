@@ -1,5 +1,5 @@
 import math
-from datetime import UTC, datetime, time, timedelta
+from datetime import datetime
 
 from django.contrib.auth.models import User
 from django.utils import timezone
@@ -14,7 +14,7 @@ from apps.today.schemas import (
     ScheduleItemKind,
     TodaySummary,
 )
-from common.time import get_timezone, to_utc
+from common.temporal_context import TemporalContextSnapshot
 
 
 class TodayService:
@@ -33,13 +33,15 @@ class TodayService:
         current_at: datetime | None = None,
     ) -> TodaySummary:
         TodayService._ensure_persisted_user(user)
-        generated_at = to_utc(current_at or timezone.now())
         preference = UserPreferenceService.get_or_create_for_user(user)
-        user_timezone = get_timezone(preference.timezone)
-        local_date = generated_at.astimezone(user_timezone).date()
-        next_local_date = local_date + timedelta(days=1)
-        day_start = datetime.combine(local_date, time.min, tzinfo=user_timezone).astimezone(UTC)
-        day_end = datetime.combine(next_local_date, time.min, tzinfo=user_timezone).astimezone(UTC)
+        temporal = TemporalContextSnapshot.build(
+            now=current_at or timezone.now(),
+            timezone_name=preference.timezone,
+        )
+        generated_at = temporal.now_utc
+        local_date = temporal.local_date
+        day_start = temporal.day_start_utc
+        day_end = temporal.day_end_utc
 
         events = list(
             CalendarEvent.objects.filter(

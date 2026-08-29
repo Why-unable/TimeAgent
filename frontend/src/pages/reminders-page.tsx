@@ -43,6 +43,7 @@ const statusLabels: Record<NonNullable<Reminder["status"]>, string> = {
   sent: "发送成功",
   failed: "发送失败",
   cancelled: "已取消",
+  missed: "已错过",
 };
 
 const statusStyles: Record<NonNullable<Reminder["status"]>, string> = {
@@ -52,6 +53,7 @@ const statusStyles: Record<NonNullable<Reminder["status"]>, string> = {
   sent: "bg-emerald-400/10 text-emerald-200",
   failed: "bg-red-400/10 text-red-200",
   cancelled: "bg-slate-400/10 text-slate-300",
+  missed: "bg-orange-400/10 text-orange-200",
 };
 
 const cancellableStatuses = new Set<Reminder["status"]>(["pending", "queued", "failed"]);
@@ -76,8 +78,8 @@ export function RemindersPage() {
   const [pendingLimit, setPendingLimit] = useState(PENDING_PAGE_SIZE);
   const allReminders = reminders.data ?? [];
   const pendingReminders = allReminders.filter((item) => pendingStatuses.has(item.status));
-  const sentReminders = allReminders
-    .filter((item) => item.status === "sent")
+  const historicalReminders = allReminders
+    .filter((item) => item.status === "sent" || item.status === "missed")
     .slice()
     .sort((left, right) => Date.parse(right.sent_at ?? right.updated_at) - Date.parse(left.sent_at ?? left.updated_at))
     .slice(0, SENT_HISTORY_LIMIT);
@@ -206,9 +208,9 @@ export function RemindersPage() {
             )}
           </ReminderSection>
         )}
-        {sentReminders.length > 0 && (
-          <ReminderSection title="已发送提醒" count={sentReminders.length} subtitle="仅保留最近 10 条">
-            {sentReminders.map((reminder) => (
+        {historicalReminders.length > 0 && (
+          <ReminderSection title="提醒记录" count={historicalReminders.length} subtitle="仅显示最近 10 条已发送或已错过提醒">
+            {historicalReminders.map((reminder) => (
               <ReminderCard
                 key={reminder.id}
                 reminder={reminder}

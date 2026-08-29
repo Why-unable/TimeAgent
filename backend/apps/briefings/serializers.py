@@ -6,6 +6,14 @@ from apps.briefings.models import BriefingDefinition, BriefingRun, BriefingSecti
 from apps.conversations.serializers import AgentRunSerializer, ConversationSerializer
 
 
+class EveningBriefingSerializer(serializers.Serializer[dict[str, object]]):
+    target_date = serializers.DateField()
+    timezone = serializers.CharField()
+    generated_at = serializers.DateTimeField()
+    events = serializers.ListField(child=serializers.DictField())
+    tasks = serializers.ListField(child=serializers.DictField())
+    insights = serializers.ListField(child=serializers.DictField())
+    warnings = serializers.ListField(child=serializers.CharField())
 class BriefingDefinitionSerializer(serializers.ModelSerializer[BriefingDefinition]):
     class Meta:
         model = BriefingDefinition

@@ -398,6 +398,22 @@ export interface paths {
         patch: operations["api_v1_briefings_definitions_partial_update"];
         trace?: never;
     };
+    "/api/v1/briefings/evening-preview/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["api_v1_briefings_evening_preview_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/briefings/runs/": {
         parameters: {
             query?: never;
@@ -558,6 +574,134 @@ export interface paths {
         patch: operations["api_v1_events_partial_update"];
         trace?: never;
     };
+    "/api/v1/insights/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["api_v1_insights_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/insights/{insight_id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["api_v1_insights_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/insights/{insight_id}/action/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["api_v1_insights_action_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/integrations/calendar/connections/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["api_v1_integrations_calendar_connections_list"];
+        put?: never;
+        post: operations["api_v1_integrations_calendar_connections_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/integrations/calendar/connections/{connection_id}/disconnect/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: operations["api_v1_integrations_calendar_connections_disconnect_destroy"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/integrations/calendar/connections/{connection_id}/sync/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["api_v1_integrations_calendar_connections_sync_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/integrations/calendar/oauth/google/callback/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["api_v1_integrations_calendar_oauth_google_callback_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/integrations/calendar/oauth/google/start/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["api_v1_integrations_calendar_oauth_google_start_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/notification-deliveries/": {
         parameters: {
             query?: never;
@@ -604,6 +748,230 @@ export interface paths {
         options?: never;
         head?: never;
         patch: operations["api_v1_notification_preferences_me_partial_update"];
+        trace?: never;
+    };
+    "/api/v1/planning/automation-policies/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["api_v1_planning_automation_policies_list"];
+        put?: never;
+        post: operations["api_v1_planning_automation_policies_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/planning/automation-policies/{policy_id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch: operations["api_v1_planning_automation_policies_partial_update"];
+        trace?: never;
+    };
+    "/api/v1/planning/change-batches/{batch_id}/revert/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["api_v1_planning_change_batches_revert_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/planning/disruptions/detect/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["api_v1_planning_disruptions_detect_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/planning/free-time-recommendations/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["api_v1_planning_free_time_recommendations_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/planning/plans/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["api_v1_planning_plans_list"];
+        put?: never;
+        post: operations["api_v1_planning_plans_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/planning/plans/{plan_id}/abandon/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["api_v1_planning_plans_abandon_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/planning/plans/{plan_id}/apply/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["api_v1_planning_plans_apply_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/planning/plans/{plan_id}/edit/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["api_v1_planning_plans_edit_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/planning/plans/{plan_id}/regenerate/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["api_v1_planning_plans_regenerate_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/planning/plans/{plan_id}/validate/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["api_v1_planning_plans_validate_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/planning/plans/compare/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["api_v1_planning_plans_compare_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/planning/plans/local-replan-apply/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["api_v1_planning_plans_local_replan_apply_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/planning/plans/local-replan-preview/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["api_v1_planning_plans_local_replan_preview_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/api/v1/preferences/me/": {
@@ -786,6 +1154,38 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/tasks/{task_id}/execution-signals/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["api_v1_tasks_execution_signals_list"];
+        put?: never;
+        post: operations["api_v1_tasks_execution_signals_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tasks/{task_id}/execution-summary/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["api_v1_tasks_execution_summary_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/time-memory/me/": {
         parameters: {
             query?: never;
@@ -797,6 +1197,54 @@ export interface paths {
         put?: never;
         post?: never;
         delete: operations["api_v1_time_memory_me_destroy"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/time-memory/me/capacity-forecast/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["api_v1_time_memory_me_capacity_forecast_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/time-memory/me/decision-profile/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["api_v1_time_memory_me_decision_profile_retrieve"];
+        put?: never;
+        post: operations["api_v1_time_memory_me_decision_profile_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/time-memory/me/duration-recommendations/{task_id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["api_v1_time_memory_me_duration_recommendations_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -1055,6 +1503,30 @@ export interface components {
             readonly token: string;
             readonly user: components["schemas"]["CurrentUser"];
         };
+        AutomationPolicy: {
+            /** Format: uuid */
+            readonly id: string;
+            name: string;
+            enabled?: boolean;
+            allow_task_reschedule?: boolean;
+            /** Format: int64 */
+            max_moves_per_run?: number;
+            requires_approval?: boolean;
+            readonly authorized_task_ids: string[];
+            /** Format: date-time */
+            readonly created_at: string;
+            /** Format: date-time */
+            readonly updated_at: string;
+        };
+        AutomationPolicyWrite: {
+            name: string;
+            enabled?: boolean;
+            allow_task_reschedule?: boolean;
+            /** Format: int64 */
+            max_moves_per_run?: number;
+            requires_approval?: boolean;
+            authorized_task_ids?: string[];
+        };
         /** @enum {unknown} */
         BlankEnum: "";
         BriefingDefinition: {
@@ -1153,7 +1625,6 @@ export interface components {
             visibility?: components["schemas"]["VisibilityEnum"];
             recurrence_rule?: string;
             source?: string;
-            external_id?: string;
             created_by?: number | null;
             /** Format: int64 */
             version?: number;
@@ -1169,6 +1640,70 @@ export interface components {
          * @enum {string}
          */
         CalendarEventStatusEnum: "tentative" | "confirmed" | "cancelled";
+        CalendarOAuthStartResult: {
+            authorization_url: string;
+            /** Format: date-time */
+            expires_at: string;
+        };
+        CalendarSyncConnection: {
+            /** Format: uuid */
+            readonly id: string;
+            provider_name: string;
+            calendar_name: string;
+            timezone: string;
+            enabled?: boolean;
+            status?: components["schemas"]["CalendarSyncConnectionStatusEnum"];
+            /** Format: date-time */
+            last_synced_at?: string | null;
+            last_error?: string;
+            /** Format: date-time */
+            readonly created_at: string;
+            /** Format: date-time */
+            readonly updated_at: string;
+        };
+        /**
+         * @description * `ready` - Ready
+         *     * `error` - Error
+         *     * `disabled` - Disabled
+         * @enum {string}
+         */
+        CalendarSyncConnectionStatusEnum: "ready" | "error" | "disabled";
+        CalendarSyncConnectionWrite: {
+            provider_name: components["schemas"]["ProviderNameEnum"];
+            account_reference: string;
+            calendar_id: string;
+            calendar_name: string;
+            timezone: string;
+            /** @default true */
+            enabled: boolean;
+        };
+        CalendarSyncRequest: {
+            /** Format: date-time */
+            starts_at_or_after: string;
+            /** Format: date-time */
+            starts_before: string;
+        };
+        CalendarSyncResult: {
+            /** Format: uuid */
+            connection_id: string;
+            fetched_count: number;
+            created_count: number;
+            updated_count: number;
+            cancelled_count: number;
+            /** Format: date-time */
+            synced_at: string;
+        };
+        CapacityForecast: {
+            /** Format: date-time */
+            range_start: string;
+            /** Format: date-time */
+            range_end: string;
+            available_minutes: number;
+            committed_minutes: number;
+            unplanned_minutes: number;
+            risk: string;
+            reason_codes: string[];
+        };
         /**
          * @description * `console` - Console
          *     * `email` - Email
@@ -1219,8 +1754,6 @@ export interface components {
             status?: components["schemas"]["CalendarEventStatusEnum"];
             visibility?: components["schemas"]["VisibilityEnum"];
             recurrence_rule?: string;
-            source?: string;
-            external_id?: string;
         };
         CreateConversation: {
             /** @default  */
@@ -1254,12 +1787,28 @@ export interface components {
             /** Format: date-time */
             due_at?: string | null;
             estimated_minutes?: number | null;
+            buffer_before_minutes?: number;
+            buffer_after_minutes?: number;
+            planning_locked?: boolean;
+            splittable?: boolean;
+            minimum_chunk_minutes?: number;
             /** Format: date-time */
             planned_start_at?: string | null;
             /** Format: date-time */
             planned_end_at?: string | null;
             source?: string;
             tags?: string[];
+        };
+        CreateTaskExecutionSignal: {
+            signal_type: components["schemas"]["SignalTypeEnum"];
+            /** Format: date-time */
+            occurred_at: string;
+            idempotency_key: string;
+            /** @default local */
+            source: string;
+            metadata?: {
+                [key: string]: unknown;
+            };
         };
         CurrentUser: {
             readonly id: number;
@@ -1279,6 +1828,40 @@ export interface components {
             /** Format: date-time */
             readonly guest_expires_at: string | null;
         };
+        DecisionFeedback: {
+            category: string;
+            action: components["schemas"]["DecisionFeedbackActionEnum"];
+            value?: {
+                [key: string]: unknown;
+            };
+            idempotency_key: string;
+            /** @default web */
+            source: string;
+        };
+        /**
+         * @description * `accept` - accept
+         *     * `override` - override
+         *     * `disable` - disable
+         *     * `too_short` - too_short
+         *     * `too_long` - too_long
+         * @enum {string}
+         */
+        DecisionFeedbackActionEnum: "accept" | "override" | "disable" | "too_short" | "too_long";
+        DecisionProfile: {
+            version: number;
+            /** Format: date-time */
+            generated_at: string | null;
+            category: string;
+            enabled: boolean;
+            default_duration_minutes: number;
+            /** Format: double */
+            duration_multiplier: number;
+            /** Format: double */
+            confidence: number;
+            sample_count: number;
+            source: string;
+            evidence: string[];
+        };
         DependencyChecks: {
             database: components["schemas"]["DependencyStatusEnum"];
             redis: components["schemas"]["DependencyStatusEnum"];
@@ -1289,6 +1872,32 @@ export interface components {
          * @enum {string}
          */
         DependencyStatusEnum: "ok" | "error";
+        DisruptionDetectionRequest: {
+            /** Format: date-time */
+            range_start: string;
+            /** Format: date-time */
+            range_end: string;
+        };
+        DurationRecommendation: {
+            /** Format: uuid */
+            task_id: string;
+            original_estimate_minutes: number | null;
+            recommended_minutes: number;
+            /** Format: double */
+            duration_multiplier: number;
+            segment: string;
+            /** Format: double */
+            confidence: number;
+            sample_count: number;
+            source: string;
+            fallback_reason: string | null;
+            evidence: string[];
+            classification: components["schemas"]["TaskClassification"];
+            feature_version: string;
+            /** Format: date-time */
+            expires_at: string;
+            decay_half_life_days: number;
+        };
         EmailVerificationConfirm: {
             uid: string;
             token: string;
@@ -1299,6 +1908,47 @@ export interface components {
         };
         ErrorResponse: {
             detail: string;
+        };
+        EveningBriefing: {
+            /** Format: date */
+            target_date: string;
+            timezone: string;
+            /** Format: date-time */
+            generated_at: string;
+            events: {
+                [key: string]: unknown;
+            }[];
+            tasks: {
+                [key: string]: unknown;
+            }[];
+            insights: {
+                [key: string]: unknown;
+            }[];
+            warnings: string[];
+        };
+        /**
+         * @description * `no_execution_evidence` - no_execution_evidence
+         *     * `recording` - recording
+         *     * `complete` - complete
+         * @enum {string}
+         */
+        EvidenceStatusEnum: "no_execution_evidence" | "recording" | "complete";
+        FreeTimeRecommendation: {
+            /** Format: date-time */
+            range_start: string;
+            /** Format: date-time */
+            range_end: string;
+            timezone: string;
+            duration_minutes: number;
+            slots: components["schemas"]["FreeTimeSlot"][];
+            fallback: string;
+        };
+        FreeTimeSlot: {
+            /** Format: date-time */
+            start_at: string;
+            /** Format: date-time */
+            end_at: string;
+            reason_codes: string[];
         };
         LaunchBriefing: {
             /** Format: uuid */
@@ -1320,6 +1970,40 @@ export interface components {
          * @enum {string}
          */
         LiveResponseStatusEnum: "alive";
+        LocalReplanApplyRequest: {
+            /** Format: date-time */
+            blocked_start: string;
+            /** Format: date-time */
+            blocked_end: string;
+            movable_task_ids: string[];
+            /** Format: date-time */
+            horizon_end: string;
+            /** Format: uuid */
+            policy_id: string;
+            /** Format: uuid */
+            operation_id: string;
+        };
+        LocalReplanPreview: {
+            /** Format: date-time */
+            blocked_start: string;
+            /** Format: date-time */
+            blocked_end: string;
+            moved_items: unknown[];
+            unchanged_task_ids: unknown[];
+            stability_cost: {
+                [key: string]: number;
+            };
+            reason: string;
+        };
+        LocalReplanPreviewRequest: {
+            /** Format: date-time */
+            blocked_start: string;
+            /** Format: date-time */
+            blocked_end: string;
+            movable_task_ids: string[];
+            /** Format: date-time */
+            horizon_end: string;
+        };
         /**
          * @description * `zh-CN` - 简体中文
          *     * `en-US` - English
@@ -1365,7 +2049,7 @@ export interface components {
             /** Format: uuid */
             readonly source_id: string | null;
             readonly channel_type: components["schemas"]["NotificationChannelTypeEnum"];
-            readonly status: components["schemas"]["ReminderStatusEnum"];
+            readonly status: components["schemas"]["NotificationDeliveryStatusEnum"];
             readonly subject: string;
             /** Format: date-time */
             readonly scheduled_at: string;
@@ -1388,6 +2072,16 @@ export interface components {
             /** Format: date-time */
             readonly updated_at: string;
         };
+        /**
+         * @description * `pending` - Pending
+         *     * `queued` - Queued
+         *     * `sending` - Sending
+         *     * `sent` - Sent
+         *     * `failed` - Failed
+         *     * `cancelled` - Cancelled
+         * @enum {string}
+         */
+        NotificationDeliveryStatusEnum: "pending" | "queued" | "sending" | "sent" | "failed" | "cancelled";
         NotificationPreference: {
             /** Format: email */
             readonly email: string;
@@ -1407,6 +2101,12 @@ export interface components {
          * @enum {string}
          */
         NotificationSourceTypeEnum: "reminder" | "briefing" | "system";
+        /**
+         * @description * `priority_deadline` - priority_deadline
+         *     * `longest_first` - longest_first
+         * @enum {string}
+         */
+        OrderingEnum: "priority_deadline" | "longest_first";
         PasswordResetConfirm: {
             uid: string;
             token: string;
@@ -1415,6 +2115,15 @@ export interface components {
         PasswordResetRequest: {
             /** Format: email */
             email: string;
+        };
+        PatchedAutomationPolicyWrite: {
+            name?: string;
+            enabled?: boolean;
+            allow_task_reschedule?: boolean;
+            /** Format: int64 */
+            max_moves_per_run?: number;
+            requires_approval?: boolean;
+            authorized_task_ids?: string[];
         };
         PatchedBriefingDefinition: {
             /** Format: uuid */
@@ -1460,8 +2169,6 @@ export interface components {
             status?: components["schemas"]["CalendarEventStatusEnum"];
             visibility?: components["schemas"]["VisibilityEnum"];
             recurrence_rule?: string;
-            source?: string;
-            external_id?: string;
         };
         PatchedUpdateTask: {
             project?: string;
@@ -1473,6 +2180,11 @@ export interface components {
             /** Format: date-time */
             due_at?: string | null;
             estimated_minutes?: number | null;
+            buffer_before_minutes?: number;
+            buffer_after_minutes?: number;
+            planning_locked?: boolean;
+            splittable?: boolean;
+            minimum_chunk_minutes?: number;
             /** Format: date-time */
             planned_start_at?: string | null;
             /** Format: date-time */
@@ -1505,10 +2217,19 @@ export interface components {
             daily_briefing_enabled?: boolean;
             /** Format: time */
             briefing_time?: string;
+            evening_briefing_enabled?: boolean;
+            /** Format: time */
+            evening_briefing_time?: string;
             planning_rules?: unknown;
             time_memory_enabled?: boolean;
             time_memory_allow_generation?: boolean;
             time_memory_allow_context_injection?: boolean;
+            proactive_insights_enabled?: boolean;
+            /** Format: int64 */
+            insight_daily_notification_limit?: number;
+            /** Format: int64 */
+            insight_cooldown_minutes?: number;
+            disabled_insight_kinds?: unknown;
             /** Format: date-time */
             readonly updated_at?: string;
         };
@@ -1557,6 +2278,11 @@ export interface components {
             url: string;
             topics: string[];
         };
+        /**
+         * @description * `ics` - ics
+         * @enum {string}
+         */
+        ProviderNameEnum: "ics";
         ReadyResponse: {
             status: components["schemas"]["ReadyResponseStatusEnum"];
             checks: components["schemas"]["DependencyChecks"];
@@ -1608,9 +2334,10 @@ export interface components {
          *     * `sent` - Sent
          *     * `failed` - Failed
          *     * `cancelled` - Cancelled
+         *     * `missed` - Missed
          * @enum {string}
          */
-        ReminderStatusEnum: "pending" | "queued" | "sending" | "sent" | "failed" | "cancelled";
+        ReminderStatusEnum: "pending" | "queued" | "sending" | "sent" | "failed" | "cancelled" | "missed";
         /**
          * @description * `high` - High
          * @enum {string}
@@ -1622,6 +2349,32 @@ export interface components {
          * @enum {string}
          */
         ScheduleAnchorEnum: "task_planned_start" | "event_start";
+        ScheduleChangeBatch: {
+            /** Format: uuid */
+            readonly id: string;
+            /** Format: uuid */
+            policy: string;
+            /** Format: uuid */
+            operation_id: string;
+            status?: components["schemas"]["ScheduleChangeBatchStatusEnum"];
+            before_snapshot?: unknown;
+            after_snapshot?: unknown;
+            failure_reason?: string;
+            /** Format: date-time */
+            readonly created_at: string;
+            /** Format: date-time */
+            applied_at?: string | null;
+            /** Format: date-time */
+            reverted_at?: string | null;
+        };
+        /**
+         * @description * `pending` - Pending
+         *     * `applied` - Applied
+         *     * `reverted` - Reverted
+         *     * `failed` - Failed
+         * @enum {string}
+         */
+        ScheduleChangeBatchStatusEnum: "pending" | "applied" | "reverted" | "failed";
         ScheduleConflict: {
             first: components["schemas"]["ScheduleItem"];
             second: components["schemas"]["ScheduleItem"];
@@ -1629,6 +2382,21 @@ export interface components {
             overlap_start_at: string;
             /** Format: date-time */
             overlap_end_at: string;
+        };
+        ScheduleDisruption: {
+            /** Format: uuid */
+            task_id: string;
+            task_title: string;
+            task_version: number;
+            /** Format: uuid */
+            event_id: string;
+            event_title: string;
+            /** Format: date-time */
+            blocked_start: string;
+            /** Format: date-time */
+            blocked_end: string;
+            overlap_minutes: number;
+            reason_codes: string[];
         };
         ScheduleItem: {
             kind: components["schemas"]["ScheduleItemKindEnum"];
@@ -1646,6 +2414,110 @@ export interface components {
          * @enum {string}
          */
         ScheduleItemKindEnum: "event" | "task";
+        SchedulePlan: {
+            /** Format: uuid */
+            readonly id: string;
+            strategy: string;
+            items?: unknown;
+            constraints_snapshot?: unknown;
+            decision_profile_snapshot?: unknown;
+            status?: components["schemas"]["SchedulePlanStatusEnum"];
+            /** Format: int64 */
+            version?: number;
+            /** Format: date-time */
+            readonly created_at: string;
+            /** Format: date-time */
+            readonly updated_at: string;
+            /** Format: date-time */
+            expires_at?: string;
+            /** Format: date-time */
+            applied_at?: string | null;
+            /** Format: date-time */
+            abandoned_at?: string | null;
+            /** Format: date-time */
+            invalidated_at?: string | null;
+            invalidation_reason?: string;
+        };
+        SchedulePlanApply: {
+            expected_version: number;
+        };
+        SchedulePlanCompare: {
+            task_ids: string[];
+            /** Format: date-time */
+            range_start: string;
+            /** Format: date-time */
+            range_end: string;
+            strategy: components["schemas"]["StrategyEnum"];
+        };
+        SchedulePlanComparison: {
+            alternatives: components["schemas"]["SchedulePlan"][];
+            comparison: {
+                [key: string]: unknown;
+            }[];
+            claim: string;
+        };
+        SchedulePlanCreate: {
+            task_ids: string[];
+            /** Format: date-time */
+            range_start: string;
+            /** Format: date-time */
+            range_end: string;
+            strategy: components["schemas"]["StrategyEnum"];
+            /** @default priority_deadline */
+            ordering: components["schemas"]["OrderingEnum"];
+        };
+        SchedulePlanEdit: {
+            expected_version: number;
+            items: components["schemas"]["SchedulePlanItemEdit"][];
+        };
+        SchedulePlanItemEdit: {
+            /** Format: uuid */
+            task_id: string;
+            /** Format: date-time */
+            start_at?: string;
+            /** Format: date-time */
+            end_at?: string;
+            locked?: boolean;
+        };
+        SchedulePlanRegenerate: {
+            expected_version: number;
+            task_ids: string[];
+            ordering: components["schemas"]["OrderingEnum"];
+        };
+        /**
+         * @description * `draft` - Draft
+         *     * `applied` - Applied
+         *     * `superseded` - Superseded
+         *     * `abandoned` - Abandoned
+         *     * `invalidated` - Invalidated
+         * @enum {string}
+         */
+        SchedulePlanStatusEnum: "draft" | "applied" | "superseded" | "abandoned" | "invalidated";
+        SchedulePlanValidation: {
+            expected_version: number;
+        };
+        SchedulePlanValidationResult: {
+            plan: components["schemas"]["SchedulePlan"];
+            valid: boolean;
+            reason_codes: string[];
+            /** Format: date-time */
+            checked_at: string;
+        };
+        /**
+         * @description * `started` - Started
+         *     * `paused` - Paused
+         *     * `resumed` - Resumed
+         *     * `completed` - Completed
+         *     * `skipped` - Skipped
+         * @enum {string}
+         */
+        SignalTypeEnum: "started" | "paused" | "resumed" | "completed" | "skipped";
+        /**
+         * @description * `plan_tasks_only` - plan_tasks_only
+         *     * `create_linked_event_blocks` - create_linked_event_blocks
+         * @enum {string}
+         */
+        StrategyEnum: "plan_tasks_only" | "create_linked_event_blocks";
         /**
          * @description * `concise` - Concise
          *     * `balanced` - Balanced
@@ -1674,6 +2546,11 @@ export interface components {
             due_at?: string | null;
             /** Format: int64 */
             estimated_minutes?: number | null;
+            buffer_before_minutes?: number;
+            buffer_after_minutes?: number;
+            planning_locked?: boolean;
+            splittable?: boolean;
+            minimum_chunk_minutes?: number;
             /** Format: date-time */
             planned_start_at?: string | null;
             /** Format: date-time */
@@ -1689,6 +2566,41 @@ export interface components {
             /** Format: date-time */
             readonly updated_at: string;
         };
+        TaskClassification: {
+            category: string;
+            /** Format: double */
+            confidence: number;
+            source: string;
+            matched_signals: string[];
+        };
+        TaskExecutionSignal: {
+            /** Format: uuid */
+            readonly id: string;
+            /** Format: uuid */
+            task: string;
+            signal_type: components["schemas"]["SignalTypeEnum"];
+            /** Format: date-time */
+            occurred_at: string;
+            idempotency_key: string;
+            source?: string;
+            metadata?: unknown;
+            /** Format: date-time */
+            readonly created_at: string;
+        };
+        TaskExecutionSummary: {
+            /** Format: uuid */
+            task_id: string;
+            signal_count: number;
+            active_seconds: number;
+            planned_seconds: number | null;
+            estimated_seconds: number | null;
+            variance_vs_plan_seconds: number | null;
+            variance_vs_estimate_seconds: number | null;
+            evidence_status: components["schemas"]["EvidenceStatusEnum"];
+            /** Format: date-time */
+            open_started_at: string | null;
+            last_signal_type: string | null;
+        };
         /**
          * @description * `pending` - Pending
          *     * `in_progress` - In progress
@@ -1697,6 +2609,54 @@ export interface components {
          * @enum {string}
          */
         TaskStatusEnum: "pending" | "in_progress" | "completed" | "cancelled";
+        TemporalInsight: {
+            /** Format: uuid */
+            readonly id: string;
+            kind: string;
+            severity: string;
+            status?: components["schemas"]["TemporalInsightStatusEnum"];
+            title: string;
+            summary: string;
+            evidence?: unknown;
+            deduplication_key: string;
+            /** Format: date-time */
+            detected_at: string;
+            /** Format: date-time */
+            expires_at: string;
+            /** Format: date-time */
+            snoozed_until?: string | null;
+            /** Format: date-time */
+            acted_at?: string | null;
+            attention_decision?: string;
+            attention_reason?: string;
+            /** Format: date-time */
+            attention_decided_at?: string | null;
+        };
+        TemporalInsightAction: {
+            action: components["schemas"]["TemporalInsightActionActionEnum"];
+            /** Format: date-time */
+            until?: string | null;
+            /** @default false */
+            disable_kind: boolean;
+        };
+        /**
+         * @description * `snooze` - snooze
+         *     * `dismiss` - dismiss
+         *     * `actioned` - actioned
+         *     * `false_positive` - false_positive
+         * @enum {string}
+         */
+        TemporalInsightActionActionEnum: "snooze" | "dismiss" | "actioned" | "false_positive";
+        /**
+         * @description * `open` - Open
+         *     * `snoozed` - Snoozed
+         *     * `dismissed` - Dismissed
+         *     * `actioned` - Actioned
+         *     * `expired` - Expired
+         *     * `false_positive` - False positive
+         * @enum {string}
+         */
+        TemporalInsightStatusEnum: "open" | "snoozed" | "dismissed" | "actioned" | "expired" | "false_positive";
         TimeMemoryStatus: {
             profile: unknown;
             refresh_status: string;
@@ -1750,10 +2710,19 @@ export interface components {
             daily_briefing_enabled?: boolean;
             /** Format: time */
             briefing_time?: string;
+            evening_briefing_enabled?: boolean;
+            /** Format: time */
+            evening_briefing_time?: string;
             planning_rules?: unknown;
             time_memory_enabled?: boolean;
             time_memory_allow_generation?: boolean;
             time_memory_allow_context_injection?: boolean;
+            proactive_insights_enabled?: boolean;
+            /** Format: int64 */
+            insight_daily_notification_limit?: number;
+            /** Format: int64 */
+            insight_cooldown_minutes?: number;
+            disabled_insight_kinds?: unknown;
             /** Format: date-time */
             readonly updated_at: string;
         };
@@ -2431,6 +3400,25 @@ export interface operations {
             };
         };
     };
+    api_v1_briefings_evening_preview_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EveningBriefing"];
+                };
+            };
+        };
+    };
     api_v1_briefings_runs_list: {
         parameters: {
             query?: never;
@@ -2791,6 +3779,205 @@ export interface operations {
             };
         };
     };
+    api_v1_insights_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TemporalInsight"][];
+                };
+            };
+        };
+    };
+    api_v1_insights_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                insight_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TemporalInsight"];
+                };
+            };
+        };
+    };
+    api_v1_insights_action_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                insight_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TemporalInsightAction"];
+                "application/x-www-form-urlencoded": components["schemas"]["TemporalInsightAction"];
+                "multipart/form-data": components["schemas"]["TemporalInsightAction"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TemporalInsight"];
+                };
+            };
+        };
+    };
+    api_v1_integrations_calendar_connections_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CalendarSyncConnection"][];
+                };
+            };
+        };
+    };
+    api_v1_integrations_calendar_connections_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CalendarSyncConnectionWrite"];
+                "application/x-www-form-urlencoded": components["schemas"]["CalendarSyncConnectionWrite"];
+                "multipart/form-data": components["schemas"]["CalendarSyncConnectionWrite"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CalendarSyncConnection"];
+                };
+            };
+        };
+    };
+    api_v1_integrations_calendar_connections_disconnect_destroy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                connection_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    api_v1_integrations_calendar_connections_sync_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                connection_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CalendarSyncRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["CalendarSyncRequest"];
+                "multipart/form-data": components["schemas"]["CalendarSyncRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CalendarSyncResult"];
+                };
+            };
+        };
+    };
+    api_v1_integrations_calendar_oauth_google_callback_retrieve: {
+        parameters: {
+            query?: {
+                code?: string;
+                error?: string;
+                state?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            302: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    api_v1_integrations_calendar_oauth_google_start_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CalendarOAuthStartResult"];
+                };
+            };
+        };
+    };
     api_v1_notification_deliveries_list: {
         parameters: {
             query?: never;
@@ -2871,6 +4058,415 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["NotificationPreference"];
+                };
+            };
+        };
+    };
+    api_v1_planning_automation_policies_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AutomationPolicy"][];
+                };
+            };
+        };
+    };
+    api_v1_planning_automation_policies_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AutomationPolicyWrite"];
+                "application/x-www-form-urlencoded": components["schemas"]["AutomationPolicyWrite"];
+                "multipart/form-data": components["schemas"]["AutomationPolicyWrite"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AutomationPolicy"];
+                };
+            };
+        };
+    };
+    api_v1_planning_automation_policies_partial_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                policy_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PatchedAutomationPolicyWrite"];
+                "application/x-www-form-urlencoded": components["schemas"]["PatchedAutomationPolicyWrite"];
+                "multipart/form-data": components["schemas"]["PatchedAutomationPolicyWrite"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AutomationPolicy"];
+                };
+            };
+        };
+    };
+    api_v1_planning_change_batches_revert_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                batch_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ScheduleChangeBatch"];
+                "application/x-www-form-urlencoded": components["schemas"]["ScheduleChangeBatch"];
+                "multipart/form-data": components["schemas"]["ScheduleChangeBatch"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ScheduleChangeBatch"];
+                };
+            };
+        };
+    };
+    api_v1_planning_disruptions_detect_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DisruptionDetectionRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["DisruptionDetectionRequest"];
+                "multipart/form-data": components["schemas"]["DisruptionDetectionRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ScheduleDisruption"][];
+                };
+            };
+        };
+    };
+    api_v1_planning_free_time_recommendations_retrieve: {
+        parameters: {
+            query: {
+                duration_minutes: number;
+                max_results?: number;
+                range_end: string;
+                range_start: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FreeTimeRecommendation"];
+                };
+            };
+        };
+    };
+    api_v1_planning_plans_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SchedulePlan"][];
+                };
+            };
+        };
+    };
+    api_v1_planning_plans_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SchedulePlanCreate"];
+                "application/x-www-form-urlencoded": components["schemas"]["SchedulePlanCreate"];
+                "multipart/form-data": components["schemas"]["SchedulePlanCreate"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SchedulePlan"];
+                };
+            };
+        };
+    };
+    api_v1_planning_plans_abandon_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                plan_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SchedulePlanApply"];
+                "application/x-www-form-urlencoded": components["schemas"]["SchedulePlanApply"];
+                "multipart/form-data": components["schemas"]["SchedulePlanApply"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SchedulePlan"];
+                };
+            };
+        };
+    };
+    api_v1_planning_plans_apply_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                plan_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SchedulePlanApply"];
+                "application/x-www-form-urlencoded": components["schemas"]["SchedulePlanApply"];
+                "multipart/form-data": components["schemas"]["SchedulePlanApply"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SchedulePlan"];
+                };
+            };
+        };
+    };
+    api_v1_planning_plans_edit_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                plan_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SchedulePlanEdit"];
+                "application/x-www-form-urlencoded": components["schemas"]["SchedulePlanEdit"];
+                "multipart/form-data": components["schemas"]["SchedulePlanEdit"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SchedulePlan"];
+                };
+            };
+        };
+    };
+    api_v1_planning_plans_regenerate_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                plan_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SchedulePlanRegenerate"];
+                "application/x-www-form-urlencoded": components["schemas"]["SchedulePlanRegenerate"];
+                "multipart/form-data": components["schemas"]["SchedulePlanRegenerate"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SchedulePlan"];
+                };
+            };
+        };
+    };
+    api_v1_planning_plans_validate_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                plan_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SchedulePlanValidation"];
+                "application/x-www-form-urlencoded": components["schemas"]["SchedulePlanValidation"];
+                "multipart/form-data": components["schemas"]["SchedulePlanValidation"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SchedulePlanValidationResult"];
+                };
+            };
+        };
+    };
+    api_v1_planning_plans_compare_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SchedulePlanCompare"];
+                "application/x-www-form-urlencoded": components["schemas"]["SchedulePlanCompare"];
+                "multipart/form-data": components["schemas"]["SchedulePlanCompare"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SchedulePlanComparison"];
+                };
+            };
+        };
+    };
+    api_v1_planning_plans_local_replan_apply_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LocalReplanApplyRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["LocalReplanApplyRequest"];
+                "multipart/form-data": components["schemas"]["LocalReplanApplyRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ScheduleChangeBatch"];
+                };
+            };
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ScheduleChangeBatch"];
+                };
+            };
+        };
+    };
+    api_v1_planning_plans_local_replan_preview_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LocalReplanPreviewRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["LocalReplanPreviewRequest"];
+                "multipart/form-data": components["schemas"]["LocalReplanPreviewRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LocalReplanPreview"];
                 };
             };
         };
@@ -3211,6 +4807,83 @@ export interface operations {
             };
         };
     };
+    api_v1_tasks_execution_signals_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                task_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TaskExecutionSignal"][];
+                };
+            };
+        };
+    };
+    api_v1_tasks_execution_signals_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                task_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateTaskExecutionSignal"];
+                "application/x-www-form-urlencoded": components["schemas"]["CreateTaskExecutionSignal"];
+                "multipart/form-data": components["schemas"]["CreateTaskExecutionSignal"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TaskExecutionSignal"];
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    api_v1_tasks_execution_summary_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                task_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TaskExecutionSummary"];
+                };
+            };
+        };
+    };
     api_v1_time_memory_me_retrieve: {
         parameters: {
             query?: never;
@@ -3245,6 +4918,99 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    api_v1_time_memory_me_capacity_forecast_retrieve: {
+        parameters: {
+            query?: {
+                range_end?: string;
+                range_start?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CapacityForecast"];
+                };
+            };
+        };
+    };
+    api_v1_time_memory_me_decision_profile_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DecisionProfile"];
+                };
+            };
+        };
+    };
+    api_v1_time_memory_me_decision_profile_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DecisionFeedback"];
+                "application/x-www-form-urlencoded": components["schemas"]["DecisionFeedback"];
+                "multipart/form-data": components["schemas"]["DecisionFeedback"];
+            };
+        };
+        responses: {
+            /** @description No response body */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description No response body */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    api_v1_time_memory_me_duration_recommendations_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                task_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DurationRecommendation"];
+                };
             };
         };
     };

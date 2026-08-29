@@ -15,6 +15,8 @@ export interface PlannedNotification {
   body: string;
   /** Epoch milliseconds at which the OS should fire the notification. */
   at: number;
+  targetType?: string;
+  targetId?: string | null;
 }
 
 export interface SchedulePlan {
@@ -29,6 +31,8 @@ export interface ExistingNotification {
   body?: string;
   at: number;
   scheduleVersion?: number;
+  targetType?: string;
+  targetId?: string | null;
 }
 
 // Android caps the number of pending alarms; keep a rolling window of the
@@ -39,7 +43,7 @@ export const MAX_SCHEDULED = 60;
  * Increment when the native notification presentation contract changes.
  * Existing pending alarms are then safely re-created once on the next sync.
  */
-export const LOCAL_NOTIFICATION_SCHEDULE_VERSION = 3;
+export const LOCAL_NOTIFICATION_SCHEDULE_VERSION = 4;
 
 export function reminderNotificationBody(reminder: Reminder): string {
   if (reminder.offset_minutes === 1440) return `一天后：${reminder.title}`;
@@ -90,6 +94,8 @@ export function planReminderNotifications(
     title: "Time Agent 提醒",
     body: reminderNotificationBody(reminder),
     at,
+    targetType: reminder.target_type,
+    targetId: reminder.target_id,
   }));
 
   const desiredIds = new Set(desired.map((item) => item.id));
@@ -101,6 +107,8 @@ export function planReminderNotifications(
       || current.title !== item.title
       || current.body !== item.body
       || current.at !== item.at
+      || current.targetType !== item.targetType
+      || current.targetId !== item.targetId
       || current.scheduleVersion !== LOCAL_NOTIFICATION_SCHEDULE_VERSION;
   });
   // Cancel anything on the device that is no longer a desired future reminder

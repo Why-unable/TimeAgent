@@ -22,7 +22,7 @@ import {
   useRef,
   useState,
 } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 
 import {
   cancelAgentRun,
@@ -163,6 +163,7 @@ function groupConversations(conversations: Conversation[]): ConversationGroup[] 
 
 export function ChatPage() {
   const { conversationId } = useParams<{ conversationId?: string }>();
+  const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const preference = useCurrentUserPreference();
   const timezone = preference.data?.timezone
@@ -184,6 +185,19 @@ export function ChatPage() {
   const textarea = useRef<HTMLTextAreaElement | null>(null);
   const composer = useRef<HTMLFormElement | null>(null);
   const [composerOffset, setComposerOffset] = useState(0);
+
+  useEffect(() => {
+    const insightTitle = searchParams.get("insight_title");
+    const insightId = searchParams.get("insight_id");
+    if (!conversationId && insightId && insightTitle) {
+      setMessage((current) =>
+        current.trim()
+          ? current
+          : `请基于洞察“${insightTitle}”分析影响并给出可执行选项。洞察 ID：${insightId}`,
+      );
+      setSearchParams({}, { replace: true });
+    }
+  }, [conversationId, searchParams, setSearchParams]);
 
   // Keep the composer above the software keyboard by tracking visualViewport.
   useEffect(() => {
@@ -335,7 +349,11 @@ export function ChatPage() {
       await refreshApprovalEntries(activeRunId);
       void refreshConversations();
     } catch (reason) {
-      if (!(reason instanceof DOMException && reason.name === "AbortError")) {
+      // Android WebView may reject an aborted fetch with a plain Error such as
+      // "The user aborted a request." instead of a DOMException/AbortError.
+      // The signal is the authoritative indication that this stream was
+      // intentionally stopped (for example, while changing conversations).
+      if (!abortController.signal.aborted) {
         setError(reason instanceof Error ? reason.message : "实时回复连接中断");
       }
     } finally {

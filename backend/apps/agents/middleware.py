@@ -538,26 +538,32 @@ def build_time_steward_middleware(
     model: BaseChatModel,
     *,
     fallback_models: list[BaseChatModel] | None = None,
+    temporal_context_enabled: bool = True,
 ) -> list[Any]:
     config = get_agent_config().middleware
     read_only_retry_tools: list[BaseTool | str] = list(READ_ONLY_TOOLS)
     middleware: list[Any] = [
         runtime_system_prompt,
         TimeMemoryMiddleware(),
-        TemporalContextMiddleware(),
-        UntrustedToolDataMiddleware(),
-        ToolPolicyMiddleware(),
-        HumanInTheLoopMiddleware(interrupt_on=hitl_interrupt_policy(when=_hitl_when)),
-        ToolAuditMiddleware(),
-        ModelCallLimitMiddleware(
-            run_limit=config.model_call_limit,
-            exit_behavior="end",
-        ),
-        ToolCallLimitMiddleware(
-            run_limit=config.tool_call_limit,
-            exit_behavior="continue",
-        ),
     ]
+    if temporal_context_enabled:
+        middleware.append(TemporalContextMiddleware())
+    middleware.extend(
+        [
+            UntrustedToolDataMiddleware(),
+            ToolPolicyMiddleware(),
+            HumanInTheLoopMiddleware(interrupt_on=hitl_interrupt_policy(when=_hitl_when)),
+            ToolAuditMiddleware(),
+            ModelCallLimitMiddleware(
+                run_limit=config.model_call_limit,
+                exit_behavior="end",
+            ),
+            ToolCallLimitMiddleware(
+                run_limit=config.tool_call_limit,
+                exit_behavior="continue",
+            ),
+        ]
+    )
     if fallback_models:
         middleware.append(ModelFallbackMiddleware(*fallback_models))
     middleware.extend(

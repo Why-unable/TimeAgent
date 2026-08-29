@@ -5,6 +5,8 @@ import {
   CheckCircle2,
   CircleCheck,
   Clock3,
+  Flag,
+  Ban,
   Timer,
 } from "lucide-react";
 import { Link } from "react-router-dom";
@@ -12,6 +14,7 @@ import { Link } from "react-router-dom";
 import type { CalendarEvent } from "../api/events";
 import type { Task } from "../api/tasks";
 import type { TodaySummary } from "../api/today";
+import { useActOnTemporalInsight, useTemporalInsights } from "../features/insights/hooks";
 import { MobileSectionHeader } from "../components/mobile/mobile-section-header";
 import {
   countPendingTasks,
@@ -191,6 +194,8 @@ function MobileStatsRow({
 export function TodayPage() {
   const summary = useTodaySummary();
   const completeTask = useCompleteTodayTask();
+  const insights = useTemporalInsights();
+  const actOnInsight = useActOnTemporalInsight();
 
   if (summary.isPending) {
     return <p className="mx-auto max-w-6xl text-slate-400">正在汇总今天的安排…</p>;
@@ -306,6 +311,73 @@ export function TodayPage() {
           </section>
         </div>
       </div>
+
+      {insights.data && insights.data.length > 0 && (
+        <section className="mt-5 rounded-2xl border border-amber-300/20 bg-amber-300/5 p-5">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <h3 className="font-semibold text-amber-100">需要留意</h3>
+              <p className="mt-1 text-xs text-slate-400">只展示有确定事实依据、仍未过期的时间风险。</p>
+            </div>
+            <span className="text-xs text-slate-500">{insights.data.length} 条</span>
+          </div>
+          <div className="mt-4 space-y-3">
+            {insights.data.slice(0, 3).map((insight) => (
+              <article key={insight.id} className="rounded-xl bg-slate-950/50 p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <h4 className="font-medium text-slate-100">{insight.title}</h4>
+                    <p className="mt-1 text-sm leading-6 text-slate-300">{insight.summary}</p>
+                    <p className="mt-2 text-xs text-slate-500">依据：{String((insight.evidence as { due_at?: unknown }).due_at ?? "任务截止时间")}</p>
+                  </div>
+                  <div className="flex shrink-0 gap-1">
+                    <button
+                      type="button"
+                      title="稍后提醒"
+                      aria-label="稍后提醒"
+                      disabled={actOnInsight.isPending}
+                      onClick={() => actOnInsight.mutate({ insightId: insight.id, input: { action: "snooze", disable_kind: false } })}
+                      className="rounded-lg p-2 text-amber-200 hover:bg-amber-300/10 disabled:opacity-50"
+                    >
+                      <Clock3 size={17} />
+                    </button>
+                    <button
+                      type="button"
+                      title="关闭此条"
+                      aria-label="关闭此条"
+                      disabled={actOnInsight.isPending}
+                      onClick={() => actOnInsight.mutate({ insightId: insight.id, input: { action: "dismiss", disable_kind: false } })}
+                      className="rounded-lg p-2 text-slate-400 hover:bg-white/10 disabled:opacity-50"
+                    >
+                      <CheckCircle2 size={17} />
+                    </button>
+                    <button
+                      type="button"
+                      title="标记为不准确"
+                      aria-label="标记为不准确"
+                      disabled={actOnInsight.isPending}
+                      onClick={() => actOnInsight.mutate({ insightId: insight.id, input: { action: "false_positive", disable_kind: false } })}
+                      className="rounded-lg p-2 text-rose-300 hover:bg-rose-300/10 disabled:opacity-50"
+                    >
+                      <Flag size={17} />
+                    </button>
+                    <button
+                      type="button"
+                      title="关闭此类洞察"
+                      aria-label="关闭此类洞察"
+                      disabled={actOnInsight.isPending}
+                      onClick={() => actOnInsight.mutate({ insightId: insight.id, input: { action: "false_positive", disable_kind: true } })}
+                      className="rounded-lg p-2 text-slate-400 hover:bg-white/10 disabled:opacity-50"
+                    >
+                      <Ban size={17} />
+                    </button>
+                  </div>
+                </div>
+              </article>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* Desktop task columns */}
       <div className="mt-5 hidden gap-5 lg:grid lg:grid-cols-3">

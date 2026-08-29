@@ -4,15 +4,14 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('preferences', '0001_initial'),
+        ("preferences", "0001_initial"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='userpreference',
-            name='weather_forecast_days',
+            model_name="userpreference",
+            name="weather_forecast_days",
             field=models.PositiveSmallIntegerField(default=3),
         ),
     ]

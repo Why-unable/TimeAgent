@@ -1,6 +1,9 @@
 import { expect, test } from "@playwright/test";
 
 test.beforeEach(async ({ page }) => {
+  await page.addInitScript(() => {
+    window.localStorage.setItem("time-agent:onboarding:1:v1", "completed");
+  });
   await page.route("**/api/v1/auth/me/", async (route) => {
     await route.fulfill({
       json: { id: 1, email: "e2e@example.test", display_name: "E2E User", is_staff: false },
@@ -9,6 +12,23 @@ test.beforeEach(async ({ page }) => {
   await page.route("**/api/v1/auth/csrf/", async (route) => {
     await route.fulfill({ json: { csrfToken: "e2e-csrf" } });
   });
+  await page.route("**/api/v1/insights/", (route) => route.fulfill({ json: [] }));
+  await page.route("**/api/v1/integrations/calendar/connections/", (route) =>
+    route.fulfill({ json: [] }),
+  );
+  await page.route("**/api/v1/briefings/evening-preview/", (route) =>
+    route.fulfill({
+      json: {
+        target_date: "2026-08-24",
+        timezone: "Asia/Shanghai",
+        generated_at: "2026-08-24T12:00:00Z",
+        events: [],
+        tasks: [],
+        insights: [],
+        warnings: [],
+      },
+    }),
+  );
 });
 
 test("redirects an unauthenticated visitor to the login page", async ({ page }) => {
@@ -101,6 +121,177 @@ test("uses the mobile app shell below the desktop breakpoint", async ({ page }) 
   await expect(page.getByRole("link", { name: "任务" })).toBeVisible();
 });
 
+test("records a task action and shows plan-versus-actual evidence", async ({ page }) => {
+  const taskId = "21111111-1111-4111-8111-111111111111";
+  let status = "pending";
+  await page.addInitScript(() =>
+    localStorage.setItem("time-agent:onboarding:1:v1", "completed"),
+  );
+  await page.route("**/api/v1/preferences/me/", (route) =>
+    route.fulfill({ json: { timezone: "Asia/Shanghai", locale: "zh-CN" } }),
+  );
+  await page.route(`**/api/v1/tasks/${taskId}/execution-signals/`, async (route) => {
+    status = "in_progress";
+    await route.fulfill({
+      json: {
+        id: "41111111-1111-4111-8111-111111111111",
+        task: taskId,
+        signal_type: "started",
+        occurred_at: "2026-08-24T09:00:00Z",
+        idempotency_key: "e2e-start",
+        source: "web",
+        metadata: {},
+        created_at: "2026-08-24T09:00:00Z",
+      },
+    });
+  });
+  await page.route(`**/api/v1/tasks/${taskId}/execution-summary/`, (route) =>
+    route.fulfill({
+      json: {
+        task_id: taskId,
+        signal_count: 2,
+        active_seconds: 2100,
+        planned_seconds: 2700,
+        estimated_seconds: 1800,
+        variance_vs_plan_seconds: -600,
+        variance_vs_estimate_seconds: 300,
+        evidence_status: "complete",
+        open_started_at: null,
+        last_signal_type: "paused",
+      },
+    }),
+  );
+  await page.route("**/api/v1/tasks/**", (route) => {
+    if (!route.request().url().endsWith("/api/v1/tasks/")) return route.fallback();
+    return route.fulfill({
+      json: [
+        {
+          id: taskId,
+          project: "E2E",
+          parent_task: null,
+          title: "准备发布报告",
+          description: "",
+          status,
+          priority: "high",
+          due_at: "2026-08-25T10:00:00Z",
+          estimated_minutes: 30,
+          planned_start_at: "2026-08-24T09:00:00Z",
+          planned_end_at: "2026-08-24T09:45:00Z",
+          actual_started_at: status === "in_progress" ? "2026-08-24T09:00:00Z" : null,
+          completed_at: null,
+          source: "local",
+          tags: [],
+          version: status === "in_progress" ? 2 : 1,
+          created_at: "2026-08-23T09:00:00Z",
+          updated_at: "2026-08-24T09:00:00Z",
+        },
+      ],
+    });
+  });
+
+  await page.goto("/tasks");
+  await page.getByRole("button", { name: "已计划" }).click();
+  await page.getByRole("button", { name: "开始任务：准备发布报告" }).click();
+  await expect(page.getByRole("button", { name: "暂停任务：准备发布报告" })).toBeVisible();
+  await page.getByRole("button", { name: "查看执行摘要：准备发布报告" }).click();
+  await expect(page.getByText("相对计划块 -10 分钟")).toBeVisible();
+  await expect(page.getByText("相对估时 5 分钟")).toBeVisible();
+});
+
+test("reviews and applies a deterministic schedule plan", async ({ page }) => {
+  const taskId = "21111111-1111-4111-8111-111111111111";
+  const planId = "41111111-1111-4111-8111-111111111111";
+  await page.addInitScript(() =>
+    localStorage.setItem("time-agent:onboarding:1:v1", "completed"),
+  );
+  await page.route("**/api/v1/preferences/me/", (route) =>
+    route.fulfill({ json: { timezone: "Asia/Shanghai", locale: "zh-CN" } }),
+  );
+  await page.route("**/api/v1/tasks/", (route) => route.fulfill({
+    json: [{
+      id: taskId,
+      project: "E2E",
+      parent_task: null,
+      title: "准备规划演示",
+      description: "",
+      status: "pending",
+      priority: "high",
+      due_at: "2026-08-26T10:00:00Z",
+      estimated_minutes: 60,
+      planned_start_at: null,
+      planned_end_at: null,
+      actual_started_at: null,
+      completed_at: null,
+      source: "local",
+      tags: [],
+      version: 1,
+      created_at: "2026-08-23T09:00:00Z",
+      updated_at: "2026-08-23T09:00:00Z",
+    }],
+  }));
+  await page.route("**/api/v1/planning/automation-policies/", (route) =>
+    route.fulfill({ json: [] }),
+  );
+  await page.route("**/api/v1/time-memory/me/capacity-forecast/**", (route) =>
+    route.fulfill({
+      json: {
+        range_start: "2026-08-24T01:00:00Z",
+        range_end: "2026-08-31T01:00:00Z",
+        available_minutes: 480,
+        committed_minutes: 120,
+        unplanned_minutes: 600,
+        risk: "over_capacity",
+        reason_codes: ["unplanned_exceeds_free_capacity"],
+      },
+    }),
+  );
+  await page.route("**/api/v1/planning/plans/", async (route) => {
+    await route.fulfill({
+      status: 201,
+      json: {
+        id: planId,
+        strategy: "plan_tasks_only",
+        status: "draft",
+        version: 1,
+        created_at: "2026-08-24T09:00:00Z",
+        updated_at: "2026-08-24T09:00:00Z",
+        expires_at: "2026-08-24T10:00:00Z",
+        applied_at: null,
+        items: [{
+          task_id: taskId,
+          task_version: 1,
+          state: "placed",
+          start_at: "2026-08-25T01:00:00Z",
+          end_at: "2026-08-25T02:00:00Z",
+          locked: false,
+          reason_codes: [],
+        }],
+      },
+    });
+  });
+  await page.route(`**/api/v1/planning/plans/${planId}/apply/`, async (route) => {
+    await route.fulfill({
+      json: {
+        id: planId,
+        strategy: "plan_tasks_only",
+        status: "applied",
+        version: 2,
+        created_at: "2026-08-24T09:00:00Z",
+        applied_at: "2026-08-24T09:01:00Z",
+        items: [],
+      },
+    });
+  });
+
+  await page.goto("/planning");
+  await expect(page.getByText("容量超载")).toBeVisible();
+  await page.getByRole("checkbox", { name: /准备规划演示/ }).click();
+  await page.getByRole("button", { name: "生成草案" }).click();
+  await expect(page.getByText("已安排")).toBeVisible();
+  await page.getByRole("button", { name: "确认应用" }).click();
+  await expect(page.getByText("计划已应用。")).toBeVisible();
+});
+
 test("reads and updates time preferences", async ({ page }) => {
   let timezone = "Asia/Shanghai";
   let weatherLocation = "";
@@ -181,11 +372,13 @@ test("reads and updates time preferences", async ({ page }) => {
 
   await page.goto("/settings/time");
   await expect(page.getByRole("heading", { name: "偏好设置" })).toBeVisible();
+  const skipTour = page.getByRole("button", { name: "暂时跳过" });
+  if (await skipTour.isVisible()) await skipTour.click();
   await page.getByLabel("IANA 时区").selectOption("Asia/Shanghai");
   await page.getByLabel("省").selectOption("340000");
   await page.getByLabel("市").selectOption("340100");
   await page.getByLabel("区 / 县").selectOption("340103");
-  await expect(page.getByText("已选：安徽省 / 合肥市 / 庐阳区")).toBeVisible();
+  await expect(page.getByText("文字标签：安徽省 / 合肥市 / 庐阳区")).toBeVisible();
   await page.getByText("AI", { exact: true }).click();
   await page.getByText("Python", { exact: true }).click();
   await page.getByRole("button", { name: "保存偏好" }).click();

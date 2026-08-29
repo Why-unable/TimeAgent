@@ -24,6 +24,11 @@ class CreateTaskCommand:
     priority: TaskPriority | str = TaskPriority.MEDIUM
     due_at: datetime | None = None
     estimated_minutes: int | None = None
+    buffer_before_minutes: int = 0
+    buffer_after_minutes: int = 0
+    planning_locked: bool = False
+    splittable: bool = False
+    minimum_chunk_minutes: int = 30
     planned_start_at: datetime | None = None
     planned_end_at: datetime | None = None
     source: str = "local"
@@ -59,6 +64,11 @@ class TaskService:
             "priority",
             "due_at",
             "estimated_minutes",
+            "buffer_before_minutes",
+            "buffer_after_minutes",
+            "planning_locked",
+            "splittable",
+            "minimum_chunk_minutes",
             "source",
             "tags",
         }
@@ -79,6 +89,11 @@ class TaskService:
             priority=command.priority,
             due_at=command.due_at,
             estimated_minutes=command.estimated_minutes,
+            buffer_before_minutes=command.buffer_before_minutes,
+            buffer_after_minutes=command.buffer_after_minutes,
+            planning_locked=command.planning_locked,
+            splittable=command.splittable,
+            minimum_chunk_minutes=command.minimum_chunk_minutes,
             planned_start_at=command.planned_start_at,
             planned_end_at=command.planned_end_at,
             source=command.source,
@@ -387,6 +402,11 @@ class TaskService:
                 "planned_start_at",
                 "planned_end_at",
                 "completed_at",
+                "buffer_before_minutes",
+                "buffer_after_minutes",
+                "planning_locked",
+                "splittable",
+                "minimum_chunk_minutes",
                 "source",
             ),
         )

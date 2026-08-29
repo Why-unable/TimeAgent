@@ -100,6 +100,25 @@ const profile = {
   version: 3,
 };
 
+const profileWithAdaptivePlanning = {
+  ...profile,
+  behavior_windows: {
+    "7d": {
+      ...profile.behavior_windows["7d"],
+      adaptive_planning_pattern: {
+        automated_move_count: 3,
+        reverted_move_count: 1,
+        user_modified_after_move_count: 1,
+        accepted_move_count: 1,
+        median_move_minutes: 30,
+        revert_or_modify_ratio: 2 / 3,
+        confidence: 0.6,
+        summary: "自动调整 3 次，其中 1 次保留。",
+      },
+    },
+  },
+};
+
 function renderPage() {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
@@ -140,5 +159,18 @@ describe("TimeMemoryPage", () => {
       expect(requests.some((request) => request.method === "DELETE" && request.url.includes("places/office"))).toBe(true);
       expect(requests.some((request) => request.method === "PATCH" && request.body?.includes("time_memory_enabled"))).toBe(true);
     });
+  });
+
+  it("shows adaptive planning evidence when a rebuilt profile contains it", async () => {
+    vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      const method = init?.method ?? "GET";
+      if (url.endsWith("/api/v1/preferences/me/") && method === "GET") return new Response(JSON.stringify(preference));
+      if (url.endsWith("/api/v1/time-memory/me/") && method === "GET") return new Response(JSON.stringify({ profile: profileWithAdaptivePlanning, refresh_status: "clean", dirty_at: null, last_completed_at: "2026-08-06T00:00:00Z", last_error: "" }));
+      throw new Error(`Unexpected request: ${method} ${url}`);
+    }));
+
+    renderPage();
+    expect(await screen.findByText("自动调整 3 次，其中 1 次保留。")).toBeInTheDocument();
   });
 });

@@ -10,16 +10,35 @@ import interactionPlugin from "@fullcalendar/react/interaction";
 import zhCnLocale from "@fullcalendar/react/locales/zh-cn";
 import themePlugin from "@fullcalendar/react/themes/monarch";
 import timeGridPlugin from "@fullcalendar/react/timegrid";
-import { CalendarDays, CirclePlus, MapPin } from "lucide-react";
+import {
+  CalendarDays,
+  CircleAlert,
+  CircleCheck,
+  CirclePlus,
+  Link,
+  MapPin,
+  RefreshCw,
+  Unplug,
+  X,
+} from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import type { CalendarEvent } from "../api/events";
+import {
+  disconnectGoogleCalendar,
+  listCalendarSyncConnections,
+  startGoogleCalendarOAuth,
+  syncCalendarConnection,
+} from "../api/integrations";
 import { DayAgendaSheet } from "../components/mobile/day-agenda-sheet";
 import { MobileSegmentedControl } from "../components/mobile/mobile-segmented-control";
 import { EventEditor } from "../features/events/event-editor";
 import { ScheduleWorkspaceTabs } from "../features/workspace/schedule-workspace-tabs";
 import { useCancelEvent, useEvents } from "../features/events/hooks";
 import { useCurrentUserPreference } from "../features/preferences/hooks";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { isNativePlatform } from "../platform";
+import { useSearchParams } from "react-router-dom";
 import { formatInUserTimezone, getLocalDateKey } from "../utils/datetime";
 
 const statusLabels = { tentative: "暂定", confirmed: "已确认", cancelled: "已取消" } as const;
@@ -27,6 +46,9 @@ const statusLabels = { tentative: "暂定", confirmed: "已确认", cancelled: "
 type CalendarView = "dayGridMonth" | "timeGridWeek" | "timeGridDay";
 
 export function CalendarPage() {
+  const queryClient = useQueryClient();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const oauthStatus = searchParams.get("calendar_oauth");
   const preference = useCurrentUserPreference();
   const timezone = preference.data?.timezone ?? "Asia/Shanghai";
   const locale = preference.data?.locale ?? "zh-CN";
@@ -48,6 +70,34 @@ export function CalendarPage() {
         : false,
   );
   const events = useEvents(range);
+  const syncConnections = useQuery({
+    queryKey: ["calendar-sync-connections"],
+    queryFn: listCalendarSyncConnections,
+    retry: false,
+  });
+  const beginGoogleOAuth = useMutation({
+    mutationFn: startGoogleCalendarOAuth,
+    onSuccess: ({ authorization_url }) => window.location.assign(authorization_url),
+  });
+  const runCalendarSync = useMutation({
+    mutationFn: (connectionId: string) =>
+      syncCalendarConnection(connectionId, {
+        starts_at_or_after: range.endsAfter,
+        starts_before: range.startsBefore,
+      }),
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["calendar-sync-connections"] }),
+        queryClient.invalidateQueries({ queryKey: ["events"] }),
+      ]);
+    },
+  });
+  const disconnectGoogle = useMutation({
+    mutationFn: disconnectGoogleCalendar,
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["calendar-sync-connections"] });
+    },
+  });
   const cancelEvent = useCancelEvent();
 
   useEffect(() => {
@@ -147,6 +197,106 @@ export function CalendarPage() {
         <div role="alert" className="mt-6 rounded-xl border border-amber-400/30 bg-amber-400/10 p-4 text-amber-100">
           无法读取日程，请确认登录状态后重试。
         </div>
+      )}
+
+      {(oauthStatus === "connected" || oauthStatus === "failed") && (
+        <div
+          role="status"
+          className={`mt-4 flex items-center gap-3 border-y py-3 text-sm ${
+            oauthStatus === "connected"
+              ? "border-emerald-300/25 text-emerald-100"
+              : "border-red-300/25 text-red-100"
+          }`}
+        >
+          {oauthStatus === "connected" ? <CircleCheck size={18} /> : <CircleAlert size={18} />}
+          <span className="flex-1">
+            {oauthStatus === "connected" ? "Google Calendar 已连接。" : "Google Calendar 连接失败。"}
+          </span>
+          <button
+            type="button"
+            title="关闭"
+            aria-label="关闭连接状态"
+            onClick={() => {
+              setSearchParams((current) => {
+                const next = new URLSearchParams(current);
+                next.delete("calendar_oauth");
+                return next;
+              }, { replace: true });
+            }}
+            className="inline-flex size-9 items-center justify-center rounded-md"
+          >
+            <X size={17} />
+          </button>
+        </div>
+      )}
+
+      {syncConnections.isError && (
+        <div role="alert" className="mt-4 rounded-xl border border-amber-400/30 bg-amber-400/10 p-4 text-sm text-amber-100">
+          外部日历同步状态暂时无法读取。
+        </div>
+      )}
+      {!isNativePlatform() && !syncConnections.data?.some((connection) => connection.provider_name === "google" && connection.enabled) && (
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-y border-white/10 py-4">
+          <div>
+            <p className="font-medium text-slate-100">Google Calendar</p>
+            <p className="mt-1 text-xs text-slate-400">只读导入日程占用，不会修改外部日历。</p>
+          </div>
+          <button
+            type="button"
+            onClick={() => beginGoogleOAuth.mutate()}
+            disabled={beginGoogleOAuth.isPending}
+            className="inline-flex min-h-11 items-center gap-2 rounded-md border border-cyan-300/30 px-4 py-2 text-sm font-medium text-cyan-100 disabled:opacity-50"
+          >
+            <Link size={17} />
+            {beginGoogleOAuth.isPending ? "正在连接" : "连接 Google"}
+          </button>
+        </div>
+      )}
+      {beginGoogleOAuth.isError && (
+        <p role="alert" className="mt-3 text-sm text-red-200">Google Calendar 暂时无法连接。</p>
+      )}
+      {syncConnections.data?.filter((connection) => Boolean(connection.provider_name)).map((connection) => (
+        <div
+          key={connection.id}
+          className={`mt-4 rounded-xl border p-4 text-sm ${
+            connection.status === "error"
+              ? "border-red-400/30 bg-red-400/10 text-red-100"
+              : "border-cyan-300/20 bg-cyan-300/5 text-cyan-100"
+          }`}
+        >
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <span>{connection.provider_name} · {connection.calendar_name}</span>
+            <span>{connection.status === "error" ? "同步失败" : connection.enabled ? "只读同步" : "已停用"}</span>
+          </div>
+          {connection.last_error && <p className="mt-2 text-xs opacity-80">{connection.last_error}</p>}
+          {connection.provider_name === "google" && connection.enabled && (
+            <div className="mt-3 flex flex-wrap gap-2">
+              <button
+                type="button"
+                title="同步当前范围"
+                aria-label="同步 Google Calendar"
+                onClick={() => runCalendarSync.mutate(connection.id)}
+                disabled={runCalendarSync.isPending}
+                className="inline-flex size-10 items-center justify-center rounded-md border border-white/15 disabled:opacity-50"
+              >
+                <RefreshCw size={16} />
+              </button>
+              <button
+                type="button"
+                title="断开连接"
+                aria-label="断开 Google Calendar"
+                onClick={() => disconnectGoogle.mutate(connection.id)}
+                disabled={disconnectGoogle.isPending}
+                className="inline-flex size-10 items-center justify-center rounded-md border border-red-300/25 text-red-100 disabled:opacity-50"
+              >
+                <Unplug size={16} />
+              </button>
+            </div>
+          )}
+        </div>
+      ))}
+      {(runCalendarSync.isError || disconnectGoogle.isError) && (
+        <p role="alert" className="mt-3 text-sm text-red-200">外部日历操作失败，请稍后重试。</p>
       )}
 
       <div className="mt-4 sm:mt-10 sm:grid sm:gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">

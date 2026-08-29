@@ -61,9 +61,7 @@ class PlanningPreferencesSnapshot:
     def as_prompt_block(self) -> str:
         """Render preferences as bounded data, never as executable instructions."""
 
-        creation_approval = (
-            "开启" if self.require_event_creation_approval else "关闭；冲突时仍确认"
-        )
+        creation_approval = "开启" if self.require_event_creation_approval else "关闭；冲突时仍确认"
         cancellation_approval = "开启" if self.require_event_cancellation_approval else "关闭"
         lines = [
             "<planning_preferences>",

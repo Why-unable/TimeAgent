@@ -1,5 +1,5 @@
 from collections.abc import Callable
-from datetime import datetime
+from datetime import datetime, timedelta
 from uuid import UUID
 
 from django.db import transaction
@@ -19,9 +19,12 @@ class ReminderDispatcher:
         now: datetime,
         enqueue: Callable[[UUID], object],
         batch_size: int = 100,
+        max_lateness: timedelta = timedelta(minutes=10),
     ) -> int:
         if batch_size <= 0:
             raise ValueError("batch_size must be positive")
+        if max_lateness < timedelta(0):
+            raise ValueError("max_lateness must not be negative")
 
         with transaction.atomic():
             reminders = list(
@@ -32,9 +35,17 @@ class ReminderDispatcher:
                 )
                 .order_by("trigger_at", "id")[:batch_size]
             )
-            reminder_ids = [reminder.id for reminder in reminders]
+            stale_before = now - max_lateness
+            reminder_ids = [
+                reminder.id for reminder in reminders if reminder.trigger_at >= stale_before
+            ]
             for reminder in reminders:
-                reminder.transition_to(ReminderStatus.QUEUED, occurred_at=now)
+                next_status = (
+                    ReminderStatus.MISSED
+                    if reminder.trigger_at < stale_before
+                    else ReminderStatus.QUEUED
+                )
+                reminder.transition_to(next_status, occurred_at=now)
                 reminder.updated_at = now
             Reminder.objects.bulk_update(
                 reminders,
@@ -51,7 +62,10 @@ class ReminderDispatcher:
         reminder_id: UUID,
         *,
         now: datetime,
+        max_lateness: timedelta = timedelta(minutes=10),
     ) -> bool:
+        if max_lateness < timedelta(0):
+            raise ValueError("max_lateness must not be negative")
         delivery_error: ReminderDeliveryError | None = None
         with transaction.atomic():
             reminder = (
@@ -61,9 +75,15 @@ class ReminderDispatcher:
                 ReminderStatus.SENDING,
                 ReminderStatus.SENT,
                 ReminderStatus.CANCELLED,
+                ReminderStatus.MISSED,
             }:
                 return False
             if reminder.status == ReminderStatus.PENDING:
+                return False
+            if reminder.trigger_at < now - max_lateness:
+                reminder.transition_to(ReminderStatus.MISSED, occurred_at=now)
+                reminder.full_clean()
+                reminder.save(update_fields=["status", "updated_at"])
                 return False
             if reminder.status == ReminderStatus.FAILED:
                 reminder.transition_to(ReminderStatus.QUEUED, occurred_at=now)

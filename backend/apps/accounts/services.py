@@ -523,6 +523,7 @@ class AccountService:
                 user=user,
                 title="[示例] 查看 Time Agent 使用指引",
                 trigger_at=current_at + timedelta(hours=1),
+                current_time=current_at,
                 timezone=timezone_name,
                 deduplication_key=f"guest-seed-guide-{user.pk}",
                 origin="guest_seed",

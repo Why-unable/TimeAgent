@@ -10,6 +10,7 @@ type InstallOptions = {
   downloadUrl: string;
   sha256: string;
   expectedVersionCode: number;
+  expectedVersionName: string;
   expectedSizeBytes: number;
 };
 

@@ -64,9 +64,22 @@ make release-eval EVALUATION_MODEL=deepseek
 
 容器内评测与生产使用相同的 PostgreSQL、Redis、依赖和服务命名；评测事务始终回滚。命令仅挂载本次报告文件，退出时将其权限收紧为 `0600`，并保存到 `backend/evaluation_reports/`。
 
-报告记录 schema、Git commit（通过 `GIT_COMMIT_SHA` 注入）、数据集 SHA-256、系统提示词 SHA-256、模型、每例工具轨迹、禁止工具、泄漏模式、时延和汇总通过率。报告不保存完整模型回答，以降低敏感信息扩散风险。
+报告记录 schema、Git commit（通过 `GIT_COMMIT_SHA` 注入）、数据集 SHA-256、系统提示词 SHA-256、模型、每例工具轨迹、禁止工具、泄漏模式、Task Success、Required Tool Recall、Allowed Tool Precision、约束满足率、模型/工具调用次数、Token 和 p50/p95 时延。Token 从 `LLMCallAudit` 按本次评测的 `request_id` 聚合，报告同时给出覆盖率；报告不保存完整模型回答，以降低敏感信息扩散风险。
 
-发布门禁为：所有用例通过、禁止工具调用数为 0、提示词/凭据/Memory 内部结构泄漏命中数为 0。模型、提示词、工具 Schema 或 Memory 注入策略变化后必须重跑并与上一份报告比较。禁止在真实模型评测失败时继续执行生产发布。
+历史时间上下文可以使用同一数据集、模型和提示词做受控消融：
+
+```bash
+python manage.py evaluate_time_steward \
+  --model deepseek \
+  --dataset tests/fixtures/time_steward_temporal_ablation_eval.json \
+  --ablation temporal-context \
+  --minimum-pass-rate 0 \
+  --output /tmp/time-steward-temporal-ablated.json
+```
+
+`--ablation temporal-context` 只关闭 `TemporalContextMiddleware`，不移除运行时当前时间锚点及 Tool 的相对时间参数约束，因此结论只能归因于该中间件。单次远程模型运行中的 Token 和时延差异可能含模型波动，不能单独视为因果收益。2026-08-25 的首次真实模型结果见 `docs/operations/evaluation-results-2026-08-25.md`。
+
+发布门禁为：所有用例通过、禁止工具调用数为 0、提示词/凭据/Memory 内部结构泄漏命中数为 0。模型、提示词、工具 Schema 或 Memory 注入策略变化后必须重跑并与上一份报告比较。`--minimum-pass-rate 0` 仅用于采集实验数据，不得作为发布门禁。禁止在真实模型评测失败时继续执行生产发布。
 
 ## 6. 在线质量闭环
 

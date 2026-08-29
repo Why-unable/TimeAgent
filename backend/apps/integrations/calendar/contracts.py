@@ -6,6 +6,7 @@ from apps.integrations.calendar.dto import (
     ExternalCalendarSummary,
     ExternalEvent,
     ExternalEventCreate,
+    ExternalEventPage,
     ExternalEventQuery,
     ExternalEventUpdate,
 )
@@ -20,7 +21,7 @@ class ExternalCalendarProvider(Protocol):
 
     def list_events(
         self, context: ExternalCalendarContext, query: ExternalEventQuery
-    ) -> list[ExternalEvent]: ...
+    ) -> ExternalEventPage: ...
 
     def create_event(
         self, context: ExternalCalendarContext, event: ExternalEventCreate

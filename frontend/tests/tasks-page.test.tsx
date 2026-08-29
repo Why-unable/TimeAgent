@@ -140,4 +140,94 @@ describe("TasksPage", () => {
 
     await waitFor(() => expect(completeUrl).toContain(`/tasks/${pendingTask.id}/complete/`));
   });
+
+  it("records an explicit start signal for a pending task", async () => {
+    let signalUrl = "";
+    let signalBody: Record<string, unknown> | undefined;
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+        const url = String(input);
+        if (url.includes("preferences")) return new Response(JSON.stringify(preference));
+        if (init?.method === "POST") {
+          signalUrl = url;
+          signalBody = JSON.parse(String(init.body)) as Record<string, unknown>;
+          return new Response(JSON.stringify({
+            id: "signal-1",
+            task: pendingTask.id,
+            signal_type: "started",
+            occurred_at: "2026-07-20T04:00:00Z",
+            idempotency_key: "web-start-1",
+            source: "web",
+            metadata: {},
+            created_at: "2026-07-20T04:00:00Z",
+          }));
+        }
+        return new Response(JSON.stringify([pendingTask]));
+      }),
+    );
+    renderPage();
+
+    await userEvent.click(await screen.findByRole("button", { name: "开始任务：准备发布报告" }));
+
+    await waitFor(() => expect(signalUrl).toContain(`/tasks/${pendingTask.id}/execution-signals/`));
+    expect(signalBody).toMatchObject({ signal_type: "started", source: "web" });
+    expect(signalBody?.idempotency_key).toEqual(expect.any(String));
+  });
+
+  it("shows a task-level duration recommendation and records segment feedback", async () => {
+    let feedbackBody: Record<string, unknown> | undefined;
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+        const url = String(input);
+        if (url.includes("preferences")) return new Response(JSON.stringify(preference));
+        if (url.includes("duration-recommendations")) {
+          return new Response(JSON.stringify({
+            task_id: pendingTask.id,
+            original_estimate_minutes: 60,
+            recommended_minutes: 75,
+            duration_multiplier: 1.25,
+            segment: "project:发布计划",
+            confidence: 0.6,
+            sample_count: 6,
+            source: "explicit_segment_execution_calibration",
+            fallback_reason: null,
+            evidence: ["同项目 6 个完成任务"],
+            classification: {
+              category: "writing",
+              confidence: 0.65,
+              source: "deterministic-task-taxonomy-v1",
+              matched_signals: ["报告"],
+            },
+            feature_version: "duration-recommendation-v2",
+            expires_at: "2026-08-31T01:00:00Z",
+            decay_half_life_days: 60,
+          }));
+        }
+        if (url.endsWith("/api/v1/time-memory/me/decision-profile/") && init?.method === "POST") {
+          feedbackBody = JSON.parse(String(init.body)) as Record<string, unknown>;
+          return new Response(JSON.stringify({ id: "feedback-1" }), { status: 201 });
+        }
+        return new Response(JSON.stringify([pendingTask]));
+      }),
+    );
+    renderPage();
+
+    await userEvent.click(
+      await screen.findByRole("button", { name: "查看估时建议：准备发布报告" }),
+    );
+    expect(await screen.findByText("建议预留 75 分钟")).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "太短" }));
+    await waitFor(() => expect(feedbackBody).toMatchObject({
+      category: "duration_estimate",
+      action: "too_short",
+      value: {
+        task_id: pendingTask.id,
+        segment: "project:发布计划",
+        recommended_minutes: 75,
+      },
+      source: "web",
+    }));
+  });
 });

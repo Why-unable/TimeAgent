@@ -80,6 +80,27 @@ class ChangePattern(BaseModel):
     summary: str = ""
 
 
+class ExecutionCalibration(BaseModel):
+    sample_count: int = Field(default=0, ge=0)
+    average_estimated_minutes: float = Field(default=0, ge=0)
+    average_actual_minutes: float = Field(default=0, ge=0)
+    median_error_minutes: float = 0
+    median_actual_to_estimated_ratio: float = Field(default=0, ge=0)
+    confidence: float = Field(default=0, ge=0, le=1)
+    summary: str = ""
+
+
+class AdaptivePlanningPattern(BaseModel):
+    automated_move_count: int = Field(default=0, ge=0)
+    reverted_move_count: int = Field(default=0, ge=0)
+    user_modified_after_move_count: int = Field(default=0, ge=0)
+    accepted_move_count: int = Field(default=0, ge=0)
+    median_move_minutes: float = Field(default=0, ge=0)
+    revert_or_modify_ratio: float = Field(default=0, ge=0, le=1)
+    confidence: float = Field(default=0, ge=0, le=1)
+    summary: str = ""
+
+
 class BehaviorWindow(BaseModel):
     model_config = ConfigDict(extra="ignore")
 
@@ -96,6 +117,10 @@ class BehaviorWindow(BaseModel):
     schedule_pattern: SchedulePattern = Field(default_factory=SchedulePattern)
     planning_pattern: PlanningPattern = Field(default_factory=PlanningPattern)
     change_pattern: ChangePattern = Field(default_factory=ChangePattern)
+    execution_calibration: ExecutionCalibration = Field(default_factory=ExecutionCalibration)
+    adaptive_planning_pattern: AdaptivePlanningPattern = Field(
+        default_factory=AdaptivePlanningPattern
+    )
     summary: str = ""
     confidence: float = Field(default=0, ge=0, le=1)
 

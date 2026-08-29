@@ -61,9 +61,7 @@ def migrate_weather_locations_backward(apps, schema_editor):
         value = preference.weather_location_data
         if not isinstance(value, dict) or value.get("schema_version") != 2:
             continue
-        coordinates = value.get("administrative_coordinates") or value.get(
-            "current_coordinates"
-        )
+        coordinates = value.get("administrative_coordinates") or value.get("current_coordinates")
         if not isinstance(coordinates, dict):
             continue
         preference.weather_location_data = {
@@ -89,9 +87,7 @@ def migrate_weather_locations_backward(apps, schema_editor):
 
 
 class Migration(migrations.Migration):
-    dependencies = [
-        ("preferences", "0007_time_memory_controls")
-    ]
+    dependencies = [("preferences", "0007_time_memory_controls")]
 
     operations = [
         migrations.RunPython(

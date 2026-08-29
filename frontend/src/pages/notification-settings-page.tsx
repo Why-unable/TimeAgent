@@ -1,4 +1,4 @@
-import { AlarmClock, BellRing, Mail, MonitorSmartphone } from "lucide-react";
+import { AlarmClock, BellRing, Mail, MonitorSmartphone, RotateCcw } from "lucide-react";
 import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
 
@@ -133,6 +133,11 @@ export function NotificationSettingsPage() {
   const visibleDeliveries = (deliveries.data ?? []).filter(
     (item) => item.channel_type !== "console",
   );
+  const disabledInsightKinds = Array.isArray(userPreference.data.disabled_insight_kinds)
+    ? userPreference.data.disabled_insight_kinds.filter(
+        (kind): kind is string => typeof kind === "string",
+      )
+    : [];
   const deliveryHistory = currentUser.data?.is_staff ? visibleDeliveries : visibleDeliveries.slice(0, 10);
   return (
     <section className="mx-auto max-w-5xl space-y-8">
@@ -170,6 +175,59 @@ export function NotificationSettingsPage() {
             <p role="alert" className="text-sm text-red-300">
               定时简报设置保存失败：{updateUserPreference.error.message}
             </p>
+          )}
+        </ChannelCard>
+
+        <ChannelCard
+          icon={BellRing}
+          title="今日收尾"
+          description="在本地晚间生成事实复盘和待处理风险，不调用对话 Agent。"
+        >
+          <Toggle
+            label="启用每日收尾"
+            checked={Boolean(userPreference.data?.evening_briefing_enabled)}
+            onChange={(value) => updateUserPreference.mutate({ evening_briefing_enabled: value })}
+          />
+          <label className="block text-sm">
+            <span className="text-slate-300">每日收尾时间</span>
+            <input
+              type="time"
+              value={userPreference.data?.evening_briefing_time?.slice(0, 5) ?? "21:00"}
+              disabled={updateUserPreference.isPending}
+              onChange={(event) =>
+                updateUserPreference.mutate({ evening_briefing_time: `${event.target.value}:00` })
+              }
+              className="mt-2 w-full rounded-xl border border-white/10 bg-slate-950 px-4 py-3"
+            />
+          </label>
+          <Toggle
+            label="允许主动洞察"
+            checked={Boolean(userPreference.data?.proactive_insights_enabled)}
+            onChange={(value) => updateUserPreference.mutate({ proactive_insights_enabled: value })}
+          />
+          {disabledInsightKinds.length > 0 && (
+            <div className="space-y-2 rounded-lg border border-white/10 p-3">
+              <p className="text-xs text-slate-400">已关闭的洞察类型</p>
+              {disabledInsightKinds.map((kind) => (
+                <div key={kind} className="flex items-center justify-between gap-3 text-sm">
+                  <span className="text-slate-300">{kind}</span>
+                  <button
+                    type="button"
+                    title={`恢复 ${kind}`}
+                    aria-label={`恢复 ${kind}`}
+                    disabled={updateUserPreference.isPending}
+                    onClick={() => updateUserPreference.mutate({
+                      disabled_insight_kinds: disabledInsightKinds.filter(
+                        (value) => value !== kind,
+                      ),
+                    })}
+                    className="rounded-lg p-2 text-cyan-200 hover:bg-cyan-300/10 disabled:opacity-50"
+                  >
+                    <RotateCcw size={16} />
+                  </button>
+                </div>
+              ))}
+            </div>
           )}
         </ChannelCard>
 

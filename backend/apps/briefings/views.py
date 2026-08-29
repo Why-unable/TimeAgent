@@ -12,10 +12,12 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from apps.briefings.evening import EveningBriefingService
 from apps.briefings.models import BriefingDefinition, BriefingRun
 from apps.briefings.serializers import (
     BriefingDefinitionSerializer,
     BriefingRunSerializer,
+    EveningBriefingSerializer,
     LaunchBriefingResponseSerializer,
     LaunchBriefingSerializer,
 )
@@ -38,6 +40,15 @@ def _user(request: Request) -> User:
     if not isinstance(request.user, User):
         raise Http404
     return request.user
+
+
+class EveningBriefingPreviewView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    @extend_schema(responses=EveningBriefingSerializer)
+    def get(self, request: Request) -> Response:
+        payload = EveningBriefingService.build(user=_user(request))
+        return Response(EveningBriefingSerializer(payload).data)
 
 
 class BriefingDefinitionListCreateView(APIView):

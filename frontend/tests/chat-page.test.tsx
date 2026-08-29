@@ -212,6 +212,37 @@ describe("ChatPage", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent("模型暂不可用");
   });
 
+  it("does not show Android WebView's fetch error when leaving an active run", async () => {
+    vi.stubGlobal("fetch", vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      if (url.endsWith("/conversations/")) {
+        return Promise.resolve(new Response(JSON.stringify([conversation])));
+      }
+      if (url.endsWith(`/conversations/${conversation.id}/`)) {
+        return Promise.resolve(new Response(JSON.stringify({ ...conversation, runs: [run] })));
+      }
+      if (url.endsWith("/api/v1/action-proposals/")) {
+        return Promise.resolve(new Response(JSON.stringify([])));
+      }
+      if (url.includes(`/runs/${run.id}/events/`)) {
+        return new Promise<Response>((_resolve, reject) => {
+          init?.signal?.addEventListener("abort", () => {
+            reject(new Error("The user aborted a request."));
+          }, { once: true });
+        });
+      }
+      return Promise.reject(new Error(`Unexpected request: ${url}`));
+    }));
+
+    renderChatPage(`/chat/${conversation.id}`);
+    await screen.findByText(run.input_message);
+    await userEvent.click(screen.getAllByRole("button", { name: "新建聊天" })[0]);
+
+    expect(await screen.findByRole("heading", { name: "今天需要我帮你安排什么？" })).toBeInTheDocument();
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    expect(screen.queryByText("The user aborted a request.")).not.toBeInTheDocument();
+  });
+
   it("shows a persisted failure reason and request reference with readable colors", async () => {
     const failedRun = {
       ...run,

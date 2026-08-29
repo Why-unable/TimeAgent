@@ -4,15 +4,14 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('preferences', '0002_task_links_and_scheduling'),
+        ("preferences", "0002_task_links_and_scheduling"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='userpreference',
-            name='weather_location_data',
+            model_name="userpreference",
+            name="weather_location_data",
             field=models.JSONField(blank=True, default=dict),
         ),
     ]

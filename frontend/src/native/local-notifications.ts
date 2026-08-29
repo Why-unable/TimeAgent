@@ -12,6 +12,7 @@
 import { LocalNotifications } from "@capacitor/local-notifications";
 
 import type { Reminder } from "../api/reminders";
+import { recordTaskExecutionSignal } from "../api/tasks";
 import {
   LOCAL_NOTIFICATION_SCHEDULE_VERSION,
   planReminderNotifications,
@@ -19,9 +20,55 @@ import {
 import { recordNativeNotificationSchedules } from "./notification-diagnostics";
 
 const CHANNEL_ID = "schedule_reminders";
+const TASK_ACTION_TYPE_ID = "task_reminder_actions";
+const PENDING_TASK_ACTIONS_KEY = "time-agent.pending-task-actions";
 
 let channelReady = false;
 let tapListenerReady = false;
+
+type PendingTaskAction = {
+  taskId: string;
+  signalType: "started" | "skipped";
+  occurredAt: string;
+  idempotencyKey: string;
+};
+
+function readPendingTaskActions(): PendingTaskAction[] {
+  try {
+    const raw = window.localStorage.getItem(PENDING_TASK_ACTIONS_KEY);
+    const parsed: unknown = raw ? JSON.parse(raw) : [];
+    return Array.isArray(parsed) ? parsed as PendingTaskAction[] : [];
+  } catch {
+    return [];
+  }
+}
+
+function writePendingTaskActions(actions: PendingTaskAction[]): void {
+  window.localStorage.setItem(PENDING_TASK_ACTIONS_KEY, JSON.stringify(actions));
+}
+
+function queueTaskAction(action: PendingTaskAction): void {
+  const actions = readPendingTaskActions();
+  if (!actions.some((item) => item.idempotencyKey === action.idempotencyKey)) {
+    actions.push(action);
+    writePendingTaskActions(actions);
+  }
+}
+
+async function flushPendingTaskActions(): Promise<void> {
+  const remaining: PendingTaskAction[] = [];
+  for (const action of readPendingTaskActions()) {
+    try {
+      await recordTaskExecutionSignal(action.taskId, action.signalType, {
+        occurred_at: action.occurredAt,
+        idempotency_key: action.idempotencyKey,
+      });
+    } catch {
+      remaining.push(action);
+    }
+  }
+  writePendingTaskActions(remaining);
+}
 
 export type NativeReminderPermissionState = {
   display: string;
@@ -36,9 +83,33 @@ export type NativeReminderPermissionState = {
  */
 async function ensureTapListener(): Promise<void> {
   if (tapListenerReady) return;
-  await LocalNotifications.addListener("localNotificationActionPerformed", () => {
-    if (window.location.pathname !== "/reminders") {
+  await LocalNotifications.addListener("localNotificationActionPerformed", async (event) => {
+    const actionId = event.actionId;
+    const targetId = event.notification.extra?.targetId;
+    const targetType = event.notification.extra?.targetType;
+    if (targetType === "task" && typeof targetId === "string" && (actionId === "start" || actionId === "skip")) {
+      const signalType = actionId === "start" ? "started" : "skipped";
+      const action = {
+        taskId: targetId,
+        signalType,
+        occurredAt: new Date().toISOString(),
+        idempotencyKey: `native-${targetId}-${signalType}-${Date.now()}`,
+      } satisfies PendingTaskAction;
+      try {
+        await recordTaskExecutionSignal(targetId, signalType, {
+          occurred_at: action.occurredAt,
+          idempotency_key: action.idempotencyKey,
+        });
+      } catch {
+        queueTaskAction(action);
+      }
+      if (window.location.pathname !== "/tasks") {
+        window.history.pushState({}, "", "/tasks");
+      }
+    } else if (window.location.pathname !== "/reminders") {
       window.history.pushState({}, "", "/reminders");
+    }
+    if (window.location.pathname === "/tasks" || window.location.pathname === "/reminders") {
       window.dispatchEvent(new PopStateEvent("popstate"));
     }
   });
@@ -62,6 +133,16 @@ async function ensureNotificationSetup(requestDisplayPermission = false): Promis
     });
     channelReady = true;
   }
+  await LocalNotifications.registerActionTypes({
+    types: [{
+      id: TASK_ACTION_TYPE_ID,
+      actions: [
+        { id: "start", title: "开始" },
+        { id: "skip", title: "跳过" },
+      ],
+    }],
+  });
+  await flushPendingTaskActions();
   await ensureTapListener();
   return true;
 }
@@ -107,6 +188,8 @@ export async function syncReminderNotifications(reminders: readonly Reminder[]):
       body: item.body,
       at,
       scheduleVersion: Number(item.extra?.scheduleVersion),
+      targetType: typeof item.extra?.targetType === "string" ? item.extra.targetType : undefined,
+      targetId: typeof item.extra?.targetId === "string" ? item.extra.targetId : null,
     }];
   });
   const plan = planReminderNotifications(reminders, existing, Date.now());
@@ -136,10 +219,13 @@ export async function syncReminderNotifications(reminders: readonly Reminder[]):
         // every visible child card.  Keep each reminder in its own group so the
         // notification shade preserves its actual delivery time.
         group: `reminder-${item.id}`,
+        actionTypeId: item.targetType === "task" && item.targetId ? TASK_ACTION_TYPE_ID : undefined,
         schedule: { at: new Date(item.at), allowWhileIdle: true },
         extra: {
           reminderId: item.reminderId,
           scheduleVersion: LOCAL_NOTIFICATION_SCHEDULE_VERSION,
+          targetType: item.targetType,
+          targetId: item.targetId,
         },
       })),
     });

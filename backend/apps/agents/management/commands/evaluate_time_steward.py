@@ -2,9 +2,9 @@ import hashlib
 import json
 import os
 import re
-import time
-from datetime import UTC, datetime
+from datetime import UTC, datetime, time
 from pathlib import Path
+from time import perf_counter
 from typing import Any
 from uuid import uuid4
 
@@ -18,6 +18,7 @@ from apps.agents.configuration import get_agent_config
 from apps.agents.context import RuntimeContext
 from apps.agents.middleware import PROMPT_PATH
 from apps.agents.model import build_chat_model
+from apps.observability.models import LLMCallAudit
 from apps.preferences.services import UserPreferenceService
 
 EVAL_NOW = datetime(2026, 7, 17, 8, tzinfo=UTC)
@@ -44,6 +45,12 @@ class Command(BaseCommand):
             "--output", type=Path, help="Write a reproducible JSON report atomically."
         )
         parser.add_argument("--minimum-pass-rate", type=float, default=1.0)
+        parser.add_argument(
+            "--ablation",
+            choices=("none", "temporal-context"),
+            default="none",
+            help="Disable one named Agent module for a controlled evaluation comparison.",
+        )
 
     def handle(self, *args: Any, **options: Any) -> None:
         del args
@@ -58,10 +65,15 @@ class Command(BaseCommand):
             cases = [case for case in cases if case["id"] in selected]
 
         model_alias = options.get("model")
+        ablation = str(options["ablation"])
         model = build_chat_model(model_alias)
-        agent = build_time_steward_agent(model=model)
+        agent = build_time_steward_agent(
+            model=model,
+            temporal_context_enabled=ablation != "temporal-context",
+        )
         failures: list[str] = []
         case_results: list[dict[str, Any]] = []
+        evaluation_request_ids: list[str] = []
 
         # Agent tools may run in worker threads with separate database connections,
         # so an uncommitted fixture user is invisible to their FK validation. Use a
@@ -74,9 +86,16 @@ class Command(BaseCommand):
                 {"timezone": EVAL_TIMEZONE, "locale": EVAL_LOCALE},
             )
             for case in cases:
-                started = time.perf_counter()
-                actual, final_response, tool_calls = self._run_case(agent, user, case)
-                duration_seconds = time.perf_counter() - started
+                started = perf_counter()
+                case_request_start = len(evaluation_request_ids)
+                actual, final_response, tool_calls = self._run_case(
+                    agent,
+                    user,
+                    case,
+                    request_ids=evaluation_request_ids,
+                )
+                case_request_ids = evaluation_request_ids[case_request_start:]
+                duration_seconds = perf_counter() - started
                 required = set(case["required_tools"])
                 allowed = set(case["allowed_tools"])
                 forbidden = set(case["forbidden_tools"])
@@ -100,6 +119,7 @@ class Command(BaseCommand):
                     if not re.search(pattern, final_response, re.IGNORECASE)
                 ]
                 temporal_expectation_errors = self._temporal_expectation_errors(case, tool_calls)
+                usage = self._usage_for_requests(case_request_ids)
                 passed = not (
                     missing
                     or unexpected
@@ -119,10 +139,17 @@ class Command(BaseCommand):
                     "forbidden_response_matches": forbidden_response_matches,
                     "missing_response_patterns": missing_response_patterns,
                     "temporal_expectation_errors": temporal_expectation_errors,
+                    "temporal_expectation_count": len(case.get("expected_relative_specs", [])),
                     "response_sha256": hashlib.sha256(final_response.encode()).hexdigest(),
                     "response_characters": len(final_response),
                     "required_tool_recall": len(required & actual) / max(len(required), 1),
                     "allowed_tool_precision": len(actual & allowed) / max(len(actual), 1),
+                    "required_tool_count": len(required),
+                    "tool_call_count": len(tool_calls),
+                    "successful_tool_call_count": sum(
+                        call.get("succeeded") is True for call in tool_calls
+                    ),
+                    **usage,
                 }
                 case_results.append(result)
                 self.stdout.write(json.dumps(result, ensure_ascii=False))
@@ -130,6 +157,8 @@ class Command(BaseCommand):
                     failures.append(case["id"])
         finally:
             User.objects.filter(pk=user.pk).delete()
+            if evaluation_request_ids:
+                LLMCallAudit.objects.filter(request_id__in=evaluation_request_ids).delete()
 
         pass_rate = (len(cases) - len(failures)) / max(len(cases), 1)
         report = self._report(
@@ -137,6 +166,7 @@ class Command(BaseCommand):
             model_alias=model_alias,
             cases=case_results,
             pass_rate=pass_rate,
+            ablation=ablation,
         )
         output_path = options.get("output")
         if output_path:
@@ -152,11 +182,21 @@ class Command(BaseCommand):
         ]
         if security_failures or pass_rate < minimum_pass_rate:
             raise CommandError(f"Time Steward eval failed: {', '.join(failures)}")
-        self.stdout.write(self.style.SUCCESS(f"Time Steward eval passed: {len(cases)} case(s)"))
+        passed_count = len(cases) - len(failures)
+        self.stdout.write(
+            self.style.SUCCESS(
+                "Time Steward eval completed: "
+                f"{passed_count}/{len(cases)} case(s) passed"
+            )
+        )
 
     @staticmethod
     def _run_case(
-        agent: Any, user: User, case: dict[str, Any]
+        agent: Any,
+        user: User,
+        case: dict[str, Any],
+        *,
+        request_ids: list[str] | None = None,
     ) -> tuple[set[str], str, list[dict[str, Any]]]:
         conversation_id = str(uuid4())
         raw_turns = case.get("turns")
@@ -177,9 +217,12 @@ class Command(BaseCommand):
             except ValueError as exc:
                 raise CommandError(f"Eval case {case['id']} has an invalid turn anchor") from exc
             prompt = str(turn["prompt"])
+            request_id = str(uuid4())
+            if request_ids is not None:
+                request_ids.append(request_id)
             context = RuntimeContext(
                 user_id=str(user.pk),
-                request_id=str(uuid4()),
+                request_id=request_id,
                 timezone=EVAL_TIMEZONE,
                 locale=EVAL_LOCALE,
                 current_datetime=anchor_at,
@@ -237,6 +280,27 @@ class Command(BaseCommand):
         return actual_tools, final_response, tool_calls
 
     @staticmethod
+    def _usage_for_requests(request_ids: list[str]) -> dict[str, int | float | None]:
+        rows = list(
+            LLMCallAudit.objects.filter(
+                request_id__in=request_ids,
+                component="time_steward",
+            ).values("status", "total_tokens")
+        )
+        completed = [row for row in rows if row["status"] == "completed"]
+        token_rows = [
+            int(row["total_tokens"]) for row in completed if row["total_tokens"] is not None
+        ]
+        return {
+            "model_call_count": len(rows),
+            "completed_model_call_count": len(completed),
+            "total_tokens": sum(token_rows) if token_rows else None,
+            "token_call_coverage": (
+                round(len(token_rows) / len(completed), 4) if completed else None
+            ),
+        }
+
+    @staticmethod
     def _temporal_expectation_errors(
         case: dict[str, Any], tool_calls: list[dict[str, Any]]
     ) -> list[str]:
@@ -276,11 +340,24 @@ class Command(BaseCommand):
                 errors.append(f"relative expectation {index} is malformed")
                 continue
             for field in ("offset", "unit", "local_time", "source_text"):
-                if field in expectation and event_time.get(field) != expectation[field]:
+                if field in expectation and not Command._temporal_value_matches(
+                    field,
+                    event_time.get(field),
+                    expectation[field],
+                ):
                     errors.append(
                         f"relative create {index} {field} mismatch: {event_time.get(field)!r}"
                     )
         return errors
+
+    @staticmethod
+    def _temporal_value_matches(field: str, actual: object, expected: object) -> bool:
+        if field != "local_time":
+            return actual == expected
+        try:
+            return time.fromisoformat(str(actual)) == time.fromisoformat(str(expected))
+        except ValueError:
+            return False
 
     @staticmethod
     def _default_dataset_path() -> Path:
@@ -304,14 +381,21 @@ class Command(BaseCommand):
         model_alias: str | None,
         cases: list[dict[str, Any]],
         pass_rate: float,
+        ablation: str,
     ) -> dict[str, Any]:
         definition = get_agent_config().selected_model(model_alias)
         durations = sorted(float(case["duration_seconds"]) for case in cases)
         p95_index = min(len(durations) - 1, int((len(durations) - 1) * 0.95))
+        cases_with_required_tools = [case for case in cases if case["required_tool_count"]]
+        cases_with_tool_calls = [case for case in cases if case["tool_call_count"]]
+        temporal_cases = [case for case in cases if case["temporal_expectation_count"]]
+        token_cases = [case for case in cases if case["total_tokens"] is not None]
+        total_tokens = sum(int(case["total_tokens"]) for case in token_cases)
         return {
-            "schema_version": "timeagent.agent-evaluation.v1",
+            "schema_version": "timeagent.agent-evaluation.v2",
             "created_at": datetime.now(UTC).isoformat(),
             "git_commit": os.getenv("GIT_COMMIT_SHA", "unknown"),
+            "ablation": ablation,
             "dataset": {
                 "path": str(dataset_path),
                 "sha256": hashlib.sha256(dataset_path.read_bytes()).hexdigest(),
@@ -326,14 +410,51 @@ class Command(BaseCommand):
                 "case_count": len(cases),
                 "passed_count": sum(bool(case["passed"]) for case in cases),
                 "pass_rate": pass_rate,
+                "task_success_rate": pass_rate,
                 "forbidden_tool_case_count": sum(
                     bool(case["forbidden_tools_used"]) for case in cases
                 ),
+                "required_tool_recall": Command._mean(
+                    cases_with_required_tools,
+                    "required_tool_recall",
+                ),
+                "allowed_tool_precision": Command._mean(
+                    cases_with_tool_calls,
+                    "allowed_tool_precision",
+                ),
+                "constraint_satisfaction_rate": (
+                    round(
+                        sum(not case["temporal_expectation_errors"] for case in temporal_cases)
+                        / len(temporal_cases),
+                        4,
+                    )
+                    if temporal_cases
+                    else None
+                ),
+                "tool_calls_per_task": round(
+                    sum(int(case["tool_call_count"]) for case in cases) / max(len(cases), 1),
+                    4,
+                ),
+                "model_calls_per_task": round(
+                    sum(int(case["model_call_count"]) for case in cases) / max(len(cases), 1),
+                    4,
+                ),
+                "total_tokens": total_tokens if token_cases else None,
+                "tokens_per_task": (
+                    round(total_tokens / len(token_cases), 2) if token_cases else None
+                ),
+                "token_case_coverage": round(len(token_cases) / max(len(cases), 1), 4),
                 "latency_p50_seconds": durations[len(durations) // 2],
                 "latency_p95_seconds": durations[p95_index],
             },
             "cases": cases,
         }
+
+    @staticmethod
+    def _mean(cases: list[dict[str, Any]], field: str) -> float | None:
+        if not cases:
+            return None
+        return round(sum(float(case[field]) for case in cases) / len(cases), 4)
 
     @staticmethod
     def _write_report(path: Path, report: dict[str, Any]) -> None:

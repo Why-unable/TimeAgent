@@ -1,5 +1,6 @@
 from datetime import date
 from typing import Any
+from uuid import UUID
 
 from langchain.tools import ToolRuntime
 from langchain_core.messages import AIMessage, ToolMessage
@@ -7,6 +8,7 @@ from langchain_core.tools import tool
 from langgraph.types import Command
 
 from apps.agents.context import RuntimeContext
+from apps.agents.tools.common import require_actor
 from apps.briefings.schemas import BriefingSectionKey
 from apps.conversations.services import AgentRunService
 
@@ -53,9 +55,10 @@ def transfer_to_briefing(
         name="transfer_to_briefing",
     )
     if runtime.context.agent_run_id:
-        from apps.conversations.models import AgentRun
-
-        run = AgentRun.objects.get(pk=runtime.context.agent_run_id)
+        run = AgentRunService.get(
+            user=require_actor(runtime),
+            run_id=UUID(runtime.context.agent_run_id),
+        )
         AgentRunService.append_event(
             run,
             "handoff.started",

@@ -5,7 +5,13 @@ from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db import transaction
 from rest_framework import serializers
 
-from apps.tasks.models import Task, TaskPriority, TaskStatus
+from apps.tasks.models import (
+    Task,
+    TaskExecutionSignal,
+    TaskExecutionSignalType,
+    TaskPriority,
+    TaskStatus,
+)
 from apps.tasks.services import CreateTaskCommand, TaskService, UpdateTaskCommand
 from common.serializers import ExplicitTimezoneDateTimeField, StrictSerializer
 
@@ -23,6 +29,11 @@ class TaskSerializer(serializers.ModelSerializer[Task]):
             "priority",
             "due_at",
             "estimated_minutes",
+            "buffer_before_minutes",
+            "buffer_after_minutes",
+            "planning_locked",
+            "splittable",
+            "minimum_chunk_minutes",
             "planned_start_at",
             "planned_end_at",
             "actual_started_at",
@@ -32,6 +43,48 @@ class TaskSerializer(serializers.ModelSerializer[Task]):
             "created_at",
             "updated_at",
         ]
+
+
+class TaskExecutionSignalSerializer(serializers.ModelSerializer[TaskExecutionSignal]):
+    class Meta:
+        model = TaskExecutionSignal
+        fields = [
+            "id",
+            "task",
+            "signal_type",
+            "occurred_at",
+            "idempotency_key",
+            "source",
+            "metadata",
+            "created_at",
+        ]
+
+
+class CreateTaskExecutionSignalSerializer(StrictSerializer):
+    signal_type = serializers.ChoiceField(choices=TaskExecutionSignalType.choices)
+    occurred_at = ExplicitTimezoneDateTimeField()
+    idempotency_key = serializers.CharField(max_length=128)
+    source = serializers.CharField(  # type: ignore[assignment]
+        required=False,
+        max_length=64,
+        default="local",
+    )
+    metadata = serializers.DictField(required=False, child=serializers.JSONField())
+
+
+class TaskExecutionSummarySerializer(serializers.Serializer[Any]):
+    task_id = serializers.UUIDField()
+    signal_count = serializers.IntegerField(min_value=0)
+    active_seconds = serializers.IntegerField(min_value=0)
+    planned_seconds = serializers.IntegerField(min_value=0, allow_null=True)
+    estimated_seconds = serializers.IntegerField(min_value=0, allow_null=True)
+    variance_vs_plan_seconds = serializers.IntegerField(allow_null=True)
+    variance_vs_estimate_seconds = serializers.IntegerField(allow_null=True)
+    evidence_status = serializers.ChoiceField(
+        choices=["no_execution_evidence", "recording", "complete"]
+    )
+    open_started_at = ExplicitTimezoneDateTimeField(allow_null=True)
+    last_signal_type = serializers.CharField(allow_null=True)
 
 
 class TaskFieldsSerializer(StrictSerializer):
@@ -53,6 +106,11 @@ class TaskFieldsSerializer(StrictSerializer):
         allow_null=True,
         min_value=1,
     )
+    buffer_before_minutes = serializers.IntegerField(required=False, min_value=0, max_value=1440)
+    buffer_after_minutes = serializers.IntegerField(required=False, min_value=0, max_value=1440)
+    planning_locked = serializers.BooleanField(required=False)
+    splittable = serializers.BooleanField(required=False)
+    minimum_chunk_minutes = serializers.IntegerField(required=False, min_value=15, max_value=1440)
     planned_start_at = ExplicitTimezoneDateTimeField(
         required=False,
         allow_null=True,
@@ -100,6 +158,11 @@ class UpdateTaskSerializer(TaskFieldsSerializer):
     priority = serializers.ChoiceField(required=False, choices=TaskPriority.choices)
     due_at = ExplicitTimezoneDateTimeField(required=False, allow_null=True)
     estimated_minutes = serializers.IntegerField(required=False, allow_null=True, min_value=1)
+    buffer_before_minutes = serializers.IntegerField(required=False, min_value=0, max_value=1440)
+    buffer_after_minutes = serializers.IntegerField(required=False, min_value=0, max_value=1440)
+    planning_locked = serializers.BooleanField(required=False)
+    splittable = serializers.BooleanField(required=False)
+    minimum_chunk_minutes = serializers.IntegerField(required=False, min_value=15, max_value=1440)
     planned_start_at = ExplicitTimezoneDateTimeField(required=False, allow_null=True)
     planned_end_at = ExplicitTimezoneDateTimeField(required=False, allow_null=True)
     source = serializers.CharField(required=False, max_length=64)

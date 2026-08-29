@@ -82,9 +82,7 @@ def normalized_weather_location_data(value: Any) -> StoredWeatherLocationData:
         "district": _text(value.get("district")),
     }
     normalized[
-        "current_coordinates"
-        if coordinate_role == "device_gps"
-        else "administrative_coordinates"
+        "current_coordinates" if coordinate_role == "device_gps" else "administrative_coordinates"
     ] = coordinates
     return normalized
 
@@ -129,9 +127,7 @@ def _validate_coordinates(value: Any, *, expected_role: str) -> None:
     _validate_coordinate_values(value.get("latitude"), value.get("longitude"))
     accuracy = value.get("accuracy_meters")
     if accuracy is not None and (
-        not isinstance(accuracy, (int, float))
-        or isinstance(accuracy, bool)
-        or float(accuracy) < 0
+        not isinstance(accuracy, (int, float)) or isinstance(accuracy, bool) or float(accuracy) < 0
     ):
         raise ValidationError({"weather_location_data": "GPS accuracy must be non-negative"})
 

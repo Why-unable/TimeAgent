@@ -9,6 +9,7 @@ from apps.preferences.models import UserPreference
 
 class UserPreferenceSerializer(serializers.ModelSerializer[UserPreference]):
     locale = serializers.ChoiceField(choices=(("zh-CN", "简体中文"), ("en-US", "English")))
+
     class Meta:
         model = UserPreference
         fields = [
@@ -29,10 +30,16 @@ class UserPreferenceSerializer(serializers.ModelSerializer[UserPreference]):
             "news_topics",
             "daily_briefing_enabled",
             "briefing_time",
+            "evening_briefing_enabled",
+            "evening_briefing_time",
             "planning_rules",
             "time_memory_enabled",
             "time_memory_allow_generation",
             "time_memory_allow_context_injection",
+            "proactive_insights_enabled",
+            "insight_daily_notification_limit",
+            "insight_cooldown_minutes",
+            "disabled_insight_kinds",
             "updated_at",
         ]
         read_only_fields = ["updated_at"]
@@ -49,9 +56,7 @@ class UserPreferenceSerializer(serializers.ModelSerializer[UserPreference]):
 
     def validate_news_topics(self, value: list[str]) -> list[str]:
         allowed = {
-            topic
-            for feed in get_provider_config().news.feeds
-            for topic in feed.topics
+            topic for feed in get_provider_config().news.feeds for topic in feed.topics
         } | set(get_provider_config().news.topic_aliases)
         invalid = sorted({topic for topic in value if topic not in allowed})
         if invalid:

@@ -18,6 +18,7 @@ def build_time_steward_agent(
     model: BaseChatModel | None = None,
     checkpointer: BaseCheckpointSaver[str] | None = None,
     store: BaseStore | None = None,
+    temporal_context_enabled: bool = True,
 ) -> Runnable[Any, Any]:
     resolved_model = model or build_chat_model()
     fallback_models = [] if model is not None else build_fallback_chat_models()
@@ -27,6 +28,7 @@ def build_time_steward_agent(
         middleware=build_time_steward_middleware(
             resolved_model,
             fallback_models=fallback_models,
+            temporal_context_enabled=temporal_context_enabled,
         ),
         state_schema=TimeStewardState,
         context_schema=RuntimeContext,

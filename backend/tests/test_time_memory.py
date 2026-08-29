@@ -61,6 +61,52 @@ class ChangeFact:
     new_snapshot: dict[str, object]
 
 
+def test_analyzer_derives_adaptive_move_acceptance_without_expanding_policy() -> None:
+    anchor = datetime(2026, 8, 3, 8, tzinfo=UTC)
+    task_ids = [uuid4() for _ in range(3)]
+    changes = [
+        ScheduleChange(
+            entity_type="task",
+            entity_id=task_id,
+            operation="updated",
+            source="adaptive_local_replan",
+            old_snapshot={"planned_start_at": anchor.isoformat()},
+            new_snapshot={
+                "planned_start_at": (anchor + timedelta(minutes=30 * (index + 1))).isoformat()
+            },
+            occurred_at=anchor + timedelta(minutes=index),
+        )
+        for index, task_id in enumerate(task_ids)
+    ]
+    changes.extend(
+        [
+            ScheduleChange(
+                entity_type="task",
+                entity_id=task_ids[0],
+                operation="updated",
+                source="adaptive_local_replan_revert",
+                occurred_at=anchor + timedelta(minutes=10),
+            ),
+            ScheduleChange(
+                entity_type="task",
+                entity_id=task_ids[1],
+                operation="updated",
+                source="web",
+                occurred_at=anchor + timedelta(minutes=11),
+            ),
+        ]
+    )
+
+    pattern = TimeMemoryAnalyzer._adaptive_planning_pattern(changes)
+
+    assert pattern.automated_move_count == 3
+    assert pattern.reverted_move_count == 1
+    assert pattern.user_modified_after_move_count == 1
+    assert pattern.accepted_move_count == 1
+    assert pattern.revert_or_modify_ratio == pytest.approx(2 / 3)
+    assert "不会扩大授权范围" in pattern.summary
+
+
 def test_analyzer_builds_deterministic_windows_and_stable_patterns() -> None:
     now = datetime(2026, 8, 3, 8, tzinfo=UTC)
     events = tuple(
@@ -221,11 +267,13 @@ def test_task_service_records_change_and_marks_profile_dirty(
 
 def test_reminder_service_records_change_for_memory_source() -> None:
     user = get_user_model().objects.create_user(username=f"memory-reminder-{uuid4()}")
+    current_time = timezone.now()
     reminder = ReminderService.create_reminder(
         CreateReminderCommand(
             user=user,
             title="准备出门",
-            trigger_at=timezone.now() + timedelta(hours=2),
+            trigger_at=current_time + timedelta(hours=2),
+            current_time=current_time,
             timezone="Asia/Shanghai",
             deduplication_key=f"memory-reminder-{uuid4()}",
             origin="android",

@@ -4,7 +4,7 @@ from typing import Any
 
 from django.conf import settings
 from django.core.exceptions import ValidationError
-from django.core.validators import MinValueValidator
+from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 
 from common.time import NaiveDateTimeError, to_utc
@@ -22,6 +22,14 @@ class TaskPriority(models.TextChoices):
     MEDIUM = "medium", "Medium"
     HIGH = "high", "High"
     URGENT = "urgent", "Urgent"
+
+
+class TaskExecutionSignalType(models.TextChoices):
+    STARTED = "started", "Started"
+    PAUSED = "paused", "Paused"
+    RESUMED = "resumed", "Resumed"
+    COMPLETED = "completed", "Completed"
+    SKIPPED = "skipped", "Skipped"
 
 
 class InvalidTaskTransitionError(ValueError):
@@ -79,6 +87,18 @@ class Task(models.Model):
         null=True,
         blank=True,
         validators=[MinValueValidator(1)],
+    )
+    buffer_before_minutes = models.PositiveSmallIntegerField(
+        default=0, validators=[MaxValueValidator(1440)]
+    )
+    buffer_after_minutes = models.PositiveSmallIntegerField(
+        default=0, validators=[MaxValueValidator(1440)]
+    )
+    planning_locked = models.BooleanField(default=False)
+    splittable = models.BooleanField(default=False)
+    minimum_chunk_minutes = models.PositiveSmallIntegerField(
+        default=30,
+        validators=[MinValueValidator(15), MaxValueValidator(1440)],
     )
     planned_start_at = models.DateTimeField(null=True, blank=True)
     planned_end_at = models.DateTimeField(null=True, blank=True)
@@ -263,3 +283,66 @@ class Task(models.Model):
             self.completed_at = occurred_at_utc
 
         self.status = normalized_status
+
+
+class TaskExecutionSignal(models.Model):
+    """Immutable, user-confirmed evidence about a task's execution."""
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="task_execution_signals",
+    )
+    task = models.ForeignKey(
+        Task,
+        on_delete=models.CASCADE,
+        related_name="execution_signals",
+    )
+    signal_type = models.CharField(max_length=16, choices=TaskExecutionSignalType.choices)
+    occurred_at = models.DateTimeField()
+    idempotency_key = models.CharField(max_length=128)
+    source = models.CharField(max_length=64, default="local")
+    metadata = models.JSONField(default=dict, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["occurred_at", "created_at", "id"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["user", "idempotency_key"],
+                name="task_exec_user_idempotency_uniq",
+            ),
+        ]
+        indexes = [
+            models.Index(
+                fields=["user", "task", "occurred_at"],
+                name="task_exec_user_task_time_idx",
+            ),
+            models.Index(
+                fields=["user", "signal_type", "occurred_at"],
+                name="task_exec_user_type_time_idx",
+            ),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.task_id}: {self.signal_type} at {self.occurred_at.isoformat()}"
+
+    def clean(self) -> None:
+        super().clean()
+        self.idempotency_key = self.idempotency_key.strip()
+        self.source = self.source.strip()
+        if not self.idempotency_key:
+            raise ValidationError({"idempotency_key": "Idempotency key cannot be blank"})
+        if not self.source:
+            raise ValidationError({"source": "Source cannot be blank"})
+        if not isinstance(self.metadata, dict):
+            raise ValidationError({"metadata": "Metadata must be an object"})
+        if self.task_id is not None and self.task.user_id != self.user_id:
+            raise ValidationError({"task": "Task must belong to the same user"})
+        try:
+            self.occurred_at = to_utc(self.occurred_at)
+        except NaiveDateTimeError as exc:
+            raise ValidationError(
+                {"occurred_at": "occurred_at must include an explicit timezone"}
+            ) from exc

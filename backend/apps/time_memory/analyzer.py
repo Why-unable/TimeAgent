@@ -5,11 +5,14 @@ from typing import Literal, cast
 from zoneinfo import ZoneInfo
 
 from apps.events.models import CalendarEvent, CalendarEventStatus
+from apps.tasks.models import Task, TaskExecutionSignal, TaskExecutionSignalType
 from apps.time_memory.models import MemoryEntityType, MemoryOperation, ScheduleChange
 from apps.time_memory.schemas import (
+    AdaptivePlanningPattern,
     BehaviorWindow,
     ChangePattern,
     CommonPlace,
+    ExecutionCalibration,
     PlanningPattern,
     SchedulePattern,
     StablePattern,
@@ -181,8 +184,20 @@ class TimeMemoryAnalyzer:
             events=events, changes=changes, timezone_name=timezone_name
         )
         change_pattern = self._change_pattern(changes, len(events))
+        execution_calibration = self._execution_calibration(
+            tasks=list(source.tasks),
+            signals=list(source.execution_signals),
+            start=start,
+            end=now,
+        )
+        adaptive_planning_pattern = self._adaptive_planning_pattern(changes)
         sample_minimum = {7: 3, 30: 8, 180: 20}[days]
-        confidence = min(1.0, len(events) / sample_minimum) if sample_minimum else 0
+        event_confidence = min(1.0, len(events) / sample_minimum) if sample_minimum else 0
+        confidence = max(
+            event_confidence,
+            execution_calibration.confidence,
+            adaptive_planning_pattern.confidence,
+        )
         summaries = [
             item for item in (schedule.summary, planning.summary, change_pattern.summary) if item
         ]
@@ -200,8 +215,137 @@ class TimeMemoryAnalyzer:
             schedule_pattern=schedule,
             planning_pattern=planning,
             change_pattern=change_pattern,
+            execution_calibration=execution_calibration,
+            adaptive_planning_pattern=adaptive_planning_pattern,
             summary=" ".join(summaries),
             confidence=confidence,
+        )
+
+    @staticmethod
+    def _execution_calibration(
+        *,
+        tasks: list[Task],
+        signals: list[TaskExecutionSignal],
+        start: datetime,
+        end: datetime,
+    ) -> ExecutionCalibration:
+        signals_by_task: dict[object, list[TaskExecutionSignal]] = {}
+        for signal in signals:
+            signals_by_task.setdefault(signal.task_id, []).append(signal)
+        estimates: list[float] = []
+        actuals: list[float] = []
+        for task in tasks:
+            if task.estimated_minutes is None:
+                continue
+            task_signals = sorted(
+                signals_by_task.get(task.pk, []),
+                key=lambda signal: (signal.occurred_at, signal.created_at, signal.id),
+            )
+            if not any(
+                signal.signal_type == TaskExecutionSignalType.COMPLETED for signal in task_signals
+            ):
+                continue
+            active_seconds = 0
+            open_started_at: datetime | None = None
+            for signal in task_signals:
+                if signal.signal_type in {
+                    TaskExecutionSignalType.STARTED,
+                    TaskExecutionSignalType.RESUMED,
+                }:
+                    open_started_at = open_started_at or signal.occurred_at
+                elif signal.signal_type in {
+                    TaskExecutionSignalType.PAUSED,
+                    TaskExecutionSignalType.COMPLETED,
+                }:
+                    if open_started_at is not None:
+                        active_seconds += max(
+                            0,
+                            int(
+                                (
+                                    min(signal.occurred_at, end) - max(open_started_at, start)
+                                ).total_seconds()
+                            ),
+                        )
+                        open_started_at = None
+            actual_minutes = active_seconds / 60
+            if actual_minutes <= 0:
+                continue
+            estimates.append(float(task.estimated_minutes))
+            actuals.append(actual_minutes)
+        if not estimates:
+            return ExecutionCalibration()
+        errors = [actual - estimate for actual, estimate in zip(actuals, estimates, strict=True)]
+        ratios = [actual / estimate for actual, estimate in zip(actuals, estimates, strict=True)]
+        average_estimate = sum(estimates) / len(estimates)
+        average_actual = sum(actuals) / len(actuals)
+        ratio = median(ratios)
+        return ExecutionCalibration(
+            sample_count=len(estimates),
+            average_estimated_minutes=round(average_estimate, 1),
+            average_actual_minutes=round(average_actual, 1),
+            median_error_minutes=round(median(errors), 1),
+            median_actual_to_estimated_ratio=round(ratio, 3),
+            confidence=min(1.0, len(estimates) / 10),
+            summary=(
+                f"有 {len(estimates)} 个任务具备完整执行证据，实际时长约为预计的 {ratio:.1f} 倍。"
+            ),
+        )
+
+    @staticmethod
+    def _adaptive_planning_pattern(
+        changes: list[ScheduleChange],
+    ) -> AdaptivePlanningPattern:
+        task_updates = [
+            change
+            for change in changes
+            if change.entity_type == MemoryEntityType.TASK
+            and change.operation == MemoryOperation.UPDATED
+        ]
+        automated = [
+            change for change in task_updates if change.source == "adaptive_local_replan"
+        ]
+        reverted = [
+            change
+            for change in task_updates
+            if change.source == "adaptive_local_replan_revert"
+        ]
+        user_modified = 0
+        for move in automated:
+            if any(
+                later.entity_id == move.entity_id
+                and later.occurred_at > move.occurred_at
+                and later.source
+                not in {"adaptive_local_replan", "adaptive_local_replan_revert"}
+                for later in task_updates
+            ):
+                user_modified += 1
+        deltas = []
+        for change in automated:
+            old_start = _parse_datetime(change.old_snapshot.get("planned_start_at"))
+            new_start = _parse_datetime(change.new_snapshot.get("planned_start_at"))
+            if old_start is not None and new_start is not None:
+                deltas.append(abs((new_start - old_start).total_seconds()) / 60)
+        negative_count = min(len(automated), len(reverted) + user_modified)
+        accepted_count = max(0, len(automated) - negative_count)
+        confidence = min(1.0, len(automated) / 10)
+        if not automated:
+            summary = "尚无自动局部调整样本。"
+        elif len(automated) < 3:
+            summary = "自动局部调整样本不足，暂不据此改变自动化边界。"
+        else:
+            summary = (
+                f"近期 {len(automated)} 次自动移动中，{negative_count} 次被撤销或再次修改；"
+                "该统计只用于解释，不会扩大授权范围。"
+            )
+        return AdaptivePlanningPattern(
+            automated_move_count=len(automated),
+            reverted_move_count=len(reverted),
+            user_modified_after_move_count=user_modified,
+            accepted_move_count=accepted_count,
+            median_move_minutes=round(median(deltas), 1) if deltas else 0,
+            revert_or_modify_ratio=negative_count / len(automated) if automated else 0,
+            confidence=confidence,
+            summary=summary,
         )
 
     def _schedule_pattern(
