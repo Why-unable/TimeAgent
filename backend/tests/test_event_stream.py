@@ -132,3 +132,47 @@ def test_sse_reconciles_sequence_gap_from_postgres(monkeypatch: pytest.MonkeyPat
 
     assert b"id: 1" in frames[0]
     assert b"id: 2" in frames[1]
+
+
+def test_sse_falls_back_to_postgres_when_redis_read_fails(monkeypatch: pytest.MonkeyPatch) -> None:
+    from apps.conversations import views
+
+    run = SimpleNamespace(status="running", execution_task_id="task")
+    terminal = SimpleNamespace(status="completed", execution_task_id=None)
+    event = SimpleNamespace(
+        sequence=1,
+        event_type="agent.started",
+        payload={"source": "postgres"},
+        created_at=datetime(2026, 8, 29, 12, 0, tzinfo=UTC),
+    )
+    poll_calls = 0
+
+    def poll(**_: object) -> tuple[object, list[object]]:
+        nonlocal poll_calls
+        poll_calls += 1
+        return (run, []) if poll_calls == 1 else (terminal, [event])
+
+    class BrokenStream:
+        async def read(self, **_: object):
+            raise ConnectionError("redis unavailable")
+            yield  # pragma: no cover
+
+    monkeypatch.setattr(views, "_sse_poll", poll)
+    monkeypatch.setattr(views, "RedisAgentEventStream", BrokenStream)
+
+    async def collect() -> list[bytes]:
+        return [
+            frame
+            async for frame in views._sse(
+                user_id=1,
+                run_id=uuid4(),
+                cursor=0,
+                initial_snapshot=(run, []),
+                stream_baseline="0-0",
+            )
+        ]
+
+    frames = async_to_sync(collect)()
+    assert len(frames) == 1
+    assert b"id: 1" in frames[0]
+    assert b'"source":"postgres"' in frames[0]

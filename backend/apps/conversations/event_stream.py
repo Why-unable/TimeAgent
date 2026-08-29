@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
 from collections.abc import AsyncIterator
@@ -19,26 +20,28 @@ STREAM_PREFIX = "timeagent:agent-events:"
 STREAM_MAXLEN = 1000
 STREAM_TTL_SECONDS = 24 * 60 * 60
 _sync_pools: dict[str, ConnectionPool] = {}
-_async_pools: dict[str, AsyncConnectionPool] = {}
+_async_pools: dict[tuple[str, int], AsyncConnectionPool] = {}
 
 
 def _sync_client(url: str) -> Redis:
-    pool = _sync_pools.setdefault(
-        url,
-        ConnectionPool.from_url(
+    pool = _sync_pools.get(url)
+    if pool is None:
+        pool = ConnectionPool.from_url(
             url, decode_responses=True, socket_connect_timeout=1, socket_timeout=2
-        ),
-    )
+        )
+        _sync_pools[url] = pool
     return Redis(connection_pool=pool)
 
 
 def _async_client(url: str) -> AsyncRedis:
-    pool = _async_pools.setdefault(
-        url,
-        AsyncConnectionPool.from_url(
+    loop_id = id(asyncio.get_running_loop())
+    key = (url, loop_id)
+    pool = _async_pools.get(key)
+    if pool is None:
+        pool = AsyncConnectionPool.from_url(
             url, decode_responses=True, socket_connect_timeout=1, socket_timeout=12
-        ),
-    )
+        )
+        _async_pools[key] = pool
     return AsyncRedis(connection_pool=pool)
 
 

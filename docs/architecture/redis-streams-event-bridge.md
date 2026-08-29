@@ -1,7 +1,7 @@
 # Redis Streams 事件桥接重构记录
 
 > 更新时间：2026-08-29
-> 状态：Phase 1 主链路与 correctness hardening 已实现；真实 Redis E2E/压测待验收；Phase 2 暂缓
+> 状态：Phase 1 主链路与 correctness hardening 已实现；隔离 Redis E2E 部分通过，主 Compose Redis 验收被 AOF 损坏阻塞；Phase 2 暂缓
 
 ## 1. 背景
 
@@ -50,6 +50,7 @@ Redis 不替代 PostgreSQL，也不改变前端的 SSE 协议。
 - 增加 Redis 发布成功、发布失败、事务提交后回调、空 Stream 基线和 sequence gap 对账测试。
 - Redis 连接、读取和发布均设置有限超时，避免 Redis 故障阻塞 SSE 建连或 Agent 事务。
 - Redis 客户端按 URL 复用进程级连接池，SSE 读取不再为每次 `XREAD` 创建和销毁连接。
+- Async Redis 连接池按 event loop 隔离，避免测试或多 loop 场景出现 `Future attached to a different loop`。
 
 ## 3. 当前未完成
 
@@ -59,7 +60,7 @@ Redis 不替代 PostgreSQL，也不改变前端的 SSE 协议。
 2. Durable/Transient 事件拆分：当前 `message.delta` 仍沿用现有 AgentEvent 持久化链路，没有改成 Redis-only 高频流。
 3. Redis Stream 与 PostgreSQL 的专用 reconciliation worker：当前依靠 SSE fallback，不主动回填 Redis。
 4. 多连接高并发压测、Redis 阻塞唤醒延迟、数据库查询下降比例、SSE p95/p99 和 fallback 比例。
-5. Docker Compose 下的真实 Redis 端到端验收。本机当前无 Docker daemon 访问权限。
+5. 主 Docker Compose Redis 下的完整端到端验收：现有 Redis AOF 增量文件损坏，容器无法健康启动；未删除或重建其持久卷。
 6. 生产服务重建和真实移动端回归。
 
 ## 4. 验证结果
@@ -68,8 +69,23 @@ Redis 不替代 PostgreSQL，也不改变前端的 SSE 协议。
 - Django system check：通过。
 - `makemigrations --check --dry-run`：无新增迁移；本机 PostgreSQL 未启动时会产生连接警告。
 - 事件流、聊天和 Agent 专项测试：`35 passed, 1 skipped`；事件流专项在 correctness hardening 后为 `5 passed`。
+- Redis fallback 专项单元测试：Redis `read` 抛异常后，SSE 能切换到 PostgreSQL polling；事件流专项当前为 `6 passed`。
 - 后端全量测试：`478 passed, 3 skipped, 1 failed`。
 - 唯一失败为既有 `test_false_positive_cancels_pending_delivery_and_disabled_kind_is_not_materialized`，固定测试日期已早于当前系统时间，与本次 Redis/SSE 代码无调用关系。
+
+### 4.1 隔离 Redis E2E 结果
+
+使用同一 Compose 网络上的临时无持久 Redis 完成了组件级真实验收：
+
+| 场景 | 结果 | 证据 |
+|---|---|---|
+| 正常 AgentEvent → Redis Stream → 读取 | 通过 | 发布后 `XLEN=1`，实际读取 sequence=1 |
+| DB catch-up → Redis live | 通过 | baseline 后新增事件实际读取 `[2]` |
+| Redis 中断期间 PostgreSQL 提交 | 通过 | Redis 停止时 AgentEvent sequence=1 成功写入，发布 warning 后继续 |
+| Redis 恢复后新连接读取 | 通过 | 临时 Redis 重启后新 Stream event 可被 `XRANGE` 读取 |
+| 连续 `message.delta` | 通过 | 实际读取 sequence `[1..10]`，无缺失、无重复 |
+
+上述不是主 Redis 持久卷的生产验收。主 Redis 当前日志显示 AOF 增量文件格式损坏，需由运维决定备份/修复/重建策略后，才能完成原 Compose 环境的 kill/recovery 验收。
 
 ## 5. 关键边界
 
