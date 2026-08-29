@@ -86,6 +86,7 @@ Web/Android Client
   -> middleware: runtime prompt / memory / policy / limit / retry / audit
   -> Model chooses Tool
   -> Tool -> Application Service -> Domain/Repository -> PostgreSQL
+  -> transaction.on_commit -> Redis Streams (best-effort realtime bridge)
   -> ToolMessage Observation -> next model turn
   -> AgentEvent/ToolAudit/AgentRun persistence
   -> SSE cursor -> Client
@@ -104,7 +105,7 @@ Web/Android Client
 5. `create_agent()` 加载系统 Prompt、工具 Schema 和 middleware；模型只能看到当前 read/write policy 允许的 Tool。
 6. 模型发出 Tool call，Tool 通过 `ToolRuntime` 获取 actor、时区、anchor 和 request ID，调用 Application Service；Service 做 ownership、状态、版本、冲突、幂等和事务。
 7. 结果变成 `ToolMessage` 回到 Agent 上下文；Agent 继续查询/澄清/解释，直到达到完成或限制条件。
-8. `AgentEvent` 增量写入数据库，前端 SSE 按 cursor 重放；最终 AIMessage 写回 AgentRun。审批则在第 6 步暂停，等待另一个恢复请求。
+8. `AgentEvent` 增量写入数据库，事务提交后异步发布到按 Run 隔离的 Redis Stream；前端 SSE 先按 cursor 从 PostgreSQL 补历史，再用 `XREAD BLOCK` 接收实时事件，最终 AIMessage 写回 AgentRun。审批则在第 6 步暂停，等待另一个恢复请求。
 
 同步 HTTP 只负责创建 run/返回 run ID；真正的 Agent 执行是 Celery 长任务。Reminder/简报/同步也是后台任务。当前没有 WebSocket；SSE 是单向事件流，客户端断开后 AgentRun 继续执行，重连使用已持久化事件 cursor。
 
@@ -114,7 +115,7 @@ Web/Android Client
 - PostgreSQL：User/Conversation/AgentRun/AgentEvent/ToolCallAudit/ActionProposal、日程/任务/提醒/计划、执行信号、洞察、通知、外部连接和 LLMCallAudit。
 - LangGraph PostgreSQL Checkpointer：持久 thread state、messages、interrupt；不是业务事实库。
 - LangGraph Store：可重建长期 Time Memory；不是权威日程库。
-- Redis/Celery：队列、任务结果/运行时协调（具体 broker/backend 以 Compose 配置为准），不能替代 PostgreSQL。
+- Redis/Celery：队列、任务结果/运行时协调，以及 AgentEvent 的 best-effort 实时 Stream（具体 broker/backend 以 Compose 配置为准），不能替代 PostgreSQL。
 
 横向扩展上，Django、Celery Worker、Nginx 可增加实例；同一用户写操作依靠数据库事务锁/版本保护。SSE 依赖共享持久化事件。单进程限制包括当前模型实例、Provider 客户端和没有统一分布式 Agent scheduler；生产并发上限**需要补测**。
 
@@ -336,7 +337,7 @@ PostgreSQL 是唯一业务事实源。核心表包括 User/Preference、Calendar
 
 ### 11.2 Redis/Celery
 
-Redis 在 Compose 中作为 Celery broker/result/backend 和运行时协调依赖；当前代码没有证据表明它承担通用业务 Cache、Memory Cache 或可查询 MQ stream。提醒/简报/洞察/Memory/日历 polling 由 Celery task/Beat 调度。Celery 有 ack late、有限重试和 task time limit；没有项目自建 outbox 或 DLQ。任务重复消费靠 Service 幂等，而非队列 exactly-once。
+Redis 在 Compose 中作为 Celery broker/result/backend 和运行时协调依赖，并新增按 Run 隔离的 AgentEvent Stream；该 Stream 只是实时加速层，不是业务事实库。当前代码没有证据表明它承担通用业务 Cache、Memory Cache 或 Consumer Group 队列。提醒/简报/洞察/Memory/日历 polling 由 Celery task/Beat 调度。Celery 有 ack late、有限重试和 task time limit；没有项目自建 outbox 或 DLQ。任务重复消费靠 Service 幂等，而非队列 exactly-once。
 
 ## 十二、并发与一致性
 
@@ -348,7 +349,7 @@ Redis 在 Compose 中作为 Celery broker/result/backend 和运行时协调依�
 | Tool retry 重复写 | ToolAudit tool_call_id、unique keys、transaction | 外部副作用未知提交仍不自动解决 |
 | 多 Agent 修改资源 | Event version、用户 schedule write lock、冲突复验 | 外部写回未实现 |
 | 多实例更新 Memory | on-commit、防抖、可重建 Store | 没有通用 fencing/CAS，需补测 |
-| SSE 重连 | PostgreSQL AgentEvent cursor/replay | 事件保留和高并发需补测 |
+| SSE 重连 | PostgreSQL AgentEvent cursor/replay；实时阶段 Redis Stream，Redis 异常自动 polling | 事件保留和高并发需补测 |
 | Worker 崩溃 | ack late/reject lost/stale recovery/checkpoint | 非 checkpoint Tool 的中间状态要人工判定 |
 
 已实际使用 transaction、unique constraint、optimistic lock、row lock、idempotency key、Celery queue；没有证据表明使用 distributed lock lease、fencing token、通用 outbox、MQ exactly-once。
@@ -363,7 +364,7 @@ Redis 在 Compose 中作为 Celery broker/result/backend 和运行时协调依�
 
 ## 十四、性能与资源
 
-已知仅有一次真实离线 Agent 评测：主集 p50 `2.89s`、p95 `8.02s`、Token/Task `18,367.31`；这是 13 例小样本，不代表 API/SSE/Tool/生产 p95。项目没有 TTFT、p99、QPS、并发用户、数据库耗时、Redis lag、CPU/内存/GPU 或成本数据，均为**需要补测**。
+已知仅有一次真实离线 Agent 评测：主集 p50 `2.89s`、p95 `8.02s`、Token/Task `18,367.31`；这是 13 例小样本，不代表 API/SSE/Tool/生产 p95。Redis Streams 尚无连接数、阻塞唤醒延迟、fallback 次数或 lag 数据。项目没有 TTFT、p99、QPS、并发用户、数据库耗时、CPU/内存/GPU 或成本数据，均为**需要补测**。
 
 性能瓶颈的代码层推断：模型多轮和大 Tool schema/历史是 Agent 主要成本；外部 Provider、数据库查询和 SSE 长连接是后台/接口成本。可优化方向是 deterministic pre-routing、并行只读 research sections、结果摘要/分页、减少重复 Tool call、按任务路由模型、异步化非交互工作；这些是方案，不是已测收益。提醒、洞察、简报已异步化；Time Steward 仍是多轮模型执行。没有 prompt cache 命中证据。
 
@@ -507,7 +508,7 @@ Compose 服务包含 PostgreSQL 17、Redis 7、Django/Uvicorn、Celery worker/be
 14. Reminder 为什么不能经过 LLM？Beat 重启如何避免重复通知？
 15. Agent recursion limit、model/tool call limit 和 Celery time limit 是什么关系？
 16. 当前是否有 loop detector、circuit breaker、DLQ？没有会有什么风险？
-17. SSE 为什么不用 WebSocket？断线、代理缓存和 cursor 如何处理？
+17. SSE 为什么不用 WebSocket？Redis Stream 与 PostgreSQL catch-up 如何避免事件缺口？
 18. PostgreSQL SSE `BAD connection` 如何定位和修复？SQLite 为什么没发现？
 19. Memory 为什么不是 RAG？它的写入、召回、删除和用户隔离如何保证？
 20. 为什么 Briefing 不消费 Time Steward Memory？
