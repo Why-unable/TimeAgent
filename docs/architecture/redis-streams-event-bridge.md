@@ -1,7 +1,7 @@
 # Redis Streams 事件桥接重构记录
 
 > 更新时间：2026-08-29
-> 状态：Phase 1 主链路与 correctness hardening 已实现；隔离 Redis E2E 部分通过，主 Compose Redis 验收被 AOF 损坏阻塞；Phase 2 暂缓
+> 状态：Phase 1 主链路与 correctness hardening 已实现；Redis 已修复并恢复健康，E2E 场景验收通过；Phase 2 暂缓
 
 ## 1. 背景
 
@@ -60,7 +60,7 @@ Redis 不替代 PostgreSQL，也不改变前端的 SSE 协议。
 2. Durable/Transient 事件拆分：当前 `message.delta` 仍沿用现有 AgentEvent 持久化链路，没有改成 Redis-only 高频流。
 3. Redis Stream 与 PostgreSQL 的专用 reconciliation worker：当前依靠 SSE fallback，不主动回填 Redis。
 4. 多连接高并发压测、Redis 阻塞唤醒延迟、数据库查询下降比例、SSE p95/p99 和 fallback 比例。
-5. 主 Docker Compose Redis 下的完整端到端验收：现有 Redis AOF 增量文件损坏，容器无法健康启动；未删除或重建其持久卷。
+5. ~~主 Docker Compose Redis 下的完整端到端验收：现有 Redis AOF 增量文件损坏，容器无法健康启动~~。已完成备份后修复，主 Redis 已恢复健康；修复丢弃了 AOF 损坏点之后的 Redis 数据。
 6. 生产服务重建和真实移动端回归。
 
 ## 4. 验证结果
@@ -85,7 +85,7 @@ Redis 不替代 PostgreSQL，也不改变前端的 SSE 协议。
 | Redis 恢复后新连接读取 | 通过 | 临时 Redis 重启后新 Stream event 可被 `XRANGE` 读取 |
 | 连续 `message.delta` | 通过 | 实际读取 sequence `[1..10]`，无缺失、无重复 |
 
-上述不是主 Redis 持久卷的生产验收。主 Redis 当前日志显示 AOF 增量文件格式损坏，需由运维决定备份/修复/重建策略后，才能完成原 Compose 环境的 kill/recovery 验收。
+主 Redis AOF 修复记录：原卷已备份至 `/tmp/time-agent-redis-data-before-aof-fix-20260830.tgz`；`redis-check-aof --fix` 将增量 AOF 从 `34,290,324` bytes 截断至 `12,599,291` bytes，Redis 随后正常启动并通过 healthcheck、`PING` 和 Django system check。损坏点之后的 Redis 队列/缓存/实时 Stream 数据不可恢复；PostgreSQL 业务事实不受影响。
 
 ## 5. 关键边界
 
