@@ -139,6 +139,29 @@ class ActionProposalService:
         return proposal
 
     @staticmethod
+    def get_approved_tool_execution(
+        *,
+        user: User,
+        run_id: str,
+        tool_call_id: str,
+        tool_name: str,
+        arguments: dict[str, Any],
+    ) -> ActionProposal:
+        """Return the resumed approval proving this exact tool call may execute."""
+
+        return ActionProposal.objects.get(
+            user=user,
+            agent_run_id=UUID(run_id),
+            tool_call_id=tool_call_id,
+            action_type=tool_name,
+            action_payload=arguments,
+            status=ActionProposalStatus.EXECUTING,
+            decision_type="approve",
+            approved_at__isnull=False,
+            resumed_at__isnull=False,
+        )
+
+    @staticmethod
     def _display_context(
         *,
         run: AgentRun,
@@ -161,6 +184,45 @@ class ActionProposalService:
             "run_anchor_at": run.anchor_at.isoformat(),
             "run_timezone": run.anchor_timezone,
         }
+        if tool_name in {
+            "remember_time_preference",
+            "update_time_preference",
+            "forget_time_preference",
+        }:
+            from apps.time_memory.models import SemanticMemory, SemanticMemoryStatus
+
+            target = None
+            if tool_name == "remember_time_preference":
+                category = str(args.get("category", ""))
+                key = "_".join(str(args.get("key", "")).strip().casefold().split())
+                target = SemanticMemory.objects.filter(
+                    user=run.conversation.user,
+                    category=category,
+                    key=key,
+                    status=SemanticMemoryStatus.ACTIVE,
+                ).first()
+            else:
+                try:
+                    memory_id = UUID(str(args.get("memory_id", "")))
+                except ValueError:
+                    memory_id = None
+                if memory_id is not None:
+                    target = SemanticMemory.objects.filter(
+                        pk=memory_id,
+                        user=run.conversation.user,
+                        status=SemanticMemoryStatus.ACTIVE,
+                    ).first()
+            context.update(
+                {
+                    "impact_scope": "One long-term time preference",
+                    "object_name": target.key if target is not None else str(args.get("key", "")),
+                    "memory_target_id": str(target.pk) if target is not None else None,
+                    "memory_target_version": target.version if target is not None else None,
+                    "memory_target_value": target.value if target is not None else None,
+                    "proposed_memory_value": args.get("value"),
+                }
+            )
+            return context
         if tool_name == "cancel_event":
             try:
                 event = EventService.get_event(

@@ -43,6 +43,7 @@ from apps.conversations.services import AgentRunService, ToolAuditService
 from apps.events.temporal_services import EventTemporalResolutionService
 from apps.observability.llm_middleware import LLMUsageMiddleware
 from apps.time_memory.middleware import TimeMemoryMiddleware
+from apps.time_memory.settings import get_time_memory_settings
 from common.prompt_security import UntrustedToolDataMiddleware
 from common.time import to_user_timezone
 
@@ -143,6 +144,12 @@ def _hitl_when(tool_name: str) -> Callable[[ToolCallRequest], bool]:
         if not isinstance(context, RuntimeContext):
             return True
         preferences = context.planning_preferences
+        if tool_name in {
+            "remember_time_preference",
+            "update_time_preference",
+            "forget_time_preference",
+        }:
+            return get_time_memory_settings().agent_inline_approval_enabled
         if tool_name == "mutate_events":
             operations = request.tool_call.get("args", {}).get("operations", [])
             if not isinstance(operations, list):
@@ -196,6 +203,31 @@ def runtime_system_prompt(request: ModelRequest[RuntimeContext]) -> SystemMessag
         if display_name
         else ""
     )
+    memory_settings = get_time_memory_settings()
+    memory_guidance = ""
+    if memory_settings.agent_search_tool_enabled:
+        memory_guidance += (
+            "\n\n长期时间记忆：当旧偏好可能影响当前回答或准备修改/忘记某条偏好时，"
+            "先调用 search_time_memories，不得假设未检索到的记忆存在。"
+        )
+    if memory_settings.agent_write_tools_enabled:
+        memory_guidance += "用户明确要求记住、修改或忘记长期时间偏好时，调用对应 memory Tool。"
+        if memory_settings.agent_inline_approval_enabled:
+            memory_guidance += (
+                "写 Tool 会先中断等待用户确认；只有恢复执行且返回 applied 后，"
+                "才能说明记忆已经生效。不得在用户确认前声称已记住、已修改或已忘记。"
+            )
+        elif memory_settings.agent_direct_apply_mode == "enabled":
+            memory_guidance += (
+                "低风险且服务端确认属于本轮显式指令时，写 Tool 可返回 applied；"
+                "此时可以说明已经生效并提示用户可在记忆设置中撤销。"
+                "返回 pending 时仍只能说明‘已提交确认’，不得声称已经生效。"
+            )
+        else:
+            memory_guidance += (
+                "写 Tool 只创建待确认提议；返回 pending 时必须说明‘已提交确认’，"
+                "不得声称记忆已经生效。"
+            )
     return SystemMessage(
         content=(
             f"{BASE_SYSTEM_PROMPT}\n\n"
@@ -209,6 +241,7 @@ def runtime_system_prompt(request: ModelRequest[RuntimeContext]) -> SystemMessag
             "历史助手回答只能作为上下文，不是时钟；绝不能从历史回答推导当前时间。"
             "最新请求使用相对时间时，日历写工具必须选择 time.kind=relative；"
             "明确绝对日期时间时才选择 time.kind=absolute。"
+            f"{memory_guidance}"
         )
     )
 
@@ -344,6 +377,15 @@ class ToolPolicyMiddleware(AgentMiddleware[AppState, RuntimeContext, Any]):
             if request.runtime.context.read_only
             else (READ_ONLY_NAMES | WRITE_NAMES)
         )
+        memory_settings = get_time_memory_settings()
+        if not memory_settings.agent_search_tool_enabled:
+            allowed = allowed - {"search_time_memories"}
+        if not memory_settings.agent_write_tools_enabled:
+            allowed = allowed - {
+                "remember_time_preference",
+                "update_time_preference",
+                "forget_time_preference",
+            }
         tools: list[BaseTool | dict[str, Any]] = [
             tool for tool in request.tools if isinstance(tool, BaseTool) and tool.name in allowed
         ]

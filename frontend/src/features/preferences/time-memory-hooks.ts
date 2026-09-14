@@ -8,7 +8,12 @@ import {
   getCurrentTimeMemory,
   getDecisionProfile,
   getDurationRecommendation,
+  getMemoryProposals,
+  getRecentMemoryProposals,
+  getSemanticMemories,
+  decideMemoryProposal,
   recordDecisionFeedback,
+  undoMemoryProposal,
 } from "../../api/time-memory";
 
 export const timeMemoryQueryKey = ["time-memory"] as const;
@@ -18,6 +23,9 @@ export const durationRecommendationQueryKey = [
   "duration-recommendation",
 ] as const;
 export const capacityForecastQueryKey = ["time-memory", "capacity-forecast"] as const;
+export const semanticMemoryQueryKey = ["time-memory", "semantic"] as const;
+export const memoryProposalQueryKey = ["time-memory", "proposals"] as const;
+export const recentMemoryProposalQueryKey = ["time-memory", "proposals", "recent"] as const;
 
 export function useCurrentTimeMemory() {
   return useQuery({
@@ -52,6 +60,58 @@ export function useCapacityForecast(
     queryFn: () => getCapacityForecast(input as { range_start: string; range_end: string }),
     enabled: Boolean(input),
     retry: false,
+  });
+}
+
+export function useSemanticMemories() {
+  return useQuery({
+    queryKey: semanticMemoryQueryKey,
+    queryFn: getSemanticMemories,
+    retry: false,
+  });
+}
+
+export function useMemoryProposals() {
+  return useQuery({
+    queryKey: memoryProposalQueryKey,
+    queryFn: getMemoryProposals,
+    retry: false,
+  });
+}
+
+export function useRecentMemoryProposals() {
+  return useQuery({
+    queryKey: recentMemoryProposalQueryKey,
+    queryFn: getRecentMemoryProposals,
+    retry: false,
+  });
+}
+
+export function useDecideMemoryProposal() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: ({ proposalId, approve }: { proposalId: string; approve: boolean }) =>
+      decideMemoryProposal(proposalId, approve),
+    onSuccess: async () => {
+      await Promise.all([
+        client.invalidateQueries({ queryKey: memoryProposalQueryKey }),
+        client.invalidateQueries({ queryKey: semanticMemoryQueryKey }),
+      ]);
+    },
+  });
+}
+
+export function useUndoMemoryProposal() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: undoMemoryProposal,
+    onSuccess: async () => {
+      await Promise.all([
+        client.invalidateQueries({ queryKey: recentMemoryProposalQueryKey }),
+        client.invalidateQueries({ queryKey: memoryProposalQueryKey }),
+        client.invalidateQueries({ queryKey: semanticMemoryQueryKey }),
+      ]);
+    },
   });
 }
 

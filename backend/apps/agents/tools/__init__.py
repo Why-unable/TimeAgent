@@ -3,6 +3,7 @@ from apps.agents.tools.event_tools import EVENT_READ_TOOLS, EVENT_WRITE_TOOLS
 from apps.agents.tools.handoff_tools import HANDOFF_TOOLS
 from apps.agents.tools.insight_tools import INSIGHT_READ_TOOLS, INSIGHT_WRITE_TOOLS
 from apps.agents.tools.integration_tools import INTEGRATION_READ_TOOLS
+from apps.agents.tools.memory_tools import MEMORY_READ_TOOLS, MEMORY_WRITE_TOOLS
 from apps.agents.tools.planning_tools import PLANNING_READ_TOOLS, PLANNING_WRITE_TOOLS
 from apps.agents.tools.reminder_tools import (
     REMINDER_READ_TOOLS,
@@ -20,6 +21,7 @@ READ_ONLY_TOOLS = [
     *DECISION_READ_TOOLS,
     *INTEGRATION_READ_TOOLS,
     *INSIGHT_READ_TOOLS,
+    *MEMORY_READ_TOOLS,
     *HANDOFF_TOOLS,
 ]
 WRITE_TOOLS = [
@@ -29,6 +31,7 @@ WRITE_TOOLS = [
     *PLANNING_WRITE_TOOLS,
     *DECISION_WRITE_TOOLS,
     *INSIGHT_WRITE_TOOLS,
+    *MEMORY_WRITE_TOOLS,
 ]
 TIME_STEWARD_TOOLS = [*READ_ONLY_TOOLS, *WRITE_TOOLS]
 

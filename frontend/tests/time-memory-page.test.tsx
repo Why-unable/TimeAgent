@@ -173,4 +173,53 @@ describe("TimeMemoryPage", () => {
     renderPage();
     expect(await screen.findByText("自动调整 3 次，其中 1 次保留。")).toBeInTheDocument();
   });
+
+  it("shows a recent direct memory and sends an undo request", async () => {
+    const requests: Array<{ url: string; method: string }> = [];
+    let undone = false;
+    vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      const method = init?.method ?? "GET";
+      requests.push({ url, method });
+      if (url.endsWith("/api/v1/preferences/me/") && method === "GET") {
+        return new Response(JSON.stringify(preference));
+      }
+      if (url.endsWith("/api/v1/time-memory/me/") && method === "GET") {
+        return new Response(JSON.stringify({ profile, refresh_status: "clean", dirty_at: null, last_completed_at: "2026-08-06T00:00:00Z", last_error: "" }));
+      }
+      if (url.endsWith("/api/v1/time-memory/me/decision-profile/") && method === "GET") {
+        return new Response(JSON.stringify({ duration_multiplier: 1, sample_count: 0, confidence: 0, evidence: [], source: "default" }));
+      }
+      if (url.endsWith("/api/v1/time-memory/me/semantic/") && method === "GET") {
+        return new Response(JSON.stringify([]));
+      }
+      if (url.endsWith("/api/v1/time-memory/me/proposals/") && method === "GET") {
+        return new Response(JSON.stringify([]));
+      }
+      if (url.endsWith("/api/v1/time-memory/me/proposals/recent/") && method === "GET") {
+        return new Response(JSON.stringify([{
+          id: "proposal-1",
+          key: "focus_period",
+          status: undone ? "undone" : "applied",
+          can_undo: !undone,
+          created_at: "2026-08-06T00:00:00Z",
+        }]));
+      }
+      if (url.endsWith("/api/v1/time-memory/me/proposals/proposal-1/undo/") && method === "POST") {
+        undone = true;
+        return new Response(JSON.stringify({ id: "proposal-1", key: "focus_period", status: "undone", can_undo: false }));
+      }
+      throw new Error(`Unexpected request: ${method} ${url}`);
+    }));
+
+    const user = userEvent.setup();
+    renderPage();
+    expect(await screen.findByText("focus_period")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "撤销" }));
+
+    await waitFor(() => {
+      expect(requests.some((request) => request.method === "POST" && request.url.endsWith("/proposals/proposal-1/undo/"))).toBe(true);
+      expect(screen.getByText(/已撤销/)).toBeInTheDocument();
+    });
+  });
 });

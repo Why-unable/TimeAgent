@@ -297,6 +297,19 @@ class AgentRunService:
         locked.completed_at = timezone.now()
         locked.save(update_fields=["status", "final_response", "completed_at"])
         AgentRunService.append_event(locked, "message.completed", {"content": final_response})
+        from apps.time_memory.settings import get_time_memory_settings
+
+        if (
+            get_time_memory_settings().semantic_extraction_enabled
+            and not locked.synthetic_input
+        ):
+
+            def enqueue_extraction(run_id: str = str(locked.pk)) -> None:
+                from apps.time_memory.tasks import extract_semantic_memory
+
+                extract_semantic_memory.delay(run_id)
+
+            transaction.on_commit(enqueue_extraction)
         return locked
 
     @staticmethod

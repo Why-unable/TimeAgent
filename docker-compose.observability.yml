@@ -12,6 +12,7 @@ services:
     env_file:
       - .env
     environment:
+      ALERTMANAGER_EMAIL_ENABLED: ${ALERTMANAGER_EMAIL_ENABLED:-true}
       ALERTMANAGER_EMAIL_TO: ${ALERTMANAGER_EMAIL_TO:-}
       ALERTMANAGER_CONFIG_OUTPUT: /generated/alertmanager.yml
     user: "0:0"

@@ -129,7 +129,9 @@ def test_false_positive_cancels_pending_delivery_and_disabled_kind_is_not_materi
         attention_reason="within_policy",
         attention_decided_at=datetime(2026, 8, 24, 8, tzinfo=UTC),
     )
-    TemporalInsightService.materialize_notifications(user=user)
+    TemporalInsightService.materialize_notifications(
+        user=user, now=datetime(2026, 8, 24, 8, tzinfo=UTC)
+    )
     TemporalInsightService.act(
         user=user,
         insight_id=insight.pk,
@@ -153,5 +155,10 @@ def test_false_positive_cancels_pending_delivery_and_disabled_kind_is_not_materi
         attention_reason="high_severity",
         attention_decided_at=datetime(2026, 8, 24, 9, tzinfo=UTC),
     )
-    assert TemporalInsightService.materialize_notifications(user=user) == 0
+    assert (
+        TemporalInsightService.materialize_notifications(
+            user=user, now=datetime(2026, 8, 24, 9, tzinfo=UTC)
+        )
+        == 0
+    )
     assert not NotificationDelivery.objects.filter(source_id=another.pk).exists()

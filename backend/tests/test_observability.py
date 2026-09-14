@@ -61,6 +61,26 @@ def test_alertmanager_config_uses_runtime_smtp_credentials(
     assert output.stat().st_mode & 0o777 == 0o600
 
 
+def test_alertmanager_config_can_disable_email_without_smtp_credentials(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("ALERTMANAGER_EMAIL_ENABLED", "false")
+    for name in ("EMAIL_HOST", "EMAIL_USERNAME", "EMAIL_PASSWORD"):
+        monkeypatch.delenv(name, raising=False)
+    monkeypatch.setattr("apps.observability.alertmanager_config.os.chown", lambda *args: None)
+    output = tmp_path / "alertmanager.yml"
+
+    render(output)
+
+    config = yaml.safe_load(output.read_text())
+    assert config["global"] == {"resolve_timeout": "5m"}
+    assert config["route"]["receiver"] == "local-operator"
+    assert config["receivers"] == [{"name": "local-operator"}]
+    assert "smtp_smarthost" not in config["global"]
+    assert output.stat().st_mode & 0o777 == 0o600
+
+
 def test_alertmanager_config_forces_implicit_tls_for_ssl_smtp(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,

@@ -30,4 +30,5 @@ class TimeStewardState(AgentState[None]):
     """Agent-loop state; managed outer-graph channels intentionally stay outside it."""
 
     time_memory_profile: NotRequired[dict[str, JsonValue] | None]
+    semantic_memories: NotRequired[list[dict[str, JsonValue]]]
     schedule_changed: NotRequired[Annotated[bool, operator.or_]]

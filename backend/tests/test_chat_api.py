@@ -12,7 +12,13 @@ from django.http import StreamingHttpResponse
 from langchain_core.messages import AIMessage, AIMessageChunk
 from rest_framework.test import APIClient
 
-from apps.conversations.execution import _last_ai_text, _message_text, _stream_mode_data
+from apps.conversations.execution import (
+    _consume_stream,
+    _is_internal_message_stream,
+    _last_ai_text,
+    _message_text,
+    _stream_mode_data,
+)
 from apps.conversations.models import AgentRun, Conversation
 from apps.conversations.services import (
     AgentRunService,
@@ -71,6 +77,42 @@ def test_final_ai_message_accepts_content_blocks() -> None:
     assert (
         _last_ai_text({"messages": [AIMessage(content=[{"type": "text", "text": "done"}])]})
         == "done"
+    )
+
+
+def test_internal_summarization_stream_is_not_emitted_as_chat_delta(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    run = SimpleNamespace(pk=uuid4())
+    emitted: list[tuple[str, dict[str, str]]] = []
+    monkeypatch.setattr(AgentRunService, "is_cancelled", lambda _: False)
+    monkeypatch.setattr(
+        AgentRunService,
+        "append_event",
+        lambda _run, event_type, payload: emitted.append((event_type, payload)),
+    )
+
+    summary_chunk = AIMessageChunk(content="SUMMARY\nold context")
+    public_chunk = AIMessageChunk(content="当前安排已完成")
+    state = {"messages": [AIMessage(content="当前安排已完成")]}
+    result, emitted_delta = _consume_stream(
+        [
+            (summary_chunk, {"lc_source": "summarization"}),
+            (public_chunk, {"langgraph_node": "time_steward"}),
+            (("time_steward",), state),
+        ],
+        run,
+    )
+
+    assert result == state
+    assert emitted_delta is True
+    assert emitted == [("message.delta", {"content": "当前安排已完成"})]
+
+
+def test_internal_stream_marker_can_be_nested_or_attached_to_chunk() -> None:
+    assert _is_internal_message_stream({"metadata": {"lc_source": "summarization"}})
+    assert _is_internal_message_stream(
+        {}, AIMessageChunk(content="summary", additional_kwargs={"lc_source": "summarization"})
     )
 
 

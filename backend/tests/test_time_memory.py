@@ -23,7 +23,13 @@ from apps.tasks.services import CreateTaskCommand, TaskService
 from apps.time_memory.analyzer import TimeMemoryAnalyzer
 from apps.time_memory.management_service import TimeMemoryManagementService
 from apps.time_memory.middleware import TimeMemoryMiddleware
-from apps.time_memory.models import ScheduleChange, TimeMemoryExclusion, TimeMemoryRefreshState
+from apps.time_memory.models import (
+    ScheduleChange,
+    SemanticMemory,
+    SemanticMemorySource,
+    TimeMemoryExclusion,
+    TimeMemoryRefreshState,
+)
 from apps.time_memory.prompt_renderer import _untrusted_json, render_memory_prompt
 from apps.time_memory.ranking import classify_memory_intent, collect_candidates
 from apps.time_memory.repository import TimeMemoryRepository, migrate_profile
@@ -162,7 +168,6 @@ def test_repository_round_trips_one_profile_per_user() -> None:
     )
 
     TimeMemoryRepository.put(store, profile)
-
     assert TimeMemoryRepository.get(store, user_id="11") == profile
     assert TimeMemoryRepository.get(store, user_id="12") is None
 
@@ -602,6 +607,14 @@ def test_before_agent_only_reads_existing_profile_and_respects_disabled_preferen
         previous=None,
     )
     TimeMemoryRepository.put(store, profile)
+    SemanticMemory.objects.create(
+        user=user,
+        category="scheduling_preference",
+        key="friday_afternoon_meetings",
+        value={"avoid_meetings": True},
+        source_type=SemanticMemorySource.EXPLICIT_USER,
+        confidence=1.0,
+    )
     preference = UserPreferenceService.get_or_create_for_user(user)
     runtime = Runtime(
         context=RuntimeContext(
@@ -623,10 +636,18 @@ def test_before_agent_only_reads_existing_profile_and_respects_disabled_preferen
 
     assert loaded == {
         "time_memory_profile": profile.model_dump(mode="json"),
+        "semantic_memories": [
+            {
+                "category": "scheduling_preference",
+                "key": "friday_afternoon_meetings",
+                "value": {"avoid_meetings": True},
+            }
+        ],
         "schedule_changed": Overwrite(False),
     }
     assert disabled == {
         "time_memory_profile": None,
+        "semantic_memories": [],
         "schedule_changed": Overwrite(False),
     }
     assert TimeMemoryRepository.get(store, user_id=str(user.pk)) == profile

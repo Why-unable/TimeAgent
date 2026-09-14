@@ -6,6 +6,8 @@ export type DecisionProfile = components["schemas"]["DecisionProfile"];
 export type DecisionFeedback = components["schemas"]["DecisionFeedback"];
 export type DurationRecommendation = components["schemas"]["DurationRecommendation"];
 export type CapacityForecast = components["schemas"]["CapacityForecast"];
+export type SemanticMemory = components["schemas"]["SemanticMemory"];
+export type MemoryProposal = components["schemas"]["MemoryProposal"];
 
 export type TimeMemoryProfile = {
   schema_version: number;
@@ -151,6 +153,32 @@ export function getCapacityForecast(input: { range_start: string; range_end: str
   const query = new URLSearchParams(input);
   return apiRequest<CapacityForecast>(
     `/api/v1/time-memory/me/capacity-forecast/?${query.toString()}`,
+  );
+}
+
+export function getSemanticMemories() {
+  return apiRequest<SemanticMemory[]>("/api/v1/time-memory/me/semantic/");
+}
+
+export function getMemoryProposals() {
+  return apiRequest<MemoryProposal[]>("/api/v1/time-memory/me/proposals/");
+}
+
+export function getRecentMemoryProposals() {
+  return apiRequest<MemoryProposal[]>("/api/v1/time-memory/me/proposals/recent/");
+}
+
+export function decideMemoryProposal(proposalId: string, approve: boolean) {
+  return apiRequest<MemoryProposal>(
+    `/api/v1/time-memory/me/proposals/${encodeURIComponent(proposalId)}/decision/`,
+    { method: "POST", body: JSON.stringify({ approve }) },
+  );
+}
+
+export function undoMemoryProposal(proposalId: string) {
+  return apiRequest<MemoryProposal>(
+    `/api/v1/time-memory/me/proposals/${encodeURIComponent(proposalId)}/undo/`,
+    { method: "POST" },
   );
 }
 

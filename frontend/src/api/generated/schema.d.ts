@@ -1282,6 +1282,86 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/time-memory/me/proposals/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["api_v1_time_memory_me_proposals_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/time-memory/me/proposals/{proposal_id}/decision/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["api_v1_time_memory_me_proposals_decision_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/time-memory/me/proposals/{proposal_id}/undo/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["api_v1_time_memory_me_proposals_undo_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/time-memory/me/proposals/recent/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["api_v1_time_memory_me_proposals_recent_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/time-memory/me/semantic/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["api_v1_time_memory_me_semantic_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/today/": {
         parameters: {
             query?: never;
@@ -2035,6 +2115,41 @@ export interface components {
             identifier: string;
             password: string;
         };
+        MemoryProposal: {
+            /** Format: uuid */
+            id: string;
+            operation: string;
+            category: string;
+            key: string;
+            value: {
+                [key: string]: unknown;
+            };
+            /** Format: double */
+            confidence: number;
+            reason_code: string;
+            policy_reason: string;
+            status: string;
+            /** Format: uuid */
+            source_run_id: string | null;
+            source_type: string;
+            /** Format: uuid */
+            target_memory_id: string | null;
+            target_version: number | null;
+            /** Format: uuid */
+            applied_memory_id: string | null;
+            applied_memory_version: number | null;
+            changed_business_state: boolean;
+            can_undo: boolean;
+            /** Format: date-time */
+            undone_at: string | null;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            updated_at: string;
+        };
+        MemoryProposalDecision: {
+            approve: boolean;
+        };
         /**
          * @description * `console` - Console
          *     * `email` - Email
@@ -2502,6 +2617,28 @@ export interface components {
             reason_codes: string[];
             /** Format: date-time */
             checked_at: string;
+        };
+        SemanticMemory: {
+            /** Format: uuid */
+            id: string;
+            category: string;
+            key: string;
+            value: {
+                [key: string]: unknown;
+            };
+            status: string;
+            source_type: string;
+            /** Format: double */
+            confidence: number;
+            version: number;
+            /** Format: date-time */
+            valid_from: string | null;
+            /** Format: date-time */
+            expires_at: string | null;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            updated_at: string;
         };
         /**
          * @description * `started` - Started
@@ -5065,6 +5202,111 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    api_v1_time_memory_me_proposals_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MemoryProposal"][];
+                };
+            };
+        };
+    };
+    api_v1_time_memory_me_proposals_decision_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                proposal_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MemoryProposalDecision"];
+                "application/x-www-form-urlencoded": components["schemas"]["MemoryProposalDecision"];
+                "multipart/form-data": components["schemas"]["MemoryProposalDecision"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MemoryProposal"];
+                };
+            };
+        };
+    };
+    api_v1_time_memory_me_proposals_undo_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                proposal_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MemoryProposal"];
+                };
+            };
+        };
+    };
+    api_v1_time_memory_me_proposals_recent_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MemoryProposal"][];
+                };
+            };
+        };
+    };
+    api_v1_time_memory_me_semantic_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SemanticMemory"][];
+                };
             };
         };
     };

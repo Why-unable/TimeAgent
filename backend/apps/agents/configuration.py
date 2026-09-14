@@ -76,9 +76,7 @@ class ModelDefinition(StrictConfigModel):
                 "openai_compatible models use max_completion_tokens or extra_body, not max_tokens"
             )
         if self.enable_thinking is not None and "thinking" in self.extra_body:
-            raise ValueError(
-                "configure enable_thinking or extra_body.thinking, not both"
-            )
+            raise ValueError("configure enable_thinking or extra_body.thinking, not both")
         return self
 
 
@@ -86,6 +84,7 @@ class AgentDefinition(StrictConfigModel):
     default_model: str
     fallback_models: list[str] = Field(default_factory=list)
     briefing_model: str | None = None
+    memory_extraction_model: str | None = None
     # Backward-compatible alias for local agent.yaml files created before the
     # Briefing Editor became a research-capable Briefing Agent.
     briefing_editor_model: str | None = None
@@ -93,6 +92,10 @@ class AgentDefinition(StrictConfigModel):
     @property
     def selected_briefing_model(self) -> str:
         return self.briefing_model or self.briefing_editor_model or self.default_model
+
+    @property
+    def selected_memory_extraction_model(self) -> str:
+        return self.memory_extraction_model or self.default_model
 
 
 class GraphDefinition(StrictConfigModel):
@@ -150,6 +153,13 @@ class TimeAgentConfig(StrictConfigModel):
             raise ValueError(f"agent.fallback_models reference unknown model aliases: {names}")
         if self.agent.briefing_model is not None and self.agent.briefing_model not in self.models:
             raise ValueError("agent.briefing_model must reference a configured model alias")
+        if (
+            self.agent.memory_extraction_model is not None
+            and self.agent.memory_extraction_model not in self.models
+        ):
+            raise ValueError(
+                "agent.memory_extraction_model must reference a configured model alias"
+            )
         if self.agent.briefing_editor_model is not None:
             if self.agent.briefing_editor_model not in self.models:
                 raise ValueError(

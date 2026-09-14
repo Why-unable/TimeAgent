@@ -11,6 +11,7 @@ from uuid import uuid4
 import pytest
 from django.contrib.auth.models import User
 from django.core.management import call_command
+from django.test import override_settings
 from langchain.agents.middleware import ToolCallRequest
 from langchain_core.callbacks.manager import CallbackManagerForLLMRun
 from langchain_core.language_models.chat_models import BaseChatModel
@@ -331,7 +332,32 @@ def test_create_agent_executes_read_tool_with_trusted_runtime_actor() -> None:
     )
     assert "Design review" in str(tool_message.content)
     assert result["messages"][-1].content == "你的设计评审在明天上午。"
-    assert set(model.bound_tool_names) == {tool.name for tool in READ_ONLY_TOOLS}
+    assert set(model.bound_tool_names) == {
+        tool.name for tool in READ_ONLY_TOOLS if tool.name != "search_time_memories"
+    }
+
+
+@pytest.mark.django_db(transaction=True)
+@override_settings(
+    TIME_MEMORY_AGENT_SEARCH_TOOL_ENABLED=True,
+    TIME_MEMORY_AGENT_WRITE_TOOLS_ENABLED=True,
+)
+def test_memory_tools_are_model_visible_only_when_enabled() -> None:
+    user = User.objects.create_user(username="memory-tool-visibility")
+    model = ScriptedChatModel(responses=[AIMessage(content="done")])
+    agent = build_time_steward_agent(model=model)
+
+    agent.invoke(
+        {"messages": [HumanMessage(content="记住我喜欢上午专注工作")]},
+        context=context(user),
+    )
+
+    assert {
+        "search_time_memories",
+        "remember_time_preference",
+        "update_time_preference",
+        "forget_time_preference",
+    }.issubset(set(model.bound_tool_names))
 
 
 @pytest.mark.django_db(transaction=True)
@@ -491,6 +517,9 @@ def test_official_middleware_and_fixed_eval_policy_cover_phase_five() -> None:
         "validate_schedule_plan",
         "set_schedule_plan_item_lock",
         "abandon_schedule_plan",
+        "remember_time_preference",
+        "update_time_preference",
+        "forget_time_preference",
     }
 
 
@@ -732,7 +761,10 @@ def test_fixed_eval_command_executes_and_checks_real_trajectories(
 
     expected_turn_count = sum(len(case.get("turns", [case])) for case in cases)
     assert fake_agent.invoke.call_count == expected_turn_count
-    assert f"Time Steward eval completed: {len(cases)}/{len(cases)} case(s) passed" in output.getvalue()
+    assert (
+        f"Time Steward eval completed: {len(cases)}/{len(cases)} case(s) passed"
+        in output.getvalue()
+    )
 
 
 @pytest.mark.django_db

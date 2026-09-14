@@ -18,6 +18,7 @@ GRAFANA_ADMIN_PASSWORD=replace-with-a-long-random-password
 GRAFANA_PORT=3000
 PROMETHEUS_PORT=9090
 ALERTMANAGER_PORT=9093
+ALERTMANAGER_EMAIL_ENABLED=false
 ```
 
 然后启动同一个 Time Agent Compose project：
@@ -40,7 +41,12 @@ ssh -L 3000:127.0.0.1:3000 user@server
 
 ## 3. 告警路由
 
-Alertmanager 启动前由一次性配置容器复用 Django/Celery 的 `EMAIL_*` SMTP 配置生成只保存在 Docker volume 中的配置，并发送到 `ALERTMANAGER_EMAIL_TO`；未设置时发送到 `EMAIL_USERNAME`。`EMAIL_USE_SSL=true` 使用 465 等端口的隐式 TLS，`EMAIL_USE_TLS=true` 使用 587 等端口的 STARTTLS，两者不得混用。SMTP 密码不会写入仓库。上线后必须用临时告警验证“触发—送达—恢复”全链路。
+Alertmanager 启动前由一次性配置容器生成只保存在 Docker volume 中的配置。设置
+`ALERTMANAGER_EMAIL_ENABLED=false` 时使用无外部投递的 `local-operator` receiver，告警仍保留在
+监控端但不发送邮件。开启邮件后复用 Django/Celery 的 `EMAIL_*` SMTP 配置，并发送到
+`ALERTMANAGER_EMAIL_TO`；未设置时发送到 `EMAIL_USERNAME`。`EMAIL_USE_SSL=true` 使用 465 等端口的
+隐式 TLS，`EMAIL_USE_TLS=true` 使用 587 等端口的 STARTTLS，两者不得混用。SMTP 密码不会写入
+仓库。上线后必须用临时告警验证“触发—送达—恢复”全链路。
 
 基线告警包括：Django/PostgreSQL/Redis/Celery 不可用、HTTP 5xx 比例和 p95 时延过高、Celery 任务失败、Agent 失败率、卡住的 AgentRun、通知发送失败。
 

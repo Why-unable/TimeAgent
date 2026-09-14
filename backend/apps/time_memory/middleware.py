@@ -15,10 +15,11 @@ from langgraph.types import Command, Overwrite
 from apps.agents.context import RuntimeContext
 from apps.agents.state import TimeStewardState
 from apps.preferences.services import UserPreferenceService
-from apps.time_memory.prompt_renderer import render_memory_prompt
+from apps.time_memory.prompt_renderer import render_memory_prompt, render_semantic_memory_prompt
 from apps.time_memory.ranking import classify_memory_intent
 from apps.time_memory.repository import TimeMemoryRepository
 from apps.time_memory.schemas import TimeMemoryProfile
+from apps.time_memory.semantic_services import SemanticMemoryService
 from apps.time_memory.settings import get_time_memory_settings
 
 WRITE_MEMORY_TOOLS = frozenset(
@@ -54,20 +55,44 @@ class TimeMemoryMiddleware(AgentMiddleware[TimeStewardState, RuntimeContext, Any
         runtime: Runtime[RuntimeContext],
     ) -> dict[str, Any] | None:
         context = runtime.context
-        if context.actor is None or runtime.store is None:
-            return {"time_memory_profile": None, "schedule_changed": Overwrite(False)}
+        if context.actor is None:
+            return {
+                "time_memory_profile": None,
+                "semantic_memories": [],
+                "schedule_changed": Overwrite(False),
+            }
         preference = UserPreferenceService.get_for_user(context.actor)
         if (
             preference is None
             or not preference.time_memory_enabled
             or not preference.time_memory_allow_context_injection
         ):
-            return {"time_memory_profile": None, "schedule_changed": Overwrite(False)}
-        profile = TimeMemoryRepository.get(runtime.store, user_id=context.user_id)
+            return {
+                "time_memory_profile": None,
+                "semantic_memories": [],
+                "schedule_changed": Overwrite(False),
+            }
+        profile = (
+            TimeMemoryRepository.get(runtime.store, user_id=context.user_id)
+            if runtime.store is not None
+            else None
+        )
+        memories = SemanticMemoryService.list_for_context(
+            user=context.actor,
+            limit=get_time_memory_settings().semantic_memory_limit,
+        )
         return {
             "time_memory_profile": (
                 profile.model_dump(mode="json") if profile is not None else None
             ),
+            "semantic_memories": [
+                {
+                    "category": memory.category,
+                    "key": memory.key,
+                    "value": memory.value,
+                }
+                for memory in memories
+            ],
             "schedule_changed": Overwrite(False),
         }
 
@@ -77,20 +102,44 @@ class TimeMemoryMiddleware(AgentMiddleware[TimeStewardState, RuntimeContext, Any
         runtime: Runtime[RuntimeContext],
     ) -> dict[str, Any] | None:
         context = runtime.context
-        if context.actor is None or runtime.store is None:
-            return {"time_memory_profile": None, "schedule_changed": Overwrite(False)}
+        if context.actor is None:
+            return {
+                "time_memory_profile": None,
+                "semantic_memories": [],
+                "schedule_changed": Overwrite(False),
+            }
         preference = await sync_to_async(UserPreferenceService.get_for_user)(context.actor)
         if (
             preference is None
             or not preference.time_memory_enabled
             or not preference.time_memory_allow_context_injection
         ):
-            return {"time_memory_profile": None, "schedule_changed": Overwrite(False)}
-        profile = await TimeMemoryRepository.aget(runtime.store, user_id=context.user_id)
+            return {
+                "time_memory_profile": None,
+                "semantic_memories": [],
+                "schedule_changed": Overwrite(False),
+            }
+        profile = (
+            await TimeMemoryRepository.aget(runtime.store, user_id=context.user_id)
+            if runtime.store is not None
+            else None
+        )
+        memories = await sync_to_async(SemanticMemoryService.list_for_context)(
+            user=context.actor,
+            limit=get_time_memory_settings().semantic_memory_limit,
+        )
         return {
             "time_memory_profile": (
                 profile.model_dump(mode="json") if profile is not None else None
             ),
+            "semantic_memories": [
+                {
+                    "category": memory.category,
+                    "key": memory.key,
+                    "value": memory.value,
+                }
+                for memory in memories
+            ],
             "schedule_changed": Overwrite(False),
         }
 
@@ -113,16 +162,35 @@ class TimeMemoryMiddleware(AgentMiddleware[TimeStewardState, RuntimeContext, Any
         request: ModelRequest[RuntimeContext],
     ) -> ModelRequest[RuntimeContext]:
         raw_profile = request.state.get("time_memory_profile")
-        if not isinstance(raw_profile, dict):
-            return request
-        profile = TimeMemoryProfile.model_validate(raw_profile)
-        prompt = render_memory_prompt(
-            profile,
-            classify_memory_intent(self._latest_user_text(request)),
-            token_budget=get_time_memory_settings().prompt_token_budget,
-            token_counter=request.model.get_num_tokens,
-            now=request.runtime.context.current_datetime,
-        )
+        settings = get_time_memory_settings()
+        prompt_parts: list[str] = []
+        if isinstance(raw_profile, dict):
+            profile = TimeMemoryProfile.model_validate(raw_profile)
+            behavior_prompt = render_memory_prompt(
+                profile,
+                classify_memory_intent(self._latest_user_text(request)),
+                token_budget=settings.prompt_token_budget,
+                token_counter=request.model.get_num_tokens,
+                now=request.runtime.context.current_datetime,
+            )
+            if behavior_prompt:
+                prompt_parts.append(behavior_prompt)
+        semantic_memories = request.state.get("semantic_memories", [])
+        if isinstance(semantic_memories, list):
+            used_budget = 0
+            if prompt_parts:
+                try:
+                    used_budget = request.model.get_num_tokens(prompt_parts[0])
+                except (ImportError, NotImplementedError, TypeError, ValueError):
+                    used_budget = 0
+            semantic_prompt = render_semantic_memory_prompt(
+                [item for item in semantic_memories if isinstance(item, dict)],
+                token_budget=max(0, settings.prompt_token_budget - used_budget),
+                token_counter=request.model.get_num_tokens,
+            )
+            if semantic_prompt:
+                prompt_parts.append(semantic_prompt)
+        prompt = "\n".join(prompt_parts)
         if not prompt:
             return request
         system_message = request.system_message or SystemMessage(content="")

@@ -4,6 +4,7 @@ import {
   Check,
   MapPin,
   RefreshCw,
+  RotateCcw,
   Sparkles,
   Trash2,
 } from "lucide-react";
@@ -22,6 +23,11 @@ import {
   useForgetTimeMemoryPlace,
   useDecisionProfile,
   useRecordDecisionFeedback,
+  useDecideMemoryProposal,
+  useMemoryProposals,
+  useRecentMemoryProposals,
+  useSemanticMemories,
+  useUndoMemoryProposal,
 } from "../features/preferences/time-memory-hooks";
 
 const WINDOW_LABELS = { "7d": "最近 7 天", "30d": "最近 30 天", "180d": "最近 180 天" } as const;
@@ -69,6 +75,11 @@ export function TimeMemoryPage() {
   const forgetPattern = useForgetTimeMemoryPattern();
   const decisionProfile = useDecisionProfile();
   const recordFeedback = useRecordDecisionFeedback();
+  const semanticMemories = useSemanticMemories();
+  const proposals = useMemoryProposals();
+  const recentProposals = useRecentMemoryProposals();
+  const decideProposal = useDecideMemoryProposal();
+  const undoProposal = useUndoMemoryProposal();
   const profile = parseTimeMemoryProfile(memory.data?.profile);
   const isBusy =
     updatePreference.isPending
@@ -76,6 +87,8 @@ export function TimeMemoryPage() {
     || forgetPlace.isPending
     || forgetPattern.isPending
     || recordFeedback.isPending;
+
+  const semanticBusy = decideProposal.isPending || undoProposal.isPending;
 
   const updateMemoryPreference = (
     field: "time_memory_enabled" | "time_memory_allow_generation" | "time_memory_allow_context_injection",
@@ -111,6 +124,7 @@ export function TimeMemoryPage() {
           无法读取记忆画像，请确认已登录后重试。
         </div>
       </section>
+
     );
   }
 
@@ -159,6 +173,96 @@ export function TimeMemoryPage() {
         </div>
         {updatePreference.isError && <p role="alert" className="mt-4 text-sm text-red-200">权限保存失败：{updatePreference.error.message}</p>}
         {updatePreference.isSuccess && <p role="status" className="mt-4 text-sm text-emerald-200">记忆权限已更新。</p>}
+      </section>
+
+      <section className="rounded-2xl border border-white/10 bg-slate-900 p-5 sm:p-6">
+        <div className="flex items-start gap-3">
+          <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-violet-300/15 text-violet-200">
+            <Sparkles size={21} />
+          </span>
+          <div className="min-w-0 flex-1">
+            <h3 className="font-semibold text-slate-100">用户表达的偏好</h3>
+            <p className="mt-1 text-sm leading-6 text-slate-400">
+              明确、低风险且无歧义的记忆指令可以直接生效并撤销；推断偏好和高影响约束仍需确认。对话摘要不会自动成为长期记忆。
+            </p>
+          </div>
+        </div>
+        {proposals.data && proposals.data.length > 0 && (
+          <div className="mt-5 space-y-3">
+            <h4 className="text-sm font-medium text-amber-200">待确认</h4>
+            {proposals.data.map((proposal) => (
+              <div key={proposal.id} className="rounded-xl border border-amber-200/20 bg-amber-200/5 p-4">
+                <p className="text-sm text-slate-200">{proposal.key}</p>
+                <p className="mt-1 text-xs leading-5 text-slate-400">{proposal.reason_code}</p>
+                <div className="mt-3 flex gap-2">
+                  <button
+                    type="button"
+                    disabled={semanticBusy}
+                    onClick={() => decideProposal.mutate({ proposalId: proposal.id, approve: true })}
+                    className="rounded-lg border border-emerald-300/30 px-3 py-2 text-xs text-emerald-200 hover:bg-emerald-300/10 disabled:opacity-50"
+                  >
+                    记住
+                  </button>
+                  <button
+                    type="button"
+                    disabled={semanticBusy}
+                    onClick={() => decideProposal.mutate({ proposalId: proposal.id, approve: false })}
+                    className="rounded-lg border border-white/15 px-3 py-2 text-xs text-slate-300 hover:bg-white/5 disabled:opacity-50"
+                  >
+                    忽略
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+        {recentProposals.data && recentProposals.data.length > 0 && (
+          <div className="mt-5 space-y-3">
+            <h4 className="text-sm font-medium text-cyan-200">最近直接记录</h4>
+            {recentProposals.data.map((proposal) => (
+              <div key={proposal.id} className="rounded-xl border border-cyan-200/20 bg-cyan-200/5 p-4">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <p className="text-sm text-slate-200">{proposal.key}</p>
+                    <p className="mt-1 text-xs text-slate-500">
+                      {proposal.status === "undone" ? "已撤销" : "已生效"} · {formatDateTime(proposal.created_at)}
+                    </p>
+                  </div>
+                  {proposal.can_undo && (
+                    <button
+                      type="button"
+                      title="撤销这次记忆写入"
+                      disabled={semanticBusy}
+                      onClick={() => undoProposal.mutate(proposal.id)}
+                      className="inline-flex items-center gap-2 rounded-lg border border-cyan-200/25 px-3 py-2 text-xs text-cyan-100 hover:bg-cyan-200/10 disabled:opacity-50"
+                    >
+                      <RotateCcw size={14} />
+                      撤销
+                    </button>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+        {semanticMemories.data && semanticMemories.data.length > 0 ? (
+          <div className="mt-5 space-y-3">
+            <h4 className="text-sm font-medium text-slate-300">已确认偏好</h4>
+            {semanticMemories.data.map((item) => (
+              <div key={item.id} className="rounded-xl border border-white/10 bg-white/[0.03] p-4">
+                <p className="text-sm text-slate-200">{item.key}</p>
+                <p className="mt-1 text-xs text-slate-500">{item.category} · v{item.version}</p>
+              </div>
+            ))}
+          </div>
+        ) : semanticMemories.isLoading ? (
+          <p className="mt-5 text-sm text-slate-500">正在读取已确认偏好…</p>
+        ) : (
+          <p className="mt-5 text-sm text-slate-500">目前还没有已确认的语义偏好。</p>
+        )}
+        {(proposals.isError || recentProposals.isError || semanticMemories.isError || decideProposal.isError || undoProposal.isError) && (
+          <p role="alert" className="mt-4 text-sm text-red-200">语义记忆暂时无法更新，请稍后重试。</p>
+        )}
       </section>
 
       <section className="rounded-2xl border border-white/10 bg-slate-900 p-5 sm:p-6">

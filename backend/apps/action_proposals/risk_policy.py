@@ -90,6 +90,21 @@ HIGH_RISK_TOOL_POLICIES: dict[str, RiskPolicy] = {
         allowed_decisions=("approve", "reject"),
         description="取消任务会终止其后续执行计划，需要确认后执行。",
     ),
+    "remember_time_preference": RiskPolicy(
+        risk_level="high",
+        allowed_decisions=("approve", "reject"),
+        description="保存长期时间偏好会影响未来的 Agent 上下文，需要确认后生效。",
+    ),
+    "update_time_preference": RiskPolicy(
+        risk_level="high",
+        allowed_decisions=("approve", "reject"),
+        description="修改长期时间偏好会影响未来的 Agent 决策，需要确认后生效。",
+    ),
+    "forget_time_preference": RiskPolicy(
+        risk_level="high",
+        allowed_decisions=("approve", "reject"),
+        description="忘记长期时间偏好会移除后续 Agent 可用的上下文，需要确认后生效。",
+    ),
 }
 
 

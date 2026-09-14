@@ -12,50 +12,62 @@ def _required(name: str) -> str:
     return value
 
 
+def _email_delivery_enabled() -> bool:
+    return os.getenv("ALERTMANAGER_EMAIL_ENABLED", "true").strip().lower() == "true"
+
+
 def render(path: Path) -> None:
-    host = _required("EMAIL_HOST")
-    port = int(os.getenv("EMAIL_PORT", "587"))
-    username = _required("EMAIL_USERNAME")
-    password = _required("EMAIL_PASSWORD")
-    from_address = parseaddr(os.getenv("EMAIL_FROM_ADDRESS", username))[1] or username
-    recipient = os.getenv("ALERTMANAGER_EMAIL_TO", "").strip() or username
-    use_starttls = os.getenv("EMAIL_USE_TLS", "false").lower() == "true"
-    use_implicit_tls = os.getenv("EMAIL_USE_SSL", "false").lower() == "true"
-    config = {
-        "global": {
-            "resolve_timeout": "5m",
-            "smtp_smarthost": f"{host}:{port}",
-            "smtp_from": from_address,
-            "smtp_auth_username": username,
-            "smtp_auth_password": password,
-            "smtp_require_tls": use_starttls or use_implicit_tls,
-            "smtp_force_implicit_tls": use_implicit_tls,
-        },
-        "route": {
-            "receiver": "operator-email",
-            "group_by": ["alertname", "severity"],
-            "group_wait": "30s",
-            "group_interval": "5m",
-            "repeat_interval": "4h",
-        },
-        "receivers": [
-            {
-                "name": "operator-email",
-                "email_configs": [
-                    {
-                        "to": recipient,
-                        "send_resolved": True,
-                        "headers": {
-                            "subject": (
-                                "[Time Agent][{{ .Status | toUpper }}] "
-                                "{{ .CommonLabels.alertname }}"
-                            )
-                        },
-                    }
-                ],
-            }
-        ],
+    route = {
+        "receiver": "operator-email" if _email_delivery_enabled() else "local-operator",
+        "group_by": ["alertname", "severity"],
+        "group_wait": "30s",
+        "group_interval": "5m",
+        "repeat_interval": "4h",
     }
+    if _email_delivery_enabled():
+        host = _required("EMAIL_HOST")
+        port = int(os.getenv("EMAIL_PORT", "587"))
+        username = _required("EMAIL_USERNAME")
+        password = _required("EMAIL_PASSWORD")
+        from_address = parseaddr(os.getenv("EMAIL_FROM_ADDRESS", username))[1] or username
+        recipient = os.getenv("ALERTMANAGER_EMAIL_TO", "").strip() or username
+        use_starttls = os.getenv("EMAIL_USE_TLS", "false").lower() == "true"
+        use_implicit_tls = os.getenv("EMAIL_USE_SSL", "false").lower() == "true"
+        config = {
+            "global": {
+                "resolve_timeout": "5m",
+                "smtp_smarthost": f"{host}:{port}",
+                "smtp_from": from_address,
+                "smtp_auth_username": username,
+                "smtp_auth_password": password,
+                "smtp_require_tls": use_starttls or use_implicit_tls,
+                "smtp_force_implicit_tls": use_implicit_tls,
+            },
+            "route": route,
+            "receivers": [
+                {
+                    "name": "operator-email",
+                    "email_configs": [
+                        {
+                            "to": recipient,
+                            "send_resolved": True,
+                            "headers": {
+                                "subject": (
+                                    "[Time Agent][{{ .Status | toUpper }}] "
+                                    "{{ .CommonLabels.alertname }}"
+                                )
+                            },
+                        }
+                    ],
+                }
+            ],
+        }
+    else:
+        config = {
+            "global": {"resolve_timeout": "5m"},
+            "route": route,
+            "receivers": [{"name": "local-operator"}],
+        }
     path.parent.mkdir(parents=True, exist_ok=True)
     temporary = path.with_suffix(".tmp")
     temporary.write_text(yaml.safe_dump(config, allow_unicode=True, sort_keys=False))

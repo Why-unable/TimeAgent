@@ -1,3 +1,4 @@
+import json
 from collections.abc import Callable, Sequence
 from contextlib import contextmanager
 from datetime import UTC, datetime, timedelta
@@ -6,6 +7,7 @@ from uuid import uuid4
 
 import pytest
 from django.contrib.auth.models import User
+from django.test import override_settings
 from django.utils import timezone
 from langchain_core.callbacks.manager import CallbackManagerForLLMRun
 from langchain_core.language_models.chat_models import BaseChatModel
@@ -17,7 +19,7 @@ from langgraph.checkpoint.memory import InMemorySaver
 from langgraph.store.memory import InMemoryStore
 from langgraph.types import Command
 
-from apps.action_proposals.models import ActionProposalStatus
+from apps.action_proposals.models import ActionProposal, ActionProposalStatus
 from apps.action_proposals.services import (
     ActionProposalService,
     ProposalConflictError,
@@ -35,6 +37,13 @@ from apps.reminders.models import ReminderStatus
 from apps.reminders.services import CreateReminderCommand, ReminderService
 from apps.tasks.models import TaskStatus
 from apps.tasks.services import CreateTaskCommand, TaskService
+from apps.time_memory.models import (
+    MemoryProposal,
+    MemoryProposalStatus,
+    SemanticMemory,
+    SemanticMemorySource,
+    SemanticMemoryStatus,
+)
 
 
 class ScriptedModel(BaseChatModel):
@@ -120,6 +129,41 @@ def _event_tool_call() -> AIMessage:
                     ]
                 },
                 "id": "mutate-events-hitl-1",
+                "type": "tool_call",
+            }
+        ],
+    )
+
+
+def _remember_memory_tool_call() -> AIMessage:
+    return AIMessage(
+        content="",
+        tool_calls=[
+            {
+                "name": "remember_time_preference",
+                "args": {
+                    "category": "scheduling_preference",
+                    "key": "friday_afternoon_meetings",
+                    "value": {"avoid": True},
+                },
+                "id": "remember-memory-hitl-1",
+                "type": "tool_call",
+            }
+        ],
+    )
+
+
+def _update_memory_tool_call(memory_id: str) -> AIMessage:
+    return AIMessage(
+        content="",
+        tool_calls=[
+            {
+                "name": "update_time_preference",
+                "args": {
+                    "memory_id": memory_id,
+                    "value": {"period": "afternoon"},
+                },
+                "id": "update-memory-hitl-1",
                 "type": "tool_call",
             }
         ],
@@ -292,6 +336,186 @@ def test_rejected_high_risk_tool_resumes_without_execution() -> None:
     assert CalendarEvent.objects.count() == 0
     proposal.refresh_from_db()
     assert proposal.status == ActionProposalStatus.REJECTED
+
+
+@override_settings(
+    TIME_MEMORY_AGENT_WRITE_TOOLS_ENABLED=True,
+    TIME_MEMORY_AGENT_INLINE_APPROVAL_ENABLED=True,
+)
+@pytest.mark.django_db(transaction=True)
+def test_memory_tool_applies_once_after_inline_approval_and_same_run_resume() -> None:
+    user = User.objects.create_user(username="memory-hitl-approve")
+    preference = UserPreferenceService.get_or_create_for_user(user)
+    preference.time_memory_enabled = True
+    preference.time_memory_allow_generation = True
+    preference.save(update_fields=["time_memory_enabled", "time_memory_allow_generation"])
+    run, context, config = _setup_run(user)
+    run.input_message = "请记住以后周五下午不要安排会议"
+    run.save(update_fields=["input_message"])
+    agent = build_time_steward_agent(
+        model=ScriptedModel(
+            responses=[_remember_memory_tool_call(), AIMessage(content="已记住该偏好。")]
+        ),
+        checkpointer=InMemorySaver(),
+    )
+
+    interrupted = agent.invoke(
+        {"messages": [HumanMessage(content=run.input_message)]},
+        config=config,
+        context=context,
+    )
+
+    assert SemanticMemory.objects.count() == 0
+    assert MemoryProposal.objects.count() == 0
+    proposal = ActionProposalService.create_from_interrupt(
+        run=run,
+        interrupt_value=interrupted["__interrupt__"][0].value,
+    )[0]
+    assert proposal.display_context["memory_target_id"] is None
+    assert proposal.display_context["proposed_memory_value"] == {"avoid": True}
+
+    ActionProposalService.decide(
+        user=user,
+        proposal_id=proposal.pk,
+        expected_version=proposal.version,
+        decision="approve",
+        decision_idempotency_key=uuid4(),
+    )
+    resume_payload = ActionProposalService.resume_payload(run.pk)
+    ActionProposalService.mark_resumed(run.pk)
+    completed = agent.invoke(Command(resume=resume_payload), config=config, context=context)
+
+    memory = SemanticMemory.objects.get(user=user, status=SemanticMemoryStatus.ACTIVE)
+    memory_proposal = MemoryProposal.objects.get(user=user)
+    proposal.refresh_from_db()
+    assert memory.value == {"avoid": True}
+    assert memory.source_type == SemanticMemorySource.EXPLICIT_USER
+    assert memory_proposal.status == MemoryProposalStatus.APPLIED
+    assert proposal.status == ActionProposalStatus.EXECUTED
+    execution_result = json.loads(proposal.execution_result["content"])
+    assert execution_result["requires_confirmation"] is False
+    assert completed["messages"][-1].content == "已记住该偏好。"
+
+
+@pytest.mark.django_db
+def test_memory_execution_approval_cannot_be_reused_with_different_arguments() -> None:
+    user = User.objects.create_user(username="memory-hitl-arguments")
+    run, _, _ = _setup_run(user)
+    arguments = {
+        "category": "scheduling_preference",
+        "key": "friday_afternoon_meetings",
+        "value": {"avoid": True},
+    }
+    proposal = ActionProposalService.create_from_interrupt(
+        run=run,
+        interrupt_value={
+            "action_requests": [
+                {
+                    "name": "remember_time_preference",
+                    "args": arguments,
+                }
+            ],
+            "review_configs": [
+                {
+                    "action_name": "remember_time_preference",
+                    "allowed_decisions": ["approve", "reject"],
+                }
+            ],
+        },
+    )[0]
+    ActionProposalService.decide(
+        user=user,
+        proposal_id=proposal.pk,
+        expected_version=proposal.version,
+        decision="approve",
+        decision_idempotency_key=uuid4(),
+    )
+    ActionProposalService.mark_resumed(run.pk)
+    ActionProposalService.bind_tool_call(
+        run_id=str(run.pk),
+        tool_call_id="remember-memory-bound-1",
+        tool_name="remember_time_preference",
+        arguments=arguments,
+    )
+    ActionProposalService.mark_executing(
+        run_id=str(run.pk),
+        tool_call_id="remember-memory-bound-1",
+    )
+
+    with pytest.raises(ActionProposal.DoesNotExist):
+        ActionProposalService.get_approved_tool_execution(
+            user=user,
+            run_id=str(run.pk),
+            tool_call_id="remember-memory-bound-1",
+            tool_name="remember_time_preference",
+            arguments={**arguments, "value": {"avoid": False}},
+        )
+
+
+@override_settings(
+    TIME_MEMORY_AGENT_WRITE_TOOLS_ENABLED=True,
+    TIME_MEMORY_AGENT_INLINE_APPROVAL_ENABLED=True,
+)
+@pytest.mark.django_db(transaction=True)
+def test_inline_memory_approval_is_invalidated_when_target_changes_before_resume() -> None:
+    user = User.objects.create_user(username="memory-hitl-stale")
+    preference = UserPreferenceService.get_or_create_for_user(user)
+    preference.time_memory_enabled = True
+    preference.time_memory_allow_generation = True
+    preference.save(update_fields=["time_memory_enabled", "time_memory_allow_generation"])
+    run, context, config = _setup_run(user)
+    run.input_message = "把我的专注时间改成下午"
+    run.save(update_fields=["input_message"])
+    memory = SemanticMemory.objects.create(
+        user=user,
+        category="scheduling_preference",
+        key="focus_period",
+        value={"period": "morning"},
+        source_type=SemanticMemorySource.EXPLICIT_USER,
+        confidence=1,
+    )
+    agent = build_time_steward_agent(
+        model=ScriptedModel(
+            responses=[
+                _update_memory_tool_call(str(memory.pk)),
+                AIMessage(content="偏好在确认期间发生变化，请重新确认。"),
+            ]
+        ),
+        checkpointer=InMemorySaver(),
+    )
+    interrupted = agent.invoke(
+        {"messages": [HumanMessage(content=run.input_message)]},
+        config=config,
+        context=context,
+    )
+    proposal = ActionProposalService.create_from_interrupt(
+        run=run,
+        interrupt_value=interrupted["__interrupt__"][0].value,
+    )[0]
+    assert proposal.display_context["memory_target_id"] == str(memory.pk)
+    assert proposal.display_context["memory_target_version"] == 1
+    ActionProposalService.decide(
+        user=user,
+        proposal_id=proposal.pk,
+        expected_version=proposal.version,
+        decision="approve",
+        decision_idempotency_key=uuid4(),
+    )
+    memory.value = {"period": "evening"}
+    memory.version = 2
+    memory.save(update_fields=["value", "version", "updated_at"])
+    resume_payload = ActionProposalService.resume_payload(run.pk)
+    ActionProposalService.mark_resumed(run.pk)
+
+    completed = agent.invoke(Command(resume=resume_payload), config=config, context=context)
+
+    memory.refresh_from_db()
+    proposal.refresh_from_db()
+    assert memory.value == {"period": "evening"}
+    assert MemoryProposal.objects.count() == 0
+    assert proposal.status == ActionProposalStatus.FAILED
+    assert "Memory changed after approval" in proposal.error
+    assert completed["messages"][-1].content == "偏好在确认期间发生变化，请重新确认。"
 
 
 @pytest.mark.django_db(transaction=True)

@@ -456,6 +456,10 @@ Planning/Attention Service 通过专门的 Application Service 获取只读 `Dec
 - 敏感对话、模型私有推理、API Key 和无关内容不得写入；
 - 用户可查看、排除、重置和关闭学习。
 
+#### 7.3.1 两条长期记忆路线
+
+长期记忆的行为记忆与语义记忆双路线、对话摘要边界、LLM 提议和 Memory Policy 写入链路，统一记录在 [TimeAgent 双路线记忆设计](../architecture/time-memory-dual-track.md)。本节只保留战略原则，详细实现和验收以该文档为准。
+
 ### 7.4 触发模型
 
 主动智能不等于持续调用大模型。建议采用三级触发：

@@ -4124,6 +4124,197 @@
                 }
             }
         },
+        "/api/v1/time-memory/me/proposals/": {
+            "get": {
+                "operationId": "api_v1_time_memory_me_proposals_list",
+                "tags": [
+                    "api"
+                ],
+                "security": [
+                    {
+                        "tokenAuth": []
+                    },
+                    {
+                        "cookieAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/MemoryProposal"
+                                    }
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/api/v1/time-memory/me/proposals/{proposal_id}/decision/": {
+            "post": {
+                "operationId": "api_v1_time_memory_me_proposals_decision_create",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "proposal_id",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "api"
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/MemoryProposalDecision"
+                            }
+                        },
+                        "application/x-www-form-urlencoded": {
+                            "schema": {
+                                "$ref": "#/components/schemas/MemoryProposalDecision"
+                            }
+                        },
+                        "multipart/form-data": {
+                            "schema": {
+                                "$ref": "#/components/schemas/MemoryProposalDecision"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "security": [
+                    {
+                        "tokenAuth": []
+                    },
+                    {
+                        "cookieAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/MemoryProposal"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/api/v1/time-memory/me/proposals/{proposal_id}/undo/": {
+            "post": {
+                "operationId": "api_v1_time_memory_me_proposals_undo_create",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "proposal_id",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "api"
+                ],
+                "security": [
+                    {
+                        "tokenAuth": []
+                    },
+                    {
+                        "cookieAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/MemoryProposal"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/api/v1/time-memory/me/proposals/recent/": {
+            "get": {
+                "operationId": "api_v1_time_memory_me_proposals_recent_list",
+                "tags": [
+                    "api"
+                ],
+                "security": [
+                    {
+                        "tokenAuth": []
+                    },
+                    {
+                        "cookieAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/MemoryProposal"
+                                    }
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/api/v1/time-memory/me/semantic/": {
+            "get": {
+                "operationId": "api_v1_time_memory_me_semantic_list",
+                "tags": [
+                    "api"
+                ],
+                "security": [
+                    {
+                        "tokenAuth": []
+                    },
+                    {
+                        "cookieAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/SemanticMemory"
+                                    }
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
         "/api/v1/today/": {
             "get": {
                 "operationId": "api_v1_today_retrieve",
@@ -6411,6 +6602,119 @@
                     "password"
                 ]
             },
+            "MemoryProposal": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "operation": {
+                        "type": "string"
+                    },
+                    "category": {
+                        "type": "string"
+                    },
+                    "key": {
+                        "type": "string"
+                    },
+                    "value": {
+                        "type": "object",
+                        "additionalProperties": {}
+                    },
+                    "confidence": {
+                        "type": "number",
+                        "format": "double"
+                    },
+                    "reason_code": {
+                        "type": "string"
+                    },
+                    "policy_reason": {
+                        "type": "string"
+                    },
+                    "status": {
+                        "type": "string"
+                    },
+                    "source_run_id": {
+                        "type": "string",
+                        "format": "uuid",
+                        "nullable": true
+                    },
+                    "source_type": {
+                        "type": "string"
+                    },
+                    "target_memory_id": {
+                        "type": "string",
+                        "format": "uuid",
+                        "nullable": true
+                    },
+                    "target_version": {
+                        "type": "integer",
+                        "nullable": true
+                    },
+                    "applied_memory_id": {
+                        "type": "string",
+                        "format": "uuid",
+                        "nullable": true
+                    },
+                    "applied_memory_version": {
+                        "type": "integer",
+                        "nullable": true
+                    },
+                    "changed_business_state": {
+                        "type": "boolean"
+                    },
+                    "can_undo": {
+                        "type": "boolean"
+                    },
+                    "undone_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "nullable": true
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "updated_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    }
+                },
+                "required": [
+                    "applied_memory_id",
+                    "applied_memory_version",
+                    "can_undo",
+                    "category",
+                    "changed_business_state",
+                    "confidence",
+                    "created_at",
+                    "id",
+                    "key",
+                    "operation",
+                    "policy_reason",
+                    "reason_code",
+                    "source_run_id",
+                    "source_type",
+                    "status",
+                    "target_memory_id",
+                    "target_version",
+                    "undone_at",
+                    "updated_at",
+                    "value"
+                ]
+            },
+            "MemoryProposalDecision": {
+                "type": "object",
+                "properties": {
+                    "approve": {
+                        "type": "boolean"
+                    }
+                },
+                "required": [
+                    "approve"
+                ]
+            },
             "NotificationChannelTypeEnum": {
                 "enum": [
                     "console",
@@ -7767,6 +8071,70 @@
                     "plan",
                     "reason_codes",
                     "valid"
+                ]
+            },
+            "SemanticMemory": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "category": {
+                        "type": "string"
+                    },
+                    "key": {
+                        "type": "string"
+                    },
+                    "value": {
+                        "type": "object",
+                        "additionalProperties": {}
+                    },
+                    "status": {
+                        "type": "string"
+                    },
+                    "source_type": {
+                        "type": "string"
+                    },
+                    "confidence": {
+                        "type": "number",
+                        "format": "double"
+                    },
+                    "version": {
+                        "type": "integer"
+                    },
+                    "valid_from": {
+                        "type": "string",
+                        "format": "date-time",
+                        "nullable": true
+                    },
+                    "expires_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "nullable": true
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "updated_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    }
+                },
+                "required": [
+                    "category",
+                    "confidence",
+                    "created_at",
+                    "expires_at",
+                    "id",
+                    "key",
+                    "source_type",
+                    "status",
+                    "updated_at",
+                    "valid_from",
+                    "value",
+                    "version"
                 ]
             },
             "SignalTypeEnum": {

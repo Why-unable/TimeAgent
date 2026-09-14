@@ -21,8 +21,14 @@ from apps.time_memory.decision_serializers import (
     DurationRecommendationSerializer,
 )
 from apps.time_memory.management_service import TimeMemoryManagementService
-from apps.time_memory.models import TimeMemoryRefreshState
-from apps.time_memory.serializers import TimeMemoryStatusSerializer
+from apps.time_memory.models import MemoryProposal, TimeMemoryRefreshState
+from apps.time_memory.semantic_services import SemanticMemoryService
+from apps.time_memory.serializers import (
+    MemoryProposalDecisionSerializer,
+    MemoryProposalSerializer,
+    SemanticMemorySerializer,
+    TimeMemoryStatusSerializer,
+)
 
 
 class CurrentTimeMemoryView(APIView):
@@ -116,3 +122,74 @@ class TimeMemoryPatternView(APIView):
                 user=user, store=store, pattern_id=pattern_id
             )
         return Response(status=status.HTTP_204_NO_CONTENT if removed else status.HTTP_404_NOT_FOUND)
+
+
+class SemanticMemoryListView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    @extend_schema(responses=SemanticMemorySerializer(many=True))
+    def get(self, request: Request) -> Response:
+        user = cast(User, request.user)
+        return Response(
+            SemanticMemorySerializer(
+                SemanticMemoryService.list_active(user=user),  # type: ignore[arg-type]
+                many=True,
+            ).data
+        )
+
+
+class MemoryProposalListView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    @extend_schema(responses=MemoryProposalSerializer(many=True))
+    def get(self, request: Request) -> Response:
+        user = cast(User, request.user)
+        proposals = SemanticMemoryService.list_pending_proposals(user=user)
+        return Response(MemoryProposalSerializer(proposals, many=True).data)  # type: ignore[arg-type]
+
+
+class RecentMemoryProposalListView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    @extend_schema(responses=MemoryProposalSerializer(many=True))
+    def get(self, request: Request) -> Response:
+        user = cast(User, request.user)
+        proposals = SemanticMemoryService.list_recent_direct_proposals(user=user)
+        return Response(MemoryProposalSerializer(proposals, many=True).data)  # type: ignore[arg-type]
+
+
+class MemoryProposalDecisionView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    @extend_schema(request=MemoryProposalDecisionSerializer, responses=MemoryProposalSerializer)
+    def post(self, request: Request, proposal_id: UUID) -> Response:
+        serializer = MemoryProposalDecisionSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        user = cast(User, request.user)
+        try:
+            proposal = SemanticMemoryService.decide_proposal(
+                user=user,
+                proposal_id=proposal_id,
+                approve=serializer.validated_data["approve"],
+            )
+        except MemoryProposal.DoesNotExist:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+        return Response(MemoryProposalSerializer(proposal).data)
+
+
+class MemoryProposalUndoView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    @extend_schema(request=None, responses=MemoryProposalSerializer)
+    def post(self, request: Request, proposal_id: UUID) -> Response:
+        user = cast(User, request.user)
+        try:
+            proposal = SemanticMemoryService.undo_proposal(
+                user=user,
+                proposal_id=proposal_id,
+            )
+        except MemoryProposal.DoesNotExist:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+        except ValueError as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_409_CONFLICT)
+        return Response(MemoryProposalSerializer(proposal).data)

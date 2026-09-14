@@ -33,6 +33,40 @@ class TimeMemoryRefreshStatus(models.TextChoices):
     FAILED = "failed", "Failed"
 
 
+class SemanticMemoryStatus(models.TextChoices):
+    ACTIVE = "active", "Active"
+    SUPERSEDED = "superseded", "Superseded"
+    DELETED = "deleted", "Deleted"
+
+
+class SemanticMemorySource(models.TextChoices):
+    EXPLICIT_USER = "explicit_user", "Explicit user"
+    BACKGROUND_EXTRACTION = "background_extraction", "Background extraction"
+    USER_EDIT = "user_edit", "User edit"
+
+
+class MemoryProposalStatus(models.TextChoices):
+    PENDING = "pending", "Pending"
+    APPROVED = "approved", "Approved"
+    REJECTED = "rejected", "Rejected"
+    APPLIED = "applied", "Applied"
+    EXPIRED = "expired", "Expired"
+    CONFLICTED = "conflicted", "Conflicted"
+    UNDONE = "undone", "Undone"
+
+
+class MemoryProposalOperation(models.TextChoices):
+    CREATE = "create", "Create"
+    UPDATE = "update", "Update"
+    DELETE = "delete", "Delete"
+    IGNORE = "ignore", "Ignore"
+
+
+class MemoryProposalSource(models.TextChoices):
+    BACKGROUND_EXTRACTION = "background_extraction", "Background extraction"
+    AGENT_TOOL = "agent_tool", "Agent tool"
+
+
 class ScheduleChange(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     user = models.ForeignKey(
@@ -92,6 +126,138 @@ class TimeMemoryRefreshState(models.Model):
 class TimeMemoryExclusionType(models.TextChoices):
     PLACE = "place", "Place"
     PATTERN = "pattern", "Pattern"
+
+
+class SemanticMemory(models.Model):
+    """User-declared semantic memory; PostgreSQL is the authoritative record."""
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="semantic_memories",
+    )
+    category = models.CharField(max_length=64)
+    key = models.CharField(max_length=128)
+    value = models.JSONField(default=dict)
+    status = models.CharField(
+        max_length=16,
+        choices=SemanticMemoryStatus.choices,
+        default=SemanticMemoryStatus.ACTIVE,
+    )
+    source_type = models.CharField(max_length=32, choices=SemanticMemorySource.choices)
+    source_run = models.ForeignKey(
+        "conversations.AgentRun",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="semantic_memories",
+    )
+    confidence = models.FloatField(default=0.0)
+    evidence_hash = models.CharField(max_length=64, blank=True)
+    version = models.PositiveIntegerField(default=1)
+    valid_from = models.DateTimeField(null=True, blank=True)
+    expires_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    deleted_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["user", "category", "key"],
+                condition=models.Q(status="active"),
+                name="semantic_memory_active_uniq",
+            )
+        ]
+        indexes = [
+            models.Index(fields=["user", "status", "category"], name="semantic_memory_lookup_idx"),
+            models.Index(fields=["user", "expires_at"], name="semantic_memory_expiry_idx"),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.user_id}:{self.category}:{self.key}:{self.status}"
+
+
+class MemoryProposal(models.Model):
+    """Audited, policy-reviewed proposal produced by a memory extractor."""
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="memory_proposals",
+    )
+    source_run = models.ForeignKey(
+        "conversations.AgentRun",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="memory_proposals",
+    )
+    source_type = models.CharField(
+        max_length=32,
+        choices=MemoryProposalSource.choices,
+        default=MemoryProposalSource.BACKGROUND_EXTRACTION,
+    )
+    target_memory = models.ForeignKey(
+        SemanticMemory,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="targeted_proposals",
+    )
+    target_version = models.PositiveIntegerField(null=True, blank=True)
+    applied_memory = models.ForeignKey(
+        SemanticMemory,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="applied_proposals",
+    )
+    applied_memory_version = models.PositiveIntegerField(null=True, blank=True)
+    changed_business_state = models.BooleanField(default=False)
+    operation = models.CharField(max_length=16, choices=MemoryProposalOperation.choices)
+    category = models.CharField(max_length=64)
+    key = models.CharField(max_length=128)
+    value = models.JSONField(default=dict)
+    confidence = models.FloatField(default=0.0)
+    evidence_hash = models.CharField(max_length=64, blank=True)
+    reason_code = models.CharField(max_length=64)
+    policy_reason = models.CharField(max_length=128, blank=True)
+    model_alias = models.CharField(max_length=64, blank=True)
+    schema_version = models.PositiveIntegerField(default=1)
+    idempotency_key = models.CharField(max_length=160)
+    status = models.CharField(
+        max_length=16,
+        choices=MemoryProposalStatus.choices,
+        default=MemoryProposalStatus.PENDING,
+    )
+    decided_at = models.DateTimeField(null=True, blank=True)
+    undone_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["user", "idempotency_key"],
+                name="memory_proposal_user_key_uniq",
+            )
+        ]
+        indexes = [
+            models.Index(
+                fields=["user", "status", "created_at"], name="memory_proposal_status_idx"
+            ),
+            models.Index(fields=["user", "category", "key"], name="memory_proposal_target_idx"),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.user_id}:{self.operation}:{self.category}:{self.key}:{self.status}"
+
+    @property
+    def can_undo(self) -> bool:
+        return self.status == MemoryProposalStatus.APPLIED and self.changed_business_state
 
 
 class TimeDecisionFeedbackAction(models.TextChoices):

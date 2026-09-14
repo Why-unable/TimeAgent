@@ -7,7 +7,7 @@ import json
 import logging
 from collections.abc import AsyncIterator
 from datetime import datetime
-from typing import Any
+from typing import Any, cast
 from uuid import UUID
 
 from django.conf import settings
@@ -86,7 +86,7 @@ class RedisAgentEventStream:
 
     def baseline_sync(self, *, run_id: UUID | str) -> str:
         client = _sync_client(self.url)
-        entries = client.xrevrange(stream_key(run_id), count=1)
+        entries = cast(list[tuple[str, Any]], client.xrevrange(stream_key(run_id), count=1))
         return entries[0][0] if entries else "0-0"
 
     async def read(

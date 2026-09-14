@@ -10,6 +10,9 @@ config_version: 1
 agent:
   default_model: primary
   briefing_model: primary
+  # Optional dedicated model alias for background semantic-memory extraction.
+  # Falls back to default_model when omitted.
+  # memory_extraction_model: primary
   # Tried in order after the primary model exhausts ModelRetryMiddleware.
   fallback_models: []
 

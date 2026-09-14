@@ -237,7 +237,14 @@ def _consume_stream(stream: Any, run: AgentRun) -> tuple[AppState, bool]:
             latest = cast(AppState, data)
         elif mode == "messages" and isinstance(data, tuple) and data:
             chunk = data[0]
-            if isinstance(chunk, AIMessageChunk):
+            metadata = data[1] if len(data) > 1 else None
+            # LangChain's summarization middleware invokes the model with an
+            # explicit ``lc_source`` marker. Its response is context state,
+            # not user-facing assistant output, so it must not cross the
+            # AgentEvent public-stream boundary.
+            if isinstance(chunk, AIMessageChunk) and not _is_internal_message_stream(
+                metadata, chunk
+            ):
                 text = _message_text(chunk)
                 if not text:
                     continue
@@ -253,6 +260,29 @@ def _consume_stream(stream: Any, run: AgentRun) -> tuple[AppState, bool]:
     if latest is None:
         raise RuntimeError("Time Steward stream completed without a final state")
     return latest, emitted_delta
+
+
+def _is_internal_message_stream(metadata: Any, message: AIMessageChunk | None = None) -> bool:
+    """Return whether a LangChain message stream is internal-only.
+
+    Middleware metadata can be nested by LangGraph when subgraphs are enabled.
+    We intentionally inspect only the explicit source marker, rather than
+    message text or node names, so future public model nodes remain visible
+    and internal prompt/context middleware remains hidden.
+    """
+
+    if isinstance(metadata, dict):
+        if metadata.get("lc_source") == "summarization":
+            return True
+        nested = metadata.get("metadata")
+        if isinstance(nested, dict) and nested.get("lc_source") == "summarization":
+            return True
+    if message is None:
+        return False
+    return (
+        message.additional_kwargs.get("lc_source") == "summarization"
+        or message.response_metadata.get("lc_source") == "summarization"
+    )
 
 
 def _stream_mode_data(item: Any) -> tuple[str, Any]:
