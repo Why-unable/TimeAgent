@@ -2,7 +2,9 @@
 
 ## 文档状态
 
-- 状态：M1 已实现，M2 部分实现，M3.1/M3.2/M3.3/M3.4 已实现但默认保持确认模式；待真实环境与评测验收
+- 状态：M1 已实现，M2 部分实现，M3.1/M3.2/M3.3/M3.4 已实现；代码默认保持确认模式，当前
+  Compose 运行配置已对 Agent 显式低风险记忆 Tool 开启 `enabled`，后台 LLM 推断仍关闭；真实线上
+  误写率与撤销率仍待补测
 - 行为记忆路线：已实现
 - 语义记忆路线：已实现受控提取、Policy、审批、版本化持久化和 Agent 上下文回注；默认关闭
 - 已实现可重建的 LangGraph Store 语义记忆投影任务；尚未实现专用召回检索和真实评测基线
@@ -541,8 +543,8 @@ Agent Tool：处理“记住这个 / 改成这样 / 忘掉它”等明确即时�
 
 #### M3.4：审批摩擦与分级自动接受
 
-实现状态：已实现，默认 `TIME_MEMORY_AGENT_DIRECT_APPLY_MODE=confirm`，因此当前生产配置仍保持
-二次确认。该开关还支持 `shadow` 和 `enabled`：Shadow 会以
+实现状态：已实现，代码默认 `TIME_MEMORY_AGENT_DIRECT_APPLY_MODE=confirm`；当前 Compose 运行配置
+已将 Agent Search/Write Tool 与 direct apply 设为 `enabled`。该开关还支持 `shadow`：Shadow 会以
 `shadow_direct_apply_candidate` 记录候选但继续确认；Enabled 才允许通过 Policy 的显式低风险指令
 直接应用。若 `TIME_MEMORY_AGENT_INLINE_APPROVAL_ENABLED=true`，内联 HITL 优先，直接应用模式不会
 绕过已经建立的 ActionProposal。
@@ -563,8 +565,9 @@ Agent Tool：处理“记住这个 / 改成这样 / 忘掉它”等明确即时�
 “显式指令”不能只由 Agent 是否选择了 Tool 或模型给出的 `confidence=1.0` 证明。当前服务端会校验
 本轮原始用户消息是否包含与 create/update/delete 对应的明确命令，并继续校验允许类别、当前目标
 和版本；用户、Run、Tool Call ID 和完整参数来自可信 Runtime 与 ActionProposal/ToolAudit 链路。
-当前确定性规则还不能证明每个 Tool 参数都被自然语言逐字段蕴含，因此默认保持 `confirm`；未通过
-操作意图校验时降级为 pending。启用 `enabled` 前，还需要用 Golden Set 验证参数一致性和误写率。
+当前确定性规则还不能证明每个 Tool 参数都被自然语言逐字段蕴含，因此代码默认保持 `confirm`；未通过
+操作意图校验时降级为 pending。当前运行环境按用户要求开启 `enabled`，但仍需用真实样本持续验证
+参数一致性和误写率。
 
 低风险记忆直接生效也不能扩大业务权限。记忆只是未来规划的受控输入；根据记忆创建、移动或取消
 日程时，仍必须遵循日历冲突、权限和 ActionProposal 规则。记忆授权与业务副作用授权是两件事。
@@ -587,8 +590,8 @@ Agent Tool：处理“记住这个 / 改成这样 / 忘掉它”等明确即时�
 - 最近七天直接应用记录可通过 API 查询，并在 Web 记忆设置页撤销。
 
 自动化测试覆盖直接写入、Shadow、高影响降级、否定指令、注入拒绝、三类撤销、重复撤销、后续修改
-冲突与跨用户隔离。没有评测数据前，生产配置仍应保持 `confirm` 或 `shadow`，不能仅因代码支持
-`enabled` 就宣称自动写入已通过线上验证。
+冲突与跨用户隔离。当前 Compose 已开启 `enabled`，但仅允许通过确定性显式意图与 Policy 的低风险
+Agent Tool 路径；这不等于自动化已完成线上效果验收，真实误写率、撤销率和用户中断率仍需持续观测。
 
 #### M3.5：效果评测与发布门禁
 
@@ -607,7 +610,8 @@ Agent Tool：处理“记住这个 / 改成这样 / 忘掉它”等明确即时�
 - 对全量确认和分级自动接受比较二次确认率、完成率、撤销率、误写率及用户中断率；
 - 单独核算显式指令识别的 Precision，避免用总体记忆提取准确率替代自动写入安全性。
 
-验收：代码门禁已经具备；没有真实数据前生产环境保持 `confirm` 或 `shadow`，不启用自动写入。
+验收：代码门禁和脱敏回归基线已经具备；当前运行环境按用户要求开启低风险 Agent Tool 的 `enabled`，
+后台语义提取仍关闭。真实数据门禁（参数一致性、误写率、撤销率、用户中断率）仍未完成。
 
 ## API 与界面边界
 
@@ -671,9 +675,10 @@ Agent Tool：处理“记住这个 / 改成这样 / 忘掉它”等明确即时�
 - 语义记忆污染率、召回准确率及关闭/开启对照评测；
 - 真实生产环境下的 Celery、模型调用和故障恢复验收。
 
-已实现但默认关闭的链路包括后台 LLM 受控提取，以及 Agent Search/Remember/Update/Forget
-Tool；两条路径都复用 `MemoryPolicy → MemoryProposal → SemanticMemory` PostgreSQL 权威存储，
-确认或受控直接应用后的记忆由 `TimeMemoryMiddleware` 有界注入。分级自动接受代码已实现，但
-默认 `confirm` 且尚无真实线上评测，不能描述为生产环境已开启。
+已实现但当前关闭的链路包括后台 LLM 受控提取；Agent Search/Remember/Update/Forget Tool 已在
+当前 Compose 开启，直接应用仅限显式低风险命令。两条路径都复用
+`MemoryPolicy → MemoryProposal → SemanticMemory` PostgreSQL 权威存储，确认或受控直接应用后的
+记忆由 `TimeMemoryMiddleware` 有界注入。当前不能把脱敏 Golden Set 的 100% 结果描述为真实线上
+效果指标。
 
 相关指标均需要补测，不能将对话摘要、行为 Profile 或一次性手工验证描述为语义记忆能力。
