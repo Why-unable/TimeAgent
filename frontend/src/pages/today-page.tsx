@@ -8,6 +8,10 @@ import {
   Flag,
   Ban,
   Timer,
+  MessageSquare,
+  Plus,
+  Pencil,
+  Play,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 
@@ -26,11 +30,13 @@ import {
 } from "../features/today/derive";
 import { TodayTimeline } from "../features/today/today-timeline";
 import { useCompleteTodayTask, useTodaySummary } from "../features/today/hooks";
+import { useRecordTaskExecutionSignal } from "../features/tasks/hooks";
 import {
   formatDateKey,
   formatInUserTimezone,
   formatTimeInUserTimezone,
 } from "../utils/datetime";
+import { Button, PageHeader } from "../components/ui/primitives";
 
 function TaskList({
   title,
@@ -168,32 +174,117 @@ function MobileStatsRow({
     <div className="grid grid-cols-3 gap-3 lg:hidden">
       <Link
         to="/calendar"
-        className="flex flex-col items-center rounded-2xl border border-white/10 bg-slate-900 px-3 py-4"
+        className="flex flex-col items-center rounded-xl border border-white/10 bg-slate-900 px-3 py-3"
       >
-        <span className="text-3xl font-semibold text-white">{events}</span>
+        <span className="text-2xl font-semibold text-white">{events}</span>
         <span className="mt-1 text-sm text-slate-500">日程</span>
       </Link>
       <Link
         to="/tasks"
-        className="flex flex-col items-center rounded-2xl border border-white/10 bg-slate-900 px-3 py-4"
+        className="flex flex-col items-center rounded-xl border border-white/10 bg-slate-900 px-3 py-3"
       >
-        <span className="text-3xl font-semibold text-white">{taskCount}</span>
+        <span className="text-2xl font-semibold text-white">{taskCount}</span>
         <span className="mt-1 text-sm text-slate-500">任务</span>
       </Link>
       <Link
         to="/reminders"
-        className="flex flex-col items-center rounded-2xl border border-white/10 bg-slate-900 px-3 py-4"
+        className="flex flex-col items-center rounded-xl border border-white/10 bg-slate-900 px-3 py-3"
       >
-        <span className="text-3xl font-semibold text-white">{reminderCount}</span>
+        <span className="text-2xl font-semibold text-white">{reminderCount}</span>
         <span className="mt-1 text-sm text-slate-500">提醒</span>
       </Link>
     </div>
   );
 }
 
+function MobileQuickActions() {
+  return (
+    <section className="rounded-2xl border border-white/10 bg-slate-900 p-4 lg:hidden">
+      <p className="text-sm font-medium text-slate-200">开始安排今天</p>
+      <div className="mt-3 grid grid-cols-3 gap-2">
+        <Link to="/calendar" className="flex min-h-11 items-center justify-center gap-1 rounded-xl border border-cyan-300/20 bg-cyan-300/10 px-2 text-xs font-medium text-cyan-200">
+          <Plus size={15} /> 日程
+        </Link>
+        <Link to="/tasks" className="flex min-h-11 items-center justify-center gap-1 rounded-xl border border-white/10 px-2 text-xs font-medium text-slate-300">
+          <Plus size={15} /> 任务
+        </Link>
+        <Link to="/chat" className="flex min-h-11 items-center justify-center gap-1 rounded-xl border border-white/10 px-2 text-xs font-medium text-slate-300">
+          <MessageSquare size={15} /> 询问助理
+        </Link>
+      </div>
+    </section>
+  );
+}
+
+function MobileNextAction({
+  event,
+  task,
+  timezone,
+  onComplete,
+  onStart,
+  completing,
+  starting,
+}: {
+  event: CalendarEvent | null;
+  task: Task | null;
+  timezone: string;
+  onComplete: (taskId: string) => void;
+  onStart: (taskId: string) => void;
+  completing: boolean;
+  starting: boolean;
+}) {
+  if (!event && !task) return null;
+  const taskIsActive = task?.status === "in_progress";
+  return (
+    <section className="rounded-2xl border border-teal-200 bg-teal-50 p-4 shadow-[0_12px_30px_-24px_rgba(15,118,110,0.7)] lg:hidden">
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-xs font-semibold uppercase tracking-wide text-teal-700">下一步行动</p>
+        <span className="text-xs text-teal-700/70">{event ? "日程" : "任务"}</span>
+      </div>
+      <h3 className="mt-2 truncate text-lg font-semibold text-slate-900">{event?.title ?? task?.title}</h3>
+      <p className="mt-1 text-sm text-slate-600">
+        {event
+          ? `${formatTimeInUserTimezone(event.start_at, timezone)}–${formatTimeInUserTimezone(event.end_at, timezone)}`
+          : task?.due_at
+            ? `截止 ${formatInUserTimezone(task.due_at, timezone)}`
+            : taskIsActive
+              ? "正在进行"
+              : "尚未开始"}
+      </p>
+      <div className="mt-3 flex flex-wrap gap-2">
+        {event ? (
+          <>
+            <Link to="/calendar" className="inline-flex min-h-9 items-center gap-2 rounded-lg border border-teal-200 bg-white px-3 py-2 text-xs font-medium text-teal-700 hover:border-teal-300">
+              查看日程
+            </Link>
+            <Link to="/chat" className="inline-flex min-h-9 items-center gap-1 rounded-lg px-3 py-2 text-xs font-medium text-teal-700 hover:bg-teal-100">
+              <Pencil size={14} /> 调整安排
+            </Link>
+          </>
+        ) : (
+          <>
+            {!taskIsActive && (
+              <Button size="sm" onClick={() => onStart(task!.id)} disabled={starting}>
+                <Play size={14} /> 开始
+              </Button>
+            )}
+            <Button variant="secondary" size="sm" onClick={() => onComplete(task!.id)} disabled={completing}>
+              <CheckCircle2 size={14} /> 完成
+            </Button>
+            <Link to="/tasks" className="inline-flex min-h-9 items-center gap-1 rounded-lg px-3 py-2 text-xs font-medium text-teal-700 hover:bg-teal-100">
+              <Pencil size={14} /> 调整任务
+            </Link>
+          </>
+        )}
+      </div>
+    </section>
+  );
+}
+
 export function TodayPage() {
   const summary = useTodaySummary();
   const completeTask = useCompleteTodayTask();
+  const startTask = useRecordTaskExecutionSignal();
   const insights = useTemporalInsights();
   const actOnInsight = useActOnTemporalInsight();
 
@@ -215,41 +306,49 @@ export function TodayPage() {
   const timeline = getTimeline(data);
   const taskCount = countPendingTasks(data);
   const pendingTasks = getPendingTasks(data);
+  const isEmptyDay = timeline.length === 0 && taskCount === 0 && data.pending_reminders.length === 0;
+  const nextTask = pendingTasks.find((task) => task.planned_start_at) ?? pendingTasks[0] ?? null;
   const complete = (taskId: string) => completeTask.mutate(taskId);
 
   return (
     <section className="mx-auto max-w-6xl">
       {/* Shared header (mobile: MobilePageHeader; desktop: same heading in a flex row) */}
-      <div className="flex flex-wrap items-end justify-between gap-5">
-        <div>
-          <div className="flex items-center gap-3">
-            <Clock3 className="text-cyan-300" size={30} />
-            <h2 className="text-3xl font-semibold lg:text-4xl">今天</h2>
-          </div>
-          <p className="mt-2 text-base text-slate-400">
+      <PageHeader
+        icon={<Clock3 className="text-teal-600" size={25} />}
+        title="今天"
+        description={(
+          <>
             {formatDateKey(data.date)}
             <span className="hidden lg:inline"> · {data.timezone}</span>
-          </p>
-        </div>
-        <div className="hidden gap-2 sm:gap-3 lg:flex">
-          <Link
-            to="/calendar"
-            className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-white/10 px-3 py-2 text-sm font-medium text-slate-200 hover:border-cyan-300/30 sm:px-4"
-          >
-            日历 <ArrowRight size={15} />
-          </Link>
-          <Link
-            to="/tasks"
-            className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-white/10 px-3 py-2 text-sm font-medium text-slate-200 hover:border-cyan-300/30 sm:px-4"
-          >
-            任务 <ArrowRight size={15} />
-          </Link>
-        </div>
-      </div>
+          </>
+        )}
+        actions={(
+          <div className="hidden gap-2 sm:gap-3 lg:flex">
+            <Link to="/calendar" className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-white/10 px-3 py-2 text-sm font-medium text-slate-200 hover:border-cyan-300/30 sm:px-4">
+              日程 <ArrowRight size={15} />
+            </Link>
+            <Link to="/tasks" className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-white/10 px-3 py-2 text-sm font-medium text-slate-200 hover:border-cyan-300/30 sm:px-4">
+              任务 <ArrowRight size={15} />
+            </Link>
+          </div>
+        )}
+      />
 
       {/* Mobile rhythm card */}
       <div className="mt-5 lg:hidden">
         <MobileRhythmCard data={data} timeline={timeline} taskCount={taskCount} />
+      </div>
+
+      <div className="mt-4">
+        <MobileNextAction
+          event={data.next_event}
+          task={data.next_event ? null : nextTask}
+          timezone={data.timezone}
+          onComplete={complete}
+          onStart={(taskId) => startTask.mutate({ taskId, signalType: "started" })}
+          completing={completeTask.isPending}
+          starting={startTask.isPending}
+        />
       </div>
 
       {/* Mobile stats row (own block per §7.3) */}
@@ -260,6 +359,12 @@ export function TodayPage() {
           reminderCount={data.pending_reminders.length}
         />
       </div>
+
+      {isEmptyDay && (
+        <div className="mt-4">
+          <MobileQuickActions />
+        </div>
+      )}
 
       {/* Mobile timeline */}
       <div className="mt-5 lg:hidden">

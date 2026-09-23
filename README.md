@@ -1,12 +1,14 @@
 # Time Agent
 
-## 当前阶段：Phase 10 开发与验收
+## 当前阶段：Phase 11 生产验证与质量闭环
 
-Phase 0–9 已完成。Phase 10 的账户体系、生产 Compose/Cloudflare 基线、请求关联日志、
-Prometheus 基线和 PostgreSQL 备份恢复已经落地；当前工作区正在继续完成生产安全、完整
-可观测性、发布评测与部署验收。长期时间记忆、Android 自托管更新、同用户日程写串行化、
-双坐标天气和隔离游客空间也已进入代码与本地测试，尚不能替代真实模型、外部 Provider、
-告警送达、备份恢复和 Android 安装链路的生产验收。
+Phase 0–10 已完成。Phase 10 已交付账户体系、生产 Compose/Cloudflare 基线、结构化日志、
+完整观测配置、备份恢复工具、长期时间记忆、Android 自托管更新、同用户日程写串行化、
+双坐标天气和隔离游客空间。Web 已部署；Android `1.1.8 / versionCode 12` 已生成、签名并发布。
+
+当前 Phase 11 不再扩张基础功能面，而是补齐真实外部 Provider、告警送达、隔离恢复、负载与
+安全、Android 真机、真实模型和用户效果证据，并治理 Time Steward 的 44 个注册 Tool。
+阶段边界和审查依据见 [项目状态审查（2026-09-16）](docs/product/project-status-review-2026-09-16.md)。
 
 ## 观测、备份与恢复
 
@@ -46,8 +48,8 @@ Invoke-WebRequest http://localhost:8080/health/ready
 docker compose -f docker-compose.yml -f docker-compose.prod.yml logs --tail=100 django nginx celery-worker
 ```
 
-Time Agent 是以时间为核心的个人智能事务管理系统。本仓库当前处于 **Phase 10 开发与
-验收阶段**，具备提醒闭环、结构化事务管理、每日工作台、可恢复的 Time Steward Agent、
+Time Agent 是以时间为核心的个人智能事务管理系统。本仓库当前处于 **Phase 11 生产验证与
+质量闭环阶段**，具备提醒闭环、结构化事务管理、每日工作台、可恢复的 Time Steward Agent、
 高风险操作审批、天气与新闻简报，以及持久化的 Console/Email/Web Push 通知投递体系。
 
 > Time Steward 使用 LangChain `create_agent()`、LangGraph PostgreSQL 持久化和官方 Middleware；高风险写入通过 ActionProposal/HITL 审批；Briefing Workflow 使用确定性并行 Section、受限 Editor 和结构化输出。
@@ -76,14 +78,14 @@ Time Agent 是以时间为核心的个人智能事务管理系统。本仓库当
 - 认证隔离的 CalendarEvent/Task REST API、事件版本冲突响应与任务完成端点。
 - FullCalendar 月/周/日界面、日程创建/编辑/取消，以及任务分类、分组、编辑和完成界面。
 - 按用户 IANA 时区生成的 Today 汇总 API 与每日工作台，包含时间线、任务分桶、提醒、冲突和下一日程。
-- 基于可信 Runtime Context 与 `ToolRuntime` 的 Time Steward Tool 套件，支持查询、创建、任务进度以及日程/提醒/任务的软取消，Tool 不直接访问 ORM。
+- 基于可信 Runtime Context 与 `ToolRuntime` 的 Time Steward Tool 套件；当前实际注册 44 个名称唯一的 Tool（20 个只读/控制流入口、24 个写入入口），Tool 不直接访问 ORM。
 - `create_agent()` 模型—工具循环，以及调用限制、重试、错误处理、摘要、动态 Tool Policy 和审计 Middleware。
 - 低风险任务/提醒创建与任务进度操作、只读查询、冲突检测和空闲时间搜索；高风险 Tool 通过显式策略注册。
 - Conversation、AgentRun、ToolCallAudit、Celery 后台 Agent 执行、统一 AgentEvent 与取消 API。
 - `/chat/:conversationId` 稳定会话 URL、历史会话列表与回载、新建聊天、实时 SSE 增量、断线游标续传、Tool 生命周期和错误状态展示。
 - ActionProposal PostgreSQL 领域模型、风险策略、有效期、版本控制、决定幂等和完整执行审计。
 - LangChain 官方 `HumanInTheLoopMiddleware`、LangGraph interrupt 与同一 thread 的 `Command(resume=...)` 恢复。
-- `create_event` 支持批准、编辑后批准或拒绝；`cancel_event`、`cancel_reminder`、`cancel_task` 仅支持批准或拒绝，且未经审批都不会进入 Tool/Application Service。
+- 当前 Event 写入口以 `mutate_events` 和 `create_recurring_event` 为准；高风险写入通过 ActionProposal 支持批准、必要时编辑后批准或拒绝，未经审批不会进入 Application Service。历史 `create_event`/`cancel_event` 名称仍需在 Phase 11 清理策略漂移。
 - 审批 REST API、`/approvals` 集中列表、Chat 内结构化审批卡片、冲突信息和过期/失败状态。
 - Celery Beat 自动过期审批，并以安全拒绝语义恢复暂停的 AgentRun。
 - BriefingDefinition、BriefingRun 与逐 Section 运行记录，保留配置快照、来源、警告、模型配置和最终结构化结果。
@@ -562,18 +564,27 @@ docker compose restart nginx
 
 生产 Web Push 必须使用 HTTPS；localhost 可用于开发。真实 SMTP/Web Push 测试默认不执行，只有在使用专用测试凭据并显式设置 `RUN_LIVE_NOTIFICATION_TESTS=1` 时才允许运行。
 
-## 尚未实现
+## Phase 11 与后续未完成
+
+Phase 11 的验收工作：
+
+- Google Calendar 专用沙箱的授权、撤权、限流与长期增量同步；
+- SMTP/Web Push、天气 Provider 与 Alertmanager 的真实送达证据；
+- 隔离 PostgreSQL 恢复、应用回滚、分层负载和公开入口安全演练；
+- Android `1.1.8` 真机升级、离线恢复、进程被杀和失败反馈矩阵；
+- 真实模型发布评测、44 Tool 一致性/批量排程加固及用户效果指标。
+
+不属于 Phase 11、仍需另行立项的功能：
 
 - Telegram、SMS、任意第三方收件人通知；
 - Microsoft Calendar、Google/Microsoft Webhook、自动选择额外日历和任何外部写回；Google 只读 OAuth 与有界后台轮询已实现，
-  但真实 Google 沙箱的授权、撤权、限流和长期增量同步仍待验收；
+  但真实 Google 沙箱验收属于 Phase 11；
 - 应用商店分发、Google Play In-App Updates 和自动发布流水线；
-- Phase 10 最终生产验收，包括真实模型发布评测、外部通知/天气链路、告警送达、隔离恢复演练、基础负载与安全检查；
 - Kubernetes、微服务拆分、向量数据库和复杂 RBAC。
 
 ## 规范关系与注意事项
 
-`PROJECT_SPEC.md` 描述完整后端和 Agent 架构，`FRONTEND_SPEC.md` 描述完整工作台体验。当前实现保持 PostgreSQL 权威数据、Application Service 写入、UTC 存储和 IANA 时区展示等边界。两份规范对职责边界没有实质冲突，路线图以开发指南给出的 Phase 0–10 编号统一后续交付。
+`PROJECT_SPEC.md` 描述完整后端和 Agent 架构，`FRONTEND_SPEC.md` 描述完整工作台体验。当前实现保持 PostgreSQL 权威数据、Application Service 写入、UTC 存储和 IANA 时区展示等边界。两份规范对职责边界没有实质冲突；它们保留的早期阶段编号属于历史产品分解，当前交付状态以 `ROADMAP.md` 的 Phase 0–11 为准。
 
 面向简历与面试准备的代码事实、核心贡献候选、真实量化证据和补测清单，见
 [项目经历技术底稿](docs/product/project-experience-technical-draft.md)。该文档不替代产品战略、Feature Contract 或 ADR，
@@ -583,6 +594,6 @@ development settings 允许本地调试，production settings 强制提供安全
 
 ## 下一步
 
-完成 **Phase 10 最终生产验收**：先修复所有本地检查，再在隔离环境执行真实模型发布
-评测、完整观测栈与告警送达、数据库恢复演练、Android 更新安装链路和公开入口安全检查，
-将证据记录到运维文档后再把 Phase 10 标为完成。
+执行 **Phase 11 生产验证与质量闭环**：优先完成 Tool Manifest/风险策略一致性和多任务批量
+排程加固，再补 Google/通知/告警、隔离恢复、Android 真机、分层负载与安全、真实模型发布
+评测。所有结果必须记录环境、时间、命令和脱敏证据；详见 `ROADMAP.md` 的 T092–T099。

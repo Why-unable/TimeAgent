@@ -1,8 +1,12 @@
 # Time Agent 项目架构规范
 
-> 文档版本：v0.2
-> 项目阶段：架构设计 / MVP 准备
+> 文档版本：v0.2（历史架构规范，持续作为边界参考）
+> 当前交付状态：Phase 0–10 已完成，Phase 11 进行中；以 `ROADMAP.md` 为准
 > 核心框架：Django + PostgreSQL + Celery + LangChain + LangGraph
+
+> 状态说明：本文第 31 章的“阶段 0–10”是项目早期产品能力分解，不等同于当前交付路线的
+> Phase 编号。当前阶段、完成边界和未完成项以 `ROADMAP.md` 与
+> `docs/product/project-status-review-2026-09-16.md` 为唯一状态口径。
 
 ---
 
@@ -2909,7 +2913,7 @@ PROMETHEUS_ENABLED=
 
 ---
 
-# 31. 开发阶段
+# 31. 历史开发阶段（非当前状态口径）
 
 ## 阶段 0：仓库骨架
 

@@ -69,7 +69,7 @@ Time Agent 不是一个把日历 CRUD 包在聊天框里的 Demo，而是一个�
 
 - **Model**：通过 `backend/apps/agents/model.py` 从严格校验的 `agent.yaml` 构建；当前支持 OpenAI-compatible 与 Anthropic 接口。
 - **Agent**：`build_time_steward_agent()` 必须调用 LangChain `create_agent()`；内部模型-工具循环由框架负责。
-- **Tool**：注册表 `TIME_STEWARD_TOOLS` 当前实际暴露 40 个 Tool，覆盖时间、日程、任务、提醒、规划、Decision Profile、外部日历状态、洞察和 Briefing Handoff。代码中共有 45 个 `@tool` 定义，其中部分细粒度 Event Tool 被 `mutate_events` 组合入口封装，并不直接暴露。
+- **Tool**：注册表 `TIME_STEWARD_TOOLS` 当前实际暴露 44 个名称唯一的 Tool（20 个只读/控制流入口、24 个写入入口），覆盖时间、日程、任务、提醒、规划、Decision Profile、外部日历状态、洞察、Memory 和 Briefing Handoff。代码中共有 49 个 `@tool` 定义，其中部分细粒度 Event Tool 被 `mutate_events` 组合入口封装，并不直接暴露。
 - **Backend Service**：Tool 通过 `require_actor/require_writable` 从可信 `RuntimeContext` 获取用户，再调用对应 Service；例如 `recommend_task_duration -> DecisionProfileService.recommend_duration`，`apply_local_replan -> AdaptivePlanningService`。
 - **Database**：PostgreSQL 是业务事实唯一来源；LangGraph Checkpointer 保存 Agent thread 状态，Store 保存可重建 Time Memory，它们不能替代业务表。
 - **RAG**：项目当前没有向量数据库、Embedding 检索或通用文档 RAG。Memory 是从 PostgreSQL 时间事实确定性统计、排序并在 Token 预算内注入；天气/新闻/日历是结构化 Provider/Tool 查询。简历中不应写“搭建 RAG 系统”。
@@ -165,7 +165,7 @@ Git 历史目前有 27 个提交，作者名为 `Why-unable` 或 `hugh`，但邮
 
 ### 4.1 Time Steward Agent
 
-第一层：`build_time_steward_agent()` 使用 LangChain `create_agent()`，传入 40 个注册 Tool、`TimeStewardState`、`RuntimeContext`、PostgreSQL Checkpointer/Store 和 Middleware 链。  
+第一层：`build_time_steward_agent()` 使用 LangChain `create_agent()`，传入 44 个注册 Tool、`TimeStewardState`、`RuntimeContext`、PostgreSQL Checkpointer/Store 和 Middleware 链。
 第二层：Middleware 在每次模型/工具调用周围注入动态 Prompt、Memory、HITL、调用预算、Retry/Fallback、错误转换、Tool 审计和 LLM 用量审计。模型只得到当前策略允许的 Tool，身份不从 Prompt 推断。
 
 配置默认边界来自 `backend/config/agent.example.yaml`：Graph recursion limit 50、max concurrency 4、单轮模型调用 8、Tool 调用 16、模型/Tool 重试各 2；24 条消息触发摘要并保留 12 条。它们是配置默认值，不代表性能指标。
@@ -293,8 +293,8 @@ Celery polling 按连接状态与 `next_sync_not_before` 选有界批次，临�
 - **现象**：App 显示 1.1.6 可下载，但系统安装界面仍显示 1.1.5。
 - **定位**：核对本地与公网 APK 的 manifest、size、SHA-256 和 signer，均确认是 1.1.6；旧更新器每次都使用同一 FileProvider URI。
 - **根因**：最符合证据的解释是 OEM 安装器按固定 content URI 缓存旧包元数据；由于无设备日志，这一点仍是推断。
-- **方案**：1.1.7 使用 `versionCode + hash prefix` 唯一文件名，清理旧文件、禁用 HTTP cache，并新增 versionName 校验。
-- **结果**：1.1.7/11 已构建、签名、zipalign、发布并公网回下载校验；真机升级链路仍为 `NOT VERIFIED`。
+- **方案**：1.1.8 使用 `versionCode + hash prefix` 唯一文件名，清理旧文件、禁用 HTTP cache，并校验 versionName。
+- **结果**：1.1.8/12 已构建、兼容签名、发布并公网回下载校验；真机升级链路仍为 `NOT VERIFIED`。
 
 ### 6.6 Planner 的“可行”与“看似最优”
 
@@ -310,7 +310,7 @@ Celery polling 按连接状态与 `next_sync_not_before` 选有界批次，临�
 | --- | --- | --- |
 | Planning | 已实现，受限 | Agent 调用确定性规划 Service 生成/比较/验证/锁定/放弃草案；不让模型计算时间或宣称全局最优 |
 | Routing | 已实现 | `route_trigger` + Outer Graph 区分 user message、reminder、briefing、calendar sync、resume 等触发 |
-| Tool Use | 已实现 | 40 个注册 Tool；动态暴露、Schema 校验、Service 边界、调用审计 |
+| Tool Use | 已实现 | 44 个注册 Tool；动态暴露、Schema 校验、Service 边界、调用审计 |
 | Context | 已实现 | RuntimeContext 注入 actor、timezone、locale、request/run ID 和显式时间锚点 |
 | Short-term Memory | 已实现 | PostgreSQL Checkpointer 保存 thread/messages/interrupt，可跨进程恢复 |
 | Long-term Memory | 已实现 | PostgreSQL 事实 -> 统计画像 -> LangGraph Store -> 按意图和 Token 预算注入；可关闭/清空/排除 |
@@ -371,7 +371,7 @@ Celery polling 按连接状态与 `next_sync_not_before` 选有界批次，临�
 
 | 数据 | 数值 | 限定与证据 |
 | --- | ---: | --- |
-| Time Steward 注册 Tool | 40 | `backend/apps/agents/tools/__init__.py` 各分组实际合计；不是 45 个 decorator 数 |
+| Time Steward 注册 Tool | 44 | `backend/apps/agents/tools/__init__.py` 各分组实际合计；不是 49 个 decorator 数 |
 | Briefing 只读 research Tool | 5 | calendar/task/weather/news/source catalog，`briefings/tools.py` |
 | Agent 固定 Eval | 13 cases / 14 turns | `backend/tests/fixtures/time_steward_eval.json` |
 | Agent 配置上限 | model 8、tool 16、recursion 50、concurrency 4 | 默认配置，不是吞吐实测 |
@@ -381,7 +381,7 @@ Celery polling 按连接状态与 `next_sync_not_before` 选有界批次，临�
 | 真实后端 E2E | 1 passed | 隔离 PostgreSQL/Redis/Uvicorn/Vite，不是生产流量 |
 | 规划合成集 | 4 cases / 11 tasks | baseline 7 项 vs candidate 8 项，只能解释合成反例 |
 | 局部重排合成集 | 1 case | 1 项/60m vs 3 项/480m，只能说明 benchmark 可运行 |
-| Android release | 1.1.7 / code 11 / 4,165,146 bytes | SHA-256、签名、zipalign、公网回下载已核验；真机未验收 |
+| Android release | 1.1.8 / code 12 / 4,175,871 bytes | SHA-256、兼容签名、公网回下载已核验；真机未验收 |
 | 默认审批 TTL | 24 h | `ACTION_PROPOSAL_TTL_SECONDS` 默认值，配置值不是业务效果 |
 | Memory 窗口/预算 | 7/30/180 days，800 tokens | 算法/配置参数，不是效果数据 |
 
@@ -436,8 +436,8 @@ Celery polling 按连接状态与 `next_sync_not_before` 选有界批次，临�
 4. **外部日历事实仍不完整**：Google 尚未真沙箱验收，Microsoft/Webhook 未做，ICS 私有 URL 仍为明文连接标识；应优先补 Provider 安全和同步新鲜度。
 5. **主动能力缺线上 guardrail**：策略代码存在，但真实渠道 action/dismiss/false-positive 窗口未跑，不能证明“克制”。
 6. **Android 运行证据不足**：构建和下载链成立，真机上的升级、后台、离线动作和 OEM 差异仍需验证。
-7. **Phase 10 尚未完成**：完整观测栈、告警送达、恢复演练、基础负载和真实模型发布评测仍是外部/运行验收项。
-8. **当前工作区改动过大且未提交**：Phase A-E 与 1.1.7 横跨大量文件；应按领域拆分提交/PR，补变更说明，降低回滚和归属风险。
+7. **Phase 10 工程基线已完成，Phase 11 实证未完成**：告警送达、恢复演练、基础负载、Android 真机和真实模型发布评测仍是外部/运行验收项，不能写成已验证。
+8. **当前工作区改动过大且未提交**：多领域变更与 1.1.8 发布资料横跨大量文件；应按领域拆分提交/PR，补变更说明，降低回滚和归属风险。
 9. **旧规范存在阶段口径差异**：`PROJECT_SPEC.md` 仍带“架构设计/MVP 准备”表述，README/战略文档更接近当前事实；后续应更新规范版本但不能覆盖 ADR。
 10. **没有 RAG 也不需要急于添加**：当前产品瓶颈是时间事实、评测和 Provider，不是文档召回；只有出现真实知识检索场景再引入向量能力。
 
@@ -448,7 +448,7 @@ Celery polling 按连接状态与 `next_sync_not_before` 选有界批次，临�
 3. PostgreSQL、LangGraph Checkpointer、LangGraph Store、Conversation 分别保存什么？为什么不能合并？
 4. 一条“明天下午三点创建会议”的请求，时间锚点如何确定？排队两分钟后执行会不会漂移？
 5. DST 不存在时间和歧义时间如何处理？为什么只存 UTC 还不够？
-6. 40 个 Tool 会不会让模型选择困难？为什么把多个 Event 写操作收敛到 `mutate_events`？
+6. 44 个 Tool 会不会让模型选择困难？为什么把多个 Event 写操作收敛到 `mutate_events`？
 7. Tool 为什么不能直接调用 ORM？Service 层除了代码整洁还解决了哪些一致性问题？
 8. 哪些操作需要 HITL？为什么不能只在前端弹确认框？
 9. ActionProposal 批准接口重复提交、Proposal 过期、Worker 重复接管时如何保证不重复执行？
@@ -483,11 +483,11 @@ Celery polling 按连接状态与 `next_sync_not_before` 选有界批次，临�
 
 以下是“有证据的成果表达方向”，不是最终简历句子：
 
-1. 设计并落地 Time Steward Agent，实际注册 40 个业务 Tool，通过 Application Service、动态风险策略和 HITL 审批接入日程/任务/提醒/规划等真实数据。
+1. 设计并落地 Time Steward Agent，实际注册 44 个业务 Tool，通过 Application Service、动态风险策略和 HITL 审批接入日程/任务/提醒/规划等真实数据。
 2. 建立 PostgreSQL 持久化的 AgentRun/Tool Audit/ActionProposal 与 SSE 断线恢复链路，覆盖审批、过期、取消、失败和进程恢复场景。
 3. 实现确定性 Planner v2 与受控局部重排，在固定 4 case/11 task 合成集上保持 0 硬约束违反，并保留 baseline、未安排原因与应用前重验；不得外推为真实收益。
 4. 构建任务执行信号、Decision Profile、容量风险和反馈闭环，支持按时间留出评测 MAE 与置信度校准；真实效果数据待采集。
-5. 完成 Compose/ASGI/Celery/Nginx/Prometheus/Loki 与 Web/Capacitor Android 发布链路；1.1.7 APK 已通过 manifest/hash/signature/zipalign/公网回下载验证，真机验收待补。
+5. 完成 Compose/ASGI/Celery/Nginx/Prometheus/Loki 与 Web/Capacitor Android 发布链路；1.1.8 APK 已通过 manifest/hash/signature/公网回下载验证，真机验收待补。
 
 ### 13.3 最值得面试重点讲的 3 个技术难点
 

@@ -12,7 +12,7 @@ export function MobileSectionHeader({
 }) {
   return (
     <div className="flex items-center justify-between gap-3">
-      <h3 className="flex items-center gap-2 text-lg font-semibold text-white">
+      <h3 className="flex items-center gap-2 text-base font-semibold text-white">
         {icon}
         {title}
       </h3>

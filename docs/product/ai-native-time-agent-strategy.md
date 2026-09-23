@@ -2,7 +2,7 @@
 
 > 状态：产品与技术方向底稿，尚未代表已实现能力
 >
-> 更新日期：2026-08-23
+> 更新日期：2026-09-16
 >
 > 适用范围：产品定位、智能能力边界、未来架构和分阶段实施优先级
 
@@ -13,8 +13,8 @@
 
 文档关系如下：
 
-- 当前已交付 Phase 0 至 Phase 10 的范围和状态，仍以根目录 [ROADMAP.md](../../ROADMAP.md)
-  为准；本文不重写历史交付记录。
+- 当前 Phase 0 至 Phase 10 已完成、Phase 11 正在进行，范围和状态仍以根目录
+  [ROADMAP.md](../../ROADMAP.md) 为准；本文不重写历史交付记录。
 - 当前系统行为以 [PROJECT_SPEC.md](../../PROJECT_SPEC.md)、`docs/architecture/` 和
   `docs/decisions/` 为准；本文中的目标架构不能覆盖已采纳 ADR。
 - 每日收尾、主动洞察、规划智能和自适应重排均直接以本文的阶段路线和边界为准；不再维护单独的
@@ -152,33 +152,25 @@ React Chat Page
 4. 对高风险写入给出可审阅提案；
 5. 读取派生的长期行为摘要，改善对话上下文。
 
-它目前还不是持续运行的个人时间决策系统：
-
-- 没有目标到时间分配的模型；
-- 没有可靠的计划与实际执行差异数据；
-- Memory 主要进入 Prompt，没有作为类型化特征参与排程、提醒或重排决策；
-- `PlanningService.propose_schedule_plan()` 按任务 ID 顺序做简单贪心分配，不使用优先级、截止时间、
-  精力、个体估时误差或计划稳定性评分；
-- 没有常驻的风险检测、介入候选、注意力策略和反馈学习；
-- 主动能力主要是固定时间简报和提醒，而不是“发现值得打扰的变化”。
-
-因此，当前系统更准确的定义是：**具备可靠业务边界的时间管理 Agent 基础设施与对话式操作层**。
-下一阶段要建设的是决策层和学习闭环，而不是把 LLM 放进更多链路。
+当前代码已经补入 Task 执行信号、Decision Profile、Planner v2、Temporal Insight 和受控局部重排，
+不再只是对话式 CRUD；但它仍缺少真实用户样本、长期校准、计划质量对照和通知价值证据。
+因此更准确的定义是：**已具备受控时间决策闭环的工程实现，但产品效果尚待 Phase 11 实证**。
+下一阶段重点是验证和校准现有闭环，而不是继续增加 Agent 或机械扩张 Tool 数量。
 
 ### 3.6 当前智能能力矩阵
 
 | 能力 | 当前实现事实 | 判断 |
 | --- | --- | --- |
 | Context Engineering | `RuntimeContext` 注入用户、时区、locale、显式当前时间、触发类型、只读模式和规划偏好；Tool 输出视为不可信数据 | 较强基础 |
-| Tool Use | Time Steward 当前注册 25 个时间、事件、任务、提醒、规划和 Handoff Tool，统一经过 Service 与 Policy | 较强基础 |
+| Tool Use | Time Steward 当前注册 44 个名称唯一的 Tool，覆盖时间、事件、任务、提醒、规划、决策画像、洞察、Memory 和 Handoff，统一经过 Service 与 Policy | 能力完整；选择成本待治理 |
 | Reasoning | `create_agent()` 在有限轮次内做自然语言理解和多步 Tool Calling，支持模型 fallback | 已有，但主要是请求内推理 |
-| Planning | 有空闲时间搜索、`SchedulePlan` 草案与事务应用，但 proposal 只是顺序贪心 | 基础可用，决策质量弱 |
-| Memory | 7/30/180 天确定性行为窗口、稳定模式、衰减、排除和 Token 预算注入 | 描述性较强，决策连接弱 |
+| Planning | Planner v2 支持草案、比较、锁定、验证、事务应用、容量建议和受控局部重排 | 工程闭环已实现；真实效果待验证 |
+| Memory | 确定性画像与受控语义偏好并存，具备同意、更新、忘记、衰减、排除和 Token 预算 | 已接入 Agent；收益与误记率待验证 |
 | Routing/Workflow | 外层 LangGraph 对五类 trigger 确定性路由，支持 Briefing Handoff、interrupt/resume | 边界清楚 |
 | Retry/Fallback | 模型、Tool、Briefing repair、Provider 和通知各有有界失败处理 | 已有工程基础 |
 | Reflection | 没有独立 Reflection Agent，也没有基于结果的自动自我修正循环 | 尚不存在，且不应先造 Agent |
-| Proactivity | 固定提醒、定时 Briefing 和 Memory 重建；没有风险检测与注意力决策 | 调度主动，决策不主动 |
-| Evaluation | 单元/集成/E2E、真实模型 trajectory eval、指标和审计 | 工程评测已有，产品效果评测缺失 |
+| Proactivity | 固定提醒、定时 Briefing、Temporal Insight 收件箱、安静时间/配额/冷却与确定性晚报 | 受控主动已实现；线上 guardrail 待验证 |
+| Evaluation | 单元/集成/E2E、真实模型 trajectory eval、指标和审计 | 工程评测已有；发布门禁和产品效果评测待 Phase 11 |
 
 Tool 数量证据来自 `backend/apps/agents/tools/__init__.py` 及各 Tool 模块末尾的注册清单；触发类型来自
 `backend/apps/agents/triggers.py::TriggerType`。数量只是当前契约事实，不代表智能水平。
@@ -1150,7 +1142,7 @@ NEXT RECOMMENDED STEP: ...
 |---|---|---|
 | Feature Contract 文档 | 已补充 [Phase A-E Feature Contracts](feature-contracts-phase-a-e.md)，覆盖执行证据、Google OAuth 只读同步、规划、洞察和局部重排的输入/边界/失败/验收 | 后续新增 Microsoft、Webhook 或外部写回时继续拆分独立 contract |
 | E2E 验收 | fixture 场景之外，`real-backend.spec.ts` 已在一次性 PostgreSQL 17、Redis 7、当前源码 Uvicorn 与 Vite 上完成登录、任务执行、估时反馈、计划应用、洞察关闭、局部重排和撤销，全程未注册 API route mock | 将同一显式 opt-in 用例接入 release gate，并保存失败时 trace；生产拓扑与真实 Google OAuth 沙箱仍另行验收 |
-| Android 通知动作 | 已接入任务提醒 action type、开始/跳过 API 调用和任务页深链；`1.1.7 / 11` release APK 已通过 `testDebugUnitTest`、`lintDebug`、签名、zipalign 和公网回下载完整性验证并正式发布；更新器同时校验版本 code/name，并以版本与哈希生成唯一安装 URI；ADB 未发现已连接设备，因此仍缺 native 运行证据 | 在 Android 真机/模拟器上验证升级、进程被杀、重复点击、离线恢复和失败反馈 |
+| Android 通知动作 | 已接入任务提醒 action type、开始/跳过 API 调用和任务页深链；当前 `1.1.8 / 12` release APK 已使用兼容签名发布并通过公网回下载完整性验证；更新器同时校验版本 code/name，并以版本与哈希生成唯一安装 URI；仍缺完整 native 真机矩阵 | 在 Android 真机/模拟器上验证升级、进程被杀、重复点击、离线恢复和失败反馈 |
 | 外部 Provider | Google 只读 OAuth、独立加密/轮换、分页、增量游标、410 对账、tombstone、多日历身份、有界 Celery 轮询、错误脱敏和 Web 控制已实现并有 fake-transport/API/migration tests；`verify_google_calendar` 可输出不含账号、calendar ID、URL、游标或 Token 的版本化报告并在失败时返回非零；未使用 Google 沙箱实际授权、撤权或长时间增量同步 | 用专用 Google 沙箱账号执行首次授权、分页、更新、删除、410、429/撤权并分别保存脱敏报告；Microsoft、Webhook 和写回另立 Feature Contract |
 | 计划/实际完整对比 | 执行摘要 API/UI 已显示计划 block、估时与实际投入偏差，并对无证据状态降级；尚未证明这些数据驱动的 planner 改进优于 baseline | 收集真实样本并运行时序留出 benchmark，评测算法改进 |
 | AI Eval / Decision Trace | Phase A 新增部分是确定性基础设施，未引入新的 LLM capability；现有 Time Steward eval 未因这些基础字段改变而扩展 | 在 Planning/Insight Agent 开始前补固定 dataset、reason codes、policy/validation trace 和 regression cases |
@@ -1159,7 +1151,7 @@ NEXT RECOMMENDED STEP: ...
 
 ### 2026-08-24 本机评测记录
 
-- 默认 SQLite 与全新一次性 PostgreSQL 17 的后端全量回归均为 `474 passed, 3 skipped`；PostgreSQL 验收先在空库执行全部 Django migration 和 `setup_langgraph`，再由 pytest 创建独立测试库运行当前全套用例，结束后删除容器，全程未连接生产数据库。前端 Vitest 为 26 个文件、`107 passed`，当前 fixture Playwright 为 `27 passed, 1 skipped`；隔离真实后端 Phase A-E 用例以当前源码单独为 `1 passed`。Ruff、严格 mypy（379 个源文件）、ESLint、Django security/system check、migration drift、OpenAPI 类型生成和生产构建通过；当前只读挂载项目配置的 `time-agent-nginx-1` 也已通过真实 `nginx -t`。`1.1.7 / 11` 已部署到当前生产 Compose，生产 migration plan 为空，公网 APK 回下载的 manifest、大小、SHA-256 与签名复核通过。
+- 2026-08-24 的历史验收中，默认 SQLite 与全新一次性 PostgreSQL 17 的后端全量回归均为 `474 passed, 3 skipped`；PostgreSQL 验收先在空库执行全部 Django migration 和 `setup_langgraph`，再由 pytest 创建独立测试库运行当时全套用例，结束后删除容器，全程未连接生产数据库。当时前端 Vitest 为 26 个文件、`107 passed`，fixture Playwright 为 `27 passed, 1 skipped`；隔离真实后端 Phase A-E 用例为 `1 passed`。Ruff、严格 mypy（379 个源文件）、ESLint、Django security/system check、migration drift、OpenAPI 类型生成和生产构建通过；只读挂载项目配置的 `time-agent-nginx-1` 也通过真实 `nginx -t`。当前 Android 发布基线已更新为 `1.1.8 / 12`，公网 APK 的 manifest、大小、SHA-256 与签名已复核；上述测试数字是历史记录，不代表本次文档审查重新执行了全套测试。
 - `python manage.py benchmark_planning`：固定 4 个 case、11 个任务；first-fit baseline 安排 7 个任务、390 分钟，placement ratio `0.6364`；longest-first best-fit candidate 安排 8 个任务、480 分钟，placement ratio `0.7273`。差异来自新增的固定“长短槽错配”反例，只证明候选算法在该合成 case 上避免了短任务占用唯一长槽，不能作为线上 planner v2 的产品收益。
 - 两个规划算法在固定 4 个 case 中报告的硬约束违反数均为 `0`；这是合成输入下的实现回归证据，不是实际日历的违反率。
 - `python manage.py benchmark_adaptive_planning`：固定 1 个变化场景；受限局部重排移动 1 项、总位移 60 分钟，full-compaction baseline 移动 3 项、总位移 480 分钟；两者 deadline/overlap 违反数均为 `0`。该差异只验证稳定性指标和对照工具可运行，不能作为真实用户收益。

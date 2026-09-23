@@ -1,13 +1,16 @@
 # Time Steward Tool Catalog v2
 
-> 实现状态更新（2026-07-24）：本文件前面的内容保留了设计演进记录；当前实际暴露给
+> 实现状态更新（2026-09-16）：本文件主体保留设计演进记录；当前实际暴露给
 > Time Steward 的日程写入口为 `mutate_events(operations)` 和
 > `create_recurring_event(...)`。`mutate_events` 的每个 `operations` 成员使用
 > `action: "create" | "update" | "cancel" | "link_task"`，并可以一次承载多个相关
 > 日程变更；它只产生一张 ActionProposal。单项的 `create_event`、`update_event`、
 > `cancel_event`、`create_event_batch` 和 `set_event_task_link` 仍保留为内部兼容实现，
 > 但不再注册给模型。任务和提醒仍保留细粒度工具，以维持低风险创建/推进与高风险撤销的
-> 不同审批策略。当前 Time Steward 可见工具总数为 25。
+> 不同审批策略。当前 `TIME_STEWARD_TOOLS` 注册 44 个名称唯一的 Tool（20 个只读/控制流
+> 入口、24 个写入入口）；准确清单和后续治理见
+> [`docs/toolset-optimization/README.md`](../toolset-optimization/README.md)。本文后续的“新增/演进”
+> 签名是历史设计提案，不能当作当前注册表。
 
 - 状态：设计提案
 - 日期：2026-07-24

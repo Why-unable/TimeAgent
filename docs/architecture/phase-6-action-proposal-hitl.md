@@ -1,5 +1,10 @@
 # Phase 6：ActionProposal 与 HITL
 
+> 当前状态说明（2026-09-16）：Phase 6 已完成。本文保留最初验收设计；当前 Event 模型可见
+> 写入口已经收敛为 `mutate_events` 与 `create_recurring_event`。风险策略中仍存在未注册的
+> `create_event`、`create_event_batch`、`update_event`、`cancel_event` 旧名称，已列入 Phase 11
+> 的 Tool Manifest/策略一致性治理，不能再把这些旧名称描述为当前模型可见入口。
+
 ## 目标
 
 Phase 6 为高风险 Agent 写操作建立“提出 → 展示 → 决定 → 恢复 → 执行 → 审计”闭环。未经有效审批的操作不会进入 Tool Handler，因此不能修改 CalendarEvent 等业务事实。
@@ -10,19 +15,22 @@ Phase 6 为高风险 Agent 写操作建立“提出 → 展示 → 决定 → �
 
 | Tool | 风险 | 决策 | 行为 |
 | --- | --- | --- | --- |
-| `create_event` | high | approve / edit / reject | 正式日程在审批后才创建 |
-| `cancel_event` | high | approve / reject | 审批后将日程状态转换为 cancelled，不物理删除 |
+| `mutate_events` | high | approve / edit / reject | 原子创建、修改、取消或关联日程，审批后执行 |
+| `create_recurring_event` | high | approve / edit / reject | 有限重复日程在审批后创建 |
+| `create_task_batch` | high | approve / edit / reject | 批量任务在审批后原子创建 |
+| `apply_schedule_plan` / `apply_local_replan` | high | approve / reject | 批量应用计划或受控局部重排 |
 | `cancel_reminder` | high | approve / reject | 审批后取消尚可撤销的提醒 |
 | `cancel_task` | high | approve / reject | 审批后将活动任务转换为 cancelled，不物理删除 |
+| `remember/update/forget_time_preference` | high | approve / reject | 长期偏好变更在审批后生效 |
 | 查询 Tool | read | 无审批 | 直接执行 |
-| 创建任务、完成/重排任务、创建提醒 | low | 无审批 | 执行后审计并告知用户 |
+| 其他低风险写入 Tool | low | 无审批 | 经 Service 执行后审计并告知用户 |
 
-撤销 Tool 必须先通过查询唯一确定当前用户拥有的目标。撤销审批不允许 edit，避免审批时把目标 ID 改成另一个对象。物理删除、日程修改、批量操作和外部写入仍未开放。
+撤销 Tool 必须先通过查询唯一确定当前用户拥有的目标。撤销审批不允许 edit，避免审批时把目标 ID 改成另一个对象。物理删除和外部写入仍未开放；日程修改和部分批量操作已通过组合 Tool、版本保护、事务与 HITL 开放。
 
 ## 执行序列
 
 ```text
-模型产生高风险 Tool Call（create_event 或 cancel_*）
+模型产生当前注册的高风险 Tool Call
   → HumanInTheLoopMiddleware.after_model
   → LangGraph interrupt + PostgreSQL checkpoint
   → ActionProposal(awaiting_approval) + approval.required SSE

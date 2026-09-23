@@ -9,6 +9,19 @@ vi.mock("../src/features/preferences/hooks", () => ({
   useCurrentUserPreference: () => ({ data: { timezone: "Asia/Shanghai" } }),
 }));
 
+vi.mock("../src/features/today/hooks", () => ({
+  useTodaySummary: () => ({
+    data: {
+      events: [],
+      planned_tasks: [],
+      due_tasks: [],
+      overdue_tasks: [],
+      pending_reminders: [],
+      conflicts: [],
+    },
+  }),
+}));
+
 const conversation = {
   id: "11111111-1111-4111-8111-111111111111",
   title: "",
@@ -75,6 +88,7 @@ describe("ChatPage", () => {
     renderChatPage();
     const empty = await screen.findByRole("heading", { name: "今天需要我帮你安排什么？" });
     expect(empty).toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "今日上下文" })).toHaveTextContent("0 个日程");
     await userEvent.click(screen.getByRole("button", { name: "查询日程" }));
     const composer = screen.getByLabelText("消息") as HTMLTextAreaElement;
     expect(composer.value).toContain("查询");
@@ -127,6 +141,7 @@ describe("ChatPage", () => {
     expect(screen.getAllByLabelText("工具调用记录")).toHaveLength(1);
     expect(screen.getAllByText("已完成")).toHaveLength(2);
     const toolPanel = screen.getByLabelText("工具调用记录");
+    expect(toolPanel.querySelector("details")?.open).toBe(false);
     const assistantAnswer = screen.getByText("你今天没有安排。");
     expect(
       toolPanel.compareDocumentPosition(assistantAnswer)

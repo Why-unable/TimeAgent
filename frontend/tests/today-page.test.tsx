@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it, vi } from "vitest";
@@ -128,6 +128,30 @@ function renderPage() {
 }
 
 describe("TodayPage", () => {
+  it("offers quick actions when the day is empty", async () => {
+    const emptySummary = {
+      ...summary,
+      events: [],
+      planned_tasks: [],
+      due_tasks: [],
+      overdue_tasks: [],
+      pending_reminders: [],
+      conflicts: [],
+      next_event: null,
+      minutes_until_next_event: null,
+    };
+    vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify(emptySummary))));
+
+    renderPage();
+
+    const actions = (await screen.findByText("开始安排今天")).closest("section");
+    expect(actions).not.toBeNull();
+    const scoped = within(actions as HTMLElement);
+    expect(scoped.getByRole("link", { name: /日程/ })).toHaveAttribute("href", "/calendar");
+    expect(scoped.getByRole("link", { name: /任务/ })).toHaveAttribute("href", "/tasks");
+    expect(scoped.getByRole("link", { name: /询问助理/ })).toHaveAttribute("href", "/chat");
+  });
+
   it("renders the backend summary without recomputing its business buckets", async () => {
     vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify(summary))));
 
@@ -143,6 +167,45 @@ describe("TodayPage", () => {
     expect(screen.getByText("1 小时后")).toBeInTheDocument();
     expect(screen.getByText("项目会议 与 计划写作")).toBeInTheDocument();
     expect(screen.getByText("Asia/Shanghai", { exact: false })).toBeInTheDocument();
+    expect(screen.getByText("下一步行动")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "查看日程" })).toHaveAttribute("href", "/calendar");
+    expect(screen.getByRole("link", { name: /调整安排/ })).toHaveAttribute("href", "/chat");
+  });
+
+  it("offers start, complete, and adjust actions for the next task", async () => {
+    let signalUrl = "";
+    const taskSummary = {
+      ...summary,
+      events: [],
+      planned_tasks: [baseTask],
+      due_tasks: [],
+      overdue_tasks: [],
+      pending_reminders: [],
+      conflicts: [],
+      next_event: null,
+      minutes_until_next_event: null,
+    };
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+        const url = String(input);
+        if (init?.method === "POST") {
+          signalUrl = url;
+          return new Response(JSON.stringify({ task: baseTask, signal_type: "started" }));
+        }
+        return new Response(JSON.stringify(taskSummary));
+      }),
+    );
+
+    renderPage();
+
+    expect(await screen.findByText("下一步行动")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /开始/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /^完成$/ })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /调整任务/ })).toHaveAttribute("href", "/tasks");
+
+    await userEvent.click(screen.getByRole("button", { name: /开始/ }));
+    await waitFor(() => expect(signalUrl).toContain(`/tasks/${baseTask.id}/execution-signals/`));
   });
 
   it("completes a task and refreshes the Today summary", async () => {

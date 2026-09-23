@@ -3,6 +3,7 @@ import {
   CircleCheck,
   CirclePlus,
   Clock,
+  Filter,
   ListTodo,
   Pause,
   Pencil,
@@ -32,6 +33,7 @@ import { TaskEmptyState } from "../features/tasks/task-empty-state";
 import { ScheduleWorkspaceTabs } from "../features/workspace/schedule-workspace-tabs";
 import { formatInUserTimezone } from "../utils/datetime";
 import { isNativePlatform } from "../platform";
+import { Button, PageHeader } from "../components/ui/primitives";
 
 const primaryFilters: { id: TaskFilter; label: string }[] = [
   { id: "inbox", label: "Inbox" },
@@ -108,35 +110,27 @@ export function TasksPage() {
   return (
     <section className="mx-auto max-w-6xl">
       <ScheduleWorkspaceTabs />
-      <div className="mt-4 flex flex-col gap-4 lg:mt-2 lg:flex-row lg:flex-wrap lg:items-end lg:justify-between">
-        <div className="hidden lg:block">
-          <div className="mt-2 flex items-center gap-3">
-            <ListTodo className="text-cyan-300" size={31} />
-            <h2 className="text-4xl font-semibold">任务</h2>
-          </div>
-          <p className="mt-4 text-lg text-slate-400">明确区分截止时间与计划执行区间。</p>
-        </div>
-        <p className="text-base text-slate-400 lg:hidden">明确区分截止时间与计划执行区间。</p>
-        {/* Mobile-only heading for tests/accessibility (visually hidden) */}
-        <h2 className="sr-only lg:hidden">任务</h2>
-        <button
-          type="button"
-          onClick={() => setCreating(true)}
-          className="inline-flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl bg-cyan-300 px-6 py-3 text-lg font-semibold text-slate-950 lg:w-auto"
-        >
-          <CirclePlus size={19} />
-          新建任务
-        </button>
-      </div>
+      <PageHeader
+        className="mt-4 lg:mt-7"
+        icon={<ListTodo className="text-teal-600" size={25} />}
+        title="任务"
+        description="明确区分截止时间与计划执行区间。"
+        actions={(
+          <Button onClick={() => setCreating(true)} size="lg" className="w-full font-semibold lg:w-auto">
+            <CirclePlus size={19} />
+            新建任务
+          </Button>
+        )}
+      />
 
-      <div className="mt-6" aria-label="任务筛选">
-        <div className="flex gap-3 overflow-x-auto pb-2">
+      <div className="mt-5" aria-label="任务筛选">
+        <div className="flex gap-2 overflow-x-auto pb-1">
           {primaryFilters.map((item) => (
             <button
               type="button"
               key={item.id}
               onClick={() => setFilter(item.id)}
-              className={`min-h-12 shrink-0 rounded-full px-5 py-3 text-base transition ${
+              className={`min-h-10 shrink-0 rounded-full px-4 py-2 text-sm transition ${
                 filter === item.id
                   ? "bg-cyan-300 text-slate-950"
                   : "border border-white/10 bg-slate-900 text-slate-300 hover:border-cyan-300/30"
@@ -146,22 +140,33 @@ export function TasksPage() {
             </button>
           ))}
         </div>
-        <div className="mt-2 flex gap-3 overflow-x-auto pb-2">
-          {overflowFilters.map((item) => (
-            <button
-              type="button"
-              key={item.id}
-              onClick={() => setFilter(item.id)}
-              className={`min-h-12 shrink-0 rounded-full px-4 py-2 text-sm transition ${
-                filter === item.id
-                  ? "bg-cyan-300 text-slate-950"
-                  : "border border-white/10 bg-slate-900 text-slate-400 hover:border-cyan-300/30"
-              }`}
-            >
-              {item.label}
-            </button>
-          ))}
-        </div>
+        <details className="mt-1">
+          <summary className="inline-flex min-h-10 cursor-pointer list-none items-center gap-2 rounded-full border border-white/10 px-3 py-2 text-xs font-medium text-slate-400 transition hover:border-cyan-300/30 hover:text-cyan-200">
+            <Filter size={14} />
+            更多筛选
+            {overflowFilters.some((item) => item.id === filter) && (
+              <span className="rounded-full bg-cyan-300/15 px-2 py-0.5 text-cyan-200">
+                {overflowFilters.find((item) => item.id === filter)?.label}
+              </span>
+            )}
+          </summary>
+          <div className="mt-2 flex flex-wrap gap-2 rounded-2xl border border-white/10 bg-slate-900/70 p-3">
+            {overflowFilters.map((item) => (
+              <button
+                type="button"
+                key={item.id}
+                onClick={() => setFilter(item.id)}
+                className={`min-h-10 rounded-full px-3 py-2 text-xs transition ${
+                  filter === item.id
+                    ? "bg-cyan-300 text-slate-950"
+                    : "border border-white/10 bg-slate-900 text-slate-400 hover:border-cyan-300/30"
+                }`}
+              >
+                {item.label}
+              </button>
+            ))}
+          </div>
+        </details>
       </div>
 
       {tasks.isPending && <p className="mt-8 text-slate-400">正在加载任务…</p>}
@@ -173,7 +178,7 @@ export function TasksPage() {
       {!tasks.isPending && !tasks.isError && visibleTasks.length === 0 && <TaskEmptyState />}
 
       <div className="mt-8 space-y-7">
-        <section className="rounded-2xl border border-cyan-300/20 bg-cyan-300/5 p-5">
+        <section className="rounded-2xl border border-cyan-300/20 bg-cyan-300/5 p-4 sm:p-5">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <h3 className="font-medium text-cyan-100">未来空闲时间</h3>
@@ -206,8 +211,8 @@ export function TasksPage() {
                 const priority = task.priority ?? "medium";
                 const canComplete = task.status === "pending" || task.status === "in_progress";
                 return (
-                  <article key={task.id} className="rounded-2xl border border-white/10 bg-slate-900 p-5">
-                    <div className="flex flex-wrap items-start justify-between gap-4">
+                  <article key={task.id} className="rounded-xl border border-white/10 bg-slate-900 p-4">
+                    <div className="flex flex-wrap items-start justify-between gap-3">
                       <div className="min-w-0 flex-1">
                         <div className="flex flex-wrap items-center gap-2">
                           <h4 className={`font-medium ${task.status === "completed" ? "text-slate-500 line-through" : "text-white"}`}>
@@ -221,15 +226,15 @@ export function TasksPage() {
                           )}
                         </div>
                         {task.description && <p className="mt-2 text-sm text-slate-400">{task.description}</p>}
-                        <div className="mt-4 grid gap-2 text-sm md:grid-cols-2">
-                          <div className="rounded-xl bg-amber-300/5 px-3 py-2 text-amber-100">
-                            <span className="block text-[11px] uppercase tracking-wide text-amber-300/70">截止时间</span>
+                        <div className="mt-3 flex flex-wrap gap-2 text-xs">
+                          <div className="rounded-lg bg-amber-300/5 px-3 py-2 text-amber-100">
+                            <span className="mr-1 text-[11px] text-amber-300/70">截止时间</span>
                             {task.due_at
                               ? formatInUserTimezone(task.due_at, timezone, locale)
                               : "未设置"}
                           </div>
-                          <div className="rounded-xl bg-cyan-300/5 px-3 py-2 text-cyan-100">
-                            <span className="block text-[11px] uppercase tracking-wide text-cyan-300/70">计划执行时间</span>
+                          <div className="rounded-lg bg-cyan-300/5 px-3 py-2 text-cyan-100">
+                            <span className="mr-1 text-[11px] text-cyan-300/70">计划执行时间</span>
                             {task.planned_start_at && task.planned_end_at
                               ? `${formatInUserTimezone(task.planned_start_at, timezone, locale)} — ${formatInUserTimezone(task.planned_end_at, timezone, locale)}`
                               : "未计划"}
@@ -253,7 +258,7 @@ export function TasksPage() {
                             onClick={() =>
                               executionMutation.mutate({ taskId: task.id, signalType: "started" })
                             }
-                            className="rounded-xl p-2 text-cyan-300 hover:bg-cyan-400/10 disabled:opacity-50"
+                            className="grid size-9 place-items-center rounded-lg p-2 text-cyan-300 hover:bg-cyan-400/10 disabled:opacity-50"
                           >
                             <Play size={19} />
                           </button>
@@ -266,7 +271,7 @@ export function TasksPage() {
                             onClick={() =>
                               executionMutation.mutate({ taskId: task.id, signalType: "paused" })
                             }
-                            className="rounded-xl p-2 text-amber-300 hover:bg-amber-400/10 disabled:opacity-50"
+                            className="grid size-9 place-items-center rounded-lg p-2 text-amber-300 hover:bg-amber-400/10 disabled:opacity-50"
                           >
                             <Pause size={19} />
                           </button>
@@ -279,7 +284,7 @@ export function TasksPage() {
                             onClick={() =>
                               executionMutation.mutate({ taskId: task.id, signalType: "skipped" })
                             }
-                            className="rounded-xl p-2 text-slate-400 hover:bg-white/5 hover:text-white disabled:opacity-50"
+                            className="grid size-9 place-items-center rounded-lg p-2 text-slate-400 hover:bg-white/5 hover:text-white disabled:opacity-50"
                           >
                             <SkipForward size={19} />
                           </button>
@@ -290,7 +295,7 @@ export function TasksPage() {
                             aria-label={`完成任务：${task.title}`}
                             disabled={completeMutation.isPending}
                             onClick={() => completeMutation.mutate(task.id)}
-                            className="rounded-xl p-2 text-emerald-300 hover:bg-emerald-400/10 disabled:opacity-50"
+                            className="grid size-9 place-items-center rounded-lg p-2 text-emerald-300 hover:bg-emerald-400/10 disabled:opacity-50"
                           >
                             <CircleCheck size={20} />
                           </button>
@@ -299,7 +304,7 @@ export function TasksPage() {
                           type="button"
                           aria-label={`编辑任务：${task.title}`}
                           onClick={() => setEditingTask(task)}
-                          className="rounded-xl p-2 text-slate-400 hover:bg-white/5 hover:text-white"
+                          className="grid size-9 place-items-center rounded-lg p-2 text-slate-400 hover:bg-white/5 hover:text-white"
                         >
                           <Pencil size={18} />
                         </button>
@@ -309,7 +314,7 @@ export function TasksPage() {
                           onClick={() =>
                             setExecutionTaskId((current) => (current === task.id ? undefined : task.id))
                           }
-                          className="rounded-xl p-2 text-slate-400 hover:bg-white/5 hover:text-white"
+                          className="grid size-9 place-items-center rounded-lg p-2 text-slate-400 hover:bg-white/5 hover:text-white"
                         >
                           <BarChart3 size={18} />
                         </button>
@@ -321,7 +326,7 @@ export function TasksPage() {
                               current === task.id ? undefined : task.id
                             )
                           }
-                          className="rounded-xl p-2 text-slate-400 hover:bg-white/5 hover:text-cyan-200"
+                          className="grid size-9 place-items-center rounded-lg p-2 text-slate-400 hover:bg-white/5 hover:text-cyan-200"
                         >
                           <Sparkles size={18} />
                         </button>

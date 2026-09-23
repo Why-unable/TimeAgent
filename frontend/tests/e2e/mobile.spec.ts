@@ -154,6 +154,11 @@ test.describe("mobile shell", () => {
     expect(dayCount).toBeGreaterThanOrEqual(42);
   });
 
+  test("uses a floating create action on the mobile calendar", async ({ page }) => {
+    await page.goto("/calendar");
+    await expect(page.getByRole("button", { name: "快速新建日程" })).toBeVisible();
+  });
+
   test("segmented control switches between 月/周/日 views", async ({ page }) => {
     await page.goto("/calendar");
     for (const label of ["月", "周", "日"]) {

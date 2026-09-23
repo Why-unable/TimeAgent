@@ -114,11 +114,11 @@ export function MobileNavigation() {
               to={to}
               data-onboarding-id={onboardingId}
               aria-current={isActive ? "page" : undefined}
-              className={`flex min-h-[4.5rem] flex-col items-center justify-center gap-1.5 rounded-2xl text-sm font-medium transition ${
+              className={`flex min-h-16 flex-col items-center justify-center gap-1 rounded-xl text-xs font-medium transition ${
                 isActive ? "bg-cyan-300/10 text-cyan-200" : "text-slate-400"
               }`}
             >
-              <Icon size={25} strokeWidth={1.8} />
+              <Icon size={23} strokeWidth={1.8} />
               {label}
             </Link>
           );
@@ -127,9 +127,9 @@ export function MobileNavigation() {
           type="button"
           data-onboarding-id="nav-more"
           onClick={() => setMoreOpen(true)}
-          className="flex min-h-[4.5rem] flex-col items-center justify-center gap-1.5 rounded-2xl text-sm font-medium text-slate-400 transition hover:bg-white/5 hover:text-white"
+          className="flex min-h-16 flex-col items-center justify-center gap-1 rounded-xl text-xs font-medium text-slate-400 transition hover:bg-white/5 hover:text-white"
         >
-          <LayoutGrid size={25} strokeWidth={1.8} />
+          <LayoutGrid size={23} strokeWidth={1.8} />
           更多
         </button>
       </nav>

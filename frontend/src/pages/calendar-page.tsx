@@ -40,6 +40,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { isNativePlatform } from "../platform";
 import { useSearchParams } from "react-router-dom";
 import { formatInUserTimezone, getLocalDateKey } from "../utils/datetime";
+import { Button, PageHeader } from "../components/ui/primitives";
 
 const statusLabels = { tentative: "暂定", confirmed: "已确认", cancelled: "已取消" } as const;
 
@@ -168,30 +169,34 @@ export function CalendarPage() {
   return (
     <section className="mx-auto max-w-[1500px]">
       <ScheduleWorkspaceTabs />
+      <PageHeader
+        className="mt-4 lg:mt-7"
+        icon={<CalendarDays className="text-teal-600" size={25} />}
+        title="日程"
+        description={<>月、周、日视图统一按 {timezone} 展示。</>}
+        actions={(
+          <Button
+            onClick={() => setCreateStart(new Date())}
+            size="lg"
+            className="hidden w-full font-semibold lg:inline-flex lg:w-auto"
+          >
+            <CirclePlus size={19} />
+            新建日程
+          </Button>
+        )}
+      />
 
-      <div className="flex flex-col gap-4 lg:mt-7 lg:flex-row lg:flex-wrap lg:items-end lg:justify-between">
-        <div>
-          {/* Desktop heading — hidden on mobile per §10.1 */}
-          <div className="hidden items-center gap-3 lg:flex">
-            <CalendarDays className="text-cyan-300" size={31} />
-            <h2 className="text-4xl font-semibold">日程</h2>
-          </div>
-          <p className="text-sm text-slate-500 lg:mt-4 lg:text-lg lg:text-slate-400">
-            月、周、日视图统一按 {timezone} 展示。
-          </p>
-        </div>
-        <button
-          type="button"
+      <div className="fixed bottom-[calc(var(--mobile-bottom-nav-height)+env(safe-area-inset-bottom)+1rem)] right-[var(--mobile-page-gutter)] z-30 lg:hidden">
+        <Button
+          aria-label="快速新建日程"
           onClick={() => setCreateStart(new Date())}
-          className="inline-flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl bg-cyan-300 px-6 py-3 text-lg font-semibold text-slate-950 lg:min-h-12 lg:w-auto lg:text-base"
+          size="md"
+          className="rounded-full px-4 shadow-lg shadow-teal-900/20"
         >
-          <CirclePlus size={19} />
-          新建日程
-        </button>
+          <CirclePlus size={18} />
+          <span>新建</span>
+        </Button>
       </div>
-
-      {/* sr-only heading for accessibility on mobile */}
-      <h2 className="sr-only lg:hidden">日历</h2>
 
       {events.isError && (
         <div role="alert" className="mt-6 rounded-xl border border-amber-400/30 bg-amber-400/10 p-4 text-amber-100">
@@ -236,7 +241,7 @@ export function CalendarPage() {
         </div>
       )}
       {!isNativePlatform() && !syncConnections.data?.some((connection) => connection.provider_name === "google" && connection.enabled) && (
-        <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-y border-white/10 py-4">
+        <div className="mt-4 hidden flex-wrap items-center justify-between gap-3 border-y border-white/10 py-4 lg:flex">
           <div>
             <p className="font-medium text-slate-100">Google Calendar</p>
             <p className="mt-1 text-xs text-slate-400">只读导入日程占用，不会修改外部日历。</p>
@@ -258,7 +263,7 @@ export function CalendarPage() {
       {syncConnections.data?.filter((connection) => Boolean(connection.provider_name)).map((connection) => (
         <div
           key={connection.id}
-          className={`mt-4 rounded-xl border p-4 text-sm ${
+          className={`mt-4 hidden rounded-xl border p-4 text-sm lg:block ${
             connection.status === "error"
               ? "border-red-400/30 bg-red-400/10 text-red-100"
               : "border-cyan-300/20 bg-cyan-300/5 text-cyan-100"
@@ -299,9 +304,9 @@ export function CalendarPage() {
         <p role="alert" className="mt-3 text-sm text-red-200">外部日历操作失败，请稍后重试。</p>
       )}
 
-      <div className="mt-4 sm:mt-10 sm:grid sm:gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
+      <div className="mt-5 pb-24 sm:mt-10 sm:grid sm:gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
         <div
-          className={`calendar-shell min-w-0 bg-slate-900 px-2 py-3 sm:rounded-[2rem] sm:border sm:border-white/10 sm:p-5 ${
+          className={`calendar-shell min-w-0 bg-transparent px-0 py-2 sm:rounded-[2rem] sm:border sm:border-white/10 sm:bg-slate-900 sm:p-5 ${
             isMobile && view === "timeGridWeek" ? "calendar-week-layout" : ""
           }`}
         >

@@ -42,7 +42,9 @@ import {
 import { ApprovalCard } from "../components/approvals/approval-card";
 import { ChatEmptyState } from "../components/chat/chat-empty-state";
 import { MarkdownMessage } from "../components/chat/markdown-message";
+import type { TodaySummary } from "../api/today";
 import { streamAgentRun, type AgentStreamEvent } from "../features/agent-runs/sse-client";
+import { useTodaySummary } from "../features/today/hooks";
 import { useCurrentUserPreference } from "../features/preferences/hooks";
 import { formatInUserTimezone, formatTimeInUserTimezone, getLocalDateKey } from "../utils/datetime";
 
@@ -65,17 +67,20 @@ type ToolEntry = Extract<ChatEntry, { kind: "tool" }>;
 const ACTIVE_RUN_STATUSES = new Set(["pending", "running"]);
 
 function ToolActivityPanel({ tools }: { tools: ToolEntry[] }) {
+  const allCompleted = tools.length > 0 && tools.every((tool) => tool.status === "completed");
+  const hasFailure = tools.some((tool) => tool.status === "failed");
   return (
-    <section
-      aria-label="工具调用记录"
-      className="max-h-28 w-full overflow-y-auto rounded-xl border border-slate-200 bg-white text-slate-700 shadow-sm"
-    >
-      <header className="sticky top-0 z-10 flex items-center gap-2 border-b border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-700">
-        <Wrench size={14} />
-        <span className="flex-1">工具调用</span>
-        <span className="font-normal text-slate-500">{tools.length} 项</span>
-      </header>
-      <div className="divide-y divide-slate-100">
+    <section aria-label="工具调用记录" className="w-full rounded-xl border border-slate-200 bg-white text-slate-700 shadow-sm">
+      <details open={!allCompleted}>
+        <summary className="flex cursor-pointer list-none items-center gap-2 px-3 py-2.5 text-xs font-semibold text-slate-700">
+          <Wrench size={14} />
+          <span className="flex-1">执行步骤</span>
+          <span className="font-normal text-slate-500">{tools.length} 项</span>
+          <span className={hasFailure ? "text-red-600" : allCompleted ? "text-teal-700" : "text-amber-700"}>
+            {hasFailure ? "部分失败" : allCompleted ? "完成" : "执行中"}
+          </span>
+        </summary>
+        <div className="max-h-28 overflow-y-auto divide-y divide-slate-100 border-t border-slate-200">
         {tools.map((tool) => (
           <div key={tool.id} className="flex items-center gap-2 px-3 py-2 text-xs">
             {tool.status === "running" ? (
@@ -103,7 +108,23 @@ function ToolActivityPanel({ tools }: { tools: ToolEntry[] }) {
             </span>
           </div>
         ))}
-      </div>
+        </div>
+      </details>
+    </section>
+  );
+}
+
+function TodayContextSummary({ data }: { data: TodaySummary }) {
+  const taskCount = data.planned_tasks.length + data.due_tasks.length + data.overdue_tasks.length;
+  return (
+    <section aria-label="今日上下文" className="mx-auto mb-4 flex max-w-3xl flex-wrap items-center gap-x-4 gap-y-2 rounded-xl border border-teal-100 bg-teal-50 px-3 py-2.5 text-xs text-slate-600">
+      <span className="font-semibold text-teal-800">今日上下文</span>
+      <span>{data.events.length} 个日程</span>
+      <span>{taskCount} 个任务</span>
+      <span>{data.pending_reminders.length} 个提醒</span>
+      <span className={data.conflicts.length > 0 ? "font-medium text-red-700" : "text-teal-700"}>
+        {data.conflicts.length > 0 ? `${data.conflicts.length} 个冲突` : "暂无冲突"}
+      </span>
     </section>
   );
 }
@@ -166,6 +187,7 @@ export function ChatPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const preference = useCurrentUserPreference();
+  const todaySummary = useTodaySummary();
   const timezone = preference.data?.timezone
     ?? import.meta.env.VITE_DEFAULT_TIMEZONE
     ?? "Asia/Shanghai";
@@ -570,12 +592,12 @@ export function ChatPage() {
       )}
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="flex items-center gap-3 border-b border-white/10 px-4 py-3 sm:px-6 lg:px-4">
-          <button type="button" onClick={() => setHistoryOpen(true)} aria-label="打开对话历史" className="rounded-2xl bg-white/5 p-3 text-slate-300 hover:bg-white/10 hover:text-white lg:hidden"><Menu size={24} /></button>
-          <Bot className="shrink-0 text-cyan-300" size={27} />
+        <header className="flex items-center gap-3 border-b border-white/10 px-4 py-2.5 sm:px-6 lg:px-4">
+          <button type="button" onClick={() => setHistoryOpen(true)} aria-label="打开对话历史" className="rounded-xl bg-white/5 p-2.5 text-slate-300 hover:bg-white/10 hover:text-white lg:hidden"><Menu size={22} /></button>
+          <Bot className="shrink-0 text-cyan-300" size={24} />
           <div className="min-w-0">
-            <h2 className="truncate text-xl font-semibold text-slate-100">{activeConversation?.title || "智能时间助理"}</h2>
-            <p className="mt-0.5 text-base text-slate-500">{activeConversation?.kind === "manual_briefing" ? "用户手动简报" : activeConversation?.kind === "scheduled_briefing" ? "自动简报" : "Time Steward"}</p>
+            <h2 className="truncate text-lg font-semibold text-slate-100">{activeConversation?.title || "智能时间助理"}</h2>
+            <p className="mt-0.5 text-sm text-slate-500">{activeConversation?.kind === "manual_briefing" ? "用户手动简报" : activeConversation?.kind === "scheduled_briefing" ? "自动简报" : "Time Steward"}</p>
           </div>
           {conversationId && <button type="button" onClick={startNewChat} className="ml-auto hidden items-center gap-2 rounded-lg border border-white/10 px-3 py-2 text-xs text-slate-300 hover:bg-white/5 sm:flex"><Plus size={15} /> 新建聊天</button>}
         </header>
@@ -583,7 +605,10 @@ export function ChatPage() {
         <div aria-live="polite" aria-busy={loadingHistory || busy} className="min-h-0 flex-1 space-y-5 overflow-y-auto px-4 py-5 sm:px-8 lg:px-4">
           {loadingHistory && <p className="flex items-center justify-center gap-2 py-16 text-sm text-slate-500"><LoaderCircle className="animate-spin" size={16} /> 正在加载对话…</p>}
           {!loadingHistory && entries.length === 0 && (
-            <ChatEmptyState onQuickAction={handleQuickAction} />
+            <>
+              {todaySummary.data && <TodayContextSummary data={todaySummary.data} />}
+              <ChatEmptyState onQuickAction={handleQuickAction} />
+            </>
           )}
           {entries.map((entry) => {
             if (entry.kind === "approval") {
@@ -680,13 +705,13 @@ export function ChatPage() {
           style={{ transform: composerOffset ? `translateY(-${composerOffset}px)` : undefined }}
           className="border-t border-white/10 bg-slate-950/95 pb-[max(env(safe-area-inset-bottom),0.5rem)] pt-2 transition-transform sm:p-4 lg:p-3"
         >
-          <div className="mx-4 flex max-w-none items-end gap-2 rounded-3xl border border-white/10 bg-slate-900 p-3 shadow-xl focus-within:border-cyan-300/40 sm:mx-auto sm:max-w-3xl">
+          <div className="mx-3 flex max-w-none items-end gap-2 rounded-2xl border border-white/10 bg-slate-900 p-2 shadow-xl focus-within:border-cyan-300/40 sm:mx-auto sm:max-w-3xl sm:p-3">
             <label className="sr-only" htmlFor="chat-message">消息</label>
-            <textarea ref={textarea} id="chat-message" rows={1} value={message} onChange={(event) => setMessage(event.target.value)} onKeyDown={handleComposerKeyDown} disabled={busy || loadingHistory} placeholder="输入你的时间管理请求…" className="max-h-40 min-h-14 flex-1 resize-none bg-transparent px-3 py-3 text-lg outline-none disabled:opacity-60" />
+            <textarea ref={textarea} id="chat-message" rows={1} value={message} onChange={(event) => setMessage(event.target.value)} onKeyDown={handleComposerKeyDown} disabled={busy || loadingHistory} placeholder="输入你的时间管理请求…" className="max-h-40 min-h-11 flex-1 resize-none bg-transparent px-2.5 py-2.5 text-base outline-none disabled:opacity-60" />
             {busy ? (
-              <button type="button" onClick={cancel} aria-label="停止运行" className="grid h-14 w-14 shrink-0 place-items-center rounded-2xl bg-red-400/15 text-red-200"><CircleStop size={24} /></button>
+              <button type="button" onClick={cancel} aria-label="停止运行" className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-red-400/15 text-red-200"><CircleStop size={21} /></button>
             ) : (
-              <button type="submit" aria-label="发送消息" disabled={!message.trim() || loadingHistory} className="grid h-14 w-14 shrink-0 place-items-center rounded-2xl bg-cyan-300 text-slate-950 disabled:opacity-40"><Send size={24} /></button>
+              <button type="submit" aria-label="发送消息" disabled={!message.trim() || loadingHistory} className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-cyan-300 text-slate-950 disabled:opacity-40"><Send size={21} /></button>
             )}
           </div>
         </form>

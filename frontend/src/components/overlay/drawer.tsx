@@ -25,7 +25,7 @@ export function Drawer({ title, description, onClose, children }: DrawerProps) {
       >
         <div className="flex items-start justify-between gap-4">
           <div>
-            <h3 id="drawer-title" className="text-3xl font-semibold text-white">
+            <h3 id="drawer-title" className="text-xl font-semibold text-white sm:text-2xl">
               {title}
             </h3>
             {description && <p className="mt-2 text-base text-slate-400">{description}</p>}
@@ -39,7 +39,7 @@ export function Drawer({ title, description, onClose, children }: DrawerProps) {
             <X size={24} />
           </button>
         </div>
-        <div className="mt-8">{children}</div>
+        <div className="mt-5">{children}</div>
       </aside>
     </div>
   );

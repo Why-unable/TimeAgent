@@ -128,7 +128,7 @@ cd frontend/android
 
 ### 5.1 当前生产签名（兼容性关键）
 
-当前生产签名链（包括 `1.1.7`）实际使用以下签名；后续版本除非完成经过验证的签名迁移，也必须保持一致：
+当前生产签名链（包括 `1.1.8 / versionCode 12`）实际使用以下签名；后续版本除非完成经过验证的签名迁移，也必须保持一致：
 
 - keystore：`/home/hyj/.android/debug.keystore`
 - alias：`androiddebugkey`
@@ -205,6 +205,22 @@ docker compose -f docker-compose.yml -f docker-compose.prod.yml \
 
 ## 8. 最近一次仓库内验证
 
+2026-09-15 已生成并发布 `1.1.8`（`versionCode 12`）：
+
+```text
+仓库文件：releases/timeagent-1.1.8.apk
+公网地址：https://steward.uresofa.me/releases/timeagent-1.1.8.apk
+大小：4,175,871 bytes
+APK SHA-256：458bb5820e7c1dd8e02120f56c5bf99c758e8c087425184c290dc36cb72e2980
+签名证书 SHA-256：e7fb9f63eff74b44c3ec32dafdcb2c726ff2d031c5c7614f70dda486916a783e
+```
+
+Gradle manifest、兼容签名、仓库文件与公网回下载内容已核对，生产更新清单和健康检查已更新。
+这证明构建、签名、发布和下载链路成立；Android 真机升级、进程恢复、离线动作和 OEM 差异
+仍属于 Phase 11，状态为 **NOT VERIFIED**。
+
+### 8.1 上一版本验证记录
+
 2026-08-25 在 JDK/Android SDK 已配置的本机为 `1.1.7`（`versionCode 11`）执行：
 
 ```bash
@@ -227,7 +243,7 @@ zipalign，签名证书 SHA-256 与 `1.1.6` 一致。正式文件已发布为 `r
 生产更新清单已加载 `1.1.7 / 11`，Django、前端和 Nginx 已切换，`/health/ready` 返回 database/Redis `ok`。
 这些证据证明构建、发布和下载链路成立，不代表真机行为已经验收。
 
-### 8.1 旧安装器版本显示缓存事件
+### 8.2 旧安装器版本显示缓存事件
 
 2026-08-25 收到真机反馈：App 已展示可下载 `1.1.6`，但系统安装界面仍显示 `1.1.5`。复查确认本地发布文件和公网回下载文件的
 manifest 均为 `1.1.6 / 10`，大小、SHA-256 和签名也一致，因此没有证据表明服务器实际发布了 1.1.5。旧更新器会把每次下载都覆盖到

@@ -1,13 +1,13 @@
 # Time Agent 项目实现超详细版
 
-> 更新日期：2026-08-29。本文是代码事实审计稿，不是产品宣传稿或简历。结论按以下状态标记：
+> 更新日期：2026-09-16。本文是代码事实审计稿，不是产品宣传稿或简历。结论按以下状态标记：
 > **已实现**（代码和测试存在）、**已配置未启用**（配置/接口存在但当前运行路径没有打开）、**仅接口/抽象**、
 > **测试覆盖未生产验证**、**规划中/未实现**、**需要补测**。除非特别说明，所有路径均相对于仓库根目录。
 
 ## 证据和口径
 
 - 首要规则：`CLAUDE.md`、`AGENTS.md`、`README.md`；架构决策见 `docs/decisions/`，路线见 `ROADMAP.md` 和 `docs/product/ai-native-time-agent-strategy.md`。
-- 当前工作区包含大量未提交的 Phase A-E/Phase 10 修改。Git 作者名为 `Why-unable`/`hugh`，邮箱相同；这能证明同一开发身份的提交轨迹，但不能替代团队贡献确认。
+- 当前交付状态为 Phase 0–10 已完成、Phase 11 进行中；当前工作区仍包含未提交修改。Git 作者名为 `Why-unable`/`hugh`，邮箱相同；这能证明同一开发身份的提交轨迹，但不能替代团队贡献确认。
 - 真实模型数据：2026-08-25 使用 `deepseek-v4-flash`、Docker Compose 生产依赖拓扑运行；主集 13 场景/14 轮，Task Success `12/13=92.31%`，Required Tool Recall `95.83%`，Allowed Tool Precision 和时间约束满足率 `100%`，p95 `8.02s`，Token/Task `18,367`。这是一次小规模离线运行，不是线上用户效果。
 - 旧时间上下文 6 场景消融中完整组和移除组均为 `100%`，未证明中间件带来增益；记录见 `docs/operations/evaluation-results-2026-08-25.md`。
 
@@ -43,10 +43,10 @@ Agent **不**负责：时间数学、权限、冲突、状态机、审批、调�
 
 ### 1.4 上线、规模与使用边界
 
-- Web 已在本机生产 Compose + Nginx/Cloudflare Tunnel 上部署；Android `1.1.7 / versionCode 11` APK 已完成文件、签名、zipalign、公网回下载验证。
+- Web 已在本机生产 Compose + Nginx/Cloudflare Tunnel 上部署；Android `1.1.8 / versionCode 12` APK 已完成文件、兼容签名、发布和公网回下载验证，真机矩阵仍属于 Phase 11。
 - 仓库具备游客隔离空间、Session Web 认证和 Android Token 认证；“可公网访问”不等于有正式外部用户。
 - 当前没有可证明的 DAU、留存、正式用户量、生产 QPS、并发上限、长期通知行动率或用户效率提升数据，均标记为**需要补测**。
-- 代码与本地验证规模可引用：40 个实际注册 Time Steward Tool、固定 Agent Eval 13 cases/14 turns、规划合成集 4 cases/11 tasks；这些是工程/测试规模，不是业务规模。
+- 代码与本地验证规模可引用：44 个实际注册且名称唯一的 Time Steward Tool、固定 Agent Eval 13 cases/14 turns、规划合成集 4 cases/11 tasks；这些是工程/测试规模，不是业务规模。
 
 ### 1.5 开发者角色
 
@@ -227,7 +227,7 @@ System/Runtime Context + messages
 
 ### 6.1 工具分组
 
-`apps/agents/tools/__init__.py` 实际注册 40 个 Time Steward Tool：时间、Event、Task、Reminder、Planning、Decision Profile、Integration status、Insight 和 Briefing handoff 的读写分组。源码约有 45 个 `@tool` 定义，部分细粒度 Event 写入通过 `mutate_events` 组合入口暴露，因此两者不能混称。
+`apps/agents/tools/__init__.py` 实际注册 44 个名称唯一的 Time Steward Tool：20 个只读/控制流入口和 24 个写入入口，覆盖时间、Event、Task、Reminder、Planning、Decision Profile、Integration status、Insight、Memory 和 Briefing handoff。源码当前有 49 个 `@tool` 定义，部分细粒度 Event 写入没有直接注册，而是通过 `mutate_events` 组合入口暴露，因此定义数与注册数不能混称。
 
 项目自研 Tool 通过 LangChain `@tool`/Pydantic schema 暴露；Briefing 使用独立只读 research Tool。没有 MCP Tool、文件 Tool、Shell Tool 或外部 Skill Tool。
 
@@ -462,7 +462,7 @@ Compose 服务包含 PostgreSQL 17、Redis 7、Django/Uvicorn、Celery worker/be
 
 - **现象**：应用显示可下载新版本，但系统安装器显示旧版本。
 - **定位/根因**：APK manifest/hash/signer 正确，最符合证据的是固定 FileProvider URI 被 OEM 安装器缓存；无设备日志，根因仍是推断。
-- **方案/结果**：版本号+hash 文件名、清理旧包、禁用 HTTP cache、安装前版本校验；1.1.7 公网回下载通过，真机矩阵未验证。
+- **方案/结果**：版本号+hash 文件名、清理旧包、禁用 HTTP cache、安装前版本校验；1.1.8 公网回下载通过，真机矩阵未验证。
 
 ## 十九、技术选型与 Trade-off
 
@@ -499,7 +499,7 @@ Compose 服务包含 PostgreSQL 17、Redis 7、Django/Uvicorn、Celery worker/be
 5. “明天”在排队、重试和多轮中如何保持一致？
 6. DST 不存在/歧义时间如何处理？只存 UTC 为什么不够？
 7. 历史 `get_current_datetime` 为什么要从模型副本中删除？
-8. 40 个注册 Tool 会不会影响选择？为什么用 `mutate_events` 收敛写入口？
+8. 44 个注册 Tool 会不会影响选择？为什么用 `mutate_events` 收敛写入口？
 9. Tool schema 校验和 Service 业务校验分别解决什么问题？
 10. Tool 为什么不能直接访问 Django ORM？
 11. 哪些写操作需要 HITL？冲突创建为何有条件地自动通过？
@@ -537,7 +537,7 @@ Compose 服务包含 PostgreSQL 17、Redis 7、Django/Uvicorn、Celery worker/be
 
 ### 22.2 最值得写进简历的成果
 
-- 设计并落地 Time Steward Agent 业务边界，注册 40 个 Tool，接入日程/任务/提醒/规划真实服务。
+- 设计并落地 Time Steward Agent 业务边界，注册 44 个 Tool，接入日程/任务/提醒/规划真实服务。
 - 建立 ActionProposal/HITL、版本保护、幂等审计和 checkpoint resume 的高风险写入闭环。
 - 实现确定性 Planner v2 和受控局部重排；固定合成集安排任务 7→8、有效安排时长 390→480 分钟、零时间重叠（仅合成证据）。
 - 建立 13 场景/14 轮真实模型 trajectory 评测，报告 Task Success `92.31%`、Tool Recall `95.83%`、p95 `8.02s`，并保留失败案例。
