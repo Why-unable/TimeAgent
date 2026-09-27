@@ -1,4 +1,4 @@
-from datetime import UTC, datetime, time, timedelta
+from datetime import UTC, date, datetime, time, timedelta
 from zoneinfo import ZoneInfo
 
 import pytest
@@ -7,7 +7,7 @@ from django.contrib.auth.models import User
 
 from apps.events.models import CalendarEvent, CalendarEventStatus
 from apps.events.services import CreateEventCommand, EventService
-from apps.planning.schemas import PlanningConstraints, TimeSlot
+from apps.planning.schemas import DailyAvailabilityWindow, PlanningConstraints, TimeSlot
 from apps.planning.services import PlanningService
 from apps.preferences.services import UserPreferenceService
 from apps.tasks.services import CreateTaskCommand, TaskService
@@ -85,6 +85,41 @@ def test_find_free_slots_uses_preferences_events_and_planned_tasks() -> None:
         17,
     ]
     assert all(slot.end_at - slot.start_at == timedelta(hours=1) for slot in slots)
+
+
+def test_date_bounded_availability_window_overrides_daily_start_only_in_its_range() -> None:
+    user = create_user("temporary-window-user")
+    UserPreferenceService.update_for_user(
+        user,
+        {"timezone": "Asia/Shanghai", "workday_start": time(9), "workday_end": time(17)},
+    )
+
+    slots = PlanningService.find_free_slots(
+        user=user,
+        range_start=datetime(2026, 10, 8, 0, tzinfo=UTC),
+        range_end=datetime(2026, 10, 20, 0, tzinfo=UTC),
+        duration_minutes=60,
+        constraints=PlanningConstraints(
+            daily_worktime_overrides=(
+                DailyAvailabilityWindow(
+                    start_date=date(2026, 10, 8),
+                    end_date=date(2026, 10, 16),
+                    daily_start=time(10, 30),
+                    daily_end=time(17),
+                ),
+            ),
+            slot_increment_minutes=60,
+            max_results=100,
+        ),
+    )
+    local_starts = [slot.start_at.astimezone(LOCAL_TIMEZONE) for slot in slots]
+    first_day_starts = [start for start in local_starts if start.date().isoformat() == "2026-10-08"]
+    resumed_day_starts = [
+        start for start in local_starts if start.date().isoformat() == "2026-10-19"
+    ]
+
+    assert first_day_starts[0].time().replace(tzinfo=None) == time(10, 30)
+    assert resumed_day_starts[0].time().replace(tzinfo=None) == time(9)
 
 
 def test_free_slot_search_merges_busy_intervals_and_ignores_cancelled_events() -> None:
@@ -169,6 +204,42 @@ def test_free_slot_constraints_limit_days_results_and_task_inclusion() -> None:
     ]
 
 
+def test_free_slot_search_defaults_to_weekdays_and_supports_explicit_weekends() -> None:
+    user = create_user("planning-weekday-defaults")
+    saturday = datetime(2026, 11, 7, 0, tzinfo=LOCAL_TIMEZONE)
+    monday = datetime(2026, 11, 9, 0, tzinfo=LOCAL_TIMEZONE)
+
+    weekday_slots = PlanningService.find_free_slots(
+        user=user,
+        range_start=saturday,
+        range_end=monday,
+        duration_minutes=30,
+        constraints=PlanningConstraints(
+            daily_start=time(9),
+            daily_end=time(10),
+            slot_increment_minutes=30,
+        ),
+    )
+    weekend_slots = PlanningService.find_free_slots(
+        user=user,
+        range_start=saturday,
+        range_end=monday,
+        duration_minutes=30,
+        constraints=PlanningConstraints(
+            daily_start=time(9),
+            daily_end=time(10),
+            allowed_weekdays=(5, 6),
+            slot_increment_minutes=30,
+        ),
+    )
+
+    assert weekday_slots == []
+    assert {slot.start_at.astimezone(LOCAL_TIMEZONE).weekday() for slot in weekend_slots} == {
+        5,
+        6,
+    }
+
+
 def test_free_slot_search_respects_dst_day_length() -> None:
     user = create_user()
     new_york = ZoneInfo("America/New_York")
@@ -182,6 +253,7 @@ def test_free_slot_search_respects_dst_day_length() -> None:
             timezone="America/New_York",
             daily_start=time(1),
             daily_end=time(4),
+            allowed_weekdays=(6,),
             slot_increment_minutes=60,
         ),
     )

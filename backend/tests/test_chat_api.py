@@ -101,7 +101,7 @@ def test_internal_summarization_stream_is_not_emitted_as_chat_delta(
             (public_chunk, {"langgraph_node": "time_steward"}),
             (("time_steward",), state),
         ],
-        run,
+        cast(AgentRun, run),
     )
 
     assert result == state

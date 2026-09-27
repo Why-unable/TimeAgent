@@ -44,7 +44,7 @@ PostgreSQL 使用 custom-format 备份，备份文件默认写入被 Git 忽略�
 
 ```powershell
 docker compose -f docker-compose.yml -f docker-compose.prod.yml ps
-Invoke-WebRequest http://localhost:8080/health/ready
+Invoke-WebRequest http://localhost:7080/health/ready
 docker compose -f docker-compose.yml -f docker-compose.prod.yml logs --tail=100 django nginx celery-worker
 ```
 
@@ -290,8 +290,9 @@ CSRF_COOKIE_SECURE=true
 AUTH_REGISTRATION_ENABLED=true
 ```
 
-首次部署或更新时使用生产覆盖文件。它会将 Nginx 仅绑定至 `127.0.0.1:8080`，因此
-Cloudflare Tunnel 的 Service URL 仍应为 `http://localhost:8080`：
+此 Windows 部署在 `.env` 中将 `TIME_AGENT_HTTP_PORT` 设为 `7080`。生产覆盖文件会让
+Nginx 仅绑定至 `127.0.0.1:7080`，Cloudflare Tunnel 的 Service URL 应为
+`http://127.0.0.1:7080`：
 
 ```bash
 docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
@@ -308,7 +309,7 @@ curl https://steward.example.com/health/ready
 `docker-compose.prod.yml` 使用 Uvicorn ASGI，而不是 Django `runserver`。确认 HTTPS 稳定
 运行一段时间后，才应考虑设置不可轻易撤销的 HSTS 参数 `SECURE_HSTS_SECONDS`。
 
-入口地址为 `http://localhost:8080`。停止服务：
+入口地址为 `http://localhost:7080`。停止服务：
 
 ```bash
 docker compose down

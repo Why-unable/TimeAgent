@@ -555,7 +555,7 @@ def test_disabling_generation_deletes_profile() -> None:
     user = get_user_model().objects.create_user(username=f"memory-off-{uuid4()}")
     store = InMemoryStore()
     TimeMemoryUpdater.rebuild(user=user, store=store)
-    preference = user.preference
+    preference = cast(Any, user).preference
     preference.time_memory_allow_generation = False
     preference.save(update_fields=["time_memory_allow_generation"])
 

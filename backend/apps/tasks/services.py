@@ -52,6 +52,7 @@ class TaskQuery:
     due_before: datetime | None = None
     planned_starts_before: datetime | None = None
     planned_ends_after: datetime | None = None
+    limit: int | None = None
 
 
 class TaskService:
@@ -224,16 +225,27 @@ class TaskService:
         user: User,
         planned_start_at: datetime | None,
         planned_end_at: datetime | None,
+        expected_version: int | None = None,
+        validate_conflicts: bool = True,
         origin: str = "web",
     ) -> Task:
         TaskService._ensure_persisted_user(user)
         lock_user_schedule_writes(user)
         task = Task.objects.select_for_update().get(pk=task_id, user=user)
+        if expected_version is not None:
+            TaskService._ensure_version(task, expected_version)
         old_snapshot = TaskService._snapshot(task)
         task.planned_start_at = planned_start_at
         task.planned_end_at = planned_end_at
         task.version += 1
         task.full_clean()
+        if validate_conflicts and planned_start_at is not None and planned_end_at is not None:
+            from apps.planning.services import PlanningService
+
+            PlanningService.validate_task_slots(
+                user=user,
+                slots=[(task.pk, planned_start_at, planned_end_at)],
+            )
         task.save()
         from apps.reminders.scheduling import ReminderScheduleService
 
@@ -354,6 +366,8 @@ class TaskService:
     @staticmethod
     def list_tasks(query: TaskQuery) -> list[Task]:
         TaskService._ensure_persisted_user(query.user)
+        if query.limit is not None and query.limit < 1:
+            raise ValueError("Task query limit must be positive")
         tasks = Task.objects.filter(user=query.user)
         if query.statuses:
             tasks = tasks.filter(status__in=query.statuses)
@@ -363,7 +377,7 @@ class TaskService:
             tasks = tasks.filter(planned_start_at__lt=to_utc(query.planned_starts_before))
         if query.planned_ends_after is not None:
             tasks = tasks.filter(planned_end_at__gt=to_utc(query.planned_ends_after))
-        return list(tasks)
+        return list(tasks[: query.limit] if query.limit is not None else tasks)
 
     @staticmethod
     def get_task(*, user: User, task_id: UUID) -> Task:

@@ -392,7 +392,7 @@ class AccountService:
     @staticmethod
     @transaction.atomic
     def revoke_native_token(*, token: Token) -> None:
-        user_id = token.user_id
+        user_id = token.user.pk
         token.delete()
         logger.info("native_auth_token_revoked", extra={"user_id": user_id})
 

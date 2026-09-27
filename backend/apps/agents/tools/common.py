@@ -9,6 +9,7 @@ from django.contrib.auth.models import User
 from langchain.tools import ToolRuntime
 
 from apps.agents.context import RuntimeContext
+from common.time import to_user_timezone
 
 
 class MissingActorError(PermissionError):
@@ -62,5 +63,17 @@ def json_value(value: Any) -> Any:
     return value
 
 
-def model_dict(instance: Any, fields: tuple[str, ...]) -> dict[str, Any]:
-    return {field: json_value(getattr(instance, field)) for field in fields}
+def model_dict(
+    instance: Any,
+    fields: tuple[str, ...],
+    *,
+    display_timezone: str | None = None,
+) -> dict[str, Any]:
+    result = {field: json_value(getattr(instance, field)) for field in fields}
+    if display_timezone is not None:
+        result["display_timezone"] = display_timezone
+        for field in fields:
+            value = getattr(instance, field, None)
+            if isinstance(value, datetime):
+                result[f"{field}_local"] = to_user_timezone(value, display_timezone).isoformat()
+    return result

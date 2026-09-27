@@ -1,5 +1,7 @@
+from collections.abc import AsyncIterator
 from datetime import UTC, datetime
 from types import SimpleNamespace
+from typing import Any, cast
 from unittest.mock import Mock
 from uuid import uuid4
 
@@ -9,7 +11,7 @@ from django.contrib.auth.models import User
 from django.test import override_settings
 
 from apps.conversations.event_stream import RedisAgentEventStream
-from apps.conversations.models import Conversation
+from apps.conversations.models import AgentRun, Conversation
 from apps.conversations.services import AgentRunService, StartRunCommand
 
 
@@ -45,13 +47,16 @@ def test_publish_failure_is_best_effort(monkeypatch: pytest.MonkeyPatch) -> None
     client.xadd.side_effect = RuntimeError("redis down")
     monkeypatch.setattr("apps.conversations.event_stream._sync_client", lambda url: client)
 
-    assert RedisAgentEventStream("redis://unused").publish(
-        run_id=uuid4(),
-        sequence=1,
-        event_type="agent.started",
-        payload={},
-        created_at=datetime.now(UTC),
-    ) is False
+    assert (
+        RedisAgentEventStream("redis://unused").publish(
+            run_id=uuid4(),
+            sequence=1,
+            event_type="agent.started",
+            payload={},
+            created_at=datetime.now(UTC),
+        )
+        is False
+    )
 
 
 @override_settings(AGENT_EVENT_STREAM_ENABLED=True)
@@ -60,13 +65,16 @@ def test_publish_writes_complete_sse_fields(monkeypatch: pytest.MonkeyPatch) -> 
     monkeypatch.setattr("apps.conversations.event_stream._sync_client", lambda url: client)
     created_at = datetime(2026, 8, 29, 12, 0, tzinfo=UTC)
 
-    assert RedisAgentEventStream("redis://unused").publish(
-        run_id="run-1",
-        sequence=7,
-        event_type="tool.completed",
-        payload={"value": "ok"},
-        created_at=created_at,
-    ) is True
+    assert (
+        RedisAgentEventStream("redis://unused").publish(
+            run_id="run-1",
+            sequence=7,
+            event_type="tool.completed",
+            payload={"value": "ok"},
+            created_at=created_at,
+        )
+        is True
+    )
 
     key, fields = client.xadd.call_args.args
     assert key == "timeagent:agent-events:run-1"
@@ -105,7 +113,7 @@ def test_sse_reconciles_sequence_gap_from_postgres(monkeypatch: pytest.MonkeyPat
         return (first_run, [missing]) if calls == 1 else (terminal_run, [])
 
     class FakeStream:
-        async def read(self, **_: object):
+        async def read(self, **_: object) -> AsyncIterator[dict[str, object]]:
             yield {
                 "redis_id": "2-0",
                 "sequence": 2,
@@ -116,6 +124,7 @@ def test_sse_reconciles_sequence_gap_from_postgres(monkeypatch: pytest.MonkeyPat
 
     monkeypatch.setattr(views, "_sse_poll", poll)
     monkeypatch.setattr(views, "RedisAgentEventStream", FakeStream)
+
     async def collect() -> list[bytes]:
         return [
             frame
@@ -123,7 +132,7 @@ def test_sse_reconciles_sequence_gap_from_postgres(monkeypatch: pytest.MonkeyPat
                 user_id=1,
                 run_id=uuid4(),
                 cursor=0,
-                initial_snapshot=(first_run, []),
+                initial_snapshot=cast(tuple[AgentRun, list[Any]], (first_run, [])),
                 stream_baseline="0-0",
             )
         ]
@@ -153,7 +162,7 @@ def test_sse_falls_back_to_postgres_when_redis_read_fails(monkeypatch: pytest.Mo
         return (run, []) if poll_calls == 1 else (terminal, [event])
 
     class BrokenStream:
-        async def read(self, **_: object):
+        async def read(self, **_: object) -> AsyncIterator[dict[str, object]]:
             raise ConnectionError("redis unavailable")
             yield  # pragma: no cover
 
@@ -167,7 +176,7 @@ def test_sse_falls_back_to_postgres_when_redis_read_fails(monkeypatch: pytest.Mo
                 user_id=1,
                 run_id=uuid4(),
                 cursor=0,
-                initial_snapshot=(run, []),
+                initial_snapshot=cast(tuple[AgentRun, list[Any]], (run, [])),
                 stream_baseline="0-0",
             )
         ]

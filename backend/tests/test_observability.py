@@ -1,5 +1,6 @@
 import json
 import logging
+import os
 from pathlib import Path
 
 import pytest
@@ -47,7 +48,8 @@ def test_alertmanager_config_uses_runtime_smtp_credentials(
     monkeypatch.setenv("EMAIL_USE_TLS", "true")
     monkeypatch.setenv("EMAIL_USE_SSL", "false")
     monkeypatch.setenv("ALERTMANAGER_EMAIL_TO", "operator@example.test")
-    monkeypatch.setattr("apps.observability.alertmanager_config.os.chown", lambda *args: None)
+    if hasattr(os, "chown"):
+        monkeypatch.setattr("apps.observability.alertmanager_config.os.chown", lambda *args: None)
     output = tmp_path / "alertmanager.yml"
 
     render(output)
@@ -58,7 +60,8 @@ def test_alertmanager_config_uses_runtime_smtp_credentials(
     assert config["global"]["smtp_require_tls"] is True
     assert config["global"]["smtp_force_implicit_tls"] is False
     assert config["receivers"][0]["email_configs"][0]["to"] == "operator@example.test"
-    assert output.stat().st_mode & 0o777 == 0o600
+    if os.name == "posix":
+        assert output.stat().st_mode & 0o777 == 0o600
 
 
 def test_alertmanager_config_can_disable_email_without_smtp_credentials(
@@ -68,7 +71,8 @@ def test_alertmanager_config_can_disable_email_without_smtp_credentials(
     monkeypatch.setenv("ALERTMANAGER_EMAIL_ENABLED", "false")
     for name in ("EMAIL_HOST", "EMAIL_USERNAME", "EMAIL_PASSWORD"):
         monkeypatch.delenv(name, raising=False)
-    monkeypatch.setattr("apps.observability.alertmanager_config.os.chown", lambda *args: None)
+    if hasattr(os, "chown"):
+        monkeypatch.setattr("apps.observability.alertmanager_config.os.chown", lambda *args: None)
     output = tmp_path / "alertmanager.yml"
 
     render(output)
@@ -78,7 +82,8 @@ def test_alertmanager_config_can_disable_email_without_smtp_credentials(
     assert config["route"]["receiver"] == "local-operator"
     assert config["receivers"] == [{"name": "local-operator"}]
     assert "smtp_smarthost" not in config["global"]
-    assert output.stat().st_mode & 0o777 == 0o600
+    if os.name == "posix":
+        assert output.stat().st_mode & 0o777 == 0o600
 
 
 def test_alertmanager_config_forces_implicit_tls_for_ssl_smtp(
@@ -91,7 +96,8 @@ def test_alertmanager_config_forces_implicit_tls_for_ssl_smtp(
     monkeypatch.setenv("EMAIL_PASSWORD", "runtime-only-password")
     monkeypatch.setenv("EMAIL_USE_TLS", "false")
     monkeypatch.setenv("EMAIL_USE_SSL", "true")
-    monkeypatch.setattr("apps.observability.alertmanager_config.os.chown", lambda *args: None)
+    if hasattr(os, "chown"):
+        monkeypatch.setattr("apps.observability.alertmanager_config.os.chown", lambda *args: None)
     output = tmp_path / "alertmanager.yml"
 
     render(output)

@@ -1,4 +1,5 @@
 from datetime import UTC, datetime, timedelta
+from typing import Any, cast
 
 import pytest
 from django.contrib.auth import get_user_model
@@ -106,9 +107,10 @@ def test_false_positive_feedback_can_explicitly_disable_only_that_kind() -> None
         action="false_positive",
         disable_kind=True,
     )
-    user.preference.refresh_from_db()
+    preference = cast(Any, user).preference
+    preference.refresh_from_db()
     assert result.status == TemporalInsightStatus.FALSE_POSITIVE
-    assert user.preference.disabled_insight_kinds == ["deadline_risk"]
+    assert preference.disabled_insight_kinds == ["deadline_risk"]
     assert all(
         item.kind != "deadline_risk"
         for item in TemporalInsightService.list_open(user=user, now=NOW)
@@ -122,8 +124,8 @@ def test_false_positive_feedback_can_explicitly_disable_only_that_kind() -> None
         action="false_positive",
         disable_kind=True,
     )
-    user.preference.refresh_from_db()
-    assert user.preference.disabled_insight_kinds == ["deadline_risk"]
+    preference.refresh_from_db()
+    assert preference.disabled_insight_kinds == ["deadline_risk"]
 
     client = Client()
     client.force_login(user)

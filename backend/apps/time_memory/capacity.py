@@ -1,3 +1,4 @@
+from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import datetime
 
@@ -34,7 +35,12 @@ class CapacityForecast:
 class CapacityForecastService:
     @staticmethod
     def forecast(
-        *, user: User, range_start: datetime, range_end: datetime, slot_minutes: int = 30
+        *,
+        user: User,
+        range_start: datetime,
+        range_end: datetime,
+        slot_minutes: int = 30,
+        allowed_weekdays: Sequence[int] | None = None,
     ) -> CapacityForecast:
         start = to_utc(range_start)
         end = to_utc(range_end)
@@ -47,7 +53,13 @@ class CapacityForecastService:
             range_start=start,
             range_end=end,
             duration_minutes=slot_minutes,
-            constraints=PlanningConstraints(max_results=10000, slot_increment_minutes=slot_minutes),
+            constraints=PlanningConstraints(
+                max_results=10000,
+                slot_increment_minutes=slot_minutes,
+                allowed_weekdays=(
+                    tuple(range(5)) if allowed_weekdays is None else tuple(allowed_weekdays)
+                ),
+            ),
         )
         available = len(slots) * slot_minutes
         tasks = Task.objects.filter(

@@ -48,7 +48,7 @@ def list_tasks(
     due_before: datetime | None = None,
     runtime: ToolRuntime[RuntimeContext] = None,  # type: ignore[assignment]
 ) -> list[dict[str, object]]:
-    """List the current user's tasks with optional status and due-time filters."""
+    """List the user's tasks; *_at is UTC and *_at_local is the trusted user-zone display time."""
 
     tasks = TaskService.list_tasks(
         TaskQuery(
@@ -57,15 +57,17 @@ def list_tasks(
             due_before=due_before,
         )
     )
-    return [model_dict(task, TASK_FIELDS) for task in tasks]
+    return [
+        model_dict(task, TASK_FIELDS, display_timezone=runtime.context.timezone) for task in tasks
+    ]
 
 
 @tool
 def get_task(task_id: UUID, runtime: ToolRuntime[RuntimeContext]) -> dict[str, object]:
-    """Get one task owned by the current user."""
+    """Get one task; UTC timestamps have *_local display values in the user's IANA timezone."""
 
     task = TaskService.get_task(user=require_actor(runtime), task_id=task_id)
-    return model_dict(task, TASK_FIELDS)
+    return model_dict(task, TASK_FIELDS, display_timezone=runtime.context.timezone)
 
 
 @tool
@@ -127,7 +129,7 @@ def create_task(
             origin="agent",
         )
     )
-    return model_dict(task, TASK_FIELDS)
+    return model_dict(task, TASK_FIELDS, display_timezone=runtime.context.timezone)
 
 
 @tool
@@ -150,13 +152,15 @@ def create_task_batch(
             planned_end_at=item.planned_end_at,
             estimated_minutes=item.estimated_minutes,
             tags=item.tags,
-                source="agent",
-                origin="agent",
+            source="agent",
+            origin="agent",
         )
         for item in tasks
     ]
     created = TaskService.create_tasks(commands=commands)
-    return [model_dict(task, TASK_FIELDS) for task in created]
+    return [
+        model_dict(task, TASK_FIELDS, display_timezone=runtime.context.timezone) for task in created
+    ]
 
 
 @tool
@@ -198,7 +202,7 @@ def update_task(
             origin="agent",
         )
     )
-    return model_dict(task, TASK_FIELDS)
+    return model_dict(task, TASK_FIELDS, display_timezone=runtime.context.timezone)
 
 
 @tool
@@ -216,7 +220,7 @@ def change_task_state(
         occurred_at=runtime.context.current_datetime,
         origin="agent",
     )
-    return model_dict(task, TASK_FIELDS)
+    return model_dict(task, TASK_FIELDS, display_timezone=runtime.context.timezone)
 
 
 @tool
@@ -243,7 +247,9 @@ def change_task_batch_state(
         occurred_at=runtime.context.current_datetime,
         origin="agent",
     )
-    return [model_dict(task, TASK_FIELDS) for task in tasks]
+    return [
+        model_dict(task, TASK_FIELDS, display_timezone=runtime.context.timezone) for task in tasks
+    ]
 
 
 @tool
@@ -262,7 +268,7 @@ def complete_task(task_id: UUID, runtime: ToolRuntime[RuntimeContext]) -> dict[s
     )
     task = signal.task
     task.refresh_from_db()
-    return model_dict(task, TASK_FIELDS)
+    return model_dict(task, TASK_FIELDS, display_timezone=runtime.context.timezone)
 
 
 @tool
@@ -275,7 +281,7 @@ def cancel_task(task_id: UUID, runtime: ToolRuntime[RuntimeContext]) -> dict[str
         occurred_at=runtime.context.current_datetime,
         origin="agent",
     )
-    return model_dict(task, TASK_FIELDS)
+    return model_dict(task, TASK_FIELDS, display_timezone=runtime.context.timezone)
 
 
 @tool
@@ -283,18 +289,20 @@ def reschedule_task(
     task_id: UUID,
     planned_start_at: datetime,
     planned_end_at: datetime,
+    expected_version: int,
     runtime: ToolRuntime[RuntimeContext],
 ) -> dict[str, object]:
-    """Set a task's planned time range without changing calendar events."""
+    """Submit a requested move for HITL approval without writing first."""
 
     task = TaskService.reschedule_task(
         task_id=task_id,
         user=require_writable(runtime),
         planned_start_at=planned_start_at,
         planned_end_at=planned_end_at,
+        expected_version=expected_version,
         origin="agent",
     )
-    return model_dict(task, TASK_FIELDS)
+    return model_dict(task, TASK_FIELDS, display_timezone=runtime.context.timezone)
 
 
 TASK_READ_TOOLS = [list_tasks, get_task, get_task_execution_summary]

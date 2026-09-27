@@ -58,6 +58,8 @@ class EventMutationInput(BaseModel):
     description: str | None = None
     location: str | None = None
     task_id: UUID | None = None
+
+
 def _record_temporal_resolution(
     runtime: ToolRuntime[RuntimeContext],
     resolution: TemporalResolution,
@@ -94,7 +96,7 @@ def list_events(
     statuses: list[str] | None = None,
     runtime: ToolRuntime[RuntimeContext] = None,  # type: ignore[assignment]
 ) -> list[dict[str, object]]:
-    """List the current user's calendar events in an optional UTC-aware time range."""
+    """List events with UTC timestamps and parallel *_local times in the user's timezone."""
 
     actor = require_actor(runtime)
     events = EventService.list_events(
@@ -105,15 +107,18 @@ def list_events(
             statuses=tuple(statuses or ()),
         )
     )
-    return [model_dict(event, EVENT_FIELDS) for event in events]
+    return [
+        model_dict(event, EVENT_FIELDS, display_timezone=runtime.context.timezone)
+        for event in events
+    ]
 
 
 @tool
 def get_event(event_id: UUID, runtime: ToolRuntime[RuntimeContext]) -> dict[str, object]:
-    """Get one calendar event owned by the current user."""
+    """Get one event with UTC timestamps and parallel *_local times in the user's timezone."""
 
     event = EventService.get_event(user=require_actor(runtime), event_id=event_id)
-    return model_dict(event, EVENT_FIELDS)
+    return model_dict(event, EVENT_FIELDS, display_timezone=runtime.context.timezone)
 
 
 @tool
@@ -147,7 +152,7 @@ def create_event(
             origin="agent",
         )
     )
-    return model_dict(event, EVENT_FIELDS)
+    return model_dict(event, EVENT_FIELDS, display_timezone=runtime.context.timezone)
 
 
 @tool
@@ -188,7 +193,7 @@ def update_event(
             current_datetime=runtime.context.current_datetime,
         )
     )
-    return model_dict(event, EVENT_FIELDS)
+    return model_dict(event, EVENT_FIELDS, display_timezone=runtime.context.timezone)
 
 
 @tool
@@ -212,7 +217,7 @@ def set_event_task_link(
             current_datetime=runtime.context.current_datetime,
         )
     )
-    return model_dict(event, EVENT_FIELDS)
+    return model_dict(event, EVENT_FIELDS, display_timezone=runtime.context.timezone)
 
 
 @tool
@@ -243,7 +248,10 @@ def create_event_batch(
             )
         )
     created = EventService.create_events(commands=commands)
-    return [model_dict(event, EVENT_FIELDS) for event in created]
+    return [
+        model_dict(event, EVENT_FIELDS, display_timezone=runtime.context.timezone)
+        for event in created
+    ]
 
 
 @tool
@@ -351,7 +359,7 @@ def mutate_events(
             )
         else:
             raise ValueError("Unsupported event action")
-        results.append(model_dict(event, EVENT_FIELDS))
+        results.append(model_dict(event, EVENT_FIELDS, display_timezone=runtime.context.timezone))
     return results
 
 
@@ -410,7 +418,7 @@ def cancel_event(
         origin="agent",
         current_datetime=runtime.context.current_datetime,
     )
-    return model_dict(event, EVENT_FIELDS)
+    return model_dict(event, EVENT_FIELDS, display_timezone=runtime.context.timezone)
 
 
 EVENT_READ_TOOLS = [list_events, get_event]

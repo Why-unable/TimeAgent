@@ -36,8 +36,16 @@ from apps.action_proposals.services import ActionProposalService
 from apps.agents.configuration import get_agent_config
 from apps.agents.context import RuntimeContext
 from apps.agents.state import AppState
-from apps.agents.tools import READ_ONLY_TOOLS, WRITE_TOOLS
-from apps.agents.tools.handoff_tools import HANDOFF_TOOLS
+from apps.agents.tool_routing import (
+    is_multi_task_schedule_request,
+    select_tool_names,
+    should_limit_to_read_tools,
+)
+from apps.agents.tools import (
+    HANDOFF_TOOLS,
+    RETRY_SAFE_TOOLS,
+    TOOL_SPECS,
+)
 from apps.conversations.models import ToolCallStatus
 from apps.conversations.services import AgentRunService, ToolAuditService
 from apps.events.temporal_services import EventTemporalResolutionService
@@ -49,8 +57,6 @@ from common.time import to_user_timezone
 
 PROMPT_PATH = Path(__file__).with_name("prompts") / "time_steward.md"
 BASE_SYSTEM_PROMPT = PROMPT_PATH.read_text(encoding="utf-8").strip()
-READ_ONLY_NAMES = frozenset(tool.name for tool in READ_ONLY_TOOLS)
-WRITE_NAMES = frozenset(tool.name for tool in WRITE_TOOLS)
 HANDOFF_NAMES = frozenset(tool.name for tool in HANDOFF_TOOLS)
 
 
@@ -372,11 +378,18 @@ class ToolPolicyMiddleware(AgentMiddleware[AppState, RuntimeContext, Any]):
     """Expose only tools authorized by trusted runtime context."""
 
     def _request(self, request: ModelRequest[RuntimeContext]) -> ModelRequest[RuntimeContext]:
-        allowed = (
-            READ_ONLY_NAMES
-            if request.runtime.context.read_only
-            else (READ_ONLY_NAMES | WRITE_NAMES)
+        context = request.runtime.context
+        allowed_modes = {"read"} if context.read_only else {"read", "write"}
+        allowed = frozenset(
+            name for name, spec in TOOL_SPECS.items() if spec.run_modes.intersection(allowed_modes)
         )
+        selected_names = select_tool_names(context.input_message)
+        if selected_names is not None:
+            allowed = allowed.intersection(selected_names)
+        if is_multi_task_schedule_request(context.input_message):
+            allowed = allowed - {"reschedule_task"}
+        if should_limit_to_read_tools(context.input_message):
+            allowed = frozenset(name for name in allowed if "read" in TOOL_SPECS[name].run_modes)
         memory_settings = get_time_memory_settings()
         if not memory_settings.agent_search_tool_enabled:
             allowed = allowed - {"search_time_memories"}
@@ -461,11 +474,7 @@ class ToolAuditMiddleware(AgentMiddleware[AppState, RuntimeContext, Any]):
             tool_call_id=tool_call_id,
             tool_name=str(request.tool_call["name"]),
             arguments=dict(request.tool_call.get("args", {})),
-            risk_level=(
-                "high"
-                if policy_for_tool(str(request.tool_call["name"])) is not None
-                else ("low" if request.tool_call["name"] in WRITE_NAMES else "read")
-            ),
+            risk_level=(TOOL_SPECS[str(request.tool_call["name"])].audit_risk_level),
         )
         if created:
             if policy_for_tool(audit.tool_name) is not None:
@@ -583,7 +592,7 @@ def build_time_steward_middleware(
     temporal_context_enabled: bool = True,
 ) -> list[Any]:
     config = get_agent_config().middleware
-    read_only_retry_tools: list[BaseTool | str] = list(READ_ONLY_TOOLS)
+    read_only_retry_tools: list[BaseTool | str] = list(RETRY_SAFE_TOOLS)
     middleware: list[Any] = [
         runtime_system_prompt,
         TimeMemoryMiddleware(),

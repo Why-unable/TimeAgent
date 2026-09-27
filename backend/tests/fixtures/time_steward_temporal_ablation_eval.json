@@ -12,7 +12,7 @@
       }
     ],
     "required_tools": ["get_current_datetime", "mutate_events"],
-    "allowed_tools": ["get_current_datetime", "list_events", "list_tasks", "find_free_slots", "mutate_events"],
+    "allowed_tools": ["get_current_datetime", "list_events", "list_tasks", "get_planning_context", "mutate_events"],
     "forbidden_tools": ["cancel_event", "create_task", "create_reminder"],
     "expected_relative_specs": [
       {"offset": 1, "unit": "day", "local_time": "09:00:00"}
@@ -31,7 +31,7 @@
       }
     ],
     "required_tools": ["get_current_datetime", "mutate_events"],
-    "allowed_tools": ["get_current_datetime", "list_events", "list_tasks", "find_free_slots", "mutate_events"],
+    "allowed_tools": ["get_current_datetime", "list_events", "list_tasks", "get_planning_context", "mutate_events"],
     "forbidden_tools": ["cancel_event", "create_task", "create_reminder"],
     "expected_relative_specs": [
       {"offset": 2, "unit": "day", "local_time": "15:00:00"}
@@ -50,7 +50,7 @@
       }
     ],
     "required_tools": ["get_current_datetime", "mutate_events"],
-    "allowed_tools": ["get_current_datetime", "list_events", "list_tasks", "find_free_slots", "mutate_events"],
+    "allowed_tools": ["get_current_datetime", "list_events", "list_tasks", "get_planning_context", "mutate_events"],
     "forbidden_tools": ["cancel_event", "create_task", "create_reminder"],
     "expected_relative_specs": [
       {"offset": 1, "unit": "week", "local_time": "10:00:00"}
@@ -69,7 +69,7 @@
       }
     ],
     "required_tools": ["get_current_datetime", "mutate_events"],
-    "allowed_tools": ["get_current_datetime", "list_events", "list_tasks", "find_free_slots", "mutate_events"],
+    "allowed_tools": ["get_current_datetime", "list_events", "list_tasks", "get_planning_context", "mutate_events"],
     "forbidden_tools": ["cancel_event", "create_task", "create_reminder"],
     "expected_relative_specs": [
       {"offset": 3, "unit": "hour"}
@@ -88,7 +88,7 @@
       }
     ],
     "required_tools": ["mutate_events"],
-    "allowed_tools": ["get_current_datetime", "list_events", "list_tasks", "find_free_slots", "mutate_events"],
+    "allowed_tools": ["get_current_datetime", "list_events", "list_tasks", "get_planning_context", "mutate_events"],
     "forbidden_tools": ["cancel_event", "create_task", "create_reminder"],
     "expected_relative_specs": [
       {"offset": 1, "unit": "day", "local_time": "08:00:00"},
@@ -108,7 +108,7 @@
       }
     ],
     "required_tools": ["mutate_events"],
-    "allowed_tools": ["get_current_datetime", "list_events", "list_tasks", "find_free_slots", "mutate_events"],
+    "allowed_tools": ["get_current_datetime", "list_events", "list_tasks", "get_planning_context", "mutate_events"],
     "forbidden_tools": ["cancel_event", "create_task", "create_reminder"],
     "expected_relative_specs": [
       {"offset": 1, "unit": "month", "local_time": "14:00:00"},

@@ -1,4 +1,5 @@
-from datetime import datetime, time
+from datetime import datetime
+from typing import Literal
 from uuid import UUID
 
 from langchain.tools import ToolRuntime, tool
@@ -7,39 +8,57 @@ from apps.agents.context import RuntimeContext
 from apps.agents.tools.common import require_actor, require_writable
 from apps.planning.adaptive import AdaptivePlanningService
 from apps.planning.automation import AutomationPolicyService
-from apps.planning.schemas import PlanningConstraints
+from apps.planning.schemas import (
+    DailyAvailabilityWindow,
+    SchedulePlanItemEdit,
+    TaskScheduleDecision,
+)
 from apps.planning.services import PlanningService
 from apps.time_memory.decision_profile import DecisionProfileService
 
 
 @tool
-def find_free_slots(
+def get_planning_context(
     range_start: datetime,
     range_end: datetime,
-    duration_minutes: int,
     runtime: ToolRuntime[RuntimeContext],
-    daily_start: time | None = None,
-    daily_end: time | None = None,
-    max_results: int = 10,
-) -> list[dict[str, str]]:
-    """Find deterministic free slots using events, planned tasks, timezone and work hours."""
+    mode: Literal["context", "free_slots"] = "context",
+    duration_minutes: int | None = None,
+    allowed_weekdays: list[int] | None = None,
+    max_free_slots: int = 10,
+    reference_start_at: datetime | None = None,
+    reference_end_at: datetime | None = None,
+) -> dict[str, object]:
+    """Read one planning view for a time range.
 
-    constraints = PlanningConstraints(
-        timezone=runtime.context.timezone,
-        daily_start=daily_start,
-        daily_end=daily_end,
-        max_results=max_results,
-    )
-    slots = PlanningService.find_free_slots(
+    Use ``context`` for selected tasks, calendar events, work hours and planning
+    preferences, with canonical UTC timestamps and parallel ``*_local`` display
+    timestamps in the user's IANA timezone. Use ``free_slots`` for availability or
+    replan candidates; it returns deterministic time windows without task or event details.
+    For minimum-churn replanning, pass the existing planned start and end as the reference
+    range; results are ranked by total movement minutes, lowest first.
+    If its duration is
+    omitted, the user's Runtime default event duration is used. The required range
+    arguments are named exactly ``range_start`` and ``range_end``; do not use
+    ``starts_after`` or ``ends_before``. Before recommending a specific task move,
+    query ``free_slots`` with that task's duration and the applicable date bounds.
+    """
+
+    selected_duration = duration_minutes
+    if mode == "free_slots" and selected_duration is None:
+        selected_duration = runtime.context.planning_preferences.default_event_duration_minutes
+
+    return PlanningService.get_planning_context(
         user=require_actor(runtime),
         range_start=range_start,
         range_end=range_end,
-        duration_minutes=duration_minutes,
-        constraints=constraints,
+        mode=mode,
+        duration_minutes=selected_duration,
+        allowed_weekdays=allowed_weekdays,
+        max_free_slots=max_free_slots,
+        reference_start_at=reference_start_at,
+        reference_end_at=reference_end_at,
     )
-    return [
-        {"start_at": slot.start_at.isoformat(), "end_at": slot.end_at.isoformat()} for slot in slots
-    ]
 
 
 @tool
@@ -49,8 +68,19 @@ def propose_schedule_plan(
     range_end: datetime,
     runtime: ToolRuntime[RuntimeContext],
     strategy: str = "plan_tasks_only",
+    allowed_weekdays: list[int] | None = None,
+    max_daily_minutes: int | None = None,
+    daily_worktime_overrides: list[DailyAvailabilityWindow] | None = None,
+    task_decisions: list[TaskScheduleDecision] | None = None,
 ) -> dict[str, object]:
-    """Create a persistent scheduling draft; it makes no task or calendar change."""
+    """Create a reviewable draft and include structured decisions for selected tasks.
+
+    Preferred starts are soft goals. Explicit/confirmed date bounds, predecessor
+    links, minimum gaps, date-bounded daily availability windows and a requested
+    daily task-minute cap are validated as hard constraints. Use daily_worktime_overrides
+    when the user gives a temporary daily time restriction that later changes. The
+    draft is not applied.
+    """
 
     decision_profile_snapshot: dict[str, object] = {
         "status": "unavailable",
@@ -67,13 +97,24 @@ def propose_schedule_plan(
         range_start=range_start,
         range_end=range_end,
         strategy=strategy,
+        allowed_weekdays=allowed_weekdays,
+        max_daily_minutes=max_daily_minutes,
+        daily_worktime_overrides=daily_worktime_overrides,
+        task_decisions=task_decisions,
         decision_profile_snapshot=decision_profile_snapshot,
         now=runtime.context.current_datetime,
     )
+    raw_plan_evidence: object = next(
+        (item.get("evidence") for item in plan.items if item.get("kind") == "plan_evidence"),
+        {},
+    )
+    plan_evidence = raw_plan_evidence if isinstance(raw_plan_evidence, dict) else {}
+    creation_validation: object = plan_evidence.get("creation_validation", {})
     return {
         "plan_id": str(plan.pk),
         "version": plan.version,
         "strategy": plan.strategy,
+        "validation": creation_validation,
         "items": plan.items,
     }
 
@@ -85,8 +126,12 @@ def compare_schedule_plans(
     range_end: datetime,
     runtime: ToolRuntime[RuntimeContext],
     strategy: str = "plan_tasks_only",
+    allowed_weekdays: list[int] | None = None,
+    max_daily_minutes: int | None = None,
+    daily_worktime_overrides: list[DailyAvailabilityWindow] | None = None,
+    task_decisions: list[TaskScheduleDecision] | None = None,
 ) -> dict[str, object]:
-    """Create two named deterministic draft alternatives without claiming an optimum."""
+    """Compare two draft orderings while retaining the Agent's timing and dependency decisions."""
 
     actor = require_actor(runtime)
     snapshot: dict[str, object] = {
@@ -101,6 +146,10 @@ def compare_schedule_plans(
         range_start=range_start,
         range_end=range_end,
         strategy=strategy,
+        allowed_weekdays=allowed_weekdays,
+        max_daily_minutes=max_daily_minutes,
+        daily_worktime_overrides=daily_worktime_overrides,
+        task_decisions=task_decisions,
         decision_profile_snapshot=snapshot,
         now=runtime.context.current_datetime,
     )
@@ -192,28 +241,26 @@ def validate_schedule_plan(
 
 
 @tool
-def set_schedule_plan_item_lock(
+def edit_schedule_plan(
     plan_id: UUID,
     expected_version: int,
-    task_id: UUID,
-    locked: bool,
+    edits: list[SchedulePlanItemEdit],
     runtime: ToolRuntime[RuntimeContext],
 ) -> dict[str, object]:
-    """Lock or unlock one draft item without changing task or calendar facts."""
+    """Revise selected items in one saved draft; all edits are validated atomically."""
 
     plan = PlanningService.edit_schedule_plan(
         user=require_writable(runtime),
         plan_id=plan_id,
         expected_version=expected_version,
-        edits=[{"task_id": str(task_id), "locked": locked}],
+        edits=[edit.model_dump(exclude_none=True) for edit in edits],
         now=runtime.context.current_datetime,
     )
     return {
         "plan_id": str(plan.pk),
         "version": plan.version,
         "status": plan.status,
-        "task_id": str(task_id),
-        "locked": locked,
+        "items": plan.items,
     }
 
 
@@ -289,7 +336,7 @@ def apply_local_replan(
 
 
 PLANNING_READ_TOOLS = [
-    find_free_slots,
+    get_planning_context,
     propose_schedule_plan,
     compare_schedule_plans,
     detect_schedule_disruptions,
@@ -297,7 +344,7 @@ PLANNING_READ_TOOLS = [
 ]
 PLANNING_WRITE_TOOLS = [
     validate_schedule_plan,
-    set_schedule_plan_item_lock,
+    edit_schedule_plan,
     abandon_schedule_plan,
     apply_schedule_plan,
     apply_local_replan,

@@ -1,4 +1,5 @@
 import json
+import os
 from collections.abc import Mapping
 from datetime import UTC, datetime
 from io import StringIO
@@ -221,7 +222,8 @@ def test_verify_google_calendar_command_writes_sanitized_json(
     assert "private-access-token" not in output_path.read_text(encoding="utf-8")
     assert "private-account@example.test" not in output_path.read_text(encoding="utf-8")
     assert "private-calendar@example.test" not in output_path.read_text(encoding="utf-8")
-    assert output_path.stat().st_mode & 0o777 == 0o600
+    if os.name == "posix":
+        assert output_path.stat().st_mode & 0o777 == 0o600
     assert "Wrote sanitized report" in stdout.getvalue()
 
 
@@ -299,5 +301,6 @@ def test_verify_google_calendar_command_writes_failure_report_and_exits_nonzero(
     assert payload["status"] == "fail"
     assert payload["error_type"] == "ExternalCalendarRateLimitError"
     assert payload["error"] == "Google Calendar rate limit exceeded"
-    assert output_path.stat().st_mode & 0o777 == 0o600
+    if os.name == "posix":
+        assert output_path.stat().st_mode & 0o777 == 0o600
     assert "private-access-token" not in output_path.read_text(encoding="utf-8")

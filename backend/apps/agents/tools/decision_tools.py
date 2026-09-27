@@ -43,6 +43,7 @@ def get_capacity_forecast(
     range_end: datetime,
     runtime: ToolRuntime[RuntimeContext],
     slot_minutes: int = 30,
+    allowed_weekdays: list[int] | None = None,
 ) -> dict[str, object]:
     """Get deterministic capacity risk and its reason codes for a time range."""
 
@@ -51,6 +52,7 @@ def get_capacity_forecast(
         range_start=range_start,
         range_end=range_end,
         slot_minutes=slot_minutes,
+        allowed_weekdays=allowed_weekdays,
     )
     return {
         "range_start": forecast.range_start.isoformat(),

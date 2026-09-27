@@ -1,14 +1,18 @@
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime, time, timedelta
+from zoneinfo import ZoneInfo
 
 import pytest
 from django.contrib.auth import get_user_model
 
 from apps.events.services import CreateEventCommand, EventService
 from apps.planning.models import SchedulePlanStatus
+from apps.planning.schemas import DailyAvailabilityWindow
 from apps.planning.services import PlanningService
+from apps.preferences.services import UserPreferenceService
 from apps.tasks.services import CreateTaskCommand, TaskService
 
 pytestmark = pytest.mark.django_db
+SHANGHAI = ZoneInfo("Asia/Shanghai")
 
 
 def test_propose_then_apply_task_schedule_plan() -> None:
@@ -33,6 +37,170 @@ def test_propose_then_apply_task_schedule_plan() -> None:
     task.refresh_from_db()
     assert applied.status == SchedulePlanStatus.APPLIED
     assert task.planned_start_at is not None
+
+
+def test_weekend_schedule_plan_uses_the_same_saved_constraint_for_validation() -> None:
+    user = get_user_model().objects.create_user(username="weekend-plan-user")
+    UserPreferenceService.update_for_user(
+        user,
+        {
+            "timezone": "Asia/Shanghai",
+            "workday_start": time(9),
+            "workday_end": time(17),
+        },
+    )
+    task = TaskService.create_task(
+        CreateTaskCommand(
+            user=user,
+            title="Weekend project work",
+            estimated_minutes=30,
+            due_at=datetime(2026, 11, 8, 17, tzinfo=SHANGHAI),
+        )
+    )
+    plan = PlanningService.propose_schedule_plan(
+        user=user,
+        task_ids=[task.pk],
+        range_start=datetime(2026, 11, 7, 9, tzinfo=SHANGHAI),
+        range_end=datetime(2026, 11, 8, 17, tzinfo=SHANGHAI),
+        strategy="plan_tasks_only",
+        allowed_weekdays=(5, 6),
+    )
+
+    item = next(item for item in plan.items if item.get("task_id") == str(task.pk))
+    validation = PlanningService.validate_schedule_plan(
+        user=user,
+        plan_id=plan.pk,
+        expected_version=plan.version,
+    )
+
+    assert item["state"] == "placed"
+    assert datetime.fromisoformat(str(item["start_at"])).astimezone(SHANGHAI).weekday() == 5
+    assert plan.constraints_snapshot["allowed_weekdays"] == [5, 6]
+    assert validation.is_valid is True
+
+
+def test_schedule_plan_persists_and_revalidates_temporary_daily_windows() -> None:
+    user = get_user_model().objects.create_user(username="temporary-window-plan-user")
+    UserPreferenceService.update_for_user(
+        user,
+        {
+            "timezone": "Asia/Shanghai",
+            "workday_start": time(9),
+            "workday_end": time(17),
+        },
+    )
+    task = TaskService.create_task(
+        CreateTaskCommand(
+            user=user,
+            title="Prepare project update",
+            estimated_minutes=60,
+            due_at=datetime(2026, 10, 9, 17, tzinfo=SHANGHAI),
+        )
+    )
+    window = DailyAvailabilityWindow(
+        start_date=datetime(2026, 10, 8).date(),
+        end_date=datetime(2026, 10, 9).date(),
+        daily_start=time(10, 30),
+        daily_end=time(17),
+    )
+    plan = PlanningService.propose_schedule_plan(
+        user=user,
+        task_ids=[task.pk],
+        range_start=datetime(2026, 10, 8, 0, tzinfo=SHANGHAI),
+        range_end=datetime(2026, 10, 10, 0, tzinfo=SHANGHAI),
+        strategy="plan_tasks_only",
+        daily_worktime_overrides=[window],
+    )
+    item = next(item for item in plan.items if item.get("task_id") == str(task.pk))
+    validation = PlanningService.validate_schedule_plan(
+        user=user,
+        plan_id=plan.pk,
+        expected_version=plan.version,
+    )
+
+    assert datetime.fromisoformat(str(item["start_at"])).astimezone(SHANGHAI).time() == time(10, 30)
+    assert plan.constraints_snapshot["daily_worktime_overrides"] == [
+        {
+            "start_date": "2026-10-08",
+            "end_date": "2026-10-09",
+            "daily_start": "10:30:00",
+            "daily_end": "17:00:00",
+        }
+    ]
+    assert validation.is_valid is True
+
+    item["start_at"] = "2026-10-08T09:00:00+08:00"
+    item["end_at"] = "2026-10-08T10:00:00+08:00"
+    item["reserved_start_at"] = item["start_at"]
+    item["reserved_end_at"] = item["end_at"]
+    plan.items = [item if row.get("task_id") == str(task.pk) else row for row in plan.items]
+    plan.save(update_fields=["items"])
+    invalid = PlanningService.validate_schedule_plan(
+        user=user,
+        plan_id=plan.pk,
+        expected_version=plan.version,
+    )
+
+    assert invalid.is_valid is False
+    assert "work_hours_violation" in invalid.reason_codes
+
+
+def test_schedule_plan_enforces_and_revalidates_daily_task_minutes() -> None:
+    user = get_user_model().objects.create_user(username="daily-cap-plan-user")
+    UserPreferenceService.update_for_user(
+        user,
+        {
+            "timezone": "Asia/Shanghai",
+            "workday_start": time(9),
+            "workday_end": time(17),
+        },
+    )
+    tasks = [
+        TaskService.create_task(
+            CreateTaskCommand(user=user, title=f"Focus task {index}", estimated_minutes=90)
+        )
+        for index in range(2)
+    ]
+    plan = PlanningService.propose_schedule_plan(
+        user=user,
+        task_ids=[task.pk for task in tasks],
+        range_start=datetime(2026, 7, 27, 0, tzinfo=SHANGHAI),
+        range_end=datetime(2026, 7, 29, 0, tzinfo=SHANGHAI),
+        strategy="plan_tasks_only",
+        max_daily_minutes=120,
+    )
+    placed = [item for item in plan.items if item.get("state") == "placed"]
+    scheduled_days = {
+        datetime.fromisoformat(str(item["start_at"])).astimezone(SHANGHAI).date() for item in placed
+    }
+    assert len(placed) == 2
+    assert len(scheduled_days) == 2
+    assert plan.constraints_snapshot["max_daily_minutes"] == 120
+    assert (
+        PlanningService.validate_schedule_plan(
+            user=user,
+            plan_id=plan.pk,
+            expected_version=plan.version,
+        ).is_valid
+        is True
+    )
+
+    same_day_start = datetime(2026, 7, 27, 11, tzinfo=SHANGHAI).astimezone(UTC).isoformat()
+    same_day_end = datetime(2026, 7, 27, 12, 30, tzinfo=SHANGHAI).astimezone(UTC).isoformat()
+    for item in plan.items:
+        if item.get("task_id") == str(tasks[1].pk) and item.get("state") == "placed":
+            item["start_at"] = same_day_start
+            item["end_at"] = same_day_end
+            item["reserved_start_at"] = same_day_start
+            item["reserved_end_at"] = same_day_end
+    plan.save(update_fields=["items"])
+    invalid = PlanningService.validate_schedule_plan(
+        user=user,
+        plan_id=plan.pk,
+        expected_version=plan.version,
+    )
+    assert invalid.is_valid is False
+    assert invalid.reason_codes == ("max_daily_minutes_violation",)
 
 
 def test_propose_schedule_plan_returns_machine_readable_unplaced_reason() -> None:
@@ -433,6 +601,39 @@ def test_edit_can_lock_and_unlock_a_plan_item_but_regeneration_respects_lock() -
     )
     item = next(item for item in unlocked.items if item.get("task_id") == str(task.pk))
     assert item["locked"] is False
+
+
+def test_edit_can_move_an_item_within_the_same_validated_draft() -> None:
+    user = get_user_model().objects.create_user(username="plan-move-user")
+    task = TaskService.create_task(
+        CreateTaskCommand(user=user, title="Movable task", estimated_minutes=30)
+    )
+    plan = PlanningService.propose_schedule_plan(
+        user=user,
+        task_ids=[task.pk],
+        range_start=datetime(2026, 7, 27, 1, tzinfo=UTC),
+        range_end=datetime(2026, 7, 27, 4, tzinfo=UTC),
+        strategy="plan_tasks_only",
+    )
+
+    moved = PlanningService.edit_schedule_plan(
+        user=user,
+        plan_id=plan.pk,
+        expected_version=plan.version,
+        edits=[
+            {
+                "task_id": task.pk,
+                "start_at": datetime(2026, 7, 27, 3, tzinfo=UTC),
+                "end_at": datetime(2026, 7, 27, 3, 30, tzinfo=UTC),
+            }
+        ],
+    )
+
+    assert moved.pk == plan.pk
+    assert moved.version == plan.version + 1
+    item = next(item for item in moved.items if item.get("task_id") == str(task.pk))
+    assert item["start_at"] == "2026-07-27T03:00:00+00:00"
+    assert item["end_at"] == "2026-07-27T03:30:00+00:00"
 
 
 def test_user_can_abandon_only_a_versioned_draft() -> None:

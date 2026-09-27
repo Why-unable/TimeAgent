@@ -1,3 +1,4 @@
+from datetime import timedelta
 from typing import Any
 from uuid import uuid4
 
@@ -190,9 +191,7 @@ def test_direct_create_is_applied_and_can_be_undone_idempotently() -> None:
 def test_direct_update_undo_restores_previous_value_with_new_version() -> None:
     user = get_user_model().objects.create_user(username=f"semantic-{uuid4()}")
     created = SemanticMemoryService.create_proposal(user=user, payload=payload())
-    SemanticMemoryService.decide_proposal(
-        user=user, proposal_id=created.proposal.pk, approve=True
-    )
+    SemanticMemoryService.decide_proposal(user=user, proposal_id=created.proposal.pk, approve=True)
     previous = SemanticMemory.objects.get(user=user, status=SemanticMemoryStatus.ACTIVE)
     updated = SemanticMemoryService.create_proposal(
         user=user,
@@ -218,9 +217,7 @@ def test_direct_update_undo_restores_previous_value_with_new_version() -> None:
 def test_direct_delete_undo_restores_deleted_memory() -> None:
     user = get_user_model().objects.create_user(username=f"semantic-{uuid4()}")
     created = SemanticMemoryService.create_proposal(user=user, payload=payload())
-    SemanticMemoryService.decide_proposal(
-        user=user, proposal_id=created.proposal.pk, approve=True
-    )
+    SemanticMemoryService.decide_proposal(user=user, proposal_id=created.proposal.pk, approve=True)
     memory = SemanticMemory.objects.get(user=user, status=SemanticMemoryStatus.ACTIVE)
     deleted = SemanticMemoryService.create_proposal(
         user=user,
@@ -285,7 +282,7 @@ def test_semantic_projection_is_user_scoped_and_rebuildable() -> None:
 def test_extraction_uses_bounded_user_context_and_creates_proposal() -> None:
     user = get_user_model().objects.create_user(username=f"semantic-{uuid4()}")
     conversation = Conversation.objects.create(user=user, title="memory")
-    AgentRun.objects.create(
+    previous = AgentRun.objects.create(
         conversation=conversation,
         operation_id=uuid4(),
         request_id="previous",
@@ -305,6 +302,7 @@ def test_extraction_uses_bounded_user_context_and_creates_proposal() -> None:
         anchor_timezone="Asia/Shanghai",
         final_response="已记录",
     )
+    AgentRun.objects.filter(pk=previous.pk).update(created_at=run.created_at - timedelta(minutes=1))
 
     class StructuredModel:
         def invoke(self, messages: list[Any]) -> MemoryExtractionResult:
@@ -357,10 +355,7 @@ def test_recent_direct_memory_and_undo_api_are_user_scoped() -> None:
     client = APIClient()
     client.force_authenticate(user=other)
     assert client.get("/api/v1/time-memory/me/proposals/recent/").json() == []
-    assert (
-        client.post(f"/api/v1/time-memory/me/proposals/{proposal.pk}/undo/").status_code
-        == 404
-    )
+    assert client.post(f"/api/v1/time-memory/me/proposals/{proposal.pk}/undo/").status_code == 404
 
     client.force_authenticate(user=user)
     recent = client.get("/api/v1/time-memory/me/proposals/recent/")

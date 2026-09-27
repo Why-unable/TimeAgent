@@ -1,6 +1,7 @@
 import json
 from collections.abc import Callable, Sequence
 from contextlib import contextmanager
+from dataclasses import replace
 from datetime import UTC, datetime, timedelta
 from typing import Any
 from uuid import uuid4
@@ -304,6 +305,73 @@ def test_high_risk_tool_never_executes_before_edited_approval() -> None:
 
 
 @pytest.mark.django_db(transaction=True)
+def test_reschedule_task_waits_for_approval_and_applies_expected_version() -> None:
+    user = User.objects.create_user(username="hitl-reschedule-task")
+    task = TaskService.create_task(CreateTaskCommand(user=user, title="Prepare review"))
+    run, base_context, config = _setup_run(user)
+    message = "把 Prepare review 任务改到 7 月 22 日上午十点"
+    run.input_message = message
+    run.save(update_fields=["input_message"])
+    context = replace(base_context, input_message=message)
+    planned_start = datetime(2026, 7, 22, 2, tzinfo=UTC)
+    planned_end = datetime(2026, 7, 22, 3, tzinfo=UTC)
+    model = ScriptedModel(
+        responses=[
+            AIMessage(
+                content="",
+                tool_calls=[
+                    {
+                        "name": "reschedule_task",
+                        "args": {
+                            "task_id": str(task.pk),
+                            "planned_start_at": planned_start.isoformat(),
+                            "planned_end_at": planned_end.isoformat(),
+                            "expected_version": task.version,
+                        },
+                        "id": "reschedule-task-hitl-1",
+                        "type": "tool_call",
+                    }
+                ],
+            ),
+            AIMessage(content="任务时间已更新。"),
+        ]
+    )
+    agent = build_time_steward_agent(model=model, checkpointer=InMemorySaver())
+
+    interrupted = agent.invoke(
+        {"messages": [HumanMessage(content=message)]},
+        config=config,
+        context=context,
+    )
+
+    task.refresh_from_db()
+    assert task.planned_start_at is None
+    proposal = ActionProposalService.create_from_interrupt(
+        run=run,
+        interrupt_value=interrupted["__interrupt__"][0].value,
+    )[0]
+    assert proposal.status == ActionProposalStatus.AWAITING_APPROVAL
+    decision = ActionProposalService.decide(
+        user=user,
+        proposal_id=proposal.pk,
+        expected_version=proposal.version,
+        decision="approve",
+        decision_idempotency_key=uuid4(),
+    )
+    assert decision.resume_ready
+    resume_payload = ActionProposalService.resume_payload(run.pk)
+    ActionProposalService.mark_resumed(run.pk)
+    completed = agent.invoke(Command(resume=resume_payload), config=config, context=context)
+
+    task.refresh_from_db()
+    proposal.refresh_from_db()
+    assert completed["messages"][-1].content == "任务时间已更新。"
+    assert task.planned_start_at == planned_start
+    assert task.planned_end_at == planned_end
+    assert proposal.status == ActionProposalStatus.EXECUTED
+
+
+@pytest.mark.django_db(transaction=True)
 def test_rejected_high_risk_tool_resumes_without_execution() -> None:
     user = User.objects.create_user(username="hitl-reject")
     run, context, config = _setup_run(user)
@@ -392,6 +460,7 @@ def test_memory_tool_applies_once_after_inline_approval_and_same_run_resume() ->
     assert memory.source_type == SemanticMemorySource.EXPLICIT_USER
     assert memory_proposal.status == MemoryProposalStatus.APPLIED
     assert proposal.status == ActionProposalStatus.EXECUTED
+    assert proposal.execution_result is not None
     execution_result = json.loads(proposal.execution_result["content"])
     assert execution_result["requires_confirmation"] is False
     assert completed["messages"][-1].content == "已记住该偏好。"

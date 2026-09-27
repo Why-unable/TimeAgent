@@ -126,10 +126,38 @@ def test_reschedule_task_validates_and_normalizes_range() -> None:
         user=user,
         planned_start_at=FIXED_NOW,
         planned_end_at=PLANNED_END,
+        expected_version=task.version,
     )
 
     assert rescheduled.planned_start_at == FIXED_NOW
     assert rescheduled.planned_end_at == PLANNED_END
+    assert rescheduled.version == task.version + 1
+    with pytest.raises(ValueError, match="Task version conflict"):
+        TaskService.reschedule_task(
+            task_id=task.id,
+            user=user,
+            planned_start_at=FIXED_NOW + timedelta(hours=3),
+            planned_end_at=PLANNED_END + timedelta(hours=3),
+            expected_version=task.version,
+        )
+
+    occupant = create_task(
+        user,
+        title="Already scheduled",
+        planned_start_at=FIXED_NOW + timedelta(hours=3),
+        planned_end_at=PLANNED_END + timedelta(hours=3),
+    )
+    with pytest.raises(ValueError, match="conflicts with current schedule facts"):
+        TaskService.reschedule_task(
+            task_id=task.id,
+            user=user,
+            planned_start_at=occupant.planned_start_at,
+            planned_end_at=occupant.planned_end_at,
+            expected_version=rescheduled.version,
+        )
+    task.refresh_from_db()
+    assert task.planned_start_at == FIXED_NOW
+    assert task.planned_end_at == PLANNED_END
     with pytest.raises(ValidationError):
         TaskService.reschedule_task(
             task_id=task.id,

@@ -5,6 +5,8 @@ from typing import Literal
 from langchain.agents.middleware import ToolCallRequest
 from langchain.agents.middleware.human_in_the_loop import InterruptOnConfig
 
+from apps.agents.tool_metadata import HITL_POLICY_METADATA
+
 DecisionType = Literal["approve", "edit", "reject"]
 
 
@@ -16,95 +18,12 @@ class RiskPolicy:
 
 
 HIGH_RISK_TOOL_POLICIES: dict[str, RiskPolicy] = {
-    "mutate_events": RiskPolicy(
+    name: RiskPolicy(
         risk_level="high",
-        allowed_decisions=("approve", "edit", "reject"),
-        description="Applies one atomic set of calendar changes and needs one confirmation.",
-    ),
-    "create_event": RiskPolicy(
-        risk_level="high",
-        allowed_decisions=("approve", "edit", "reject"),
-        description="创建正式日程会占用你的日历时间，需要确认后执行。",
-    ),
-    "create_event_batch": RiskPolicy(
-        risk_level="high",
-        allowed_decisions=("approve", "edit", "reject"),
-        description=(
-            "Creates several calendar events as one atomic operation and needs one confirmation."
-        ),
-    ),
-    "update_event": RiskPolicy(
-        risk_level="high",
-        allowed_decisions=("approve", "edit", "reject"),
-        description=(
-            "Changing an event can move an existing calendar commitment and needs confirmation."
-        ),
-    ),
-    "create_task_batch": RiskPolicy(
-        risk_level="high",
-        allowed_decisions=("approve", "edit", "reject"),
-        description="Creates several tasks in one atomic batch and needs one confirmation.",
-    ),
-    "create_recurring_event": RiskPolicy(
-        risk_level="high",
-        allowed_decisions=("approve", "edit", "reject"),
-        description="Creates a finite series of calendar commitments and needs one confirmation.",
-    ),
-    "apply_schedule_plan": RiskPolicy(
-        risk_level="high",
-        allowed_decisions=("approve", "reject"),
-        description="Applies a saved schedule plan to tasks or calendar events atomically.",
-    ),
-    "apply_local_replan": RiskPolicy(
-        risk_level="high",
-        allowed_decisions=("approve", "reject"),
-        description="Moves an explicitly selected set of flexible tasks as one reversible batch.",
-    ),
-    "change_task_batch_state": RiskPolicy(
-        risk_level="high",
-        allowed_decisions=("approve", "reject"),
-        description="Changes several task states atomically and needs one confirmation.",
-    ),
-    "update_reminder": RiskPolicy(
-        risk_level="high",
-        allowed_decisions=("approve", "edit", "reject"),
-        description="Changing a reminder's timing or delivery requires confirmation.",
-    ),
-    "set_reminder_target": RiskPolicy(
-        risk_level="high",
-        allowed_decisions=("approve", "edit", "reject"),
-        description="Changing what a reminder is bound to requires confirmation.",
-    ),
-    "cancel_event": RiskPolicy(
-        risk_level="high",
-        allowed_decisions=("approve", "reject"),
-        description="取消日程会移除既有日历占用，需要确认后执行。",
-    ),
-    "cancel_reminder": RiskPolicy(
-        risk_level="high",
-        allowed_decisions=("approve", "reject"),
-        description="取消提醒后将不会再按计划通知，需要确认后执行。",
-    ),
-    "cancel_task": RiskPolicy(
-        risk_level="high",
-        allowed_decisions=("approve", "reject"),
-        description="取消任务会终止其后续执行计划，需要确认后执行。",
-    ),
-    "remember_time_preference": RiskPolicy(
-        risk_level="high",
-        allowed_decisions=("approve", "reject"),
-        description="保存长期时间偏好会影响未来的 Agent 上下文，需要确认后生效。",
-    ),
-    "update_time_preference": RiskPolicy(
-        risk_level="high",
-        allowed_decisions=("approve", "reject"),
-        description="修改长期时间偏好会影响未来的 Agent 决策，需要确认后生效。",
-    ),
-    "forget_time_preference": RiskPolicy(
-        risk_level="high",
-        allowed_decisions=("approve", "reject"),
-        description="忘记长期时间偏好会移除后续 Agent 可用的上下文，需要确认后生效。",
-    ),
+        allowed_decisions=decisions,  # type: ignore[arg-type]
+        description=description,
+    )
+    for name, (decisions, description) in HITL_POLICY_METADATA.items()
 }
 
 

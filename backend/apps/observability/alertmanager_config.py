@@ -16,6 +16,12 @@ def _email_delivery_enabled() -> bool:
     return os.getenv("ALERTMANAGER_EMAIL_ENABLED", "true").strip().lower() == "true"
 
 
+def _set_owner(path: Path, uid: int, gid: int) -> None:
+    chown = getattr(os, "chown", None)
+    if chown is not None:
+        chown(path, uid, gid)
+
+
 def render(path: Path) -> None:
     route = {
         "receiver": "operator-email" if _email_delivery_enabled() else "local-operator",
@@ -72,7 +78,7 @@ def render(path: Path) -> None:
     temporary = path.with_suffix(".tmp")
     temporary.write_text(yaml.safe_dump(config, allow_unicode=True, sort_keys=False))
     os.chmod(temporary, 0o600)
-    os.chown(temporary, 65534, 65534)
+    _set_owner(temporary, 65534, 65534)
     os.replace(temporary, path)
 
 

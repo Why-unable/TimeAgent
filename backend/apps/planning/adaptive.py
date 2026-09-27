@@ -47,9 +47,7 @@ class ScheduleDisruption:
 
 class AdaptivePlanningService:
     @staticmethod
-    def find_change_batch(
-        *, user: User, operation_id: UUID
-    ) -> ScheduleChangeBatch | None:
+    def find_change_batch(*, user: User, operation_id: UUID) -> ScheduleChangeBatch | None:
         return ScheduleChangeBatch.objects.filter(
             user=user,
             operation_id=operation_id,
@@ -287,6 +285,8 @@ class AdaptivePlanningService:
                 user=user,
                 planned_start_at=datetime.fromisoformat(str(item["to_start_at"])),
                 planned_end_at=datetime.fromisoformat(str(item["to_end_at"])),
+                expected_version=task.version,
+                validate_conflicts=False,
                 origin="adaptive_local_replan",
             )
             if updated.planned_start_at is None or updated.planned_end_at is None:
@@ -309,9 +309,22 @@ class AdaptivePlanningService:
     @staticmethod
     @transaction.atomic
     def revert_batch(*, user: User, batch_id: UUID) -> ScheduleChangeBatch:
+        lock_user_schedule_writes(user)
         batch = ScheduleChangeBatch.objects.select_for_update().get(pk=batch_id, user=user)
         if batch.status != ScheduleChangeBatchStatus.APPLIED:
             return batch
+        restore_slots: list[tuple[UUID, datetime, datetime]] = []
+        for snapshot in batch.before_snapshot:
+            if snapshot.get("start_at") is None or snapshot.get("end_at") is None:
+                continue
+            restore_slots.append(
+                (
+                    UUID(str(snapshot["task_id"])),
+                    datetime.fromisoformat(str(snapshot["start_at"])),
+                    datetime.fromisoformat(str(snapshot["end_at"])),
+                )
+            )
+        PlanningService.validate_task_slots(user=user, slots=restore_slots)
         for snapshot in batch.before_snapshot:
             task = Task.objects.select_for_update().get(pk=snapshot["task_id"], user=user)
             after_snapshot = next(
@@ -330,6 +343,8 @@ class AdaptivePlanningService:
                 planned_end_at=(
                     datetime.fromisoformat(snapshot["end_at"]) if snapshot.get("end_at") else None
                 ),
+                expected_version=task.version,
+                validate_conflicts=False,
                 origin="adaptive_local_replan_revert",
             )
         batch.status = ScheduleChangeBatchStatus.REVERTED
