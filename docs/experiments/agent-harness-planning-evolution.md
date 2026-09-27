@@ -1,6 +1,6 @@
 # TimeAgent Agent Harness 排程能力演进实验
 
-- 状态：本轮实验完成（未部署）
+- 状态：本轮实验完成；后续部署记录见 §2.8
 - 开始日期：2026-09-27（Asia/Shanghai）
 - 仓库基线：`c57fcd648674d9de1f3dd07ac1f9de9b68425261`；工作区包含上一轮尚未提交、已部署的实现改动
 - 研究要求：[`docs/optim/优化.md`](../optim/优化.md)
@@ -209,4 +209,13 @@ Judge D 最初按 1–5 而非要求的 1–10 评分，因此以线性 ×2 归�
 3. 另请独立 Scenario Agent 生成一组开发迭代期间不公开、未参与调优的 sealed hold-out，再做最终盲评；增加真实用户的计划可接受度反馈及一日执行变化模拟。再决定是否需要增加候选比较步骤；目前候选比较模式未进入最终主链路，单 Agent 观察—决策—修复已经满足这组场景，没有证据支撑增加运行时多 Agent 或单独 ranker。
 4. 满足成本/延迟门槛后再部署并使用生产影子指标观察；本轮不含部署、真实用户写入或计划应用。
 
-本次代码与离线评测均在本地/隔离环境完成，不修改公开 API、数据库 schema 或部署拓扑，因此没有 OpenAPI/前端类型或迁移变更。本轮独立 Docker 评测项目在复核后清理；不触碰生产服务。相关代码检查与测试结果见本轮任务最终说明。
+离线实验阶段使用本地/隔离环境，没有触碰生产服务；实现不修改公开 API、数据库 schema 或部署拓扑，因此没有 OpenAPI/前端类型或迁移变更。本轮独立 Docker 评测项目在复核后清理。后续部署按明确请求执行，记录如下。
+
+### 2.8 部署追记
+
+- 推送分支：`main`；已部署代码提交：`a176e5d4e3b32d31c5c6d68c82ac70c70c47625f`（`feat: improve agent-driven schedule planning harness`）。部署完成后另提交本节文档追记，不改变已部署应用代码。
+- 部署前执行 PostgreSQL custom-format 备份：`backups/time-agent-20260927-172512.dump`。
+- 用 `docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build` 构建并更新 Django、Celery Worker、Celery Beat；部署容器运行镜像 ID 与刚构建的 `time-agent-django` 镜像 ID 一致。
+- 执行 `migrate --noinput`，结果为 `No migrations to apply`。PostgreSQL/Redis 数据卷保留。
+- Django、PostgreSQL、Redis 均 healthy；Cloudflared 服务仍为 `Running` 且 `Automatic`。本地 `http://127.0.0.1:7080/health/ready` 和公网 `https://steward.uresofa.me/health/ready` 均返回 `200`，响应包含 `database=ok`、`redis=ok`。
+- 部署验证后 `main` 工作区干净。完整后端测试为 551 passed、3 skipped；前端 111 passed，ESLint、TypeScript 与 Vite 生产构建通过；全量 mypy 402 个源文件通过；Django 迁移检查无变化。`check --deploy` 仅报告现有 HSTS 未配置和 SSL redirect 未由 Django 设置的两条提示，Cloudflare Tunnel 当前负责公网 HTTPS；未因此改动安全配置。
