@@ -242,6 +242,43 @@ describe("CalendarPage", () => {
     });
   });
 
+  it("blocks a nonexistent local time before creating an event or linked task", async () => {
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input);
+      const body = url.includes("preferences")
+        ? { ...preference, timezone: "America/New_York" }
+        : [];
+      return new Response(JSON.stringify(body), { status: 200 });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    renderPage();
+    await screen.findByText("当前范围暂无日程");
+
+    await userEvent.click(screen.getByRole("button", { name: "新建日程" }));
+    await userEvent.type(screen.getByLabelText("日程标题"), "调夏令时会议");
+    fireEvent.change(screen.getByLabelText(/开始时间/), {
+      target: { value: "2026-03-08T02:30" },
+    });
+    fireEvent.change(screen.getByLabelText(/结束时间/), {
+      target: { value: "2026-03-08T03:30" },
+    });
+    fireEvent.change(screen.getByRole("option", { name: "新建任务并关联" }).parentElement as HTMLSelectElement, {
+      target: { value: "__new__" },
+    });
+    await userEvent.type(screen.getByPlaceholderText("新任务标题"), "会议准备");
+    await userEvent.click(screen.getByRole("button", { name: "创建日程" }));
+
+    expect(await screen.findByText(/这个时间在 America\/New_York 不存在/)).toBeInTheDocument();
+    expect(fetchMock).not.toHaveBeenCalledWith(
+      expect.stringContaining("/api/v1/tasks/"),
+      expect.objectContaining({ method: "POST" }),
+    );
+    expect(fetchMock).not.toHaveBeenCalledWith(
+      expect.stringContaining("/api/v1/events/"),
+      expect.objectContaining({ method: "POST" }),
+    );
+  });
+
   it("updates and cancels an event with its current version", async () => {
     const writes: { url: string; method?: string; body?: string }[] = [];
     vi.stubGlobal(

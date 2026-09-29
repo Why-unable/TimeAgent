@@ -5,7 +5,7 @@ import { z } from "zod";
 
 import { getTaskTags, type Task } from "../../api/tasks";
 import { Drawer } from "../../components/overlay/drawer";
-import { toDateTimeLocalValue, toUtcISOString } from "../../utils/datetime";
+import { getLocalDateTimeProblem, localDateTimeProblemMessage, toDateTimeLocalValue, toUtcISOString } from "../../utils/datetime";
 import { useCreateTask, useUpdateTask } from "./hooks";
 
 const taskFormSchema = z
@@ -91,6 +91,21 @@ export function TaskEditor({ task, timezone, onClose }: TaskEditorProps) {
   const mutationError = createMutation.error ?? updateMutation.error;
 
   const onSubmit = form.handleSubmit((values) => {
+    const dateFields = [
+      ["due_at", values.due_at],
+      ["planned_start_at", values.planned_start_at],
+      ["planned_end_at", values.planned_end_at],
+    ] as const;
+    let hasDateError = false;
+    for (const [field, value] of dateFields) {
+      if (!value) continue;
+      const problem = getLocalDateTimeProblem(value, timezone);
+      if (!problem) continue;
+      form.setError(field, { type: "validate", message: localDateTimeProblemMessage(problem, timezone) });
+      hasDateError = true;
+    }
+    if (hasDateError) return;
+
     const input = {
       title: values.title.trim(),
       project: values.project.trim(),
@@ -182,6 +197,7 @@ export function TaskEditor({ task, timezone, onClose }: TaskEditorProps) {
           <label className="block text-sm text-amber-100">
             截止时间 due_at（{timezone}）
             <input type="datetime-local" {...form.register("due_at")} className={inputClass} />
+            {form.formState.errors.due_at && <span className="mt-1 block text-sm text-red-300">{form.formState.errors.due_at.message}</span>}
           </label>
           <p className="mt-2 text-xs text-slate-500">表示最迟需要完成的时间，不等于计划执行时段。</p>
         </div>
@@ -195,6 +211,7 @@ export function TaskEditor({ task, timezone, onClose }: TaskEditorProps) {
                 {...form.register("planned_start_at")}
                 className={inputClass}
               />
+              {form.formState.errors.planned_start_at && <span className="mt-1 block text-sm text-red-300">{form.formState.errors.planned_start_at.message}</span>}
             </label>
             <label className="block text-xs text-slate-400">
               计划结束（{timezone}）

@@ -64,6 +64,21 @@ describe("ApprovalCard", () => {
     );
   });
 
+  it("blocks an ambiguous repeated local time while editing an approval", async () => {
+    const onDecision = vi.fn().mockResolvedValue(undefined);
+    render(<ApprovalCard proposal={proposal} timezone="America/New_York" onDecision={onDecision} />);
+
+    await userEvent.click(screen.getByRole("button", { name: "调整后批准" }));
+    await userEvent.click(screen.getByText("查看操作详情"));
+    fireEvent.change(screen.getByLabelText(/开始时间（America\/New_York）/), {
+      target: { value: "2026-11-01T01:30" },
+    });
+
+    expect(await screen.findByText(/这个时间在 America\/New_York 会出现两次/)).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "保存修改并批准" }));
+    expect(onDecision).not.toHaveBeenCalled();
+  });
+
   it("does not allow changing the target of a cancellation proposal", () => {
     const cancellation: ActionProposal = {
       ...proposal,

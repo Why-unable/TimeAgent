@@ -4,6 +4,7 @@ import {
   formatDateKey,
   formatInUserTimezone,
   formatTimeInUserTimezone,
+  getLocalDateTimeProblem,
   getTimezoneLabel,
   parseApiDateTime,
   toUtcISOString,
@@ -37,6 +38,16 @@ describe("datetime utilities", () => {
     expect(toUtcISOString("2026-07-17T15:00:00", "Asia/Shanghai")).toBe(
       "2026-07-17T07:00:00.000Z",
     );
+  });
+
+  it("rejects local times skipped or repeated by daylight-saving transitions", () => {
+    expect(getLocalDateTimeProblem("2026-03-08T02:30", "America/New_York")).toBe("nonexistent");
+    expect(getLocalDateTimeProblem("2026-11-01T01:30", "America/New_York")).toBe("ambiguous");
+    expect(getLocalDateTimeProblem("2026-04-05T01:45", "Australia/Lord_Howe")).toBe("ambiguous");
+
+    expect(() => toUtcISOString("2026-03-08T02:30", "America/New_York")).toThrow("不存在");
+    expect(() => toUtcISOString("2026-11-01T01:30", "America/New_York")).toThrow("出现两次");
+    expect(toUtcISOString("2026-11-01T03:30", "America/New_York")).toBe("2026-11-01T08:30:00.000Z");
   });
 
   it("returns a timezone label with its current offset", () => {

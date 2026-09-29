@@ -130,6 +130,31 @@ describe("RemindersPage", () => {
     });
   });
 
+  it("explains a skipped daylight-saving time and does not submit it", async () => {
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input);
+      const body = url.includes("preferences")
+        ? { ...preference, timezone: "America/New_York" }
+        : [];
+      return new Response(JSON.stringify(body), { status: 200 });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    renderPage();
+    await screen.findByText("暂无提醒");
+
+    await userEvent.type(screen.getByLabelText("提醒内容"), "调夏令时提醒");
+    fireEvent.change(screen.getByLabelText(/提醒时间/), {
+      target: { value: "2026-03-08T02:30" },
+    });
+    await userEvent.click(screen.getByRole("button", { name: "新建提醒" }));
+
+    expect(await screen.findByText(/这个时间在 America\/New_York 不存在/)).toBeInTheDocument();
+    expect(fetchMock).not.toHaveBeenCalledWith(
+      expect.stringContaining("/reminders/"),
+      expect.objectContaining({ method: "POST" }),
+    );
+  });
+
   it("cancels a cancellable reminder", async () => {
     let deleteUrl = "";
     const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {

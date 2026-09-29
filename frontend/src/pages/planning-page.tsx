@@ -108,6 +108,7 @@ export function PlanningPage() {
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const [manualPlannerOpen, setManualPlannerOpen] = useState(false);
   const [planningGoal, setPlanningGoal] = useState("帮我安排明天的任务");
+  const [dateTimeError, setDateTimeError] = useState("");
   const selectedTasksInitialized = useRef(false);
 
   useEffect(() => {
@@ -146,9 +147,10 @@ export function PlanningPage() {
   const replanItems = movesOf(previewReplan.data);
 
   const detectCurrentDisruptions = () => {
-    detectDisruptions.mutate(
-      { range_start: iso(blockedStart, timezone), range_end: iso(horizonEnd, timezone) },
-      {
+    try {
+      const range = { range_start: iso(blockedStart, timezone), range_end: iso(horizonEnd, timezone) };
+      setDateTimeError("");
+      detectDisruptions.mutate(range, {
         onSuccess: (items) => {
           if (!items.length) return;
           const firstStart = items.reduce(
@@ -163,8 +165,10 @@ export function PlanningPage() {
           setBlockedEnd(localInput(new Date(lastEnd), timezone));
           setMovableTaskIds([...new Set(items.map((item) => item.task_id))]);
         },
-      },
-    );
+      });
+    } catch (error) {
+      setDateTimeError(error instanceof Error ? error.message : "请检查所选时间和账户时区。");
+    }
   };
 
   const toggle = (values: string[], id: string, setter: (next: string[]) => void) => {
@@ -177,25 +181,36 @@ export function PlanningPage() {
     end.setUTCDate(end.getUTCDate() + (preset === "day" ? 1 : 7));
     setRangeStart(`${dateKey}T00:00`);
     setRangeEnd(end.toISOString().slice(0, 16));
+    setDateTimeError("");
   };
 
   const generatePlan = () => {
-    createPlan.mutate({
-      task_ids: selectedTaskIds,
-      range_start: iso(rangeStart, timezone),
-      range_end: iso(rangeEnd, timezone),
-      strategy,
-      ordering,
-    }, { onSuccess: (plan) => { setSelectedPlan(plan); setRegenerateTaskIds([]); } });
+    try {
+      const range = { range_start: iso(rangeStart, timezone), range_end: iso(rangeEnd, timezone) };
+      setDateTimeError("");
+      createPlan.mutate({
+        task_ids: selectedTaskIds,
+        ...range,
+        strategy,
+        ordering,
+      }, { onSuccess: (plan) => { setSelectedPlan(plan); setRegenerateTaskIds([]); } });
+    } catch (error) {
+      setDateTimeError(error instanceof Error ? error.message : "请检查所选时间和账户时区。");
+    }
   };
 
   const comparePlanOptions = () => {
-    comparePlans.mutate({
-      task_ids: selectedTaskIds,
-      range_start: iso(rangeStart, timezone),
-      range_end: iso(rangeEnd, timezone),
-      strategy,
-    }, { onSuccess: (result) => { setSelectedPlan(result.alternatives[0]); setRegenerateTaskIds([]); } });
+    try {
+      const range = { range_start: iso(rangeStart, timezone), range_end: iso(rangeEnd, timezone) };
+      setDateTimeError("");
+      comparePlans.mutate({
+        task_ids: selectedTaskIds,
+        ...range,
+        strategy,
+      }, { onSuccess: (result) => { setSelectedPlan(result.alternatives[0]); setRegenerateTaskIds([]); } });
+    } catch (error) {
+      setDateTimeError(error instanceof Error ? error.message : "请检查所选时间和账户时区。");
+    }
   };
 
   const regenerateSelected = () => {
@@ -211,12 +226,36 @@ export function PlanningPage() {
   };
 
   const generateReplan = () => {
-    previewReplan.mutate({
-      blocked_start: iso(blockedStart, timezone),
-      blocked_end: iso(blockedEnd, timezone),
-      movable_task_ids: movableTaskIds,
-      horizon_end: iso(horizonEnd, timezone),
-    });
+    try {
+      const input = {
+        blocked_start: iso(blockedStart, timezone),
+        blocked_end: iso(blockedEnd, timezone),
+        movable_task_ids: movableTaskIds,
+        horizon_end: iso(horizonEnd, timezone),
+      };
+      setDateTimeError("");
+      previewReplan.mutate(input);
+    } catch (error) {
+      setDateTimeError(error instanceof Error ? error.message : "请检查所选时间和账户时区。");
+    }
+  };
+
+  const applyLocalReplan = () => {
+    if (!selectedPolicy) return;
+    try {
+      const input = {
+        blocked_start: iso(blockedStart, timezone),
+        blocked_end: iso(blockedEnd, timezone),
+        movable_task_ids: movableTaskIds,
+        horizon_end: iso(horizonEnd, timezone),
+        policy_id: selectedPolicy.id,
+        operation_id: operationId(),
+      };
+      setDateTimeError("");
+      applyReplan.mutate(input);
+    } catch (error) {
+      setDateTimeError(error instanceof Error ? error.message : "请检查所选时间和账户时区。");
+    }
   };
 
   const applyGeneratedPlan = () => {
@@ -268,6 +307,7 @@ export function PlanningPage() {
           <ModeButton active={mode === "replan"} onClick={() => setMode("replan")}>局部调整</ModeButton>
         </div>
       </header>
+      {dateTimeError && <p role="alert" className="rounded-lg border border-amber-300/30 bg-amber-300/5 p-3 text-sm text-amber-100">{dateTimeError}</p>}
 
       <section className="border-y border-white/10 py-4" aria-labelledby="capacity-heading">
         <div className="flex flex-wrap items-center justify-between gap-3">
@@ -325,8 +365,8 @@ export function PlanningPage() {
               {!activeTasks.length && <p className="text-sm text-slate-500">暂无可安排任务。</p>}
             </div>
             <div className="mt-5 grid gap-3 sm:grid-cols-2">
-              <DateField label={`开始（${timezone}）`} value={rangeStart} onChange={setRangeStart} />
-              <DateField label={`结束（${timezone}）`} value={rangeEnd} onChange={setRangeEnd} />
+              <DateField label={`开始（${timezone}）`} value={rangeStart} onChange={(value) => { setRangeStart(value); setDateTimeError(""); }} />
+              <DateField label={`结束（${timezone}）`} value={rangeEnd} onChange={(value) => { setRangeEnd(value); setDateTimeError(""); }} />
             </div>
             <div className="mt-3 grid grid-cols-2 gap-2" aria-label="规划范围快捷选择">
               <button type="button" onClick={() => setPlanningPreset("day")} className="min-h-10 rounded-lg border border-white/10 text-sm text-slate-200">Plan My Day</button>
@@ -444,10 +484,10 @@ export function PlanningPage() {
               </button>
             )}
             <div className="mt-5 grid gap-3 sm:grid-cols-2">
-              <DateField label={`阻塞开始（${timezone}）`} value={blockedStart} onChange={setBlockedStart} />
-              <DateField label={`阻塞结束（${timezone}）`} value={blockedEnd} onChange={setBlockedEnd} />
+              <DateField label={`阻塞开始（${timezone}）`} value={blockedStart} onChange={(value) => { setBlockedStart(value); setDateTimeError(""); }} />
+              <DateField label={`阻塞结束（${timezone}）`} value={blockedEnd} onChange={(value) => { setBlockedEnd(value); setDateTimeError(""); }} />
             </div>
-            <div className="mt-3"><DateField label={`调整范围截止（${timezone}）`} value={horizonEnd} onChange={setHorizonEnd} /></div>
+            <div className="mt-3"><DateField label={`调整范围截止（${timezone}）`} value={horizonEnd} onChange={(value) => { setHorizonEnd(value); setDateTimeError(""); }} /></div>
             <button
               type="button"
               disabled={detectDisruptions.isPending}
@@ -500,7 +540,7 @@ export function PlanningPage() {
               ))}
             </div>
             {previewReplan.data && selectedPolicy && !selectedPolicy.requires_approval && (
-              <button type="button" disabled={applyReplan.isPending} onClick={() => applyReplan.mutate({ blocked_start: iso(blockedStart, timezone), blocked_end: iso(blockedEnd, timezone), movable_task_ids: movableTaskIds, horizon_end: iso(horizonEnd, timezone), policy_id: selectedPolicy.id, operation_id: operationId() })} className="mt-5 min-h-11 w-full rounded-lg border border-emerald-300/40 font-semibold text-emerald-200 disabled:opacity-40">{applyReplan.isPending ? "执行中…" : "执行这次调整"}</button>
+              <button type="button" disabled={applyReplan.isPending} onClick={applyLocalReplan} className="mt-5 min-h-11 w-full rounded-lg border border-emerald-300/40 font-semibold text-emerald-200 disabled:opacity-40">{applyReplan.isPending ? "执行中…" : "执行这次调整"}</button>
             )}
             {selectedPolicy?.requires_approval && <p className="mt-4 text-sm text-amber-200">此策略要求 HITL 审批，当前页面不会直接执行。</p>}
             {applyReplan.isError && <ErrorText error={applyReplan.error} />}

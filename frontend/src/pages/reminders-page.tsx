@@ -15,7 +15,7 @@ import {
   useReminders,
 } from "../features/reminders/hooks";
 import { ScheduleWorkspaceTabs } from "../features/workspace/schedule-workspace-tabs";
-import { formatInUserTimezone, toUtcISOString } from "../utils/datetime";
+import { formatInUserTimezone, getLocalDateTimeProblem, localDateTimeProblemMessage, toUtcISOString } from "../utils/datetime";
 
 const reminderFormSchema = z
   .object({
@@ -86,6 +86,11 @@ export function RemindersPage() {
   const visiblePendingReminders = pendingReminders.slice(0, pendingLimit);
 
   const onSubmit = form.handleSubmit((values) => {
+    const problem = getLocalDateTimeProblem(values.trigger_at, timezone);
+    if (problem) {
+      form.setError("trigger_at", { type: "validate", message: localDateTimeProblemMessage(problem, timezone) });
+      return;
+    }
     createMutation.mutate(
       {
         title: values.title.trim(),

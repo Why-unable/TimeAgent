@@ -2,7 +2,7 @@ import { Check, ChevronLeft, ChevronRight, Clock3, Pencil, ShieldAlert, X } from
 import { useState } from "react";
 
 import type { ActionProposal, ProposalDecisionResponse } from "../../api/action-proposals";
-import { formatInUserTimezone, formatTimeInUserTimezone, toDateTimeLocalValue, toUtcISOString } from "../../utils/datetime";
+import { formatInUserTimezone, formatTimeInUserTimezone, getLocalDateTimeProblem, localDateTimeProblemMessage, toDateTimeLocalValue, toUtcISOString } from "../../utils/datetime";
 
 const statusLabels = {
   awaiting_approval: "等待审批",
@@ -121,11 +121,13 @@ function ApprovalEditor({
   payload,
   timezone,
   onChange,
+  onTimeError,
 }: {
   actionType: string;
   payload: Record<string, unknown>;
   timezone: string;
   onChange: (next: Record<string, unknown>) => void;
+  onTimeError: (message: string) => void;
 }) {
   const setField = (field: string, value: unknown) => onChange({ ...payload, [field]: value });
   const inputClass = "mt-1 w-full rounded-lg border border-white/10 bg-slate-950 px-3 py-2 text-sm text-slate-100 outline-none focus:border-cyan-300/50";
@@ -138,11 +140,17 @@ function ApprovalEditor({
       setField("operations", next);
     };
     const setOperationTime = (index: number, field: "start_at" | "end_at", value: string) => {
+      const problem = value ? getLocalDateTimeProblem(value, timezone) : undefined;
+      if (problem) {
+        onTimeError(localDateTimeProblemMessage(problem, timezone));
+        return;
+      }
       const operation = operations[index] as Record<string, unknown>;
       const time = operation.time && typeof operation.time === "object"
         ? operation.time as Record<string, unknown>
         : {};
       setOperation(index, "time", { ...time, kind: "absolute", [field]: value ? toUtcISOString(value, timezone) : value });
+      onTimeError("");
     };
     return (
       <div className="space-y-3">
@@ -170,12 +178,18 @@ function ApprovalEditor({
     ? payload.time as Record<string, unknown>
     : payload;
   const setTime = (field: "start_at" | "end_at", value: string) => {
+    const problem = value ? getLocalDateTimeProblem(value, timezone) : undefined;
+    if (problem) {
+      onTimeError(localDateTimeProblemMessage(problem, timezone));
+      return;
+    }
     const utcValue = value ? toUtcISOString(value, timezone) : value;
     if (payload.time && typeof payload.time === "object") {
       setField("time", { ...time, kind: "absolute", [field]: utcValue });
     } else {
       setField(field, utcValue);
     }
+    onTimeError("");
   };
   return (
     <div className="grid gap-3 sm:grid-cols-2">
@@ -197,6 +211,7 @@ export function ApprovalCard({ proposal, timezone = "Asia/Shanghai", busy = fals
   );
   const [reason, setReason] = useState("");
   const [error, setError] = useState("");
+  const [hasInvalidTime, setHasInvalidTime] = useState(false);
   const [occurrenceIndex, setOccurrenceIndex] = useState(0);
   const awaiting = proposal.status === "awaiting_approval";
   const conflicts = Array.isArray(proposal.display_context.conflicts)
@@ -221,6 +236,7 @@ export function ApprovalCard({ proposal, timezone = "Asia/Shanghai", busy = fals
   ];
 
   const submitEdit = async () => {
+    if (hasInvalidTime) return;
     try {
       if (
         ["create_event", "create_recurring_event"].includes(proposal.action_type)
@@ -323,7 +339,8 @@ export function ApprovalCard({ proposal, timezone = "Asia/Shanghai", busy = fals
               actionType={proposal.action_type}
               payload={editedPayload}
               timezone={timezone}
-              onChange={setEditedPayload}
+              onChange={(next) => { setEditedPayload(next); setError(""); }}
+              onTimeError={(message) => { setError(message); setHasInvalidTime(Boolean(message)); }}
             />
           </div>
         ) : (
@@ -342,8 +359,8 @@ export function ApprovalCard({ proposal, timezone = "Asia/Shanghai", busy = fals
         <div className="mt-5">
           {editing ? (
             <div className="flex flex-wrap gap-2">
-              <button type="button" disabled={busy} onClick={submitEdit} className="rounded-lg bg-amber-200 px-4 py-2 text-sm font-medium text-slate-950 disabled:opacity-50">保存修改并批准</button>
-              <button type="button" onClick={() => { setEditedPayload(resolvedReviewPayload(proposal)); setEditing(false); }} className="rounded-lg border border-white/10 px-4 py-2 text-sm text-slate-300">取消编辑</button>
+              <button type="button" disabled={busy || hasInvalidTime} onClick={submitEdit} className="rounded-lg bg-amber-200 px-4 py-2 text-sm font-medium text-slate-950 disabled:opacity-50">保存修改并批准</button>
+              <button type="button" onClick={() => { setEditedPayload(resolvedReviewPayload(proposal)); setError(""); setHasInvalidTime(false); setEditing(false); }} className="rounded-lg border border-white/10 px-4 py-2 text-sm text-slate-300">取消编辑</button>
             </div>
           ) : (
             <div className="flex flex-wrap gap-2">

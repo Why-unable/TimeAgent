@@ -67,7 +67,7 @@ Insights now use account timezone for deadline evidence and specific CTA labels 
 
 ## 11. Timezone Audit
 
-Fixed the audited Planning range/blocked inputs and plan timestamps, Approval editing/occurrences/proposal timestamps, and Insight due-time evidence using shared timezone utilities and the account IANA preference. An E2E scenario runs a Europe/London browser with Asia/Shanghai account preference and checks the resulting UTC range. Task, Event, and Reminder editors already use account-timezone utilities. A few UI-only timestamps and DST gap/fold ambiguity still need a full pass. UTC timestamps used only for storage/API transport are not display defects.
+Fixed the audited Planning range/blocked inputs and plan timestamps, Approval editing/occurrences/proposal timestamps, and Insight due-time evidence using shared timezone utilities and the account IANA preference. An E2E scenario runs a Europe/London browser with Asia/Shanghai account preference and checks the resulting UTC range. Task, Event, and Reminder editors already use account-timezone utilities. The second iteration now detects local times skipped or repeated by DST transitions across Event, Task, Reminder, Approval edits, and Planning ranges. Skipped times and repeated times are rejected with an explanation; selecting the first versus second instance of a repeated hour is not yet supported. UTC timestamps used only for storage/API transport are not display defects.
 
 ## 12. Error UX
 
@@ -101,11 +101,19 @@ No blind evaluation was run. Requires paired baseline/candidate captures and a t
 
 ## 18. Failure Cases
 
-Fixed in this pass: browser/account timezone mismatch in Planning, Approval and Insight due evidence; client-invented recurring preview; Chat raw tool names as default progress; raw run errors in Chat; and provider jargon in notification availability. Remaining: backend-authored unplaced explanations, the stale-plan user recovery path, DST ambiguity, structured plan artifact/edit, Insight→Chat auto-submit, notification actionability, briefing continuation, and accessibility screen-reader testing.
+Fixed in the first pass: browser/account timezone mismatch in Planning, Approval and Insight due evidence; client-invented recurring preview; Chat raw tool names as default progress; raw run errors in Chat; and provider jargon in notification availability. Fixed in the second pass: DST skipped/repeated local input is detected before writes, with form-level guidance and no partial Event+Task creation. Remaining: backend-authored unplaced explanations, the stale-plan user recovery path, choosing either occurrence during a repeated hour, structured plan artifact/edit, Insight→Chat auto-submit, notification actionability, briefing continuation, and accessibility screen-reader testing.
 
 ## 19. Remaining Limitations
 
-This report records the required current-state journey map and a first UX implementation round. The full request spans more journeys and asks for longitudinal, blind and multi-agent evaluation; this iteration is not a complete product-wide UX evolution. No live backend, AgentRun completion, or baseline-vs-after satisfaction comparison was measured. API additions require regenerated OpenAPI/types and backend changes through application services.
+This report records the required current-state journey map and two UX implementation rounds. The full request spans more journeys and asks for longitudinal, blind and multi-agent evaluation; this remains an incomplete product-wide UX evolution. No live backend, AgentRun completion, or baseline-vs-after satisfaction comparison was measured. API additions require regenerated OpenAPI/types and backend changes through application services.
+
+## Iteration 2 Before / After Record
+
+- **Before:** the browser timezone conversion silently selected an instant when a user-entered local time fell into a DST gap or repeated hour.
+- **After:** shared conversion classifies the local time using IANA rules and rejects nonexistent or ambiguous input before any write. Event, Task, Reminder, Approval edit, and Planning show a clear timezone-specific message. A linked Task is validated before it can be created as a side effect of creating an Event.
+- **Evidence:** component tests cover a New York spring-forward gap, a New York repeated hour, and Lord Howe's 30-minute repeated interval. Event, Task, Reminder, Approval, and Planning tests assert that the invalid entry is explained and the write is blocked.
+- **Remaining:** users cannot select which occurrence they mean during a repeated hour; they must choose another local time. The current test coverage uses mocked APIs and does not replace backend timezone validation.
+- **Validation:** lint passed; 26 frontend test files / 119 tests passed; desktop/mobile Playwright passed 19/19; production build passed with the existing >500 kB main-chunk warning (594 kB). Django system check passed. Migration check did not return within two minutes while waiting on the local database and was interrupted; no backend files or migrations changed.
 
 ## Iteration 1 Before / After Record
 

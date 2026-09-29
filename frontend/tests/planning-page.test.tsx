@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { MemoryRouter } from "react-router-dom";
@@ -233,5 +233,34 @@ describe("PlanningPage", () => {
       task_ids: [task.id],
       ordering: "priority_deadline",
     }));
+  });
+
+  it("explains a skipped local time and blocks plan generation", async () => {
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url.includes("preferences")) {
+        return new Response(JSON.stringify({ timezone: "America/New_York", locale: "en-US" }));
+      }
+      if (url.endsWith("/api/v1/tasks/")) return new Response(JSON.stringify([task]));
+      if (url.endsWith("/api/v1/planning/automation-policies/")) return new Response(JSON.stringify([]));
+      if (url.includes("/capacity-forecast/")) {
+        return new Response(JSON.stringify({ total_schedulable_capacity_minutes: 480, remaining_free_minutes: 480, committed_minutes: 0, unplanned_minutes: 60, risk: "within_capacity", reason_codes: [] }));
+      }
+      return new Response(JSON.stringify([]));
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    renderPage();
+
+    await userEvent.click(await screen.findByRole("button", { name: "高级规划设置" }));
+    fireEvent.change(screen.getByLabelText(/开始（America\/New_York）/), {
+      target: { value: "2026-03-08T02:30" },
+    });
+    await userEvent.click(screen.getByRole("button", { name: "生成草案" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(/这个时间在 America\/New_York 不存在/);
+    expect(fetchMock).not.toHaveBeenCalledWith(
+      expect.stringContaining("/api/v1/planning/plans/"),
+      expect.objectContaining({ method: "POST" }),
+    );
   });
 });

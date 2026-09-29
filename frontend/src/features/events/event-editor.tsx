@@ -6,7 +6,7 @@ import { z } from "zod";
 
 import type { CalendarEvent } from "../../api/events";
 import { Drawer } from "../../components/overlay/drawer";
-import { toDateTimeLocalValue, toUtcISOString } from "../../utils/datetime";
+import { getLocalDateTimeProblem, localDateTimeProblemMessage, toDateTimeLocalValue, toUtcISOString } from "../../utils/datetime";
 import { useCancelEvent, useCreateEvent, useUpdateEvent } from "./hooks";
 import { useCreateTask, useTasks } from "../tasks/hooks";
 
@@ -92,11 +92,24 @@ export function EventEditor({
 
   const mutationError = createMutation.error ?? updateMutation.error ?? cancelMutation.error ?? createTask.error;
   const onSubmit = form.handleSubmit(async (values) => {
+    const startProblem = getLocalDateTimeProblem(values.start_at, timezone);
+    const endProblem = getLocalDateTimeProblem(values.end_at, timezone);
+    if (startProblem || endProblem) {
+      if (startProblem) {
+        form.setError("start_at", { type: "validate", message: localDateTimeProblemMessage(startProblem, timezone) });
+      }
+      if (endProblem) {
+        form.setError("end_at", { type: "validate", message: localDateTimeProblemMessage(endProblem, timezone) });
+      }
+      return;
+    }
+    const startAt = toUtcISOString(values.start_at, timezone);
+    const endAt = toUtcISOString(values.end_at, timezone);
     const taskId = values.task === "__new__"
       ? (await createTask.mutateAsync({
           title: values.new_task_title.trim(),
-          planned_start_at: toUtcISOString(values.start_at, timezone),
-          planned_end_at: toUtcISOString(values.end_at, timezone),
+          planned_start_at: startAt,
+          planned_end_at: endAt,
           source: "local",
           tags: [],
         })).id
@@ -104,8 +117,8 @@ export function EventEditor({
     const input = {
       title: values.title.trim(),
       description: values.description.trim(),
-      start_at: toUtcISOString(values.start_at, timezone),
-      end_at: toUtcISOString(values.end_at, timezone),
+      start_at: startAt,
+      end_at: endAt,
       timezone,
       location: values.location.trim(),
       status: values.status,
@@ -163,6 +176,9 @@ export function EventEditor({
               disabled={isReadOnly}
               className={inputClass}
             />
+            {form.formState.errors.start_at && (
+              <span className="mt-1 block text-red-300">{form.formState.errors.start_at.message}</span>
+            )}
           </label>
           <label className="block text-sm text-slate-300">
             结束时间（{timezone}）

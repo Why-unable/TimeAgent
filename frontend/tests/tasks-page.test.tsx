@@ -118,6 +118,32 @@ describe("TasksPage", () => {
     });
   });
 
+  it("explains and blocks an ambiguous repeated due time", async () => {
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input);
+      const body = url.includes("preferences")
+        ? { ...preference, timezone: "America/New_York" }
+        : [];
+      return new Response(JSON.stringify(body), { status: 200 });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    renderPage();
+    await screen.findByText("当前分类暂无任务");
+
+    await userEvent.click(screen.getByRole("button", { name: "新建任务" }));
+    await userEvent.type(screen.getByLabelText("任务标题"), "夏令时截止任务");
+    fireEvent.change(screen.getByLabelText(/截止时间 due_at/), {
+      target: { value: "2026-11-01T01:30" },
+    });
+    await userEvent.click(screen.getByRole("button", { name: "创建任务" }));
+
+    expect(await screen.findByText(/这个时间在 America\/New_York 会出现两次/)).toBeInTheDocument();
+    expect(fetchMock).not.toHaveBeenCalledWith(
+      expect.stringContaining("/api/v1/tasks/"),
+      expect.objectContaining({ method: "POST" }),
+    );
+  });
+
   it("completes a pending task through the dedicated endpoint", async () => {
     let completeUrl = "";
     vi.stubGlobal(
