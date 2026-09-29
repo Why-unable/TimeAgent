@@ -138,6 +138,38 @@ test.describe("mobile shell", () => {
     }
   });
 
+  test("approval shows the planned change and primary action without horizontal overflow", async ({ page }) => {
+    await page.route("**/api/v1/action-proposals/**", (route) => route.fulfill({ json: [{
+      id: "41111111-1111-4111-8111-111111111111",
+      conversation_id: "42222222-2222-4222-8222-222222222222",
+      agent_run_id: "43333333-3333-4333-8333-333333333333",
+      original_request: "明天安排项目评审",
+      explanation: "这会在你的日历中新增一条安排。",
+      action_type: "create_event",
+      action_payload: { title: "项目评审", start_at: "2026-07-21T07:00:00Z", end_at: "2026-07-21T08:00:00Z" },
+      original_payload: {},
+      display_context: { allowed_decisions: ["approve", "edit", "reject"], object_name: "项目评审", proposed_start_at: "2026-07-21T07:00:00Z", proposed_end_at: "2026-07-21T08:00:00Z" },
+      risk_level: "high",
+      status: "awaiting_approval",
+      requires_approval: true,
+      version: 1,
+      expires_at: "2026-07-21T06:00:00Z",
+      decided_at: null,
+      approved_at: null,
+      resumed_at: null,
+      executed_at: null,
+      decision_reason: "",
+      execution_result: null,
+      error: "",
+      created_at: "2026-07-20T02:00:00Z",
+      updated_at: "2026-07-20T02:00:00Z",
+    }] }));
+    await page.goto("/approvals");
+    await expect(page.getByText("将要改变")).toBeVisible();
+    await expect(page.getByRole("button", { name: "确认并应用" })).toBeVisible();
+    await assertNoHorizontalScroll(page);
+  });
+
   test("month view renders all six weeks", async ({ page }) => {
     await page.goto("/calendar");
     // Wait for FullCalendar to mount and switch to month view

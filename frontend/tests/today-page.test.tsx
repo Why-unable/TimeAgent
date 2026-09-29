@@ -144,12 +144,12 @@ describe("TodayPage", () => {
 
     renderPage();
 
-    const actions = (await screen.findByText("开始安排今天")).closest("section");
+    const actions = (await screen.findByText("今天还没有安排")).closest("section");
     expect(actions).not.toBeNull();
     const scoped = within(actions as HTMLElement);
     expect(scoped.getByRole("link", { name: /日程/ })).toHaveAttribute("href", "/calendar");
     expect(scoped.getByRole("link", { name: /任务/ })).toHaveAttribute("href", "/tasks");
-    expect(scoped.getByRole("link", { name: /询问助理/ })).toHaveAttribute("href", "/chat");
+    expect(scoped.getByRole("link", { name: /帮我安排今天/ })).toHaveAttribute("href", "/chat?prompt=帮我安排今天的任务");
   });
 
   it("renders the backend summary without recomputing its business buckets", async () => {

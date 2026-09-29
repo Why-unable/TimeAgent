@@ -66,18 +66,34 @@ type ToolEntry = Extract<ChatEntry, { kind: "tool" }>;
 
 const ACTIVE_RUN_STATUSES = new Set(["pending", "running"]);
 
+const toolActivities: Record<string, string> = {
+  list_events: "正在读取你的日程…",
+  list_tasks: "正在读取你的任务…",
+  get_planning_context: "正在检查可用时间…",
+  propose_schedule_plan: "正在安排任务…",
+  validate_schedule_plan: "正在检查计划…",
+  apply_schedule_plan: "正在更新计划…",
+  create_event: "正在准备日程变更…",
+  create_reminder: "正在准备提醒…",
+  get_temporal_insights: "正在检查时间风险…",
+};
+
+function toolActivityLabel(tool: ToolEntry) {
+  return toolActivities[tool.name] ?? "正在处理你的请求…";
+}
+
 function ToolActivityPanel({ tools }: { tools: ToolEntry[] }) {
   const allCompleted = tools.length > 0 && tools.every((tool) => tool.status === "completed");
   const hasFailure = tools.some((tool) => tool.status === "failed");
   return (
-    <section aria-label="工具调用记录" className="w-full rounded-xl border border-slate-200 bg-white text-slate-700 shadow-sm">
-      <details open={!allCompleted}>
+    <section aria-label="执行详情" className="w-full rounded-xl border border-slate-200 bg-white text-slate-700 shadow-sm">
+      <details>
         <summary className="flex cursor-pointer list-none items-center gap-2 px-3 py-2.5 text-xs font-semibold text-slate-700">
-          <Wrench size={14} />
-          <span className="flex-1">执行步骤</span>
-          <span className="font-normal text-slate-500">{tools.length} 项</span>
+          <LoaderCircle className={!allCompleted && !hasFailure ? "animate-spin text-teal-600" : "text-teal-700"} size={14} />
+          <span className="flex-1" aria-live="polite">{hasFailure ? "有一步没有完成" : allCompleted ? "已处理你的请求" : toolActivityLabel(tools.find((tool) => tool.status === "running") ?? tools[tools.length - 1])}</span>
+          <span className="font-normal text-slate-500">查看详情</span>
           <span className={hasFailure ? "text-red-600" : allCompleted ? "text-teal-700" : "text-amber-700"}>
-            {hasFailure ? "部分失败" : allCompleted ? "完成" : "执行中"}
+            {hasFailure ? "需要重试" : allCompleted ? "完成" : "处理中"}
           </span>
         </summary>
         <div className="max-h-28 overflow-y-auto divide-y divide-slate-100 border-t border-slate-200">
@@ -142,13 +158,10 @@ function entriesFromRuns(runs: AgentRun[]): ChatEntry[] {
         timestamp: run.completed_at ?? run.created_at,
       });
     } else if (run.status === "failed") {
-      const detail = run.error && run.error !== "The agent run could not be completed"
-        ? run.error
-        : "处理请求时发生内部错误，请稍后重试。";
       entries.push({
         id: `notice-${run.id}`,
         kind: "notice",
-        content: `${detail} 请求编号：${run.request_id}`,
+        content: "这次没有完成请求。请重试；如果问题持续，请稍后再试。",
         tone: "error",
       });
     } else if (run.status === "cancelled") {
@@ -209,9 +222,13 @@ export function ChatPage() {
   const [composerOffset, setComposerOffset] = useState(0);
 
   useEffect(() => {
+    const prompt = searchParams.get("prompt");
     const insightTitle = searchParams.get("insight_title");
     const insightId = searchParams.get("insight_id");
-    if (!conversationId && insightId && insightTitle) {
+    if (!conversationId && prompt) {
+      setMessage((current) => current.trim() ? current : prompt);
+      setSearchParams({}, { replace: true });
+    } else if (!conversationId && insightId && insightTitle) {
       setMessage((current) =>
         current.trim()
           ? current
@@ -247,8 +264,8 @@ export function ChatPage() {
   const refreshConversations = useCallback(async () => {
     try {
       setConversations(await listConversations());
-    } catch (reason) {
-      setError(reason instanceof Error ? reason.message : "无法加载历史对话");
+    } catch {
+      setError("暂时无法加载历史对话，请重试。");
     } finally {
       setLoadingConversations(false);
     }
@@ -346,14 +363,12 @@ export function ChatPage() {
           setEntries((current) => current.some(
             (entry) => entry.kind === "approval" && entry.proposal.id === proposal.id,
           ) ? current : [...current, { id: `approval-${proposal.id}`, kind: "approval", proposal }]);
-        }).catch((reason) => {
-          setError(reason instanceof Error ? reason.message : "无法加载审批操作");
+        }).catch(() => {
+          setError("暂时无法加载这项待确认操作，请重试。");
         });
       }
     } else if (event.type === "run.failed") {
-      const detail = String(event.data.error ?? "处理请求时发生内部错误，请稍后重试。");
-      const reference = String(event.data.request_id ?? "");
-      setError(reference ? `${detail} 请求编号：${reference}` : detail);
+      setError("这次没有完成请求。你可以重试；如果问题持续，请稍后再试。");
     } else if (event.type === "run.cancelled") {
       setError("Agent 运行已取消");
     }
@@ -370,13 +385,13 @@ export function ChatPage() {
       });
       await refreshApprovalEntries(activeRunId);
       void refreshConversations();
-    } catch (reason) {
+    } catch {
       // Android WebView may reject an aborted fetch with a plain Error such as
       // "The user aborted a request." instead of a DOMException/AbortError.
       // The signal is the authoritative indication that this stream was
       // intentionally stopped (for example, while changing conversations).
       if (!abortController.signal.aborted) {
-        setError(reason instanceof Error ? reason.message : "实时回复连接中断");
+        setError("实时回复中断了。请重试，或稍后回到这段对话查看结果。");
       }
     } finally {
       if (!abortController.signal.aborted) {
@@ -421,9 +436,9 @@ export function ChatPage() {
           void consumeRun(activeRun.id, streamController);
         }
       })
-      .catch((reason) => {
+      .catch(() => {
         if (loadController.signal.aborted) return;
-        setError(reason instanceof Error ? reason.message : "无法加载这段对话");
+        setError("暂时无法加载这段对话，请重试。");
       })
       .finally(() => {
         if (!loadController.signal.aborted) setLoadingHistory(false);
@@ -478,7 +493,7 @@ export function ChatPage() {
     } catch (reason) {
       setBusy(false);
       if (!(reason instanceof DOMException && reason.name === "AbortError")) {
-        setError(reason instanceof Error ? reason.message : "发送失败");
+        setError("消息没有发送成功，请检查连接后重试。");
       }
     }
   };
@@ -616,6 +631,7 @@ export function ChatPage() {
                 <div key={entry.id} className="w-full lg:mx-auto lg:max-w-3xl">
                   <ApprovalCard
                     proposal={entry.proposal}
+                    timezone={timezone}
                     busy={busy}
                     onDecision={(decision, options) => handleProposalDecision(
                       entry.proposal,

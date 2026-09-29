@@ -2,6 +2,7 @@ import { Check, ChevronLeft, ChevronRight, Clock3, Pencil, ShieldAlert, X } from
 import { useState } from "react";
 
 import type { ActionProposal, ProposalDecisionResponse } from "../../api/action-proposals";
+import { formatInUserTimezone, formatTimeInUserTimezone, toDateTimeLocalValue, toUtcISOString } from "../../utils/datetime";
 
 const statusLabels = {
   awaiting_approval: "等待审批",
@@ -24,6 +25,7 @@ const actionLabels: Record<string, string> = {
 
 interface ApprovalCardProps {
   proposal: ActionProposal;
+  timezone?: string;
   busy?: boolean;
   onDecision: (
     decision: "approve" | "edit" | "reject",
@@ -57,65 +59,9 @@ function recurringOccurrencePreviews(value: unknown): RecurringOccurrencePreview
   });
 }
 
-function recurringOccurrencePreviewsFromPayload(
-  actionType: string,
-  payload: Record<string, unknown>,
-): RecurringOccurrencePreview[] {
-  if (actionType !== "create_recurring_event") return [];
-  const time = payload.time && typeof payload.time === "object"
-    ? payload.time as Record<string, unknown>
-    : payload;
-  const startAt = typeof time.start_at === "string" ? new Date(time.start_at) : null;
-  const endAt = typeof time.end_at === "string" ? new Date(time.end_at) : null;
-  const frequency = typeof payload.frequency === "string" ? payload.frequency : "daily";
-  const occurrenceCount = Number(payload.occurrence_count);
-  const interval = Number(payload.interval ?? 1);
-  if (
-    !startAt || !endAt || Number.isNaN(startAt.getTime()) || Number.isNaN(endAt.getTime())
-    || !Number.isInteger(occurrenceCount) || occurrenceCount < 1
-    || !Number.isInteger(interval) || interval < 1
-  ) return [];
-
-  const duration = endAt.getTime() - startAt.getTime();
-  const current = new Date(startAt);
-  return Array.from({ length: occurrenceCount }, (_, offset) => {
-    const occurrence = {
-      index: offset + 1,
-      start_at: current.toISOString(),
-      end_at: new Date(current.getTime() + duration).toISOString(),
-      conflicts: [],
-    };
-    if (frequency === "weekly") current.setUTCDate(current.getUTCDate() + 7 * interval);
-    else if (frequency === "monthly") current.setUTCMonth(current.getUTCMonth() + interval);
-    else current.setUTCDate(current.getUTCDate() + interval);
-    return occurrence;
-  });
-}
-
-function formatOccurrenceTime(value: string) {
-  return new Intl.DateTimeFormat("zh-CN", {
-    month: "long",
-    day: "numeric",
-    weekday: "short",
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false,
-  }).format(new Date(value));
-}
-
-function toDateTimeLocal(value: unknown): string {
+function toLocalInput(value: unknown, timezone: string): string {
   if (typeof value !== "string") return "";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "";
-  const pad = (part: number) => String(part).padStart(2, "0");
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
-}
-
-function keepTimezoneOffset(original: unknown, localValue: string): string {
-  if (!localValue) return localValue;
-  if (typeof original !== "string") return localValue;
-  const offset = original.match(/(Z|[+-]\d{2}:\d{2})$/)?.[1];
-  return `${localValue}${offset ?? ""}`;
+  try { return toDateTimeLocalValue(value, timezone); } catch { return ""; }
 }
 
 function resolvedReviewPayload(proposal: ActionProposal): Record<string, unknown> {
@@ -142,7 +88,7 @@ function resolvedReviewPayload(proposal: ActionProposal): Record<string, unknown
   return payload;
 }
 
-function PayloadSummary({ actionType, payload }: { actionType: string; payload: Record<string, unknown> }) {
+function PayloadSummary({ actionType, payload, timezone }: { actionType: string; payload: Record<string, unknown>; timezone: string }) {
   const operations = Array.isArray(payload.operations) ? payload.operations : [];
   const time = payload.time && typeof payload.time === "object"
     ? payload.time as Record<string, unknown>
@@ -152,7 +98,10 @@ function PayloadSummary({ actionType, payload }: { actionType: string; payload: 
       <div className="space-y-2">
         {operations.map((item, index) => {
           const operation = item as Record<string, unknown>;
-          return <p key={index} className="rounded-lg bg-slate-950/60 px-3 py-2 text-sm text-slate-200">{`${index + 1}. ${String(operation.action ?? "调整")}：${String(operation.title ?? "已有日程")}`}</p>;
+          const operationTime = operation.time && typeof operation.time === "object" ? operation.time as Record<string, unknown> : {};
+          const action = String(operation.action ?? "update");
+          const actionLabel = action === "cancel" ? "取消" : action === "create" ? "新增" : "调整";
+          return <div key={index} className="rounded-lg bg-slate-950/60 px-3 py-2 text-sm text-slate-200"><p>{`${index + 1}. ${actionLabel}：${String(operation.title ?? "已有日程")}`}</p>{typeof operationTime.start_at === "string" && <p className="mt-1 text-xs text-slate-400">{formatInUserTimezone(operationTime.start_at, timezone)}{typeof operationTime.end_at === "string" ? ` – ${formatTimeInUserTimezone(operationTime.end_at, timezone)}` : ""}</p>}</div>;
         })}
       </div>
     );
@@ -160,8 +109,8 @@ function PayloadSummary({ actionType, payload }: { actionType: string; payload: 
   return (
     <div className="grid gap-2 text-sm text-slate-200 sm:grid-cols-2">
       <p><span className="text-slate-500">标题：</span>{String(payload.title ?? "未命名日程")}</p>
-      {typeof time.start_at === "string" && <p><span className="text-slate-500">开始：</span>{formatOccurrenceTime(time.start_at)}</p>}
-      {typeof time.end_at === "string" && <p><span className="text-slate-500">结束：</span>{formatOccurrenceTime(time.end_at)}</p>}
+      {typeof time.start_at === "string" && <p><span className="text-slate-500">开始：</span>{formatInUserTimezone(time.start_at, timezone)}</p>}
+      {typeof time.end_at === "string" && <p><span className="text-slate-500">结束：</span>{formatInUserTimezone(time.end_at, timezone)}</p>}
       {actionType === "create_recurring_event" && <p><span className="text-slate-500">重复：</span>{String(payload.frequency ?? "daily")}，共 {String(payload.occurrence_count ?? 1)} 次</p>}
     </div>
   );
@@ -170,10 +119,12 @@ function PayloadSummary({ actionType, payload }: { actionType: string; payload: 
 function ApprovalEditor({
   actionType,
   payload,
+  timezone,
   onChange,
 }: {
   actionType: string;
   payload: Record<string, unknown>;
+  timezone: string;
   onChange: (next: Record<string, unknown>) => void;
 }) {
   const setField = (field: string, value: unknown) => onChange({ ...payload, [field]: value });
@@ -191,7 +142,7 @@ function ApprovalEditor({
       const time = operation.time && typeof operation.time === "object"
         ? operation.time as Record<string, unknown>
         : {};
-      setOperation(index, "time", { ...time, kind: "absolute", [field]: value });
+      setOperation(index, "time", { ...time, kind: "absolute", [field]: value ? toUtcISOString(value, timezone) : value });
     };
     return (
       <div className="space-y-3">
@@ -206,8 +157,8 @@ function ApprovalEditor({
               <legend className="px-1 text-xs font-medium text-cyan-200">第 {index + 1} 项：{action}</legend>
               {action !== "cancel" && <label className="block text-xs text-slate-400">日程标题<input value={String(operation.title ?? "")} onChange={(event) => setOperation(index, "title", event.target.value)} className={inputClass} /></label>}
               {action !== "cancel" && <div className="mt-3 grid gap-3 sm:grid-cols-2">
-                <label className="text-xs text-slate-400">开始时间<input type="datetime-local" value={toDateTimeLocal(time.start_at)} onChange={(event) => setOperationTime(index, "start_at", keepTimezoneOffset(time.start_at, event.target.value))} className={inputClass} /></label>
-                <label className="text-xs text-slate-400">结束时间<input type="datetime-local" value={toDateTimeLocal(time.end_at)} onChange={(event) => setOperationTime(index, "end_at", keepTimezoneOffset(time.end_at, event.target.value))} className={inputClass} /></label>
+                <label className="text-xs text-slate-400">开始时间（{timezone}）<input type="datetime-local" value={toLocalInput(time.start_at, timezone)} onChange={(event) => setOperationTime(index, "start_at", event.target.value)} className={inputClass} /></label>
+                <label className="text-xs text-slate-400">结束时间（{timezone}）<input type="datetime-local" value={toLocalInput(time.end_at, timezone)} onChange={(event) => setOperationTime(index, "end_at", event.target.value)} className={inputClass} /></label>
               </div>}
             </fieldset>
           );
@@ -219,17 +170,18 @@ function ApprovalEditor({
     ? payload.time as Record<string, unknown>
     : payload;
   const setTime = (field: "start_at" | "end_at", value: string) => {
+    const utcValue = value ? toUtcISOString(value, timezone) : value;
     if (payload.time && typeof payload.time === "object") {
-      setField("time", { ...time, kind: "absolute", [field]: value });
+      setField("time", { ...time, kind: "absolute", [field]: utcValue });
     } else {
-      setField(field, value);
+      setField(field, utcValue);
     }
   };
   return (
     <div className="grid gap-3 sm:grid-cols-2">
       <label className="sm:col-span-2 text-xs text-slate-400">日程标题<input value={String(payload.title ?? "")} onChange={(event) => setField("title", event.target.value)} className={inputClass} /></label>
-      <label className="text-xs text-slate-400">开始时间<input type="datetime-local" value={toDateTimeLocal(time.start_at)} onChange={(event) => setTime("start_at", keepTimezoneOffset(time.start_at, event.target.value))} className={inputClass} /></label>
-      <label className="text-xs text-slate-400">结束时间<input type="datetime-local" value={toDateTimeLocal(time.end_at)} onChange={(event) => setTime("end_at", keepTimezoneOffset(time.end_at, event.target.value))} className={inputClass} /></label>
+      <label className="text-xs text-slate-400">开始时间（{timezone}）<input type="datetime-local" value={toLocalInput(time.start_at, timezone)} onChange={(event) => setTime("start_at", event.target.value)} className={inputClass} /></label>
+      <label className="text-xs text-slate-400">结束时间（{timezone}）<input type="datetime-local" value={toLocalInput(time.end_at, timezone)} onChange={(event) => setTime("end_at", event.target.value)} className={inputClass} /></label>
       {actionType === "create_recurring_event" && <>
         <label className="text-xs text-slate-400">重复频率<select value={String(payload.frequency ?? "daily")} onChange={(event) => setField("frequency", event.target.value)} className={inputClass}><option value="daily">每天</option><option value="weekly">每周</option><option value="monthly">每月</option></select></label>
         <label className="text-xs text-slate-400">重复次数<input type="number" min="1" value={String(payload.occurrence_count ?? 1)} onChange={(event) => setField("occurrence_count", Number(event.target.value))} className={inputClass} /></label>
@@ -238,7 +190,7 @@ function ApprovalEditor({
   );
 }
 
-export function ApprovalCard({ proposal, busy = false, onDecision }: ApprovalCardProps) {
+export function ApprovalCard({ proposal, timezone = "Asia/Shanghai", busy = false, onDecision }: ApprovalCardProps) {
   const [editing, setEditing] = useState(false);
   const [editedPayload, setEditedPayload] = useState<Record<string, unknown>>(
     () => resolvedReviewPayload(proposal),
@@ -263,11 +215,7 @@ export function ApprovalCard({ proposal, busy = false, onDecision }: ApprovalCar
   const canReject = allowedDecisions.includes("reject");
   const showsConflictCheck = "conflict_check" in proposal.display_context;
   const occurrences = recurringOccurrencePreviews(proposal.display_context.occurrences);
-  const fallbackOccurrences = recurringOccurrencePreviewsFromPayload(
-    proposal.action_type,
-    proposal.action_payload,
-  );
-  const displayedOccurrences = occurrences.length > 0 ? occurrences : fallbackOccurrences;
+  const displayedOccurrences = occurrences;
   const selectedOccurrence = displayedOccurrences[
     Math.min(occurrenceIndex, Math.max(displayedOccurrences.length - 1, 0))
   ];
@@ -283,8 +231,8 @@ export function ApprovalCard({ proposal, busy = false, onDecision }: ApprovalCar
       setError("");
       await onDecision("edit", { actionPayload: editedPayload });
       setEditing(false);
-    } catch (reasonValue) {
-      setError(reasonValue instanceof Error ? reasonValue.message : "参数格式不正确");
+    } catch {
+      setError("修改没有保存成功，请检查时间后重试。");
     }
   };
 
@@ -292,8 +240,8 @@ export function ApprovalCard({ proposal, busy = false, onDecision }: ApprovalCar
     try {
       setError("");
       await onDecision(decision, decision === "reject" ? { reason } : undefined);
-    } catch (reasonValue) {
-      setError(reasonValue instanceof Error ? reasonValue.message : "审批提交失败");
+    } catch {
+      setError("这项操作没有完成，请重试。");
     }
   };
 
@@ -303,7 +251,7 @@ export function ApprovalCard({ proposal, busy = false, onDecision }: ApprovalCar
         <div className="flex gap-3">
           <span className="rounded-xl bg-amber-300/10 p-2 text-amber-200"><ShieldAlert size={20} /></span>
           <div>
-            <p className="text-xs font-semibold uppercase tracking-wider text-amber-200">高风险操作</p>
+            <p className="text-xs font-semibold uppercase tracking-wider text-amber-200">需要你确认</p>
             <h3 className="mt-1 font-semibold text-slate-100">
               {actionLabels[proposal.action_type] ?? proposal.action_type}
             </h3>
@@ -328,7 +276,7 @@ export function ApprovalCard({ proposal, busy = false, onDecision }: ApprovalCar
           </button>
           <div className="text-center">
             <p className="text-xs font-medium text-cyan-200">周期日程 · 第 {selectedOccurrence.index} / {displayedOccurrences.length} 次</p>
-            <p className="mt-2 text-base font-semibold text-slate-100">{formatOccurrenceTime(selectedOccurrence.start_at)} — {new Intl.DateTimeFormat("zh-CN", { hour: "2-digit", minute: "2-digit", hour12: false }).format(new Date(selectedOccurrence.end_at))}</p>
+          <p className="mt-2 text-base font-semibold text-slate-100">{formatInUserTimezone(selectedOccurrence.start_at, timezone)} — {formatTimeInUserTimezone(selectedOccurrence.end_at, timezone)}</p>
             <p className={`mt-1 text-xs ${selectedOccurrence.conflicts.length > 0 ? "text-red-200" : "text-emerald-200"}`}>
               {selectedOccurrence.conflicts.length > 0 ? `此实例有 ${selectedOccurrence.conflicts.length} 个时间冲突` : "此实例暂无时间冲突"}
             </p>
@@ -344,12 +292,13 @@ export function ApprovalCard({ proposal, busy = false, onDecision }: ApprovalCar
           </button>
         </section>
       )}
+      {proposal.action_type === "create_recurring_event" && !displayedOccurrences.length && <p className="mt-4 text-sm text-slate-300">共 {String(proposal.action_payload.occurrence_count ?? "多")} 次；详细日期暂不可用。</p>}
       <dl className="mt-4 grid gap-3 rounded-xl border border-white/10 bg-white/[0.02] p-4 text-sm sm:grid-cols-2">
         <div><dt className="text-xs text-slate-500">对象名称</dt><dd className="mt-1 text-slate-200">{String(proposal.display_context.object_name || proposal.action_payload.title || "未命名操作")}</dd></div>
         <div><dt className="text-xs text-slate-500">影响范围</dt><dd className="mt-1 text-slate-200">{String(proposal.display_context.impact_scope || "单项操作")}</dd></div>
-        <div><dt className="text-xs text-slate-500">拟开始时间</dt><dd className="mt-1 text-slate-200">{String(proposal.display_context.proposed_start_at || "—")}</dd></div>
-        <div><dt className="text-xs text-slate-500">拟结束时间</dt><dd className="mt-1 text-slate-200">{String(proposal.display_context.proposed_end_at || "—")}</dd></div>
-        <div><dt className="text-xs text-slate-500">提出时间</dt><dd className="mt-1 text-slate-200">{new Date(proposal.created_at).toLocaleString("zh-CN")}</dd></div>
+        <div><dt className="text-xs text-slate-500">拟开始时间</dt><dd className="mt-1 text-slate-200">{typeof proposal.display_context.proposed_start_at === "string" ? formatInUserTimezone(proposal.display_context.proposed_start_at, timezone) : "—"}</dd></div>
+        <div><dt className="text-xs text-slate-500">拟结束时间</dt><dd className="mt-1 text-slate-200">{typeof proposal.display_context.proposed_end_at === "string" ? formatInUserTimezone(proposal.display_context.proposed_end_at, timezone) : "—"}</dd></div>
+        <div><dt className="text-xs text-slate-500">提出时间</dt><dd className="mt-1 text-slate-200">{formatInUserTimezone(proposal.created_at, timezone)}</dd></div>
         <div><dt className="text-xs text-slate-500">重复操作</dt><dd className="mt-1 text-slate-200">{proposal.display_context.is_recurring ? "是" : "否"}</dd></div>
       </dl>
       {showsConflictCheck && (
@@ -361,7 +310,10 @@ export function ApprovalCard({ proposal, busy = false, onDecision }: ApprovalCar
               : "当前参数尚未完成冲突检查。"}
         </div>
       )}
-      <div className="mt-4 rounded-xl border border-white/10 bg-slate-950/60 p-4">
+      {!editing && <section aria-label="变化预览" className="mt-4 rounded-xl border border-cyan-300/20 bg-cyan-300/5 p-4"><p className="mb-2 text-xs font-semibold text-cyan-200">将要改变</p><PayloadSummary actionType={proposal.action_type} payload={resolvedReviewPayload(proposal)} timezone={timezone} /></section>}
+      <details className="mt-4 rounded-xl border border-white/10 bg-slate-950/60 p-4">
+        <summary className="cursor-pointer text-sm font-medium text-slate-300">查看操作详情</summary>
+        <div className="mt-3">
         <p className="text-xs text-slate-500">用户原始请求</p>
         <p className="mt-1 text-sm text-slate-200">{proposal.original_request}</p>
         <p className="mt-4 text-xs text-slate-500">拟执行参数</p>
@@ -370,18 +322,20 @@ export function ApprovalCard({ proposal, busy = false, onDecision }: ApprovalCar
             <ApprovalEditor
               actionType={proposal.action_type}
               payload={editedPayload}
+              timezone={timezone}
               onChange={setEditedPayload}
             />
           </div>
         ) : (
-          <div className="mt-2"><PayloadSummary actionType={proposal.action_type} payload={resolvedReviewPayload(proposal)} /></div>
+          <p className="mt-2 text-xs text-slate-500">具体字段请参考上方变化预览。</p>
         )}
-      </div>
+        </div>
+      </details>
 
       <p className="mt-3 flex items-center gap-2 text-xs text-slate-500">
-        <Clock3 size={14} /> 审批有效期至 {new Date(proposal.expires_at).toLocaleString("zh-CN")}
+        <Clock3 size={14} /> 请及时处理这项请求
       </p>
-      {proposal.error && <p role="alert" className="mt-3 text-sm text-red-300">{proposal.error}</p>}
+      {proposal.error && <p role="alert" className="mt-3 text-sm text-red-300">这项操作暂时没有完成，请重试或稍后再试。</p>}
       {error && <p role="alert" className="mt-3 text-sm text-red-300">{error}</p>}
 
       {awaiting && (
@@ -393,7 +347,7 @@ export function ApprovalCard({ proposal, busy = false, onDecision }: ApprovalCar
             </div>
           ) : (
             <div className="flex flex-wrap gap-2">
-              {canApprove && <button type="button" disabled={busy} onClick={() => void submitDecision("approve")} className="inline-flex items-center gap-2 rounded-lg bg-emerald-300 px-4 py-2 text-sm font-medium text-slate-950 disabled:opacity-50"><Check size={16} />批准</button>}
+              {canApprove && <button type="button" disabled={busy} onClick={() => void submitDecision("approve")} className="inline-flex items-center gap-2 rounded-lg bg-emerald-300 px-4 py-2 text-sm font-medium text-slate-950 disabled:opacity-50"><Check size={16} />确认并应用</button>}
               {canEdit && <button type="button" disabled={busy} onClick={() => { setEditedPayload(resolvedReviewPayload(proposal)); setEditing(true); }} className="inline-flex items-center gap-2 rounded-lg border border-amber-300/30 px-4 py-2 text-sm text-amber-100 disabled:opacity-50"><Pencil size={16} />调整后批准</button>}
               {canReject && <button type="button" disabled={busy} onClick={() => void submitDecision("reject")} className="inline-flex items-center gap-2 rounded-lg border border-red-300/25 px-4 py-2 text-sm text-red-200 disabled:opacity-50"><X size={16} />拒绝</button>}
             </div>

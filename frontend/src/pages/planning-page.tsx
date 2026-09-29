@@ -1,9 +1,11 @@
-import { Activity, CalendarCheck, GitCompare, Lock, Pause, Play, RefreshCw, RotateCcw, ShieldCheck, Trash2, Unlock, WandSparkles } from "lucide-react";
-import { useMemo, useState } from "react";
+import { Activity, CalendarCheck, GitCompare, Lock, Pause, Play, RefreshCw, RotateCcw, ShieldCheck, Unlock, WandSparkles } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 import type { LocalReplanPreview, SchedulePlan } from "../api/planning";
 import { useTasks } from "../features/tasks/hooks";
 import { useCapacityForecast } from "../features/preferences/time-memory-hooks";
+import { useCurrentUserPreference } from "../features/preferences/hooks";
 import {
   useApplyLocalReplan,
   useApplySchedulePlan,
@@ -21,6 +23,8 @@ import {
   useValidateSchedulePlan,
 } from "../features/planning/hooks";
 import { ScheduleWorkspaceTabs } from "../features/workspace/schedule-workspace-tabs";
+import { PlanPreview } from "../components/planning/plan-preview";
+import { formatInUserTimezone, getLocalDateKey, toDateTimeLocalValue, toUtcISOString } from "../utils/datetime";
 
 type PlanItem = {
   kind?: string;
@@ -44,13 +48,12 @@ type ReplanItem = {
   reason_codes?: string[];
 };
 
-function localInput(value: Date) {
-  const local = new Date(value.getTime() - value.getTimezoneOffset() * 60_000);
-  return local.toISOString().slice(0, 16);
+function localInput(value: Date, timezone: string) {
+  return toDateTimeLocalValue(value, timezone);
 }
 
-function iso(value: string) {
-  return new Date(value).toISOString();
+function iso(value: string, timezone: string) {
+  return toUtcISOString(value, timezone);
 }
 
 function operationId() {
@@ -63,12 +66,6 @@ const capacityRiskPresentation: Record<string, { label: string; className: strin
   over_capacity: { label: "容量超载", className: "text-red-200" },
 };
 
-const capacityReasonLabels: Record<string, string> = {
-  unplanned_exceeds_free_capacity: "未安排任务所需时间超过可用容量",
-  unplanned_uses_most_free_capacity: "未安排工作将占用大部分剩余容量",
-  no_due_tasks_in_range: "所选范围内没有到期任务",
-};
-
 function itemsOf(plan: SchedulePlan | undefined): PlanItem[] {
   return Array.isArray(plan?.items) ? (plan.items as PlanItem[]) : [];
 }
@@ -78,6 +75,9 @@ function movesOf(preview: LocalReplanPreview | undefined): ReplanItem[] {
 }
 
 export function PlanningPage() {
+  const navigate = useNavigate();
+  const preference = useCurrentUserPreference();
+  const timezone = preference.data?.timezone ?? import.meta.env.VITE_DEFAULT_TIMEZONE ?? "Asia/Shanghai";
   const now = useMemo(() => new Date(), []);
   const tasks = useTasks();
   const createPlan = useCreateSchedulePlan();
@@ -100,27 +100,45 @@ export function PlanningPage() {
   const [regenerateTaskIds, setRegenerateTaskIds] = useState<string[]>([]);
   const [ordering, setOrdering] = useState<"priority_deadline" | "longest_first">("priority_deadline");
   const [strategy, setStrategy] = useState<"plan_tasks_only" | "create_linked_event_blocks">("plan_tasks_only");
-  const [rangeStart, setRangeStart] = useState(localInput(now));
-  const [rangeEnd, setRangeEnd] = useState(localInput(new Date(now.getTime() + 7 * 86_400_000)));
-  const [blockedStart, setBlockedStart] = useState(localInput(now));
-  const [blockedEnd, setBlockedEnd] = useState(localInput(new Date(now.getTime() + 60 * 60_000)));
-  const [horizonEnd, setHorizonEnd] = useState(localInput(new Date(now.getTime() + 2 * 86_400_000)));
+  const [rangeStart, setRangeStart] = useState(localInput(now, timezone));
+  const [rangeEnd, setRangeEnd] = useState(localInput(new Date(now.getTime() + 7 * 86_400_000), timezone));
+  const [blockedStart, setBlockedStart] = useState(localInput(now, timezone));
+  const [blockedEnd, setBlockedEnd] = useState(localInput(new Date(now.getTime() + 60 * 60_000), timezone));
+  const [horizonEnd, setHorizonEnd] = useState(localInput(new Date(now.getTime() + 2 * 86_400_000), timezone));
+  const [advancedOpen, setAdvancedOpen] = useState(false);
+  const [manualPlannerOpen, setManualPlannerOpen] = useState(false);
+  const [planningGoal, setPlanningGoal] = useState("帮我安排明天的任务");
+  const selectedTasksInitialized = useRef(false);
+
+  useEffect(() => {
+    if (!preference.data?.timezone) return;
+    setRangeStart(localInput(now, timezone));
+    setRangeEnd(localInput(new Date(now.getTime() + 7 * 86_400_000), timezone));
+    setBlockedStart(localInput(now, timezone));
+    setBlockedEnd(localInput(new Date(now.getTime() + 60 * 60_000), timezone));
+    setHorizonEnd(localInput(new Date(now.getTime() + 2 * 86_400_000), timezone));
+  }, [preference.data?.timezone, now, timezone]);
   const [movableTaskIds, setMovableTaskIds] = useState<string[]>([]);
   const [selectedPolicyId, setSelectedPolicyId] = useState("");
   const capacityRange = useMemo(() => {
     if (!rangeStart || !rangeEnd) return undefined;
-    const start = new Date(rangeStart);
-    const end = new Date(rangeEnd);
-    if (!Number.isFinite(start.getTime()) || !Number.isFinite(end.getTime()) || end <= start) {
-      return undefined;
-    }
-    return { range_start: start.toISOString(), range_end: end.toISOString() };
-  }, [rangeEnd, rangeStart]);
+    try {
+      const start = toUtcISOString(rangeStart, timezone);
+      const end = toUtcISOString(rangeEnd, timezone);
+      if (new Date(end) <= new Date(start)) return undefined;
+      return { range_start: start, range_end: end };
+    } catch { return undefined; }
+  }, [rangeEnd, rangeStart, timezone]);
   const capacity = useCapacityForecast(capacityRange);
 
   const activeTasks = (tasks.data ?? []).filter(
     (task) => task.status === "pending" || task.status === "in_progress",
   );
+  useEffect(() => {
+    if (!tasks.data || selectedTasksInitialized.current) return;
+    setSelectedTaskIds(activeTasks.map((task) => task.id));
+    selectedTasksInitialized.current = true;
+  }, [tasks.data, activeTasks]);
   const plannedTasks = activeTasks.filter((task) => task.planned_start_at && task.planned_end_at);
   const taskTitles = new Map(activeTasks.map((task) => [task.id, task.title]));
   const selectedPolicy = policies.data?.find((policy) => policy.id === selectedPolicyId);
@@ -129,7 +147,7 @@ export function PlanningPage() {
 
   const detectCurrentDisruptions = () => {
     detectDisruptions.mutate(
-      { range_start: iso(blockedStart), range_end: iso(horizonEnd) },
+      { range_start: iso(blockedStart, timezone), range_end: iso(horizonEnd, timezone) },
       {
         onSuccess: (items) => {
           if (!items.length) return;
@@ -141,8 +159,8 @@ export function PlanningPage() {
             (current, item) => item.blocked_end > current ? item.blocked_end : current,
             items[0].blocked_end,
           );
-          setBlockedStart(localInput(new Date(firstStart)));
-          setBlockedEnd(localInput(new Date(lastEnd)));
+          setBlockedStart(localInput(new Date(firstStart), timezone));
+          setBlockedEnd(localInput(new Date(lastEnd), timezone));
           setMovableTaskIds([...new Set(items.map((item) => item.task_id))]);
         },
       },
@@ -154,19 +172,18 @@ export function PlanningPage() {
   };
 
   const setPlanningPreset = (preset: "day" | "week") => {
-    const start = new Date();
-    start.setHours(0, 0, 0, 0);
-    const end = new Date(start);
-    end.setDate(end.getDate() + (preset === "day" ? 1 : 7));
-    setRangeStart(localInput(start));
-    setRangeEnd(localInput(end));
+    const dateKey = getLocalDateKey(now, timezone);
+    const end = new Date(`${dateKey}T00:00:00Z`);
+    end.setUTCDate(end.getUTCDate() + (preset === "day" ? 1 : 7));
+    setRangeStart(`${dateKey}T00:00`);
+    setRangeEnd(end.toISOString().slice(0, 16));
   };
 
   const generatePlan = () => {
     createPlan.mutate({
       task_ids: selectedTaskIds,
-      range_start: iso(rangeStart),
-      range_end: iso(rangeEnd),
+      range_start: iso(rangeStart, timezone),
+      range_end: iso(rangeEnd, timezone),
       strategy,
       ordering,
     }, { onSuccess: (plan) => { setSelectedPlan(plan); setRegenerateTaskIds([]); } });
@@ -175,8 +192,8 @@ export function PlanningPage() {
   const comparePlanOptions = () => {
     comparePlans.mutate({
       task_ids: selectedTaskIds,
-      range_start: iso(rangeStart),
-      range_end: iso(rangeEnd),
+      range_start: iso(rangeStart, timezone),
+      range_end: iso(rangeEnd, timezone),
       strategy,
     }, { onSuccess: (result) => { setSelectedPlan(result.alternatives[0]); setRegenerateTaskIds([]); } });
   };
@@ -195,10 +212,10 @@ export function PlanningPage() {
 
   const generateReplan = () => {
     previewReplan.mutate({
-      blocked_start: iso(blockedStart),
-      blocked_end: iso(blockedEnd),
+      blocked_start: iso(blockedStart, timezone),
+      blocked_end: iso(blockedEnd, timezone),
       movable_task_ids: movableTaskIds,
-      horizon_end: iso(horizonEnd),
+      horizon_end: iso(horizonEnd, timezone),
     });
   };
 
@@ -243,8 +260,8 @@ export function PlanningPage() {
       <ScheduleWorkspaceTabs />
       <header className="flex flex-wrap items-end justify-between gap-4 pt-2 lg:pt-6">
         <div>
-          <h2 className="text-3xl font-semibold">规划工作台</h2>
-          <p className="mt-2 text-sm text-slate-400">先预览约束结果，再确认写入日程事实。</p>
+        <h2 className="text-3xl font-semibold">我的计划</h2>
+          <p className="mt-2 text-sm text-slate-400">查看安排、了解取舍，再决定是否应用。时间按 {timezone} 显示。</p>
         </div>
         <div className="inline-flex rounded-lg border border-white/10 bg-slate-900 p-1" role="tablist">
           <ModeButton active={mode === "plan"} onClick={() => setMode("plan")}>计划草案</ModeButton>
@@ -276,7 +293,7 @@ export function PlanningPage() {
             </dl>
             {capacity.data.reason_codes.length > 0 && (
               <p className="mt-3 text-xs text-slate-400">
-                {capacity.data.reason_codes.map((code) => capacityReasonLabels[code] ?? code).join("；")}
+                当前范围内可能有任务无法安排，请查看计划结果。
               </p>
             )}
           </div>
@@ -284,9 +301,19 @@ export function PlanningPage() {
       </section>
 
       {mode === "plan" ? (
-        <div className="grid gap-6 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
+        <>
+        <section className="rounded-2xl border border-cyan-300/20 bg-cyan-300/5 p-5 sm:p-6">
+          <h3 className="text-lg font-semibold">你想安排什么？</h3>
+          <p className="mt-1 text-sm text-slate-400">直接告诉助理你的目标。它会先给出计划供你检查，不会自动应用。</p>
+          <label className="mt-4 block text-sm text-slate-300" htmlFor="planning-goal">安排目标</label>
+          <textarea id="planning-goal" value={planningGoal} onChange={(event) => setPlanningGoal(event.target.value)} rows={2} className="mt-2 w-full rounded-xl border border-white/10 bg-slate-950 px-4 py-3 text-sm text-slate-100" placeholder="例如：帮我安排明天，论文放在上午，下午轻松一点" />
+          <button type="button" disabled={!planningGoal.trim()} onClick={() => navigate(`/chat?prompt=${encodeURIComponent(planningGoal.trim())}`)} className="mt-3 inline-flex min-h-11 items-center justify-center rounded-xl bg-cyan-300 px-5 text-sm font-semibold text-slate-950 disabled:opacity-50">让助理安排</button>
+        </section>
+        <button type="button" aria-expanded={manualPlannerOpen} onClick={() => setManualPlannerOpen((open) => !open)} className="min-h-10 text-sm text-slate-400">{manualPlannerOpen ? "收起高级规划" : "高级规划设置"}</button>
+        {manualPlannerOpen && <div className="grid gap-6 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
           <section className="rounded-lg border border-white/10 bg-slate-900 p-5">
-            <h3 className="flex items-center gap-2 font-semibold"><WandSparkles size={19} />选择待安排任务</h3>
+            <h3 className="flex items-center gap-2 font-semibold"><WandSparkles size={19} />安排哪些任务</h3>
+            <p className="mt-2 text-xs text-slate-400">默认安排所有待处理任务，你可以按需要调整。</p>
             <div className="mt-4 max-h-80 space-y-2 overflow-auto">
               {activeTasks.map((task) => (
                 <label key={task.id} className="flex min-h-12 cursor-pointer items-center gap-3 border-b border-white/10 py-2 text-sm">
@@ -298,14 +325,16 @@ export function PlanningPage() {
               {!activeTasks.length && <p className="text-sm text-slate-500">暂无可安排任务。</p>}
             </div>
             <div className="mt-5 grid gap-3 sm:grid-cols-2">
-              <DateField label="开始" value={rangeStart} onChange={setRangeStart} />
-              <DateField label="结束" value={rangeEnd} onChange={setRangeEnd} />
+              <DateField label={`开始（${timezone}）`} value={rangeStart} onChange={setRangeStart} />
+              <DateField label={`结束（${timezone}）`} value={rangeEnd} onChange={setRangeEnd} />
             </div>
             <div className="mt-3 grid grid-cols-2 gap-2" aria-label="规划范围快捷选择">
               <button type="button" onClick={() => setPlanningPreset("day")} className="min-h-10 rounded-lg border border-white/10 text-sm text-slate-200">Plan My Day</button>
               <button type="button" onClick={() => setPlanningPreset("week")} className="min-h-10 rounded-lg border border-white/10 text-sm text-slate-200">Plan My Week</button>
             </div>
-            <label className="mt-4 block text-xs text-slate-400">排序策略
+            <button type="button" aria-expanded={advancedOpen} onClick={() => setAdvancedOpen((open) => !open)} className="mt-4 min-h-10 text-sm text-cyan-200">{advancedOpen ? "收起高级设置" : "高级设置"}</button>
+            {advancedOpen && <>
+            <label className="mt-2 block text-xs text-slate-400">排序偏好
               <select value={ordering} onChange={(event) => setOrdering(event.target.value as typeof ordering)} className="mt-1 min-h-11 w-full rounded-lg border border-white/10 bg-slate-950 px-3 text-sm text-slate-100">
                 <option value="priority_deadline">优先级与截止时间</option>
                 <option value="longest_first">长任务优先</option>
@@ -317,7 +346,8 @@ export function PlanningPage() {
                 <option value="create_linked_event_blocks">创建关联日历块（支持拆分）</option>
               </select>
             </label>
-            <button type="button" disabled={!selectedTaskIds.length || createPlan.isPending} onClick={generatePlan} className="mt-4 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-lg bg-cyan-300 px-4 font-semibold text-slate-950 disabled:opacity-40">
+            </>}
+            <button type="button" disabled={!activeTasks.length || createPlan.isPending || preference.isPending} onClick={generatePlan} className="mt-4 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-lg bg-cyan-300 px-4 font-semibold text-slate-950 disabled:opacity-40">
               <CalendarCheck size={18} />{createPlan.isPending ? "生成中…" : "生成草案"}
             </button>
             <button type="button" disabled={!selectedTaskIds.length || comparePlans.isPending} onClick={comparePlanOptions} className="mt-2 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-lg border border-cyan-300/30 px-4 text-sm font-semibold text-cyan-200 disabled:opacity-40">
@@ -332,12 +362,8 @@ export function PlanningPage() {
             {!selectedPlan && <p className="mt-4 text-sm text-slate-500">尚未生成草案。</p>}
             {selectedPlan && (
               <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-slate-400">
-                <span>状态 {selectedPlan.status}</span>
-                <span>v{selectedPlan.version}</span>
-                {selectedPlan.expires_at && (
-                  <span>有效至 {new Date(selectedPlan.expires_at).toLocaleString()}</span>
-                )}
-                {selectedPlan.invalidation_reason && <span className="text-red-200">失效原因 {selectedPlan.invalidation_reason}</span>}
+                <span>{selectedPlan.status === "draft" ? "草案" : selectedPlan.status === "applied" ? "已应用" : selectedPlan.status === "invalidated" ? "需要重新检查" : "已结束"}</span>
+                {selectedPlan.status === "invalidated" && <span className="text-amber-200">日程刚刚发生变化，请重新生成计划。</span>}
               </div>
             )}
             {comparePlans.data && (
@@ -351,34 +377,37 @@ export function PlanningPage() {
                 })}
               </div>
             )}
-            <div className="mt-4 space-y-3">
+            <PlanPreview items={planItems.filter((item) => item.kind !== "plan_evidence")} taskTitles={taskTitles} timezone={timezone} />
+            <details className="mt-4 rounded-xl border border-white/10 p-3">
+            <summary className="cursor-pointer text-sm text-slate-300">高级调整（锁定或重新安排任务）</summary>
+            <div className="mt-3 space-y-3">
               {planItems.filter((item) => item.kind !== "plan_evidence").map((item, index) => (
                 <div key={`${item.task_id}-${item.segment_index ?? index}`} className="border-b border-white/10 pb-3 text-sm">
                   <div className="flex justify-between gap-4"><label className="flex min-w-0 items-center gap-2"><input type="checkbox" disabled={item.locked} checked={regenerateTaskIds.includes(item.task_id ?? "")} onChange={() => item.task_id && toggle(regenerateTaskIds, item.task_id, setRegenerateTaskIds)} /><span className="truncate">{taskTitles.get(item.task_id ?? "") ?? item.task_id}{(item.segment_count ?? 1) > 1 ? ` · 片段 ${item.segment_index}/${item.segment_count}` : ""}</span></label><div className="flex shrink-0 items-center gap-2"><span className={item.state === "placed" ? "text-emerald-300" : "text-amber-300"}>{item.state === "placed" ? "已安排" : "未安排"}</span>{item.state === "placed" && selectedPlan?.status === "draft" && (item.segment_count ?? 1) === 1 && <button type="button" title={item.locked ? "解锁计划块" : "锁定计划块"} aria-label={item.locked ? `解锁计划块：${taskTitles.get(item.task_id ?? "") ?? item.task_id}` : `锁定计划块：${taskTitles.get(item.task_id ?? "") ?? item.task_id}`} disabled={editPlan.isPending} onClick={() => setItemLocked(item, !item.locked)} className="rounded-md p-2 text-slate-300 hover:bg-white/10 disabled:opacity-40">{item.locked ? <Unlock size={16} /> : <Lock size={16} />}</button>}</div></div>
-                  {item.start_at && <p className="mt-1 text-xs text-slate-400">{new Date(item.start_at).toLocaleString()} - {new Date(item.end_at ?? item.start_at).toLocaleTimeString()}</p>}
-                  {item.reason_codes?.length ? <p className="mt-1 text-xs text-amber-200">{item.reason_codes.join(" · ")}</p> : null}
                 </div>
               ))}
             </div>
+            </details>
             {selectedPlan?.status === "draft" && regenerateTaskIds.length > 0 && (
               <button type="button" disabled={regeneratePlan.isPending} onClick={regenerateSelected} className="mt-4 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-lg border border-cyan-300/30 px-4 text-sm font-semibold text-cyan-200 disabled:opacity-40"><RefreshCw size={17} />{regeneratePlan.isPending ? "重生成中…" : "只重生成选中项"}</button>
             )}
             {regeneratePlan.isError && <ErrorText error={regeneratePlan.error} />}
             {editPlan.isError && <ErrorText error={editPlan.error} />}
             {selectedPlan?.status === "draft" && (
-              <div className="mt-5 grid gap-2 sm:grid-cols-3">
-                <button type="button" disabled={validatePlan.isPending} onClick={validateSelectedPlan} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border border-cyan-300/30 px-3 text-sm text-cyan-200 disabled:opacity-40"><ShieldCheck size={16} />验证</button>
-                <button type="button" disabled={abandonPlan.isPending} onClick={abandonSelectedPlan} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border border-red-300/30 px-3 text-sm text-red-200 disabled:opacity-40"><Trash2 size={16} />放弃</button>
-                <button type="button" disabled={applyPlan.isPending} onClick={applyGeneratedPlan} className="min-h-11 rounded-lg border border-emerald-300/40 px-4 font-semibold text-emerald-200 disabled:opacity-40">{applyPlan.isPending ? "应用中…" : "确认应用"}</button>
+              <div className="mt-5 flex flex-wrap gap-2">
+                <button type="button" disabled={applyPlan.isPending} onClick={applyGeneratedPlan} className="min-h-12 flex-1 rounded-lg bg-emerald-300 px-4 font-semibold text-slate-950 disabled:opacity-40">{applyPlan.isPending ? "正在应用…" : "应用计划"}</button>
+                <button type="button" disabled={abandonPlan.isPending} onClick={abandonSelectedPlan} className="min-h-12 rounded-lg border border-white/10 px-4 text-sm text-slate-300 disabled:opacity-40">放弃草案</button>
               </div>
             )}
-            {validatePlan.data && <p role="status" className={`mt-3 text-sm ${validatePlan.data.valid ? "text-emerald-200" : "text-red-200"}`}>{validatePlan.data.valid ? "草案仍然有效。" : `草案已失效：${validatePlan.data.reason_codes.join("、")}`}</p>}
+            {selectedPlan?.status === "draft" && advancedOpen && <button type="button" disabled={validatePlan.isPending} onClick={validateSelectedPlan} className="mt-3 min-h-10 rounded-lg border border-white/10 px-3 text-xs text-slate-400 disabled:opacity-40"><ShieldCheck size={14} className="mr-1 inline" />高级检查</button>}
+            {validatePlan.data && <p role="status" className={`mt-3 text-sm ${validatePlan.data.valid ? "text-emerald-200" : "text-amber-200"}`}>{validatePlan.data.valid ? "计划已检查，可以应用。" : "计划需要重新生成。"}</p>}
             {validatePlan.isError && <ErrorText error={validatePlan.error} />}
             {abandonPlan.isError && <ErrorText error={abandonPlan.error} />}
             {applyPlan.isSuccess && <p role="status" className="mt-3 text-sm text-emerald-200">计划已应用。</p>}
             {applyPlan.isError && <ErrorText error={applyPlan.error} />}
           </section>
-        </div>
+        </div>}
+        </>
       ) : (
         <div className="grid gap-6 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
           <section className="rounded-lg border border-white/10 bg-slate-900 p-5">
@@ -415,10 +444,10 @@ export function PlanningPage() {
               </button>
             )}
             <div className="mt-5 grid gap-3 sm:grid-cols-2">
-              <DateField label="阻塞开始" value={blockedStart} onChange={setBlockedStart} />
-              <DateField label="阻塞结束" value={blockedEnd} onChange={setBlockedEnd} />
+              <DateField label={`阻塞开始（${timezone}）`} value={blockedStart} onChange={setBlockedStart} />
+              <DateField label={`阻塞结束（${timezone}）`} value={blockedEnd} onChange={setBlockedEnd} />
             </div>
-            <div className="mt-3"><DateField label="调整范围截止" value={horizonEnd} onChange={setHorizonEnd} /></div>
+            <div className="mt-3"><DateField label={`调整范围截止（${timezone}）`} value={horizonEnd} onChange={setHorizonEnd} /></div>
             <button
               type="button"
               disabled={detectDisruptions.isPending}
@@ -434,7 +463,7 @@ export function PlanningPage() {
                 <label key={task.id} className="flex min-h-12 cursor-pointer items-center gap-3 border-b border-white/10 py-2 text-sm">
                   <input type="checkbox" checked={movableTaskIds.includes(task.id)} onChange={() => toggle(movableTaskIds, task.id, setMovableTaskIds)} />
                   <span className="min-w-0 flex-1 truncate">{task.title}</span>
-                  <span className="text-xs text-slate-500">{new Date(task.planned_start_at as string).toLocaleString()}</span>
+                  <span className="text-xs text-slate-500">{formatInUserTimezone(task.planned_start_at as string, timezone)}</span>
                 </label>
               ))}
             </div>
@@ -452,7 +481,7 @@ export function PlanningPage() {
                     <div key={`${item.task_id}-${item.event_id}`} className="text-sm">
                       <p className="text-slate-200">{item.event_title} 与 {item.task_title} 重叠</p>
                       <p className="mt-1 text-xs text-slate-500">
-                        {new Date(item.blocked_start).toLocaleString()} · {item.overlap_minutes} 分钟
+                        {formatInUserTimezone(item.blocked_start, timezone)} · {item.overlap_minutes} 分钟
                       </p>
                     </div>
                   ))}
@@ -465,13 +494,13 @@ export function PlanningPage() {
               {replanItems.map((item) => (
                 <div key={item.task_id} className="border-b border-white/10 pb-3 text-sm">
                   <div className="flex justify-between gap-4"><span>{taskTitles.get(item.task_id ?? "") ?? item.task_id}</span><span className={item.state === "moved" ? "text-emerald-300" : "text-amber-300"}>{item.state === "moved" ? "可移动" : "保持原位"}</span></div>
-                  {item.to_start_at && <p className="mt-1 text-xs text-slate-400">调整至 {new Date(item.to_start_at).toLocaleString()}</p>}
-                  {item.reason_codes?.length ? <p className="mt-1 text-xs text-slate-500">{item.reason_codes.join(" · ")}</p> : null}
+                  {item.to_start_at && <p className="mt-1 text-xs text-slate-400">调整至 {formatInUserTimezone(item.to_start_at, timezone)}</p>}
+                  {item.reason_codes?.length ? <p className="mt-1 text-xs text-slate-500">需要进一步检查这项安排。</p> : null}
                 </div>
               ))}
             </div>
             {previewReplan.data && selectedPolicy && !selectedPolicy.requires_approval && (
-              <button type="button" disabled={applyReplan.isPending} onClick={() => applyReplan.mutate({ blocked_start: iso(blockedStart), blocked_end: iso(blockedEnd), movable_task_ids: movableTaskIds, horizon_end: iso(horizonEnd), policy_id: selectedPolicy.id, operation_id: operationId() })} className="mt-5 min-h-11 w-full rounded-lg border border-emerald-300/40 font-semibold text-emerald-200 disabled:opacity-40">{applyReplan.isPending ? "执行中…" : "执行这次调整"}</button>
+              <button type="button" disabled={applyReplan.isPending} onClick={() => applyReplan.mutate({ blocked_start: iso(blockedStart, timezone), blocked_end: iso(blockedEnd, timezone), movable_task_ids: movableTaskIds, horizon_end: iso(horizonEnd, timezone), policy_id: selectedPolicy.id, operation_id: operationId() })} className="mt-5 min-h-11 w-full rounded-lg border border-emerald-300/40 font-semibold text-emerald-200 disabled:opacity-40">{applyReplan.isPending ? "执行中…" : "执行这次调整"}</button>
             )}
             {selectedPolicy?.requires_approval && <p className="mt-4 text-sm text-amber-200">此策略要求 HITL 审批，当前页面不会直接执行。</p>}
             {applyReplan.isError && <ErrorText error={applyReplan.error} />}

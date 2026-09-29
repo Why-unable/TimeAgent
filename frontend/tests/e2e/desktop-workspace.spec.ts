@@ -1,5 +1,7 @@
 import { expect, test } from "@playwright/test";
 
+test.use({ timezoneId: "Europe/London" });
+
 const preference = {
   timezone: "Asia/Shanghai",
   locale: "zh-CN",
@@ -94,6 +96,21 @@ test.beforeEach(async ({ page }) => {
 });
 
 test.describe("desktop workspace", () => {
+  test("opens Planning with a natural-language goal instead of planner configuration", async ({ page }) => {
+    await page.route("**/api/v1/planning/automation-policies/", (route) => route.fulfill({ json: [] }));
+    await page.route("**/api/v1/time-memory/me/capacity-forecast/**", (route) => route.fulfill({ json: {
+      total_schedulable_capacity_minutes: 480, remaining_free_minutes: 480, committed_minutes: 0, unplanned_minutes: 0, risk: "within_capacity", reason_codes: [],
+    } }));
+    await page.goto("/planning");
+    const goal = page.getByRole("textbox", { name: "安排目标" });
+    await expect(goal).toHaveValue("帮我安排明天的任务");
+    await goal.fill("明天帮我安排任务，上午留给论文");
+    await page.getByRole("button", { name: "让助理安排" }).click();
+    await expect(page).toHaveURL(/\/chat\?prompt=/);
+    await expect(page.getByRole("textbox", { name: "消息" })).toHaveValue("明天帮我安排任务，上午留给论文");
+    await expect(page.getByRole("button", { name: "高级规划设置" })).toHaveCount(0);
+  });
+
   test("aggregates schedule navigation and keeps the bright wide-screen shell", async ({ page }) => {
     await page.goto("/tasks");
 
@@ -175,5 +192,75 @@ test.describe("desktop workspace", () => {
     });
 
     await expect(appSettings).toBeInViewport();
+  });
+
+  test("plans and applies a day plan in two decisions without showing planner internals", async ({ page }) => {
+    const task = {
+      id: "21111111-1111-4111-8111-111111111111",
+      project: "",
+      parent_task: null,
+      title: "准备周会材料",
+      description: "",
+      status: "pending",
+      priority: "high",
+      due_at: null,
+      estimated_minutes: 60,
+      planned_start_at: null,
+      planned_end_at: null,
+      actual_started_at: null,
+      completed_at: null,
+      source: "local",
+      tags: [],
+      version: 1,
+      created_at: "2026-07-30T01:00:00Z",
+      updated_at: "2026-07-30T01:00:00Z",
+    };
+    let applied = false;
+    let generatedRangeStart = "";
+    await page.route("**/api/v1/tasks/", (route) => route.fulfill({ json: [task] }));
+    await page.route("**/api/v1/planning/automation-policies/", (route) => route.fulfill({ json: [] }));
+    await page.route("**/api/v1/time-memory/me/capacity-forecast/**", (route) => route.fulfill({
+      json: { total_schedulable_capacity_minutes: 480, remaining_free_minutes: 420, committed_minutes: 60, unplanned_minutes: 60, risk: "within_capacity", reason_codes: [] },
+    }));
+    await page.route("**/api/v1/planning/plans/", async (route) => {
+      if (route.request().method() === "POST") {
+        generatedRangeStart = String(route.request().postDataJSON().range_start);
+        return route.fulfill({ status: 201, json: {
+          id: "41111111-1111-4111-8111-111111111111",
+          strategy: "plan_tasks_only",
+          status: "draft",
+          version: 1,
+          created_at: "2026-07-30T01:00:00Z",
+          updated_at: "2026-07-30T01:00:00Z",
+          expires_at: "2026-07-30T02:00:00Z",
+          applied_at: null,
+          items: [{ task_id: task.id, state: "placed", start_at: "2026-07-31T01:00:00Z", end_at: "2026-07-31T02:00:00Z", locked: false, reason_codes: [] }],
+        } });
+      }
+      return route.continue();
+    });
+    await page.route("**/api/v1/planning/plans/*/apply/", (route) => {
+      applied = true;
+      return route.fulfill({ status: 200, json: { id: "41111111-1111-4111-8111-111111111111", strategy: "plan_tasks_only", status: "applied", version: 2, created_at: "2026-07-30T01:00:00Z", applied_at: "2026-07-30T01:01:00Z", items: [] } });
+    });
+
+    await page.goto("/planning");
+    await page.getByRole("button", { name: "高级规划设置" }).click();
+    await expect(page.getByRole("checkbox", { name: /准备周会材料/ })).toBeChecked();
+    await page.getByRole("button", { name: "Plan My Day" }).click();
+    const userDate = (await page.getByRole("textbox", { name: "开始" }).inputValue()).slice(0, 10);
+    await page.getByRole("button", { name: "生成草案" }).click();
+    expect(generatedRangeStart).toBe(new Date(`${userDate}T00:00:00+08:00`).toISOString());
+    await expect(page.getByText("草案", { exact: true })).toBeVisible();
+    await expect(page.getByText("有效至", { exact: false })).toHaveCount(0);
+    await expect(page.getByText(/v\d|strategy|reason_codes|plan_tasks_only/)).toHaveCount(0);
+    for (const width of [320, 375, 430, 1280]) {
+      await page.setViewportSize({ width, height: 800 });
+      await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+      await expect(page.getByText("准备周会材料").first()).toBeVisible();
+    }
+    await page.getByRole("button", { name: "应用计划" }).click();
+    await expect(page.getByText("计划已应用。", { exact: true })).toBeVisible();
+    expect(applied).toBe(true);
   });
 });

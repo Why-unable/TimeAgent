@@ -58,6 +58,16 @@ function renderChatPage(initialEntry = "/chat") {
 }
 
 describe("ChatPage", () => {
+  it("uses a Today action as a ready-to-send goal prompt", async () => {
+    vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo | URL) => {
+      if (String(input).endsWith("/conversations/")) return new Response(JSON.stringify([]));
+      if (String(input).endsWith("/preferences/me/")) return new Response(JSON.stringify({ timezone: "Asia/Shanghai" }));
+      return new Response(JSON.stringify([]));
+    }));
+    renderChatPage("/chat?prompt=帮我安排今天的任务");
+    expect(await screen.findByLabelText("消息")).toHaveValue("帮我安排今天的任务");
+  });
+
   afterEach(() => {
     vi.unstubAllGlobals();
   });
@@ -138,9 +148,9 @@ describe("ChatPage", () => {
     expect(await screen.findByText("你今天没有安排。")).toBeInTheDocument();
     expect(screen.getByText("list_events")).toBeInTheDocument();
     expect(screen.getByText("list_tasks")).toBeInTheDocument();
-    expect(screen.getAllByLabelText("工具调用记录")).toHaveLength(1);
+    expect(screen.getAllByLabelText("执行详情")).toHaveLength(1);
     expect(screen.getAllByText("已完成")).toHaveLength(2);
-    const toolPanel = screen.getByLabelText("工具调用记录");
+    const toolPanel = screen.getByLabelText("执行详情");
     expect(toolPanel.querySelector("details")?.open).toBe(false);
     const assistantAnswer = screen.getByText("你今天没有安排。");
     expect(
@@ -209,7 +219,7 @@ describe("ChatPage", () => {
     expect(screen.queryByRole("button", { name: "普通聊天" })).not.toBeInTheDocument();
   });
 
-  it("shows a run failure returned by the API", async () => {
+  it("shows a recoverable message instead of a raw API error", async () => {
     vi.stubGlobal(
       "fetch",
       vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
@@ -224,7 +234,8 @@ describe("ChatPage", () => {
     await userEvent.type(screen.getByLabelText("消息"), "你好");
     await userEvent.click(screen.getByRole("button", { name: "发送消息" }));
 
-    expect(await screen.findByRole("alert")).toHaveTextContent("模型暂不可用");
+    expect(await screen.findByRole("alert")).toHaveTextContent("消息没有发送成功，请检查连接后重试。");
+    expect(screen.queryByText("模型暂不可用")).not.toBeInTheDocument();
   });
 
   it("does not show Android WebView's fetch error when leaving an active run", async () => {
@@ -274,8 +285,9 @@ describe("ChatPage", () => {
       throw new Error(`Unexpected request: ${url}`);
     }));
     renderChatPage(`/chat/${conversation.id}`);
-    const notice = await screen.findByText(/模型服务响应超时/);
-    expect(notice).toHaveTextContent("请求编号：request-1");
+    const notice = await screen.findByText("这次没有完成请求。请重试；如果问题持续，请稍后再试。");
+    expect(notice).not.toHaveTextContent("request-1");
+    expect(notice).not.toHaveTextContent("模型服务响应超时");
     expect(notice).toHaveClass("bg-red-50", "text-red-900");
   });
 
@@ -356,7 +368,7 @@ describe("ChatPage", () => {
     vi.stubGlobal("fetch", fetchMock);
 
     renderChatPage(`/chat/${conversation.id}`);
-    const approve = await screen.findByRole("button", { name: "批准" });
+    const approve = await screen.findByRole("button", { name: "确认并应用" });
     await userEvent.click(approve);
 
     expect(await screen.findByText("日程已创建。")).toBeInTheDocument();

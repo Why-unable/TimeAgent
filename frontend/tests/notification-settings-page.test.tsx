@@ -81,8 +81,8 @@ describe("NotificationSettingsPage", () => {
 
     renderPage();
 
-    expect(await screen.findByRole("note")).toHaveTextContent("Chrome 暂时不能接收");
-    expect(screen.getByRole("note")).toHaveTextContent("Android App 的应用提醒或 Email");
+    expect(await screen.findByRole("note")).toHaveTextContent("Chrome 后台通知当前不可用");
+    expect(screen.getByRole("note")).toHaveTextContent("Android App 提醒或邮件");
   });
 
   it("enables a daily briefing", async () => {

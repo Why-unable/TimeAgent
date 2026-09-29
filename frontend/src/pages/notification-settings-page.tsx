@@ -271,8 +271,8 @@ export function NotificationSettingsPage() {
             <li key={item.id} className="grid gap-2 py-4 sm:grid-cols-[1fr_auto]">
               <div>
                 <p className="font-medium">{item.subject}</p>
-                <p className="text-sm text-slate-400">{item.source_type} · {item.channel_type} · 尝试 {item.attempt_count} 次</p>
-                {item.failure_reason && <p className="mt-1 text-sm text-red-300">{item.failure_code}: {item.failure_reason}</p>}
+                <p className="text-sm text-slate-400">{item.channel_type === "email" ? "邮件" : item.channel_type === "web_push" ? "浏览器通知" : "应用提醒"}</p>
+                {item.failure_reason && <><p className="mt-1 text-sm text-red-300">这条通知没有送达。</p><details className="mt-1 text-xs text-slate-500"><summary className="cursor-pointer">技术详情</summary><p className="mt-1">{item.failure_code}: {item.failure_reason}</p></details></>}
               </div>
               <span className={`h-fit rounded-full px-3 py-1 text-xs ${item.status === "sent" ? "bg-emerald-400/15 text-emerald-200" : item.status === "failed" ? "bg-red-400/15 text-red-200" : "bg-cyan-400/15 text-cyan-200"}`}>{item.status}</span>
             </li>
@@ -314,7 +314,7 @@ function BrowserPushChannelCard({
     setPushError("");
     try {
       if (!pushConfig.data?.configured || !pushConfig.data.public_key) {
-        throw new Error("后端尚未配置 VAPID 密钥");
+        throw new Error("browser_notifications_unavailable");
       }
       const subscription = await subscribeBrowser(pushConfig.data.public_key);
       await createSubscription.mutateAsync(subscription);
@@ -325,9 +325,7 @@ function BrowserPushChannelCard({
       setPushError(
         error instanceof Error && error.message === "notification_permission_denied"
           ? "你拒绝了通知权限，可在浏览器站点设置中重新开启。"
-          : error instanceof Error
-            ? error.message
-            : "订阅失败",
+          : "浏览器通知暂时无法开启，请稍后重试。",
       );
     }
   };
@@ -341,22 +339,22 @@ function BrowserPushChannelCard({
       }
       await unsubscribeBrowser();
       setEndpoint(null);
-    } catch (error) {
-      setPushError(error instanceof Error ? error.message : "取消订阅失败");
+    } catch {
+      setPushError("浏览器通知暂时无法关闭，请稍后重试。");
     }
   };
 
   const subscribed = Boolean(endpoint);
-  return <ChannelCard icon={MonitorSmartphone} title="浏览器推送" description={stateLabels[pushState]}>
+  return <ChannelCard icon={MonitorSmartphone} title="浏览器通知" description={stateLabels[pushState]}>
     {isChromeUsingFcm() && <p role="note" className="rounded-xl border border-amber-300/30 bg-amber-300/10 px-4 py-3 text-sm leading-6 text-amber-100">
-      当前 Time Agent 服务器尚无法连接 FCM，因此 Chrome 暂时不能接收浏览器关闭或页面未打开时的系统通知弹窗。提醒请暂时使用 Android App 的应用提醒或 Email；Safari、Firefox 的推送服务需要单独验证。
+      Chrome 后台通知当前不可用。你仍可以使用 Android App 提醒或邮件。
     </p>}
     <p className="text-xs text-slate-400">
       {pushConfig.data?.configured
         ? subscribed
           ? "当前浏览器已订阅"
           : "当前浏览器尚未订阅"
-        : "后端配置缺失"}
+        : "浏览器通知暂不可用"}
     </p>
     <p className="text-xs text-slate-400">用于电脑浏览器、手机浏览器或 PWA；取消时不会影响其他设备。</p>
     <div className="flex gap-3">

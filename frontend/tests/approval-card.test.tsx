@@ -41,10 +41,10 @@ describe("ApprovalCard", () => {
     const onDecision = vi.fn().mockResolvedValue(undefined);
     render(<ApprovalCard proposal={proposal} onDecision={onDecision} />);
 
-    expect(screen.getByText("高风险操作")).toBeInTheDocument();
+    expect(screen.getByText("需要你确认")).toBeInTheDocument();
     expect(screen.getByText(proposal.original_request)).toBeInTheDocument();
     expect(screen.getAllByText(/项目评审/).length).toBeGreaterThan(0);
-    await userEvent.click(screen.getByRole("button", { name: "批准" }));
+    await userEvent.click(screen.getByRole("button", { name: "确认并应用" }));
 
     expect(onDecision).toHaveBeenCalledWith("approve", undefined);
   });
@@ -83,7 +83,7 @@ describe("ApprovalCard", () => {
     render(<ApprovalCard proposal={cancellation} onDecision={vi.fn()} />);
 
     expect(screen.getByText("取消日程")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "批准" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "确认并应用" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "拒绝" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "编辑后批准" })).not.toBeInTheDocument();
     expect(screen.queryByText(/冲突检查/)).not.toBeInTheDocument();
@@ -118,5 +118,25 @@ describe("ApprovalCard", () => {
     expect(screen.getByText(/第 1 \/ 3 次/)).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "查看下一个日程实例" }));
     expect(screen.getByText(/第 2 \/ 3 次/)).toBeInTheDocument();
+  });
+
+  it("uses the account timezone and never invents recurring occurrences", () => {
+    const recurring: ActionProposal = {
+      ...proposal,
+      action_type: "create_recurring_event",
+      action_payload: {
+        title: "晨间阅读",
+        time: { kind: "absolute", start_at: "2026-07-20T07:00:00Z", end_at: "2026-07-20T07:30:00Z" },
+        frequency: "daily",
+        occurrence_count: 3,
+      },
+      display_context: { allowed_decisions: ["approve", "reject"] },
+    };
+
+    render(<ApprovalCard proposal={recurring} timezone="Europe/London" onDecision={vi.fn()} />);
+
+    expect(screen.getByText("2026/07/20 08:00")).toBeInTheDocument();
+    expect(screen.getByText("共 3 次；详细日期暂不可用。")).toBeInTheDocument();
+    expect(screen.queryByLabelText("周期日程实例预览")).not.toBeInTheDocument();
   });
 });

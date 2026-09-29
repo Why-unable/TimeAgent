@@ -16,6 +16,8 @@ import {
   useTemporalInsight,
   useTemporalInsights,
 } from "../features/insights/hooks";
+import { useCurrentUserPreference } from "../features/preferences/hooks";
+import { formatInUserTimezone } from "../utils/datetime";
 
 const severityStyle: Record<string, string> = {
   high: "border-rose-400/40 bg-rose-400/10 text-rose-100",
@@ -23,13 +25,20 @@ const severityStyle: Record<string, string> = {
   low: "border-cyan-300/30 bg-cyan-300/10 text-cyan-100",
 };
 
-function evidenceSummary(insight: TemporalInsight): string {
+function evidenceSummary(insight: TemporalInsight, timezone: string): string {
   const evidence = insight.evidence as Record<string, unknown>;
-  if (typeof evidence.due_at === "string") return `截止 ${new Date(evidence.due_at).toLocaleString("zh-CN")}`;
+  if (typeof evidence.due_at === "string") return `截止 ${formatInUserTimezone(evidence.due_at, timezone)}`;
   if (typeof evidence.unplanned_minutes === "number") {
     return `未安排 ${evidence.unplanned_minutes} 分钟，剩余可用 ${String(evidence.remaining_free_minutes ?? evidence.available_minutes ?? "-")} 分钟`;
   }
   return "由当前任务、日程与容量事实计算";
+}
+
+function primaryActionLabel(insight: TemporalInsight): string {
+  if (insight.kind === "capacity_risk") return "重新安排";
+  if (insight.kind === "overdue_task") return "处理逾期任务";
+  if (insight.kind === "deadline_risk") return "安排这个任务";
+  return "查看建议";
 }
 
 function primaryTarget(insight: TemporalInsight): string {
@@ -45,6 +54,8 @@ export function InsightsPage() {
   const insights = useTemporalInsights();
   const linkedInsight = useTemporalInsight(insightId);
   const action = useActOnTemporalInsight();
+  const preference = useCurrentUserPreference();
+  const timezone = preference.data?.timezone ?? import.meta.env.VITE_DEFAULT_TIMEZONE ?? "Asia/Shanghai";
   const visibleInsights = useMemo(() => {
     const open = insights.data ?? [];
     const linked = linkedInsight.data;
@@ -122,7 +133,7 @@ export function InsightsPage() {
                     </div>
                     <h2 className="mt-3 font-semibold text-slate-100">{insight.title}</h2>
                     <p className="mt-1 text-sm leading-6 text-slate-300">{insight.summary}</p>
-                    <p className="mt-3 text-xs text-slate-500">依据：{evidenceSummary(insight)}</p>
+                    <p className="mt-3 text-xs text-slate-500">依据：{evidenceSummary(insight, timezone)}</p>
                   </div>
                 </div>
 
@@ -134,7 +145,7 @@ export function InsightsPage() {
                       onClick={() => handleAction(insight, "actioned", false, primaryTarget(insight))}
                       className="inline-flex min-h-10 items-center gap-2 rounded-lg bg-cyan-300 px-3 text-sm font-medium text-slate-950 disabled:opacity-50"
                     >
-                      <Check size={16} />处理
+                      <Check size={16} />{primaryActionLabel(insight)}
                     </button>
                     <button
                       type="button"
@@ -142,7 +153,7 @@ export function InsightsPage() {
                       onClick={() => continueInChat(insight)}
                       className="inline-flex min-h-10 items-center gap-2 rounded-lg border border-cyan-300/30 px-3 text-sm text-cyan-100 disabled:opacity-50"
                     >
-                      <MessageSquareText size={16} />分析选项
+                      <MessageSquareText size={16} />问助理
                     </button>
                     <button
                       type="button"

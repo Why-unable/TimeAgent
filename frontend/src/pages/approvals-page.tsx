@@ -5,6 +5,7 @@ import type { ActionProposalStatus } from "../api/action-proposals";
 import { ApprovalCard } from "../components/approvals/approval-card";
 import { useActionProposals, useProposalDecision } from "../features/approvals/hooks";
 import { useCurrentUser } from "../features/accounts/hooks";
+import { useCurrentUserPreference } from "../features/preferences/hooks";
 
 const filters: { value: ActionProposalStatus | undefined; label: string }[] = [
   { value: undefined, label: "全部" },
@@ -17,6 +18,8 @@ const filters: { value: ActionProposalStatus | undefined; label: string }[] = [
 
 export function ApprovalsPage() {
   const currentUser = useCurrentUser();
+  const preference = useCurrentUserPreference();
+  const timezone = preference.data?.timezone ?? import.meta.env.VITE_DEFAULT_TIMEZONE ?? "Asia/Shanghai";
   const [filter, setFilter] = useState<ActionProposalStatus | undefined>("awaiting_approval");
   const proposals = useActionProposals(filter);
   const decision = useProposalDecision();
@@ -46,6 +49,7 @@ export function ApprovalsPage() {
           <ApprovalCard
             key={proposal.id}
             proposal={proposal}
+            timezone={timezone}
             busy={decision.isPending}
             onDecision={(decisionType, options) => decision.mutateAsync({ proposal, decision: decisionType, actionPayload: options?.actionPayload, reason: options?.reason })}
           />

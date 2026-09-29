@@ -197,20 +197,17 @@ function MobileStatsRow({
   );
 }
 
-function MobileQuickActions() {
+function TodayEmptyQuickAction() {
   return (
-    <section className="rounded-2xl border border-white/10 bg-slate-900 p-4 lg:hidden">
-      <p className="text-sm font-medium text-slate-200">开始安排今天</p>
-      <div className="mt-3 grid grid-cols-3 gap-2">
-        <Link to="/calendar" className="flex min-h-11 items-center justify-center gap-1 rounded-xl border border-cyan-300/20 bg-cyan-300/10 px-2 text-xs font-medium text-cyan-200">
-          <Plus size={15} /> 日程
-        </Link>
-        <Link to="/tasks" className="flex min-h-11 items-center justify-center gap-1 rounded-xl border border-white/10 px-2 text-xs font-medium text-slate-300">
-          <Plus size={15} /> 任务
-        </Link>
-        <Link to="/chat" className="flex min-h-11 items-center justify-center gap-1 rounded-xl border border-white/10 px-2 text-xs font-medium text-slate-300">
-          <MessageSquare size={15} /> 询问助理
-        </Link>
+    <section className="rounded-2xl border border-white/10 bg-slate-900 p-4 lg:flex lg:items-center lg:justify-between lg:gap-5">
+      <div><p className="text-sm font-medium text-slate-200">今天还没有安排</p>
+      <p className="mt-1 text-xs text-slate-400">让助理根据你的任务先拟一份计划，再由你决定是否应用。</p></div>
+      <Link to="/chat?prompt=帮我安排今天的任务" className="mt-3 flex min-h-12 items-center justify-center gap-2 rounded-xl bg-cyan-300 px-3 text-sm font-semibold text-slate-950 lg:mt-0 lg:min-w-52">
+        <MessageSquare size={16} /> 帮我安排今天
+      </Link>
+      <div className="mt-3 flex justify-center gap-4 text-xs text-slate-400 lg:mt-0">
+        <Link to="/calendar" className="inline-flex min-h-10 items-center gap-1"><Plus size={14} />添加日程</Link>
+        <Link to="/tasks" className="inline-flex min-h-10 items-center gap-1"><Plus size={14} />添加任务</Link>
       </div>
     </section>
   );
@@ -362,7 +359,7 @@ export function TodayPage() {
 
       {isEmptyDay && (
         <div className="mt-4">
-          <MobileQuickActions />
+          <TodayEmptyQuickAction />
         </div>
       )}
 

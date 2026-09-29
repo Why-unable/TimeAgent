@@ -131,21 +131,22 @@ describe("PlanningPage", () => {
     renderPage();
 
     expect(await screen.findByText("容量超载")).toBeInTheDocument();
-    expect(screen.getByText("未安排任务所需时间超过可用容量")).toBeInTheDocument();
-    await userEvent.click(await screen.findByRole("checkbox", { name: /准备发布报告/ }));
+    expect(screen.getByText("当前范围内可能有任务无法安排，请查看计划结果。")).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "高级规划设置" }));
+    await waitFor(() => expect(screen.getByRole("checkbox", { name: /准备发布报告/ })).toBeChecked());
     await userEvent.click(screen.getByRole("button", { name: "生成草案" }));
 
     expect(await screen.findByText("已安排")).toBeInTheDocument();
     expect(createBody).toMatchObject({ task_ids: [task.id], strategy: "plan_tasks_only" });
+    expect(screen.getByRole("region", { name: "计划时间线" })).toBeInTheDocument();
+    await userEvent.click(screen.getByText("高级调整（锁定或重新安排任务）"));
     await userEvent.click(screen.getByRole("button", { name: "锁定计划块：准备发布报告" }));
     await waitFor(() => expect(editBody).toMatchObject({
       expected_version: 1,
       items: [{ task_id: task.id, locked: true }],
     }));
     expect(await screen.findByRole("button", { name: "解锁计划块：准备发布报告" })).toBeInTheDocument();
-    await userEvent.click(screen.getByRole("button", { name: "验证" }));
-    expect(await screen.findByText("草案仍然有效。")).toBeInTheDocument();
-    await userEvent.click(screen.getByRole("button", { name: "确认应用" }));
+    await userEvent.click(screen.getByRole("button", { name: "应用计划" }));
     await waitFor(() => expect(applyBody).toEqual({ expected_version: 2 }));
     expect(await screen.findByText("计划已应用。")).toBeInTheDocument();
   });
@@ -220,9 +221,10 @@ describe("PlanningPage", () => {
     );
     renderPage();
 
-    await userEvent.click(await screen.findByRole("checkbox", { name: /准备发布报告/ }));
+    await userEvent.click(await screen.findByRole("button", { name: "高级规划设置" }));
     await userEvent.click(screen.getByRole("button", { name: "比较两种方案" }));
     expect(await screen.findByRole("button", { name: /长任务优先/ })).toBeInTheDocument();
+    await userEvent.click(screen.getByText("高级调整（锁定或重新安排任务）"));
     const checkboxes = screen.getAllByRole("checkbox", { name: /准备发布报告/ });
     await userEvent.click(checkboxes[1]);
     await userEvent.click(screen.getByRole("button", { name: "只重生成选中项" }));
