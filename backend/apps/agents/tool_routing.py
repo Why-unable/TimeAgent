@@ -154,8 +154,8 @@ _TASK_WRITE_TOOL_NAMES = frozenset(
 )
 _CALENDAR_WRITE_TOOL_NAMES = frozenset({"mutate_events", "create_recurring_event"})
 _CALENDAR_MANAGEMENT_INTENT = re.compile(
-    r"(?:新增|创建|编辑|修改|更新|取消|删除).{0,8}(?:日程|日历|会议|事件)|"
-    r"(?:日程|日历|会议|事件).{0,8}(?:新增|创建|编辑|修改|更新|取消|删除)",
+    r"(?:新增|创建|添加|编辑|修改|更新|取消|删除).{0,32}(?:日程|日历|会议|事件)|"
+    r"(?:日程|日历|会议|事件).{0,32}(?:新增|创建|添加|编辑|修改|更新|取消|删除)",
     re.IGNORECASE,
 )
 _NEGATED_INTENT_PREFIX = re.compile(

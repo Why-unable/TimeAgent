@@ -9,8 +9,8 @@
   {
     "id": "today-schedule",
     "prompt": "今天有什么安排",
-    "required_tools": ["get_current_datetime", "list_events", "list_tasks"],
-    "allowed_tools": ["get_current_datetime", "list_events", "list_tasks", "list_reminders"],
+    "required_tools": ["list_events", "list_tasks"],
+    "allowed_tools": ["list_events", "list_tasks", "list_reminders"],
     "forbidden_tools": ["create_event", "create_task"]
   },
   {

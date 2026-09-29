@@ -29,6 +29,19 @@ def test_explicit_task_reschedule_intent_exposes_approved_write_tool() -> None:
     assert "reschedule_task" in tools
 
 
+def test_descriptive_calendar_create_intent_exposes_event_write_tool() -> None:
+    prompts = (
+        "一天后上午八点添加一个标题为八点基线的日程。",
+        "两天后上午十点添加一个标题为十点新锚点的日程。",
+        "下周一上午十点到十一点，帮我创建一个标题为项目周会的日程。",
+    )
+
+    for prompt in prompts:
+        tools = select_tool_names(prompt)
+        assert tools is not None
+        assert "mutate_events" in tools
+
+
 def test_explicit_memory_preference_write_intents_expose_approved_tools() -> None:
     remember_tools = select_tool_names("请记住以后周五下午不要安排会议")
     update_tools = select_tool_names("把我的专注时间改成下午")
