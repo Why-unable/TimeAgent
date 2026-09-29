@@ -5,6 +5,11 @@ from rest_framework import serializers
 from apps.accounts.models import GuestAccount
 
 
+class AuthOptionsSerializer(serializers.Serializer[dict[str, bool]]):
+    guest_access_enabled = serializers.BooleanField(read_only=True)
+    registration_enabled = serializers.BooleanField(read_only=True)
+
+
 class CurrentUserSerializer(serializers.ModelSerializer[User]):
     display_name = serializers.SerializerMethodField()
     is_email_verified = serializers.SerializerMethodField()

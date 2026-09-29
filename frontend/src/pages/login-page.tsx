@@ -1,9 +1,11 @@
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 
 import {
+  type AuthOptions,
   confirmEmailVerification,
   confirmPasswordReset,
+  getAuthOptions,
   registerAccount,
   requestEmailVerification,
   requestPasswordReset,
@@ -40,6 +42,16 @@ export function LoginPage() {
   const [error, setError] = useState("");
   const [pending, setPending] = useState(false);
   const [verificationEmail, setVerificationEmail] = useState("");
+  const [authOptions, setAuthOptions] = useState<AuthOptions | null>(null);
+  const [authOptionsError, setAuthOptionsError] = useState(false);
+  const [authOptionsNotice, setAuthOptionsNotice] = useState("");
+  const [authOptionsRetry, setAuthOptionsRetry] = useState(0);
+  const authTabRefs = useRef<Partial<Record<Mode, HTMLButtonElement>>>({});
+  const authPanelRef = useRef<HTMLFormElement | null>(null);
+  const registrationEnabled = authOptions?.registration_enabled ?? authOptionsError;
+  const authModes: Mode[] = registrationEnabled
+    ? ["login", "register", "reset"]
+    : ["login", "reset"];
   const destination = locationState?.from ?? "/today";
   const title = useMemo(() => {
     if (verificationConfirmation) return "验证邮箱";
@@ -48,6 +60,37 @@ export function LoginPage() {
     if (mode === "reset") return "重置密码";
     return "登录 Time Agent";
   }, [mode, resetConfirmation, verificationConfirmation]);
+
+  useEffect(() => {
+    let active = true;
+    void getAuthOptions()
+      .then((options) => {
+        if (active) {
+          setAuthOptions(options);
+          setAuthOptionsError(false);
+          setAuthOptionsNotice(authOptionsRetry > 0 ? "账号选项已重新读取。" : "");
+        }
+      })
+      .catch(() => {
+        if (active) {
+          setAuthOptions(null);
+          setAuthOptionsError(true);
+          setAuthOptionsNotice("");
+        }
+      });
+    return () => { active = false; };
+  }, [authOptionsRetry]);
+
+  useEffect(() => {
+    if (authOptionsNotice) authPanelRef.current?.focus();
+  }, [authOptionsNotice]);
+
+  useEffect(() => {
+    if (authOptions && !authOptions.registration_enabled && mode === "register") {
+      setMode("login");
+      setStatus("当前暂不开放注册。你可以使用已有账号登录。");
+    }
+  }, [authOptions, mode]);
 
   useEffect(() => {
     if (!verificationUid || !verificationToken) return;
@@ -145,14 +188,38 @@ export function LoginPage() {
         <p className="mt-2 text-sm text-slate-400">使用你的邮箱安全保存时间、日程与提醒。</p>
 
         {!resetConfirmation && !verificationConfirmation && (
-          <div className="mt-6 flex rounded-xl bg-slate-950 p-1 text-sm" role="tablist">
-            {(["login", "register", "reset"] as const).map((candidate) => (
+          <div className="mt-6 flex rounded-xl bg-slate-950 p-1 text-sm" role="tablist" aria-label="账号访问方式">
+            {authModes.map((candidate) => (
               <button
                 key={candidate}
+                ref={(element) => {
+                  if (element) authTabRefs.current[candidate] = element;
+                  else delete authTabRefs.current[candidate];
+                }}
                 type="button"
                 role="tab"
+                id={`auth-tab-${candidate}`}
+                aria-controls="auth-panel"
                 aria-selected={mode === candidate}
+                tabIndex={mode === candidate ? 0 : -1}
                 onClick={() => { setMode(candidate); setError(""); setStatus(""); }}
+                onKeyDown={(event) => {
+                  const index = authModes.indexOf(candidate);
+                  const targetIndex = event.key === "ArrowRight"
+                    ? (index + 1) % authModes.length
+                    : event.key === "ArrowLeft"
+                      ? (index + authModes.length - 1) % authModes.length
+                      : event.key === "Home"
+                        ? 0
+                        : event.key === "End"
+                          ? authModes.length - 1
+                          : null;
+                  if (targetIndex === null) return;
+                  event.preventDefault();
+                  const nextMode = authModes[targetIndex];
+                  setMode(nextMode);
+                  authTabRefs.current[nextMode]?.focus();
+                }}
                 className={`flex-1 rounded-lg px-2 py-2 transition ${mode === candidate ? "bg-cyan-300 font-medium text-slate-950" : "text-slate-400"}`}
               >
                 {candidate === "login" ? "登录" : candidate === "register" ? "注册" : "忘记密码"}
@@ -160,8 +227,28 @@ export function LoginPage() {
             ))}
           </div>
         )}
+        {authOptions === null && !authOptionsError && !resetConfirmation && !verificationConfirmation && (
+          <p className="mt-3 text-xs text-slate-400" role="status" aria-live="polite">正在读取可用的注册方式…</p>
+        )}
+        {authOptionsError && !resetConfirmation && !verificationConfirmation && (
+          <div className="mt-3 flex items-center justify-between gap-3 rounded-xl bg-amber-300/10 p-3 text-xs text-amber-100" role="status">
+            <span>暂时无法确认注册状态；游客体验已隐藏。你仍可登录或尝试注册。</span>
+            <button type="button" onClick={() => setAuthOptionsRetry((value) => value + 1)} className="inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-md px-2 underline underline-offset-2">重试</button>
+          </div>
+        )}
+        {authOptionsNotice && !resetConfirmation && !verificationConfirmation && (
+          <p className="mt-3 text-xs text-emerald-200" role="status">{authOptionsNotice}</p>
+        )}
 
-        <form onSubmit={submit} className="mt-6 space-y-4">
+        <form
+          ref={authPanelRef}
+          id="auth-panel"
+          role={!resetConfirmation && !verificationConfirmation ? "tabpanel" : undefined}
+          aria-labelledby={!resetConfirmation && !verificationConfirmation ? `auth-tab-${mode}` : undefined}
+          tabIndex={-1}
+          onSubmit={submit}
+          className="mt-6 space-y-4"
+        >
           {!resetConfirmation && !verificationConfirmation && (
             <label className="block text-sm text-slate-300">
               邮箱
@@ -223,7 +310,7 @@ export function LoginPage() {
             </button>
           )}
         </form>
-        {!resetConfirmation && !verificationConfirmation && mode !== "reset" && (
+        {!resetConfirmation && !verificationConfirmation && mode !== "reset" && authOptions?.guest_access_enabled && (
           <div className="mt-6 border-t border-white/10 pt-6">
             <button
               type="button"

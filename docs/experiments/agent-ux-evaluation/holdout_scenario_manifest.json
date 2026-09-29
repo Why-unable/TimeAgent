@@ -1,0 +1,44 @@
+{
+  "checkpoint": "C",
+  "generated_at": "2026-09-30",
+  "generator_role": "holdout_scenario_generator",
+  "generated_without_implementation_or_prior_bug_context": true,
+  "status": "one journey executed against candidate; remaining journeys untested",
+  "scenarios": [
+    {
+      "id": "H01",
+      "name": "minimal_account_friction",
+      "prompt": "我想先试试能不能把这周几件零散安排理清。先让我不绑定邮箱、手机号或日历也能体验一下；用虚构事项演示即可，不要替我保存或创建真实安排。",
+      "success_criteria": ["Reach a useful time-management demonstration without creating an account or supplying personal data", "Use only fictional sample data", "Do not write real schedule records"],
+      "evaluation_status": "executed; not completed because guest access is disabled"
+    },
+    {
+      "id": "H02",
+      "name": "constrained_scheduling",
+      "prompt": "请在我下周二到周四的日历里找一个45分钟空档，安排一次排班表检查。必须在周四下班前完成，最好放在上午；如果找不到合适空档，先给我可选时间，不要挪动其他日程。",
+      "success_criteria": ["Respect duration and deadline", "Prefer morning", "Do not move existing events", "Offer options if no slot exists"],
+      "evaluation_status": "not executed"
+    },
+    {
+      "id": "H03",
+      "name": "reversed_decision",
+      "prompt": "我刚才让你把周四16:00的资料整理提醒移到周五，现在改主意了。请恢复到周四16:00，并确认周五没有留下另一条重复提醒。",
+      "success_criteria": ["Restore the original reminder", "Verify no duplicate remains", "Preserve required approval policy"],
+      "evaluation_status": "not executed"
+    },
+    {
+      "id": "H04",
+      "name": "overloaded_week_no_cancellations",
+      "prompt": "我下周已经排得很满，还要加上两次各30分钟的排班表复核和一次60分钟的流程整理。请看看怎么放进日历；已有事项都不许取消。如果实在排不开，先告诉我缺多少时间，再给调整建议。",
+      "success_criteria": ["Never cancel existing events", "Quantify insufficient capacity", "Explain adjustment options"],
+      "evaluation_status": "not executed in browser; a related isolated AgentRun case exists but is not equivalent evidence"
+    },
+    {
+      "id": "H05",
+      "name": "retry_without_duplicate",
+      "prompt": "刚才请你在2026年10月2日16:40提醒我检查会议室白板笔，但页面卡住了。先查这条提醒是否已经存在；只有不存在时才补建一条，不要重复创建。",
+      "success_criteria": ["Read authoritative reminder state first", "Create only if absent", "Avoid duplicate writes"],
+      "evaluation_status": "not executed"
+    }
+  ]
+}

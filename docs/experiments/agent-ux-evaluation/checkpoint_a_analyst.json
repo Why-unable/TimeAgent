@@ -1,0 +1,25 @@
+{
+  "checkpoint": "A",
+  "role": "independent experiment analyst",
+  "implementation_changes_proposed": false,
+  "current_biggest_measured_problem": "The login page advertised guest access even though the current backend configuration disabled it.",
+  "evidence": [
+    "A current-source frontend browser session used a corrected local proxy and real current-source Django settings.",
+    "GET /api/v1/auth/options/ returned guest_access_enabled=false and registration_enabled=true.",
+    "The user simulator clicked the guest action once and received the backend message '游客体验当前未开放。'. A registration tab was already visible; the simulator stopped without selecting it.",
+    "The deployed Docker image was approximately nine hours old and returned an unrelated login verification failure; it was excluded as current-source evidence."
+  ],
+  "root_cause": "The frontend rendered a Guest entry without consulting the backend capability flag.",
+  "affected_layer": "Frontend account entry and backend capability contract",
+  "proposed_change": "Expose the existing backend guest and registration configuration through a read-only auth-options endpoint; render only enabled entry modes, and preserve login plus a clear registration fallback if the capability request fails.",
+  "expected_improvement": [
+    "Remove an action that the current backend cannot fulfill.",
+    "Keep users on a valid login or registration path.",
+    "Avoid duplicating feature-toggle state in frontend configuration."
+  ],
+  "regression_risks": [
+    "A failed capability request must not hide all recovery paths.",
+    "The UI must not infer or enable guest access independently of backend settings."
+  ],
+  "next_experiment": "Compare the prior disabled-guest CTA with the backend-driven candidate using a fresh no-account task and a blind screenshot judge."
+}

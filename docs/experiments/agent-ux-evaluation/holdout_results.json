@@ -1,0 +1,30 @@
+{
+  "checkpoint": "C",
+  "scenario_id": "H01",
+  "scenario_name": "minimal_account_friction",
+  "evidence_grade": "current-source frontend plus current-source local Django backend; automated Playwright black-box browser interaction",
+  "environment": {
+    "frontend": "current source via Vite on localhost",
+    "backend": "current source Django test settings",
+    "auth_options_http_status": 200,
+    "auth_options": {"guest_access_enabled": false, "registration_enabled": true},
+    "screenshot_size_px": "390x844"
+  },
+  "observations": {
+    "auth_entry_ready_ms": 195,
+    "guest_button_count": 0,
+    "registration_tab_visible": true,
+    "registration_form_ready_ms": 218,
+    "email_field_visible": true,
+    "clicks": 1,
+    "personal_data_entered": false,
+    "chat_prompts_submitted": 0,
+    "chat_requests": 0,
+    "task_completed": false,
+    "blocker": "The no-account demo path is unavailable; only registration/login are offered."
+  },
+  "interpretation": "The candidate accurately reflects the backend capability and avoids a disabled guest CTA, but it does not satisfy this user's no-account demonstration goal. No schedule write or AgentRun occurred.",
+  "unexecuted_scenarios": ["H02", "H03", "H04", "H05"],
+  "satisfaction": null,
+  "satisfaction_reason": "No numeric satisfaction instrument was administered."
+}

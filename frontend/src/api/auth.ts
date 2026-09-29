@@ -17,6 +17,11 @@ export type Credentials = {
   password: string;
 };
 
+export type AuthOptions = {
+  guest_access_enabled: boolean;
+  registration_enabled: boolean;
+};
+
 type TokenLoginResponse = {
   token: string;
   user: CurrentUser;
@@ -34,6 +39,10 @@ export async function startGuestSession(): Promise<CurrentUser> {
     return result.user;
   }
   return result as CurrentUser;
+}
+
+export function getAuthOptions() {
+  return apiRequest<AuthOptions>("/api/v1/auth/options/");
 }
 
 export async function ensureCsrfToken() {

@@ -12,6 +12,9 @@ test.beforeEach(async ({ page }) => {
   await page.route("**/api/v1/auth/csrf/", async (route) => {
     await route.fulfill({ json: { csrfToken: "e2e-csrf" } });
   });
+  await page.route("**/api/v1/auth/options/", async (route) => {
+    await route.fulfill({ json: { guest_access_enabled: false, registration_enabled: true } });
+  });
   await page.route("**/api/v1/insights/", (route) => route.fulfill({ json: [] }));
   await page.route("**/api/v1/integrations/calendar/connections/", (route) =>
     route.fulfill({ json: [] }),
@@ -41,6 +44,64 @@ test("redirects an unauthenticated visitor to the login page", async ({ page }) 
 
   await expect(page).toHaveURL(/\/login$/);
   await expect(page.getByRole("heading", { name: "登录 Time Agent" })).toBeVisible();
+});
+
+test("shows registration and hides guest access when backend options disable guests", async ({ page }) => {
+  await page.goto("/login");
+
+  await expect(page.getByRole("tab", { name: "注册" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "游客体验（无需注册）" })).toHaveCount(0);
+  const loginTab = page.getByRole("tab", { name: "登录" });
+  const registerTab = page.getByRole("tab", { name: "注册" });
+  await loginTab.focus();
+  await page.keyboard.press("ArrowRight");
+  await expect(registerTab).toBeFocused();
+  await expect(registerTab).toHaveAttribute("aria-selected", "true");
+  await expect(page.getByRole("heading", { name: "创建账号" })).toBeVisible();
+});
+
+test("keeps registration available and retryable when account options are unavailable", async ({ page }) => {
+  let requestCount = 0;
+  await page.unroute("**/api/v1/auth/options/");
+  await page.route("**/api/v1/auth/options/", async (route) => {
+    requestCount += 1;
+    await route.fulfill({ status: 503, json: { detail: "Unavailable" } });
+  });
+  await page.setViewportSize({ width: 320, height: 700 });
+
+  await page.goto("/login");
+
+  await expect(page.getByText("暂时无法确认注册状态；游客体验已隐藏。你仍可登录或尝试注册。")).toBeVisible();
+  await expect(page.getByRole("tab", { name: "注册" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "游客体验（无需注册）" })).toHaveCount(0);
+  const retryButton = page.getByRole("button", { name: "重试" });
+  const retryBounds = await retryButton.boundingBox();
+  expect(retryBounds?.height).toBeGreaterThanOrEqual(44);
+  expect(retryBounds?.width).toBeGreaterThanOrEqual(44);
+  const initialRequestCount = requestCount;
+  await retryButton.click();
+  await expect.poll(() => requestCount).toBeGreaterThan(initialRequestCount);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+});
+
+test("returns focus to the account panel after auth options recover", async ({ page }) => {
+  let optionsAvailable = false;
+  await page.unroute("**/api/v1/auth/options/");
+  await page.route("**/api/v1/auth/options/", async (route) => {
+    if (optionsAvailable) {
+      await route.fulfill({ json: { guest_access_enabled: false, registration_enabled: true } });
+      return;
+    }
+    await route.fulfill({ status: 503, json: { detail: "Unavailable" } });
+  });
+
+  await page.goto("/login");
+  await expect(page.getByRole("button", { name: "重试" })).toBeVisible();
+  optionsAvailable = true;
+  await page.getByRole("button", { name: "重试" }).click();
+
+  await expect(page.getByText("账号选项已重新读取。")).toBeVisible();
+  await expect(page.getByRole("tabpanel")).toBeFocused();
 });
 
 test("logs in from the dedicated login page", async ({ page }) => {
@@ -190,6 +251,7 @@ test("records a task action and shows plan-versus-actual evidence", async ({ pag
   });
 
   await page.goto("/tasks");
+  await page.getByText("更多筛选").click();
   await page.getByRole("button", { name: "已计划" }).click();
   await page.getByRole("button", { name: "开始任务：准备发布报告" }).click();
   await expect(page.getByRole("button", { name: "暂停任务：准备发布报告" })).toBeVisible();
@@ -201,6 +263,7 @@ test("records a task action and shows plan-versus-actual evidence", async ({ pag
 test("reviews and applies a deterministic schedule plan", async ({ page }) => {
   const taskId = "21111111-1111-4111-8111-111111111111";
   const planId = "41111111-1111-4111-8111-111111111111";
+  await page.clock.install({ time: new Date("2026-08-24T01:00:00Z") });
   await page.addInitScript(() =>
     localStorage.setItem("time-agent:onboarding:1:v1", "completed"),
   );
@@ -285,10 +348,13 @@ test("reviews and applies a deterministic schedule plan", async ({ page }) => {
 
   await page.goto("/planning");
   await expect(page.getByText("容量超载")).toBeVisible();
-  await page.getByRole("checkbox", { name: /准备规划演示/ }).click();
+  await page.getByRole("button", { name: "高级规划设置" }).click();
+  await expect(page.getByRole("checkbox", { name: /准备规划演示/ })).toBeChecked();
   await page.getByRole("button", { name: "生成草案" }).click();
-  await expect(page.getByText("已安排")).toBeVisible();
-  await page.getByRole("button", { name: "确认应用" }).click();
+  const planPreview = page.getByRole("region", { name: "计划时间线" });
+  await expect(planPreview).toBeVisible();
+  await expect(planPreview.getByText("准备规划演示")).toBeVisible();
+  await page.getByRole("button", { name: "应用计划" }).click();
   await expect(page.getByText("计划已应用。")).toBeVisible();
 });
 
@@ -560,6 +626,9 @@ test("creates a new chat, updates the URL, and streams the reply", async ({ page
   await page.getByRole("button", { name: "发送消息" }).click();
 
   await expect(page).toHaveURL(new RegExp(`/chat/${conversationId}$`));
+  const executionDetails = page.getByRole("region", { name: "执行详情" }).locator("summary");
+  await expect(page.getByText("list_events")).toBeHidden();
+  await executionDetails.click();
   await expect(page.getByText("list_events")).toBeVisible();
   await expect(page.getByText("已完成")).toBeVisible();
   await expect(page.getByText("你今天没有安排。")).toBeVisible();
@@ -632,8 +701,8 @@ test("reviews and approves a high-risk action", async ({ page }) => {
   await page.goto("/approvals");
   await expect(page.getByRole("heading", { name: "操作审批" })).toBeVisible();
   await expect(page.getByText("未发现日程冲突。")).toBeVisible();
-  await page.getByRole("button", { name: "批准", exact: true }).click();
-  await expect(page.getByRole("button", { name: "批准", exact: true })).toHaveCount(0);
+  await page.getByRole("button", { name: "确认并应用", exact: true }).click();
+  await expect(page.getByRole("button", { name: "确认并应用", exact: true })).toHaveCount(0);
 });
 
 test("continues the chat stream after approving an interrupted run", async ({ page }) => {
@@ -738,7 +807,7 @@ test("continues the chat stream after approving an interrupted run", async ({ pa
   });
 
   await page.goto(`/chat/${conversationId}`);
-  await page.getByRole("button", { name: "批准", exact: true }).click();
+  await page.getByRole("button", { name: "确认并应用", exact: true }).click();
 
   await expect(page.getByText("日程已创建。")).toBeVisible();
   expect(cursors).toEqual(["0", "3"]);

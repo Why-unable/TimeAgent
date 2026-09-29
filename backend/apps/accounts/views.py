@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import cast
 
+from django.conf import settings
 from django.contrib.auth.models import User
 from django.middleware.csrf import get_token
 from django.utils.decorators import method_decorator
@@ -15,6 +16,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.accounts.serializers import (
+    AuthOptionsSerializer,
     AuthTokenSerializer,
     CurrentUserSerializer,
     EmailVerificationConfirmSerializer,
@@ -45,6 +47,23 @@ class CsrfTokenView(APIView):
     @extend_schema(responses={200: OpenApiResponse(description="CSRF cookie issued")})
     def get(self, request: Request) -> Response:
         return Response({"csrfToken": get_token(request)})
+
+
+class AuthOptionsView(APIView):
+    permission_classes = [AllowAny]
+    authentication_classes: list[type] = []
+
+    @extend_schema(responses=AuthOptionsSerializer)
+    def get(self, request: Request) -> Response:
+        del request
+        return Response(
+            AuthOptionsSerializer(
+                {
+                    "guest_access_enabled": settings.GUEST_ACCESS_ENABLED,
+                    "registration_enabled": settings.AUTH_REGISTRATION_ENABLED,
+                }
+            ).data
+        )
 
 
 @method_decorator(csrf_protect, name="dispatch")

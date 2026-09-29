@@ -1,0 +1,28 @@
+{
+  "checkpoint": "A",
+  "generated_at": "2026-09-30",
+  "generator_role": "scenario_generator_a",
+  "status": "generated; not all scenarios executed",
+  "scenarios": [
+    {"id":"S01","prompt":"下周帮我安排三次跑步，每次 45 分钟，尽量放在工作日早上。","journey_category":"normal","sensitivity_risk_flag":null,"evaluation_status":"not_assigned"},
+    {"id":"S02","prompt":"最近事情太多了，帮我理一理这周怎么过。","journey_category":"vague","sensitivity_risk_flag":null,"evaluation_status":"not_assigned"},
+    {"id":"S03","prompt":"把报告弄一下，找个时间。","journey_category":"vague","sensitivity_risk_flag":null,"evaluation_status":"not_assigned"},
+    {"id":"S04","prompt":"明天下午给我留块时间准备演示，别排太满。","journey_category":"normal","sensitivity_risk_flag":null,"evaluation_status":"not_assigned"},
+    {"id":"S05","prompt":"客户会改到周四 3 点了，顺便把后续工作往后挪。","journey_category":"modification","sensitivity_risk_flag":null,"evaluation_status":"not_assigned"},
+    {"id":"S06","prompt":"刚才那个安排先撤回吧，我还是按原计划来。","journey_category":"reversal","sensitivity_risk_flag":null,"evaluation_status":"not_assigned"},
+    {"id":"S07","prompt":"这周排得太满了。帮我看看哪些事能挪到下周，别擅自取消。","journey_category":"overload","sensitivity_risk_flag":null,"evaluation_status":"not_assigned"},
+    {"id":"S08","prompt":"提醒我周五交申请。","journey_category":"terse","sensitivity_risk_flag":null,"evaluation_status":"not_assigned"},
+    {"id":"S09","prompt":"每天早上给我一个当天安排，周末也要。","journey_category":"briefing","sensitivity_risk_flag":null,"evaluation_status":"not_assigned"},
+    {"id":"S10","prompt":"这个月我是不是总把重要的事拖到最后？帮我看看。","journey_category":"insights","sensitivity_risk_flag":null,"evaluation_status":"not_assigned"},
+    {"id":"S11","prompt":"把和 Alex 的会议挪到下周，时间你看着办。","journey_category":"modification","sensitivity_risk_flag":null,"evaluation_status":"not_assigned"},
+    {"id":"S12","prompt":"周三下午我有空，帮我安排几个重要任务，但别跟现有日程冲突。","journey_category":"normal","sensitivity_risk_flag":null,"evaluation_status":"not_assigned"},
+    {"id":"S13","prompt":"把明天的安排发给我，我现在在手机上，简单一点。","journey_category":"mobile","sensitivity_risk_flag":null,"evaluation_status":"not_assigned"},
+    {"id":"S14","prompt":"我下周去东京，周二上午 9 点的提醒按当地时间算。","journey_category":"timezone","sensitivity_risk_flag":null,"evaluation_status":"not_assigned"},
+    {"id":"S15","prompt":"我在伦敦，帮我安排纽约同事也方便的会；我不确定他们那边几点。","journey_category":"timezone","sensitivity_risk_flag":null,"evaluation_status":"not_assigned"},
+    {"id":"S16","prompt":"在夏令时切换那天，凌晨 1:30 提醒我出门。","journey_category":"DST","sensitivity_risk_flag":null,"evaluation_status":"not_assigned"},
+    {"id":"S17","prompt":"我说的是每周五提醒，不是每天。把频率改回来。","journey_category":"modification","sensitivity_risk_flag":null,"evaluation_status":"not_assigned"},
+    {"id":"S18","prompt":"今天的计划全乱了：临时会议加了两个，原来的安排你先帮我找出冲突。","journey_category":"error","sensitivity_risk_flag":null,"evaluation_status":"not_assigned"},
+    {"id":"S19","prompt":"把下周所有安排都清掉，重新排。","journey_category":"high-impact change","sensitivity_risk_flag":null,"evaluation_status":"not_assigned"},
+    {"id":"S20","prompt":"刚刚加的提醒好像没出现，确认一下；别再重复创建。","journey_category":"error","sensitivity_risk_flag":null,"evaluation_status":"not_assigned"}
+  ]
+}

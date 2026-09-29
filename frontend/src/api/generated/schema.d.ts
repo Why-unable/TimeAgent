@@ -262,6 +262,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/auth/options/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["api_v1_auth_options_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/auth/password-reset/": {
         parameters: {
             query?: never;
@@ -1590,6 +1606,10 @@ export interface components {
          * @enum {string}
          */
         ArtifactTypeEnum: "schedule_plan";
+        AuthOptions: {
+            readonly guest_access_enabled: boolean;
+            readonly registration_enabled: boolean;
+        };
         AuthToken: {
             readonly token: string;
             readonly user: components["schemas"]["CurrentUser"];
@@ -3357,6 +3377,25 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    api_v1_auth_options_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuthOptions"];
+                };
             };
         };
     };

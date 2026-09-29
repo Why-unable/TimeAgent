@@ -45,6 +45,28 @@ def csrf_headers(client: Client) -> dict[str, str]:
     return {"X-CSRFToken": client.cookies["csrftoken"].value}
 
 
+@override_settings(GUEST_ACCESS_ENABLED=False, AUTH_REGISTRATION_ENABLED=True)
+def test_auth_options_expose_available_entry_methods() -> None:
+    response = Client().get("/api/v1/auth/options/")
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "guest_access_enabled": False,
+        "registration_enabled": True,
+    }
+
+
+@override_settings(GUEST_ACCESS_ENABLED=True, AUTH_REGISTRATION_ENABLED=False)
+def test_auth_options_reflect_guest_only_configuration() -> None:
+    response = Client().get("/api/v1/auth/options/")
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "guest_access_enabled": True,
+        "registration_enabled": False,
+    }
+
+
 @override_settings(GUEST_ACCESS_ENABLED=True, GUEST_ACCOUNT_TTL_HOURS=24)
 def test_guest_session_creates_isolated_seeded_workspace_and_reuses_browser_session() -> None:
     client = Client(enforce_csrf_checks=True)
@@ -401,6 +423,7 @@ def test_registration_can_be_disabled() -> None:
     )
 
     assert response.status_code == 403
+    assert response.json()["detail"] == "当前暂不开放注册。"
 
 
 def test_password_reset_sends_generic_response_and_accepts_standard_token() -> None:

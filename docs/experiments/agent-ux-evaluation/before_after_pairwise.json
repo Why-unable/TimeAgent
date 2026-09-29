@@ -1,0 +1,29 @@
+{
+  "evaluation": "blind screenshot pairwise comparison",
+  "checkpoint": "C",
+  "judge_role": "blind_judge_c",
+  "judge_blinded_to_mapping": true,
+  "task_goal": "Try a fictional time-management demo without email, phone, or calendar binding, and without creating real schedule items.",
+  "screenshots": {
+    "X": {"initial":"screenshots/frame-184-start.png","outcome":"screenshots/frame-184-outcome.png"},
+    "Y": {"initial":"screenshots/frame-627-start.png","outcome":"screenshots/frame-627-outcome.png"}
+  },
+  "scores_1_to_5_higher_is_better": {
+    "X": {"goal_fit":3,"clarity":4,"trust":4,"interaction_cost":2,"recovery":2,"accessibility":3,"visual_hierarchy":4},
+    "Y": {"goal_fit":1,"clarity":3,"trust":2,"interaction_cost":1,"recovery":2,"accessibility":3,"visual_hierarchy":4}
+  },
+  "preferred_group": "X",
+  "confidence": "high",
+  "judge_summary": "X visibly offered a no-registration guest experience and explained temporary sample data, but ended with '游客体验当前未开放'. Y accurately showed only the available registration form, which requires an account and does not meet the no-account goal. Neither screenshot pair completes the task; calendar-free support is not established.",
+  "mapping_unblinded_after_judgment": {
+    "X": "reconstructed baseline: guest option was forced visible for capture; POST response reproduced the actual backend's disabled message",
+    "Y": "candidate: actual backend auth options false/true hide guest and show registration"
+  },
+  "validity_limitations": [
+    "The baseline screenshot is a controlled reconstruction, not a new browser run of the historical build.",
+    "Both versions visibly fail the requested task; preference is not evidence of successful task completion.",
+    "The judge saw screenshots only and did not interact with the form.",
+    "No human participant or numeric satisfaction survey was used."
+  ],
+  "decision": "Do not claim an overall task-UX win. Keep backend-driven capability rendering as a truthfulness/correctness fix, while recording the no-account demo capability as unresolved; do not silently enable guest account creation because the backend configuration is explicitly false."
+}

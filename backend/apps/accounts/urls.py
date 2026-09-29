@@ -3,6 +3,7 @@ from django.views.decorators.csrf import csrf_exempt
 
 from apps.accounts.views import (
     AccountProfileView,
+    AuthOptionsView,
     AuthTokenRevokeView,
     AuthTokenView,
     CsrfTokenView,
@@ -21,6 +22,7 @@ from apps.accounts.views import (
 )
 
 urlpatterns = [
+    path("options/", AuthOptionsView.as_view(), name="options"),
     path("csrf/", CsrfTokenView.as_view(), name="csrf"),
     path("register/", RegisterView.as_view(), name="register"),
     path("guest/", GuestSessionView.as_view(), name="guest"),

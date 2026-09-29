@@ -1,0 +1,91 @@
+{
+  "checkpoint": "A-C",
+  "measurement_date": "2026-09-30",
+  "satisfaction": {
+    "average": null,
+    "median": null,
+    "p10": null,
+    "unmeasured_reason": "No participant or simulator satisfaction scores were collected."
+  },
+  "current_source_entry_journey": {
+    "entry": "Login page, current frontend through corrected local proxy to real backend",
+    "guest_access_enabled": false,
+    "registration_enabled": true,
+    "guest_button_clicks": 1,
+    "chat_prompts_submitted": 0,
+    "credentials_or_personal_data_entered": 0,
+    "result": "The backend returned '游客体验当前未开放。'; no chat task was reached.",
+    "duration_seconds": 0.3,
+    "completion": false,
+    "abandonment": "The simulator stopped after the unavailable-guest message; the registration tab was present but no recovery action was selected. This was a misleading unavailable CTA, not a page with no alternative."
+  },
+  "current_source_candidate_entry_journey": {
+    "auth_options_http_status": 200,
+    "guest_access_enabled": false,
+    "registration_enabled": true,
+    "guest_button_count": 0,
+    "registration_tab_visible": true,
+    "registration_form_ready_ms": 218,
+    "clicks_to_registration_form": 1,
+    "personal_data_entered": false,
+    "chat_requests": 0,
+    "requested_no_account_demo_completed": false,
+    "result": "Candidate reflects the backend options accurately, but does not offer the no-account demo requested by the holdout task."
+  },
+  "deployed_older_artifact": {
+    "base_url": "http://127.0.0.1:7080/",
+    "artifact_age_hours_approx": 9,
+    "completed_tasks": 0,
+    "task_count": 6,
+    "retry_clicks": 1,
+    "retry_result": "Login verification remained unavailable.",
+    "current_source_comparable": false
+  },
+  "real_agent_harness": {
+    "database": "isolated synthetic users on local PostgreSQL",
+    "model": "DeepSeek via configured provider",
+    "approval_policy": "Never resume or auto-approve HITL; remove synthetic records after each case",
+    "cases": [
+      {
+        "case": "overcapacity_workweek",
+        "result": "success",
+        "duration_seconds": 6.4881,
+        "model_calls": 3,
+        "tokens": 36686,
+        "tool_calls": 2,
+        "tool_errors": 0,
+        "duplicate_reads": 0,
+        "repair_calls": 0,
+        "candidate_plans": 1,
+        "clarifications": 0,
+        "pending_approvals": 0
+      },
+      {
+        "case": "minimal_churn_replan_holdout",
+        "result": "passed",
+        "duration_seconds": 3.7326,
+        "model_calls": 3,
+        "tokens": 29453,
+        "tool_calls": 3,
+        "tool_errors": 0,
+        "pending_approvals": 1,
+        "expected_pending_action": "reschedule_task",
+        "resumed_or_applied": false
+      }
+    ],
+    "grade_limit": "Real model, Time Steward, tools and HITL proposal; not a browser-based user journey and not an applied approval."
+  },
+  "playwright": {
+    "current_source_desktop_workspace": {"passed": 7, "failed": 0},
+    "current_source_mobile_workspace": {"passed": 13, "failed": 0},
+    "selected_legacy_smoke": {
+      "passed": 17,
+      "failed": 0,
+      "interpretation": "Updated old selectors and fixtures to follow current UI: expand task filters, open advanced planner settings, assert the PlanPreview, expand technical tool details, use the current approval label, and freeze planner test time."
+    }
+  },
+  "task_failure_rate": null,
+  "task_failure_count": null,
+  "abandon_count": null,
+    "unmeasured_reason": "There is no comparable current-source task cohort, satisfaction sampling, or instrumented session telemetry. Only the explicitly measured entry attempt, auth journey, and isolated agent harness cases are reported."
+}

@@ -1,0 +1,93 @@
+{
+  "version": 2,
+  "checkpoint": "A-C",
+  "categories": [
+    {
+      "code": "AUTH-ENTRY-001",
+      "category": "Authentication entry mismatch",
+      "definition": "A visible entry action is disabled by backend configuration, and its failure does not provide a clear recovery action.",
+      "observed": true,
+      "evidence_grade": "Current-source frontend + real backend user-entry attempt",
+      "journey": "Login / first use"
+    },
+    {
+      "code": "DEPLOY-STALE-001",
+      "category": "Stale deployed artifact",
+      "definition": "An older deployed image produces behavior that differs from current source; do not attribute it to current source without a matching build.",
+      "observed": true,
+      "evidence_grade": "Deployed artifact, approximately nine hours old",
+      "journey": "Login / first use"
+    },
+    {
+      "code": "HARNESS-PROXY-001",
+      "category": "Evaluation harness misconfiguration",
+      "definition": "A local proxy configuration causes a request failure that is not produced by the product source path.",
+      "observed": true,
+      "evidence_grade": "Invalid run; excluded from product findings",
+      "journey": "Login / first use"
+    },
+    {
+      "code": "AGENT-PLAN-OK-001",
+      "category": "Agent planning completion",
+      "definition": "A real AgentRun creates one candidate plan without tool errors, duplicate reads, or repair calls.",
+      "observed": true,
+      "evidence_grade": "Real model + Agent + tools in isolated harness",
+      "journey": "Overcapacity workweek"
+    },
+    {
+      "code": "AGENT-HITL-OK-001",
+      "category": "HITL proposal reached",
+      "definition": "A real AgentRun pauses with the expected pending approval and does not resume or apply it.",
+      "observed": true,
+      "evidence_grade": "Real model + Agent + HITL proposal in isolated harness",
+      "journey": "Minimal-churn reschedule"
+    },
+    {
+      "code": "E2E-ASSERT-STALE-001",
+      "category": "Stale E2E expectation",
+      "definition": "A test assertion expected old filters, planner layout, visible internal tool traces, or approval copy; fixtures and interactions were updated to match current product behavior.",
+      "observed": true,
+      "evidence_grade": "Resolved harness mismatch; full smoke suite passed 17/17 after selector and fixture corrections",
+      "journey": "Planning / chat / approvals"
+    },
+    {
+      "code": "A11Y-SOURCE-001",
+      "category": "Accessibility source finding",
+      "definition": "Source inspection indicates a contrast, focus, status announcement, heading, or keyboard-navigation gap.",
+      "observed": true,
+      "evidence_grade": "Source audit only; no screen-reader claim",
+      "journey": "Chat / mobile navigation / workspace pages"
+    }
+  ],
+  "required_failure_types": [
+    {"failure_type":"UNCLEAR_PRIMARY_ACTION","severity":"P2","journey":"No-account demo holdout","evidence":"Checkpoint C candidate offers registration but no no-account demo entry under current backend options; the blind judge rated candidate goal fit 1/5. The capability gap is unresolved."},
+    {"failure_type":"UNCLEAR_SYSTEM_STATE","severity":"P2","journey":"Login / first use","evidence":"Checkpoint A current-source browser: guest CTA was visible while backend guest access was disabled; the API returned '游客体验当前未开放。'. Registration tab was present, so this was a misleading CTA rather than a total dead-end."},
+    {"failure_type":"FAILED_SELF_RECOVERY","severity":"P2","journey":"Login / first use","evidence":"Checkpoint A simulator stopped at the disabled-guest message instead of choosing the already-visible registration tab. Candidate removes the disabled CTA; the no-account goal still cannot complete."},
+    {"failure_type":"UNCLEAR_UNPLACED_REASON","severity":"P2","journey":"PlanPreview / unplaced task","evidence":"Checkpoint A critic source review found the Preview uses generic no-slot text instead of a specific, actionable reason; not fixed in the account-entry iteration."},
+    {"failure_type":"APPROVAL_CONTEXT_LOSS","severity":"P2","journey":"Approval review","evidence":"Checkpoint A critic source review found conflict warning reports only the count and omits conflicting event/time; source-only finding, not retested in this iteration."},
+    {"failure_type":"DST_AMBIGUITY","severity":"P2","journey":"Repeated local hour","evidence":"Earlier timezone iteration blocks ambiguous repeated times, but users cannot select which occurrence they intend; unit/component evidence, no live browser journey."},
+    {"failure_type":"ACCESSIBILITY_FAILURE","severity":"P2","journey":"Login / account options","evidence":"Checkpoint B initially found missing tab arrow navigation, retry focus return, and undersized retry target; all scoped findings passed the independent retest after iteration 2/3. Other product-wide screen-reader and keyboard findings remain source-only."}
+  ],
+  "taxonomy_registry": [
+    "UNNECESSARY_CLICK",
+    "UNNECESSARY_USER_TURN",
+    "UNNECESSARY_CLARIFICATION",
+    "DUPLICATE_CONFIRMATION",
+    "RAW_TOOL_LEAK",
+    "RAW_ERROR_LEAK",
+    "TECHNICAL_LANGUAGE",
+    "UNCLEAR_PRIMARY_ACTION",
+    "UNCLEAR_SYSTEM_STATE",
+    "UNCLEAR_PLAN_CHANGE",
+    "UNCLEAR_UNPLACED_REASON",
+    "CHAT_PLAN_DISCONNECT",
+    "PLAN_TODAY_DISCONNECT",
+    "APPROVAL_CONTEXT_LOSS",
+    "TIMEZONE_CONFUSION",
+    "DST_AMBIGUITY",
+    "POOR_MOBILE_LAYOUT",
+    "ACCESSIBILITY_FAILURE",
+    "SLOW_USEFUL_RESULT",
+    "FAILED_SELF_RECOVERY"
+  ]
+}

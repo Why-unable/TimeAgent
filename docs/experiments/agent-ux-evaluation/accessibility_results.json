@@ -1,0 +1,17 @@
+{
+  "checkpoint": "A plus auth iteration retest",
+  "reviewer_role": "accessibility_critic_a",
+  "overall_status": "source_inspection_only; not an accessibility pass",
+  "manual_screen_reader_walkthrough": false,
+  "findings": [
+    {"severity":"P2","area":"Chat placeholder contrast","detail":"Approximately 2.27:1 on mobile and 2.54:1 on desktop against inspected surfaces.","grade":"source_inspection"},
+    {"severity":"P2","area":"More drawer focus management","detail":"Declared as a modal dialog but no focus entry, focus trap, focus restore, or Escape handling was found.","grade":"source_inspection"},
+    {"severity":"P2","area":"Mobile navigation while keyboard is open","detail":"Visually hidden navigation remains keyboard focusable in the DOM.","grade":"source_inspection"},
+    {"severity":"P2","area":"Chat busy announcement","detail":"Processing status is within a transcript region marked aria-live and aria-busy; announcement may be deferred.","grade":"source_inspection"},
+    {"severity":"P3","area":"Workspace page headings","detail":"Workspace pages lack a top-level h1.","grade":"source_inspection"},
+    {"severity":"P3","area":"Calendar tab keyboard behavior","detail":"Tablist lacks arrow-key navigation and roving focus.","grade":"source_inspection"}
+  ],
+  "verified_observations": ["Reduced-motion override exists in source.", "Auth tabs pass Playwright ArrowLeft/Right/Home/End and roving-focus checks.", "Auth-options retry target was measured at at least 44x44 CSS px; successful retry moved focus to the account panel.", "320px auth page was checked for horizontal overflow and had none."],
+  "not_verified": ["Screen reader output", "Manual screen-reader walkthrough", "VoiceOver/TalkBack behavior", "Full-product manual keyboard walkthrough including Planning and Approval", "Runtime contrast measurements for all surfaces"],
+  "scoped_retest": {"area":"Login/account options", "result":"targeted browser checks passed; not a whole-product accessibility pass", "method":"Playwright keyboard interactions, DOM focus assertions, viewport bounding boxes"}
+}

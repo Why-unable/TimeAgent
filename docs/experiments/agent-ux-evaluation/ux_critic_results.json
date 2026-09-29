@@ -1,0 +1,24 @@
+{
+  "checkpoint": "A",
+  "reviewer_role": "ux_critic_a",
+  "limitations": ["Checkpoint A source review only except the explicitly noted screenshot finding.", "The initial browser discovery failed; later checkpoints used a current-source frontend and local Django backend.", "Do not treat the proxy-origin 403 screenshot as a product failure."],
+  "findings": [
+    {"severity":"P1","journey":"Event creation/cancellation","finding":"Confirmation preferences initialize false, allowing actions to run without confirmation by default; confirm exact policy path before implementation.","evidence":"frontend/src/pages/time-settings-page.tsx:80,308","verification":"source_only"},
+    {"severity":"P1","journey":"Approval review","finding":"Conflict warning reports only a count and does not identify the conflicting event or time.","evidence":"frontend/src/components/approvals/approval-card.tsx:297,321","verification":"source_only"},
+    {"severity":"P2","journey":"First visit","finding":"A screenshot showed a raw 403 response and no recovery guidance; its run used the invalid local proxy Origin setup and is excluded as product evidence.","evidence":"frontend/src/api/client.ts:75; screenshots/invalid-proxy-origin-403.png","verification":"invalid_harness_evidence"},
+    {"severity":"P2","journey":"Briefing notification","finding":"Notification deep link includes a run ID, but the Briefings page ignores it and only displays the latest 12 runs.","evidence":"backend/apps/notifications/integrations.py:82; frontend/src/pages/briefings-page.tsx:51","verification":"source_only"},
+    {"severity":"P2","journey":"Unplaced plan item","finding":"Preview gives a generic no-slot explanation instead of an actionable reason.","evidence":"frontend/src/components/planning/plan-preview.tsx:48-49","verification":"source_only"}
+  ],
+  "checkpoint_b_and_iteration_3": {
+    "reviewer_role": "adversarial_critic_b",
+    "evidence_grade": "independent Playwright interaction plus source review; no screen-reader device",
+    "initial_findings": [
+      {"severity":"P2","finding":"Auth tabs lacked keyboard arrow-key navigation and roving focus.","status":"fixed; ArrowLeft/Right, Home/End, and roving tabindex verified"},
+      {"severity":"P2","finding":"If auth options could not be loaded, registration was hidden even when registration might be available.","status":"fixed; fallback keeps login/register available, keeps guest hidden, and offers retry"},
+      {"severity":"P3","finding":"Retry did not return the user to the account panel and its target was below 44px.","status":"fixed; successful retry focuses the panel and the button is at least 44x44 CSS px"},
+      {"severity":"P2","finding":"Registration-disabled response was English while the interface is Chinese.","status":"fixed; backend response is localized and covered by an account service test"}
+    ],
+    "retest": {"result":"all scoped findings verified resolved", "checks":["503 auth-options fallback showed registration and hid guest access","ArrowLeft/Right/Home/End and roving tabindex worked","retry success announced status and returned focus to the account panel","retry target measured at least 44x44 CSS px","registration-disabled error was Chinese","320px viewport had no horizontal overflow"]},
+    "remaining_product_gap": "A no-account demonstration requested by the holdout task is unavailable when the backend disables guest access. This is a product capability/configuration gap, not a frontend control to bypass."
+  }
+}

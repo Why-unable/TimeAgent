@@ -1,0 +1,31 @@
+{
+  "checkpoint": "B",
+  "date": "2026-09-30",
+  "independent_roles": ["user_simulator_b", "adversarial_critic_b"],
+  "implementation_under_test": "Current source login using real local Django auth options: guest disabled, registration enabled.",
+  "user_simulator": {
+    "task": "Reach a usable account entry without entering personal information.",
+    "result": "Registration path was visible and reached; no personal data was entered and no Agent prompt was submitted.",
+    "clicks": 2,
+    "page_transitions": 0,
+    "credentials_or_personal_data_entered": 0,
+    "chat_requests": 0,
+    "task_completed": false,
+    "reason": "The simulator inspected registration, then returned to login; it did not create an account or reach the authenticated app."
+  },
+  "critic_findings_and_fixes": [
+    {"severity":"P2","finding":"Auth tabs were mouse-oriented without arrow-key navigation or roving focus.","fix":"Implemented tab semantics, roving tabindex, ArrowLeft/ArrowRight, Home/End.","retest":"passed"},
+    {"severity":"P2","finding":"If the options endpoint failed, registration was hidden even if the server might allow it.","fix":"Keep login and registration available on options failure, hide guest, explain uncertainty, and provide retry.","retest":"503 fallback verified in Playwright"},
+    {"severity":"P2","finding":"Registration-disabled server copy was English.","fix":"Localized server error to Chinese.","retest":"backend unit test passed"},
+    {"severity":"P2","finding":"A retry did not restore useful focus and its touch target was undersized.","fix":"Focus the account panel on successful retry and size retry target to at least 44x44 CSS px.","retest":"focus, status announcement, and bounding box verified"},
+    {"severity":"P3","finding":"Initial loading changed the available tab layout.","fix":"Added explicit loading status while the authoritative options are read.","retest":"visible status verified"}
+  ],
+  "regression": {
+    "auth_options_false_true": "guest hidden, registration available",
+    "auth_options_true_false": "guest available, registration hidden",
+    "auth_options_failure": "guest hidden, login and registration available, retry announced",
+    "keyboard_tabs": "ArrowLeft/Right and Home/End pass; selected tab receives roving focus",
+    "mobile_320px": "no horizontal overflow; retry target at least 44x44 CSS px"
+  },
+  "remaining_gap": "The holdout request for a no-account demonstration is still impossible while backend guest access is disabled. Do not bypass the backend setting in the browser."
+}

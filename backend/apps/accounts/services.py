@@ -293,7 +293,7 @@ class AccountService:
     @transaction.atomic
     def register(*, email: str, nickname: str, password: str, application_url: str) -> User:
         if not settings.AUTH_REGISTRATION_ENABLED:
-            raise RegistrationDisabledError("Registration is disabled")
+            raise RegistrationDisabledError("当前暂不开放注册。")
         normalized_email = AccountService._normalize_email(email)
         normalized_nickname = AccountService._normalize_nickname(nickname)
         user_model = get_user_model()
