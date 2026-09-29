@@ -862,10 +862,12 @@ def test_tool_policy_execution_denies_sensitive_read_only_memory_multitask_and_u
             ),
         )
         called: list[str] = []
-        result = ToolPolicyMiddleware().wrap_tool_call(
-            request,
-            lambda _request: called.append(name) or "handler called",
-        )
+
+        def handler(_request: Any) -> str:
+            called.append(name)
+            return "handler called"
+
+        result = ToolPolicyMiddleware().wrap_tool_call(request, handler)
         assert isinstance(result, ToolMessage)
         return result, called
 

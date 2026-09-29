@@ -123,7 +123,7 @@ def test_runtime_anchor_replaces_clock_tool_for_planning_but_keeps_explicit_cloc
     assert overview is not None
     assert {"list_events", "list_tasks"}.issubset(overview)
     assert "get_current_datetime" not in overview
-    assert exact_clock == {"get_current_datetime"}
+    assert exact_clock == frozenset({"get_current_datetime"})
 
 
 def test_duration_and_fit_question_routes_capacity_without_unrelated_integrations() -> None:

@@ -1,5 +1,6 @@
 from datetime import date, datetime, time
 from types import SimpleNamespace
+from typing import Any
 from uuid import uuid4
 from zoneinfo import ZoneInfo
 
@@ -20,11 +21,13 @@ from apps.tasks.models import Task
 
 
 class RecordingAgent:
-    def __init__(self):
-        self.contexts = []
-        self.inputs = []
+    def __init__(self) -> None:
+        self.contexts: list[Any] = []
+        self.inputs: list[Any] = []
 
-    def invoke(self, state, *, config, context):
+    def invoke(
+        self, state: dict[str, Any], *, config: dict[str, Any], context: Any
+    ) -> dict[str, Any]:
         self.contexts.append(context)
         self.inputs.append(state["messages"])
         assert config["configurable"]["thread_id"] == context.conversation_id
@@ -36,7 +39,7 @@ class RecordingAgent:
         }
 
 
-def test_synthetic_trajectory_has_ordered_whole_day_anchors_and_change_points():
+def test_synthetic_trajectory_has_ordered_whole_day_anchors_and_change_points() -> None:
     steps = trajectory_steps(date(2026, 10, 5))
 
     assert [step["id"] for step in steps] == [
@@ -64,7 +67,9 @@ def test_synthetic_trajectory_has_ordered_whole_day_anchors_and_change_points():
     ("host", "name"),
     [("db.example.invalid", "time_agent_eval"), ("localhost", "time_agent_prod")],
 )
-def test_live_runner_rejects_remote_or_production_postgres_target(monkeypatch, host, name):
+def test_live_runner_rejects_remote_or_production_postgres_target(
+    monkeypatch: pytest.MonkeyPatch, host: str, name: str
+) -> None:
     monkeypatch.setattr(
         "apps.agents.management.commands.evaluate_day_trajectory.settings.DATABASES",
         {
@@ -79,7 +84,7 @@ def test_live_runner_rejects_remote_or_production_postgres_target(monkeypatch, h
         Command._ensure_local_evaluation_database()
 
 
-def test_schedule_churn_counts_changed_tasks_and_shift_distance():
+def test_schedule_churn_counts_changed_tasks_and_shift_distance() -> None:
     task_a, task_b = str(uuid4()), str(uuid4())
     zone = ZoneInfo("Asia/Shanghai")
     old = {
@@ -116,7 +121,7 @@ def test_schedule_churn_counts_changed_tasks_and_shift_distance():
     }
 
 
-def test_deadline_and_worktime_metrics_detect_violations():
+def test_deadline_and_worktime_metrics_detect_violations() -> None:
     task_id = str(uuid4())
     task = Task(
         id=task_id,
@@ -161,13 +166,13 @@ def test_deadline_and_worktime_metrics_detect_violations():
 
 
 def test_hitl_extraction_logs_only_tool_names_and_seed_facts_use_application_service(
-    monkeypatch,
-):
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     user = User(id=1, username="temporary")
     task = Task(id=uuid4(), user=user, title="synthetic")
     observed: list[dict[str, object]] = []
 
-    def fake_complete_task(**kwargs):
+    def fake_complete_task(**kwargs: Any) -> Task:
         observed.append(kwargs)
         return task
 
@@ -210,7 +215,7 @@ def test_hitl_extraction_logs_only_tool_names_and_seed_facts_use_application_ser
     assert names == ["reschedule_task"]
 
 
-def test_duplicate_history_tool_calls_are_counted_once():
+def test_duplicate_history_tool_calls_are_counted_once() -> None:
     previous = {"id": "call-1", "name": "get_planning_context", "args": {}}
     current = {"id": "call-2", "name": "propose_schedule_plan", "args": {}}
     message = AIMessage(content="", tool_calls=[previous])
@@ -223,7 +228,7 @@ def test_duplicate_history_tool_calls_are_counted_once():
 
 
 @pytest.mark.django_db
-def test_trajectory_runner_reuses_history_and_applies_facts_through_services():
+def test_trajectory_runner_reuses_history_and_applies_facts_through_services() -> None:
     user = User.objects.create_user(username=f"trajectory-test-{uuid4().hex}")
     UserPreferenceService.update_for_user(
         user,

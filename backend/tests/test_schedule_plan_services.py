@@ -1,11 +1,12 @@
 from datetime import UTC, datetime, time, timedelta
+from typing import Any
 from zoneinfo import ZoneInfo
 
 import pytest
 from django.contrib.auth import get_user_model
 
 from apps.events.services import CreateEventCommand, EventService
-from apps.planning.models import SchedulePlanStatus
+from apps.planning.models import SchedulePlan, SchedulePlanStatus
 from apps.planning.schemas import DailyAvailabilityWindow
 from apps.planning.services import PlanningService
 from apps.preferences.services import UserPreferenceService
@@ -21,7 +22,7 @@ def freeze_planning_service_clock(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr("apps.planning.services.timezone.now", lambda: fixed_now)
 
 
-def _propose_schedule_plan(**kwargs):
+def _propose_schedule_plan(**kwargs: Any) -> SchedulePlan:
     kwargs.setdefault("now", kwargs["range_start"])
     return PlanningService.propose_schedule_plan(**kwargs)
 
@@ -892,6 +893,7 @@ def test_proposal_excludes_selected_tasks_old_plan_but_keeps_other_plans_busy() 
 
     item = next(item for item in plan.items if item.get("task_id") == str(selected.pk))
     assert item["state"] == "placed"
+    assert retained.planned_start_at is not None
     assert datetime.fromisoformat(str(item["reserved_end_at"])) <= retained.planned_start_at
 
 

@@ -1375,8 +1375,14 @@ class PlanningService:
                     raise ValueError("Plan item times must be datetimes")
                 item["start_at"] = to_utc(start_at).isoformat()
                 item["end_at"] = to_utc(end_at).isoformat()
-                before = int(item.get("buffer_before_minutes", 0))
-                after = int(item.get("buffer_after_minutes", 0))
+                before_value = item.get("buffer_before_minutes", 0)
+                after_value = item.get("buffer_after_minutes", 0)
+                if isinstance(before_value, bool) or not isinstance(before_value, (int, str)):
+                    raise ValueError("Plan item buffers must be integers")
+                if isinstance(after_value, bool) or not isinstance(after_value, (int, str)):
+                    raise ValueError("Plan item buffers must be integers")
+                before = int(before_value)
+                after = int(after_value)
                 item["reserved_start_at"] = (
                     to_utc(start_at) - timedelta(minutes=before)
                 ).isoformat()
@@ -1807,15 +1813,15 @@ class PlanningService:
         )
         intervals = list(event_intervals)
         if include_planned_tasks:
-            task_intervals = Task.objects.filter(
+            task_queryset = Task.objects.filter(
                 user=user,
                 status__in=(TaskStatus.PENDING, TaskStatus.IN_PROGRESS),
                 planned_start_at__lt=range_end,
                 planned_end_at__gt=range_start,
             )
             if excluded_planned_task_ids:
-                task_intervals = task_intervals.exclude(pk__in=excluded_planned_task_ids)
-            task_intervals = task_intervals.values_list("planned_start_at", "planned_end_at")
+                task_queryset = task_queryset.exclude(pk__in=excluded_planned_task_ids)
+            task_intervals = task_queryset.values_list("planned_start_at", "planned_end_at")
             intervals.extend(
                 (start_at, end_at)
                 for start_at, end_at in task_intervals

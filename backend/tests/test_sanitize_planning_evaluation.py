@@ -2,13 +2,14 @@ from __future__ import annotations
 
 import hashlib
 import json
+from pathlib import Path
 
 import pytest
 from django.core.management import call_command
 from django.core.management.base import CommandError
 
 
-def test_sanitizer_exports_only_redacted_structured_planning_outcomes(tmp_path):
+def test_sanitizer_exports_only_redacted_structured_planning_outcomes(tmp_path: Path) -> None:
     source = tmp_path / "raw-evaluation.json"
     output = tmp_path / "sanitized.json"
     private_text = "PRIVATE USER TITLE AND PROMPT"
@@ -126,7 +127,7 @@ def test_sanitizer_exports_only_redacted_structured_planning_outcomes(tmp_path):
     assert "synthetic-case-private-name" not in exported_text
 
 
-def test_sanitizer_rejects_non_evaluation_input_without_echoing_contents(tmp_path):
+def test_sanitizer_rejects_non_evaluation_input_without_echoing_contents(tmp_path: Path) -> None:
     source = tmp_path / "unsafe.json"
     output = tmp_path / "sanitized.json"
     private_text = "DO NOT ECHO THIS PROMPT"

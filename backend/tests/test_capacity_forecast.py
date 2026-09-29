@@ -7,7 +7,7 @@ from django.test import Client
 from apps.events.services import CreateEventCommand, EventService
 from apps.preferences.services import UserPreferenceService
 from apps.tasks.services import CreateTaskCommand, TaskService
-from apps.time_memory.capacity import CapacityForecastService
+from apps.time_memory.capacity import CapacityForecast, CapacityForecastService
 
 pytestmark = pytest.mark.django_db
 
@@ -47,7 +47,7 @@ def test_capacity_forecast_uses_remaining_capacity_without_double_counting_commi
         planned_offset: timedelta = timedelta(hours=1),
         allowed_weekdays: tuple[int, ...] | None = None,
         weekend: bool = False,
-    ):
+    ) -> CapacityForecast:
         user = User.objects.create_user(name)
         UserPreferenceService.update_for_user(
             user,

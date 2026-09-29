@@ -1,12 +1,16 @@
 import json
 from datetime import date, datetime
+from pathlib import Path
 from types import SimpleNamespace
+from typing import Any, cast
 
 import pytest
 from django.contrib.auth.models import User
 from django.core.management.base import CommandError
 
 from apps.agents.management.commands.evaluate_planning_harness import Command
+from apps.planning.models import SchedulePlan
+from apps.tasks.models import Task
 
 
 def test_agent_candidate_plan_limit_defaults_to_one() -> None:
@@ -16,8 +20,11 @@ def test_agent_candidate_plan_limit_defaults_to_one() -> None:
 
 
 def test_explicit_comparison_allows_two_candidates_and_requires_both_orderings() -> None:
-    def evidence(ordering: str) -> SimpleNamespace:
-        return SimpleNamespace(items=[{"kind": "plan_evidence", "ordering": ordering}])
+    def evidence(ordering: str) -> SchedulePlan:
+        return cast(
+            SchedulePlan,
+            SimpleNamespace(items=[{"kind": "plan_evidence", "ordering": ordering}]),
+        )
 
     trace = [{"name": "compare_schedule_plans", "status": "success"}]
 
@@ -46,11 +53,11 @@ def test_duplicate_read_metric_only_counts_same_successful_tool_and_arguments() 
 @pytest.mark.django_db(transaction=True)
 def test_planner_evaluator_does_not_pass_expectations_into_agent_runtime() -> None:
     user = User.objects.create_user(username="expectation-isolation")
-    captured: dict[str, object] = {}
+    captured: dict[str, Any] = {}
 
     class CapturingAgent:
         @staticmethod
-        def invoke(inputs: dict[str, object], **kwargs: object) -> dict[str, object]:
+        def invoke(inputs: dict[str, Any], **kwargs: Any) -> dict[str, Any]:
             captured["inputs"] = inputs
             captured.update(kwargs)
             return {
@@ -86,7 +93,9 @@ def test_planner_evaluator_does_not_pass_expectations_into_agent_runtime() -> No
     assert "only-for-score" not in str(captured["inputs"])
 
 
-def test_request_contract_requires_prompt_evidence_for_user_requested_ranges(tmp_path) -> None:
+def test_request_contract_requires_prompt_evidence_for_user_requested_ranges(
+    tmp_path: Path,
+) -> None:
     scenario = {
         "id": "range-evidence",
         "prompt": "把任务安排在下周",
@@ -108,7 +117,7 @@ def test_request_contract_requires_prompt_evidence_for_user_requested_ranges(tmp
         Command._load_scenarios(fixture)
 
 
-def test_holdout_scenarios_require_an_explicit_request_contract(tmp_path) -> None:
+def test_holdout_scenarios_require_an_explicit_request_contract(tmp_path: Path) -> None:
     fixture = tmp_path / "untyped-holdout.json"
     fixture.write_text(
         json.dumps({"scenarios": [{"id": "untyped", "split": "holdout"}]}),
@@ -155,20 +164,23 @@ def test_evaluator_uses_only_user_requested_range_not_fixture_search_window() ->
         "events": [],
         "expectations": {},
     }
-    task_map = {"task": SimpleNamespace(pk="task-id")}
-    plan = SimpleNamespace(
-        pk="plan-id",
-        strategy="plan_tasks_only",
-        status="draft",
-        items=[
-            {
-                "task_id": "task-id",
-                "state": "placed",
-                "start_at": "2026-10-06T10:00:00+08:00",
-                "end_at": "2026-10-06T11:00:00+08:00",
-                "planned_duration_minutes": 60,
-            }
-        ],
+    task_map: dict[str, Any] = {"task": cast(Task, SimpleNamespace(pk="task-id"))}
+    plan = cast(
+        SchedulePlan,
+        SimpleNamespace(
+            pk="plan-id",
+            strategy="plan_tasks_only",
+            status="draft",
+            items=[
+                {
+                    "task_id": "task-id",
+                    "state": "placed",
+                    "start_at": "2026-10-06T10:00:00+08:00",
+                    "end_at": "2026-10-06T11:00:00+08:00",
+                    "planned_duration_minutes": 60,
+                }
+            ],
+        ),
     )
 
     metrics = Command._plan_metrics(

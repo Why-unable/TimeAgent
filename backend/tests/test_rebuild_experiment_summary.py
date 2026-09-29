@@ -3,20 +3,22 @@ from __future__ import annotations
 import hashlib
 import json
 from io import StringIO
+from pathlib import Path
+from typing import Any
 
 import pytest
 from django.core.management import call_command
 from django.core.management.base import CommandError
 
 
-def _write_runs(path, runs):
+def _write_runs(path: Path, runs: list[dict[str, Any]]) -> None:
     path.write_text(
         json.dumps({"schema_version": "timeagent.sanitized-evaluation-runs.v1", "runs": runs}),
         encoding="utf-8",
     )
 
 
-def test_rebuild_summary_aggregates_multiple_sanitized_inputs(tmp_path):
+def test_rebuild_summary_aggregates_multiple_sanitized_inputs(tmp_path: Path) -> None:
     first = tmp_path / "run-a.json"
     second = tmp_path / "run-b.json"
     output = tmp_path / "summary.json"
@@ -120,7 +122,7 @@ def test_rebuild_summary_aggregates_multiple_sanitized_inputs(tmp_path):
     assert "case_01" not in output.read_text(encoding="utf-8")
 
 
-def test_rebuild_summary_rejects_unallowlisted_text_without_echoing_it(tmp_path):
+def test_rebuild_summary_rejects_unallowlisted_text_without_echoing_it(tmp_path: Path) -> None:
     source = tmp_path / "unsafe.json"
     output = tmp_path / "summary.json"
     private_text = "PRIVATE PROMPT MUST NOT LEAK"
@@ -151,7 +153,7 @@ def test_rebuild_summary_rejects_unallowlisted_text_without_echoing_it(tmp_path)
     assert not output.exists()
 
 
-def test_rebuild_summary_rejects_duplicate_repeat_rows_across_files(tmp_path):
+def test_rebuild_summary_rejects_duplicate_repeat_rows_across_files(tmp_path: Path) -> None:
     first = tmp_path / "run-a.json"
     second = tmp_path / "run-b.json"
     output = tmp_path / "summary.json"

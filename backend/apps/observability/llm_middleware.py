@@ -3,7 +3,7 @@ import logging
 import re
 import time
 from collections.abc import Awaitable, Callable
-from typing import Any
+from typing import Any, cast
 
 from asgiref.sync import sync_to_async
 from django.db import DatabaseError
@@ -96,14 +96,16 @@ def _tool_schema_payload(tool: Any) -> tuple[str, str] | None:
     """Return tool name and schema text for token estimates; never persist the text."""
 
     if isinstance(tool, BaseTool):
-        name = str(tool.name)
+        tool_name = str(tool.name)
         schema = getattr(tool, "tool_call_schema", None)
         if schema is not None and hasattr(schema, "model_json_schema"):
-            schema_value: Any = schema.model_json_schema()
-        elif hasattr(tool, "args_schema") and hasattr(tool.args_schema, "model_json_schema"):
-            schema_value = tool.args_schema.model_json_schema()
+            schema_value: Any = cast(Any, schema).model_json_schema()
         else:
-            schema_value = getattr(tool, "args", {})
+            args_schema = getattr(tool, "args_schema", None)
+            if args_schema is not None and hasattr(args_schema, "model_json_schema"):
+                schema_value = cast(Any, args_schema).model_json_schema()
+            else:
+                schema_value = getattr(tool, "args", {})
         description = str(getattr(tool, "description", ""))
         schema_text = json.dumps(
             schema_value,
@@ -111,15 +113,15 @@ def _tool_schema_payload(tool: Any) -> tuple[str, str] | None:
             sort_keys=True,
             default=str,
         )
-        return name, f"{description}\n{schema_text}"
+        return tool_name, f"{description}\n{schema_text}"
     if isinstance(tool, dict):
         function = tool.get("function", tool)
         if not isinstance(function, dict):
             return None
-        name = function.get("name")
-        if not isinstance(name, str):
+        function_name = function.get("name")
+        if not isinstance(function_name, str):
             return None
-        return name, json.dumps(tool, ensure_ascii=False, sort_keys=True, default=str)
+        return function_name, json.dumps(tool, ensure_ascii=False, sort_keys=True, default=str)
     return None
 
 
