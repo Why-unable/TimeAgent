@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from apps.observability.models import LLMCallAudit
 
@@ -18,6 +18,7 @@ class RecordLLMCallCommand:
     memory_prompt_ratio: float | None
     duration_ms: int
     error_type: str = ""
+    prompt_breakdown: dict[str, object] = field(default_factory=dict)
 
 
 class LLMCallAuditService:
@@ -55,6 +56,7 @@ class LLMCallAuditService:
             total_tokens=command.total_tokens,
             memory_prompt_tokens=command.memory_prompt_tokens,
             memory_prompt_ratio=command.memory_prompt_ratio,
+            prompt_breakdown=command.prompt_breakdown,
             duration_ms=command.duration_ms,
             error_type=command.error_type.strip()[:128],
         )

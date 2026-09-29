@@ -1,0 +1,5617 @@
+{
+  "schema_version": "timeagent.experiment-summary.v1",
+  "source_schema_version": "timeagent.sanitized-evaluation-runs.v1",
+  "input_file_count": 1,
+  "case_count": 30,
+  "run_count": 30,
+  "overall": {
+    "run_count": 30,
+    "accepted_observation_count": 0,
+    "hard_violation_run_count": 0,
+    "tool_error_run_count": 1,
+    "tool_error_count": 1,
+    "unresolved_tool_error_run_count": 0,
+    "unresolved_tool_error_count": 0,
+    "repair_run_count": 1,
+    "repair_call_count": 1,
+    "accepted_run_count": 0,
+    "catastrophic_run_count": 0,
+    "passed_run_count": 30,
+    "rates": {
+      "hard_violation": 0.0,
+      "tool_error": 0.033333,
+      "unresolved_tool_error": 0.0,
+      "repair": 0.033333,
+      "acceptance": null,
+      "catastrophic": 0.0,
+      "passed": 1.0
+    },
+    "metrics": {
+      "duration_seconds": {
+        "count": 30,
+        "mean": 7.168357,
+        "median": 6.9039,
+        "p10": 5.77862,
+        "worst": 10.1293,
+        "variance": 1.540151
+      },
+      "hard_violations_per_run": {
+        "count": 30,
+        "mean": 0.0,
+        "median": 0.0,
+        "p10": 0.0,
+        "worst": 0.0,
+        "variance": 0.0
+      },
+      "tool_errors_per_run": {
+        "count": 30,
+        "mean": 0.033333,
+        "median": 0.0,
+        "p10": 0.0,
+        "worst": 1.0,
+        "variance": 0.032222
+      },
+      "unresolved_tool_errors_per_run": {
+        "count": 30,
+        "mean": 0.0,
+        "median": 0.0,
+        "p10": 0.0,
+        "worst": 0.0,
+        "variance": 0.0
+      },
+      "repair_calls_per_run": {
+        "count": 30,
+        "mean": 0.033333,
+        "median": 0.0,
+        "p10": 0.0,
+        "worst": 1.0,
+        "variance": 0.032222
+      },
+      "passed": {
+        "count": 30,
+        "mean": 1.0,
+        "median": 1.0,
+        "p10": 1.0,
+        "worst": 1.0,
+        "variance": 0.0
+      },
+      "accepted": {
+        "count": 0,
+        "mean": null,
+        "median": null,
+        "p10": null,
+        "worst": null,
+        "variance": null
+      },
+      "catastrophic": {
+        "count": 30,
+        "mean": 0.0,
+        "median": 0.0,
+        "p10": 0.0,
+        "worst": 0.0,
+        "variance": 0.0
+      },
+      "model_call_count": {
+        "count": 30,
+        "mean": 3.933333,
+        "median": 4.0,
+        "p10": 3.0,
+        "worst": 5.0,
+        "variance": 0.262222
+      },
+      "tool_call_count": {
+        "count": 30,
+        "mean": 5.233333,
+        "median": 5.0,
+        "p10": 3.9,
+        "worst": 8.0,
+        "variance": 2.112222
+      },
+      "duplicate_read_count": {
+        "count": 30,
+        "mean": 0.0,
+        "median": 0.0,
+        "p10": 0.0,
+        "worst": 0.0,
+        "variance": 0.0
+      },
+      "total_tokens": {
+        "count": 30,
+        "mean": 47041.066667,
+        "median": 44529.5,
+        "p10": 32171.8,
+        "worst": 74521.0,
+        "variance": 112378531.862222
+      },
+      "model_duration_ms": {
+        "count": 30,
+        "mean": 6941.6,
+        "median": 6672.5,
+        "p10": 5522.4,
+        "worst": 9861.0,
+        "variance": 1516664.573333
+      },
+      "soft_quality": {
+        "count": 25,
+        "mean": 1.0,
+        "median": 1.0,
+        "p10": 1.0,
+        "worst": 1.0,
+        "variance": 0.0
+      },
+      "visible_tool_count_mean": {
+        "count": 30,
+        "mean": 10.433333,
+        "median": 7.0,
+        "p10": 7.0,
+        "worst": 40.0,
+        "variance": 73.112222
+      }
+    },
+    "prompt_breakdown_tokens": {
+      "behavioral_memory_tokens": 0,
+      "conversation_tokens": 21157,
+      "memory_context_tokens": 0,
+      "semantic_memory_tokens": 0,
+      "system_prompt_tokens": 983756,
+      "tool_observation_tokens": 276438,
+      "tool_schema_tokens": 479836,
+      "unattributed_input_tokens": 0
+    },
+    "tool_name_run_counts": {
+      "abandon_schedule_plan": 25,
+      "act_on_temporal_insight": 2,
+      "apply_local_replan": 2,
+      "apply_schedule_plan": 25,
+      "cancel_reminder": 2,
+      "cancel_task": 2,
+      "change_task_batch_state": 2,
+      "change_task_state": 2,
+      "compare_schedule_plans": 2,
+      "complete_task": 2,
+      "create_recurring_event": 2,
+      "create_reminder": 2,
+      "create_task": 2,
+      "create_task_batch": 2,
+      "detect_schedule_disruptions": 6,
+      "edit_schedule_plan": 25,
+      "get_capacity_forecast": 6,
+      "get_current_datetime": 30,
+      "get_event": 6,
+      "get_planning_context": 30,
+      "get_reminder": 6,
+      "get_task": 6,
+      "get_task_execution_summary": 6,
+      "get_temporal_insight": 6,
+      "list_automation_policies": 6,
+      "list_calendar_sync_status": 6,
+      "list_events": 7,
+      "list_reminders": 7,
+      "list_tasks": 7,
+      "list_temporal_insights": 6,
+      "mutate_events": 2,
+      "propose_schedule_plan": 25,
+      "recommend_task_duration": 6,
+      "record_task_duration_feedback": 2,
+      "reschedule_task": 1,
+      "set_reminder_target": 2,
+      "transfer_to_briefing": 6,
+      "update_reminder": 2,
+      "update_task": 2,
+      "validate_schedule_plan": 25
+    },
+    "error_category_run_counts": {}
+  },
+  "variants": {
+    "candidate_standard": {
+      "run_count": 30,
+      "accepted_observation_count": 0,
+      "hard_violation_run_count": 0,
+      "tool_error_run_count": 1,
+      "tool_error_count": 1,
+      "unresolved_tool_error_run_count": 0,
+      "unresolved_tool_error_count": 0,
+      "repair_run_count": 1,
+      "repair_call_count": 1,
+      "accepted_run_count": 0,
+      "catastrophic_run_count": 0,
+      "passed_run_count": 30,
+      "rates": {
+        "hard_violation": 0.0,
+        "tool_error": 0.033333,
+        "unresolved_tool_error": 0.0,
+        "repair": 0.033333,
+        "acceptance": null,
+        "catastrophic": 0.0,
+        "passed": 1.0
+      },
+      "metrics": {
+        "duration_seconds": {
+          "count": 30,
+          "mean": 7.168357,
+          "median": 6.9039,
+          "p10": 5.77862,
+          "worst": 10.1293,
+          "variance": 1.540151
+        },
+        "hard_violations_per_run": {
+          "count": 30,
+          "mean": 0.0,
+          "median": 0.0,
+          "p10": 0.0,
+          "worst": 0.0,
+          "variance": 0.0
+        },
+        "tool_errors_per_run": {
+          "count": 30,
+          "mean": 0.033333,
+          "median": 0.0,
+          "p10": 0.0,
+          "worst": 1.0,
+          "variance": 0.032222
+        },
+        "unresolved_tool_errors_per_run": {
+          "count": 30,
+          "mean": 0.0,
+          "median": 0.0,
+          "p10": 0.0,
+          "worst": 0.0,
+          "variance": 0.0
+        },
+        "repair_calls_per_run": {
+          "count": 30,
+          "mean": 0.033333,
+          "median": 0.0,
+          "p10": 0.0,
+          "worst": 1.0,
+          "variance": 0.032222
+        },
+        "passed": {
+          "count": 30,
+          "mean": 1.0,
+          "median": 1.0,
+          "p10": 1.0,
+          "worst": 1.0,
+          "variance": 0.0
+        },
+        "accepted": {
+          "count": 0,
+          "mean": null,
+          "median": null,
+          "p10": null,
+          "worst": null,
+          "variance": null
+        },
+        "catastrophic": {
+          "count": 30,
+          "mean": 0.0,
+          "median": 0.0,
+          "p10": 0.0,
+          "worst": 0.0,
+          "variance": 0.0
+        },
+        "model_call_count": {
+          "count": 30,
+          "mean": 3.933333,
+          "median": 4.0,
+          "p10": 3.0,
+          "worst": 5.0,
+          "variance": 0.262222
+        },
+        "tool_call_count": {
+          "count": 30,
+          "mean": 5.233333,
+          "median": 5.0,
+          "p10": 3.9,
+          "worst": 8.0,
+          "variance": 2.112222
+        },
+        "duplicate_read_count": {
+          "count": 30,
+          "mean": 0.0,
+          "median": 0.0,
+          "p10": 0.0,
+          "worst": 0.0,
+          "variance": 0.0
+        },
+        "total_tokens": {
+          "count": 30,
+          "mean": 47041.066667,
+          "median": 44529.5,
+          "p10": 32171.8,
+          "worst": 74521.0,
+          "variance": 112378531.862222
+        },
+        "model_duration_ms": {
+          "count": 30,
+          "mean": 6941.6,
+          "median": 6672.5,
+          "p10": 5522.4,
+          "worst": 9861.0,
+          "variance": 1516664.573333
+        },
+        "soft_quality": {
+          "count": 25,
+          "mean": 1.0,
+          "median": 1.0,
+          "p10": 1.0,
+          "worst": 1.0,
+          "variance": 0.0
+        },
+        "visible_tool_count_mean": {
+          "count": 30,
+          "mean": 10.433333,
+          "median": 7.0,
+          "p10": 7.0,
+          "worst": 40.0,
+          "variance": 73.112222
+        }
+      },
+      "prompt_breakdown_tokens": {
+        "behavioral_memory_tokens": 0,
+        "conversation_tokens": 21157,
+        "memory_context_tokens": 0,
+        "semantic_memory_tokens": 0,
+        "system_prompt_tokens": 983756,
+        "tool_observation_tokens": 276438,
+        "tool_schema_tokens": 479836,
+        "unattributed_input_tokens": 0
+      },
+      "tool_name_run_counts": {
+        "abandon_schedule_plan": 25,
+        "act_on_temporal_insight": 2,
+        "apply_local_replan": 2,
+        "apply_schedule_plan": 25,
+        "cancel_reminder": 2,
+        "cancel_task": 2,
+        "change_task_batch_state": 2,
+        "change_task_state": 2,
+        "compare_schedule_plans": 2,
+        "complete_task": 2,
+        "create_recurring_event": 2,
+        "create_reminder": 2,
+        "create_task": 2,
+        "create_task_batch": 2,
+        "detect_schedule_disruptions": 6,
+        "edit_schedule_plan": 25,
+        "get_capacity_forecast": 6,
+        "get_current_datetime": 30,
+        "get_event": 6,
+        "get_planning_context": 30,
+        "get_reminder": 6,
+        "get_task": 6,
+        "get_task_execution_summary": 6,
+        "get_temporal_insight": 6,
+        "list_automation_policies": 6,
+        "list_calendar_sync_status": 6,
+        "list_events": 7,
+        "list_reminders": 7,
+        "list_tasks": 7,
+        "list_temporal_insights": 6,
+        "mutate_events": 2,
+        "propose_schedule_plan": 25,
+        "recommend_task_duration": 6,
+        "record_task_duration_feedback": 2,
+        "reschedule_task": 1,
+        "set_reminder_target": 2,
+        "transfer_to_briefing": 6,
+        "update_reminder": 2,
+        "update_task": 2,
+        "validate_schedule_plan": 25
+      },
+      "error_category_run_counts": {}
+    }
+  },
+  "per_case": {
+    "case_2f1f2a7b680b03d3": {
+      "run_count": 1,
+      "variants": {
+        "candidate_standard": {
+          "run_count": 1,
+          "accepted_observation_count": 0,
+          "hard_violation_run_count": 0,
+          "tool_error_run_count": 1,
+          "tool_error_count": 1,
+          "unresolved_tool_error_run_count": 0,
+          "unresolved_tool_error_count": 0,
+          "repair_run_count": 0,
+          "repair_call_count": 0,
+          "accepted_run_count": 0,
+          "catastrophic_run_count": 0,
+          "passed_run_count": 1,
+          "rates": {
+            "hard_violation": 0.0,
+            "tool_error": 1.0,
+            "unresolved_tool_error": 0.0,
+            "repair": 0.0,
+            "acceptance": null,
+            "catastrophic": 0.0,
+            "passed": 1.0
+          },
+          "metrics": {
+            "duration_seconds": {
+              "count": 1,
+              "mean": 6.9985,
+              "median": 6.9985,
+              "p10": 6.9985,
+              "worst": 6.9985,
+              "variance": 0.0
+            },
+            "hard_violations_per_run": {
+              "count": 1,
+              "mean": 0.0,
+              "median": 0.0,
+              "p10": 0.0,
+              "worst": 0.0,
+              "variance": 0.0
+            },
+            "tool_errors_per_run": {
+              "count": 1,
+              "mean": 1.0,
+              "median": 1.0,
+              "p10": 1.0,
+              "worst": 1.0,
+              "variance": 0.0
+            },
+            "unresolved_tool_errors_per_run": {
+              "count": 1,
+              "mean": 0.0,
+              "median": 0.0,
+              "p10": 0.0,
+              "worst": 0.0,
+              "variance": 0.0
+            },
+            "repair_calls_per_run": {
+              "count": 1,
+              "mean": 0.0,
+              "median": 0.0,
+              "p10": 0.0,
+              "worst": 0.0,
+              "variance": 0.0
+            },
+            "passed": {
+              "count": 1,
+              "mean": 1.0,
+              "median": 1.0,
+              "p10": 1.0,
+              "worst": 1.0,
+              "variance": 0.0
+            },
+            "accepted": {
+              "count": 0,
+              "mean": null,
+              "median": null,
+              "p10": null,
+              "worst": null,
+              "variance": null
+            },
+            "catastrophic": {
+              "count": 1,
+              "mean": 0.0,
+              "median": 0.0,
+              "p10": 0.0,
+              "worst": 0.0,
+              "variance": 0.0
+            },
+            "model_call_count": {
+              "count": 1,
+              "mean": 5.0,
+              "median": 5.0,
+              "p10": 5.0,
+              "worst": 5.0,
+              "variance": 0.0
+            },
+            "tool_call_count": {
+              "count": 1,
+              "mean": 6.0,
+              "median": 6.0,
+              "p10": 6.0,
+              "worst": 6.0,
+              "variance": 0.0
+            },
+            "duplicate_read_count": {
+              "count": 1,
+              "mean": 0.0,
+              "median": 0.0,
+              "p10": 0.0,
+              "worst": 0.0,
+              "variance": 0.0
+            },
+            "total_tokens": {
+              "count": 1,
+              "mean": 53514.0,
+              "median": 53514.0,
+              "p10": 53514.0,
+              "worst": 53514.0,
+              "variance": 0.0
+            },
+            "model_duration_ms": {
+              "count": 1,
+              "mean": 6752.0,
+              "median": 6752.0,
+              "p10": 6752.0,
+              "worst": 6752.0,
+              "variance": 0.0
+            },
+            "soft_quality": {
+              "count": 1,
+              "mean": 1.0,
+              "median": 1.0,
+              "p10": 1.0,
+              "worst": 1.0,
+              "variance": 0.0
+            },
+            "visible_tool_count_mean": {
+              "count": 1,
+              "mean": 10.0,
+              "median": 10.0,
+              "p10": 10.0,
+              "worst": 10.0,
+              "variance": 0.0
+            }
+          },
+          "prompt_breakdown_tokens": {
+            "behavioral_memory_tokens": 0,
+            "conversation_tokens": 616,
+            "memory_context_tokens": 0,
+            "semantic_memory_tokens": 0,
+            "system_prompt_tokens": 41625,
+            "tool_observation_tokens": 7151,
+            "tool_schema_tokens": 20390,
+            "unattributed_input_tokens": 0
+          },
+          "tool_name_run_counts": {
+            "abandon_schedule_plan": 1,
+            "apply_schedule_plan": 1,
+            "edit_schedule_plan": 1,
+            "get_current_datetime": 1,
+            "get_planning_context": 1,
+            "list_events": 1,
+            "list_reminders": 1,
+            "list_tasks": 1,
+            "propose_schedule_plan": 1,
+            "validate_schedule_plan": 1
+          },
+          "error_category_run_counts": {}
+        }
+      }
+    },
+    "case_effd39149c3453cf": {
+      "run_count": 1,
+      "variants": {
+        "candidate_standard": {
+          "run_count": 1,
+          "accepted_observation_count": 0,
+          "hard_violation_run_count": 0,
+          "tool_error_run_count": 0,
+          "tool_error_count": 0,
+          "unresolved_tool_error_run_count": 0,
+          "unresolved_tool_error_count": 0,
+          "repair_run_count": 0,
+          "repair_call_count": 0,
+          "accepted_run_count": 0,
+          "catastrophic_run_count": 0,
+          "passed_run_count": 1,
+          "rates": {
+            "hard_violation": 0.0,
+            "tool_error": 0.0,
+            "unresolved_tool_error": 0.0,
+            "repair": 0.0,
+            "acceptance": null,
+            "catastrophic": 0.0,
+            "passed": 1.0
+          },
+          "metrics": {
+            "duration_seconds": {
+              "count": 1,
+              "mean": 6.3329,
+              "median": 6.3329,
+              "p10": 6.3329,
+              "worst": 6.3329,
+              "variance": 0.0
+            },
+            "hard_violations_per_run": {
+              "count": 1,
+              "mean": 0.0,
+              "median": 0.0,
+              "p10": 0.0,
+              "worst": 0.0,
+              "variance": 0.0
+            },
+            "tool_errors_per_run": {
+              "count": 1,
+              "mean": 0.0,
+              "median": 0.0,
+              "p10": 0.0,
+              "worst": 0.0,
+              "variance": 0.0
+            },
+            "unresolved_tool_errors_per_run": {
+              "count": 1,
+              "mean": 0.0,
+              "median": 0.0,
+              "p10": 0.0,
+              "worst": 0.0,
+              "variance": 0.0
+            },
+            "repair_calls_per_run": {
+              "count": 1,
+              "mean": 0.0,
+              "median": 0.0,
+              "p10": 0.0,
+              "worst": 0.0,
+              "variance": 0.0
+            },
+            "passed": {
+              "count": 1,
+              "mean": 1.0,
+              "median": 1.0,
+              "p10": 1.0,
+              "worst": 1.0,
+              "variance": 0.0
+            },
+            "accepted": {
+              "count": 0,
+              "mean": null,
+              "median": null,
+              "p10": null,
+              "worst": null,
+              "variance": null
+            },
+            "catastrophic": {
+              "count": 1,
+              "mean": 0.0,
+              "median": 0.0,
+              "p10": 0.0,
+              "worst": 0.0,
+              "variance": 0.0
+            },
+            "model_call_count": {
+              "count": 1,
+              "mean": 4.0,
+              "median": 4.0,
+              "p10": 4.0,
+              "worst": 4.0,
+              "variance": 0.0
+            },
+            "tool_call_count": {
+              "count": 1,
+              "mean": 4.0,
+              "median": 4.0,
+              "p10": 4.0,
+              "worst": 4.0,
+              "variance": 0.0
+            },
+            "duplicate_read_count": {
+              "count": 1,
+              "mean": 0.0,
+              "median": 0.0,
+              "p10": 0.0,
+              "worst": 0.0,
+              "variance": 0.0
+            },
+            "total_tokens": {
+              "count": 1,
+              "mean": 44347.0,
+              "median": 44347.0,
+              "p10": 44347.0,
+              "worst": 44347.0,
+              "variance": 0.0
+            },
+            "model_duration_ms": {
+              "count": 1,
+              "mean": 6108.0,
+              "median": 6108.0,
+              "p10": 6108.0,
+              "worst": 6108.0,
+              "variance": 0.0
+            },
+            "soft_quality": {
+              "count": 1,
+              "mean": 1.0,
+              "median": 1.0,
+              "p10": 1.0,
+              "worst": 1.0,
+              "variance": 0.0
+            },
+            "visible_tool_count_mean": {
+              "count": 1,
+              "mean": 7.0,
+              "median": 7.0,
+              "p10": 7.0,
+              "worst": 7.0,
+              "variance": 0.0
+            }
+          },
+          "prompt_breakdown_tokens": {
+            "behavioral_memory_tokens": 0,
+            "conversation_tokens": 590,
+            "memory_context_tokens": 0,
+            "semantic_memory_tokens": 0,
+            "system_prompt_tokens": 33308,
+            "tool_observation_tokens": 8154,
+            "tool_schema_tokens": 14524,
+            "unattributed_input_tokens": 0
+          },
+          "tool_name_run_counts": {
+            "abandon_schedule_plan": 1,
+            "apply_schedule_plan": 1,
+            "edit_schedule_plan": 1,
+            "get_current_datetime": 1,
+            "get_planning_context": 1,
+            "propose_schedule_plan": 1,
+            "validate_schedule_plan": 1
+          },
+          "error_category_run_counts": {}
+        }
+      }
+    },
+    "case_cdc6b7d7ebaa07f5": {
+      "run_count": 1,
+      "variants": {
+        "candidate_standard": {
+          "run_count": 1,
+          "accepted_observation_count": 0,
+          "hard_violation_run_count": 0,
+          "tool_error_run_count": 0,
+          "tool_error_count": 0,
+          "unresolved_tool_error_run_count": 0,
+          "unresolved_tool_error_count": 0,
+          "repair_run_count": 0,
+          "repair_call_count": 0,
+          "accepted_run_count": 0,
+          "catastrophic_run_count": 0,
+          "passed_run_count": 1,
+          "rates": {
+            "hard_violation": 0.0,
+            "tool_error": 0.0,
+            "unresolved_tool_error": 0.0,
+            "repair": 0.0,
+            "acceptance": null,
+            "catastrophic": 0.0,
+            "passed": 1.0
+          },
+          "metrics": {
+            "duration_seconds": {
+              "count": 1,
+              "mean": 8.9806,
+              "median": 8.9806,
+              "p10": 8.9806,
+              "worst": 8.9806,
+              "variance": 0.0
+            },
+            "hard_violations_per_run": {
+              "count": 1,
+              "mean": 0.0,
+              "median": 0.0,
+              "p10": 0.0,
+              "worst": 0.0,
+              "variance": 0.0
+            },
+            "tool_errors_per_run": {
+              "count": 1,
+              "mean": 0.0,
+              "median": 0.0,
+              "p10": 0.0,
+              "worst": 0.0,
+              "variance": 0.0
+            },
+            "unresolved_tool_errors_per_run": {
+              "count": 1,
+              "mean": 0.0,
+              "median": 0.0,
+              "p10": 0.0,
+              "worst": 0.0,
+              "variance": 0.0
+            },
+            "repair_calls_per_run": {
+              "count": 1,
+              "mean": 0.0,
+              "median": 0.0,
+              "p10": 0.0,
+              "worst": 0.0,
+              "variance": 0.0
+            },
+            "passed": {
+              "count": 1,
+              "mean": 1.0,
+              "median": 1.0,
+              "p10": 1.0,
+              "worst": 1.0,
+              "variance": 0.0
+            },
+            "accepted": {
+              "count": 0,
+              "mean": null,
+              "median": null,
+              "p10": null,
+              "worst": null,
+              "variance": null
+            },
+            "catastrophic": {
+              "count": 1,
+              "mean": 0.0,
+              "median": 0.0,
+              "p10": 0.0,
+              "worst": 0.0,
+              "variance": 0.0
+            },
+            "model_call_count": {
+              "count": 1,
+              "mean": 5.0,
+              "median": 5.0,
+              "p10": 5.0,
+              "worst": 5.0,
+              "variance": 0.0
+            },
+            "tool_call_count": {
+              "count": 1,
+              "mean": 5.0,
+              "median": 5.0,
+              "p10": 5.0,
+              "worst": 5.0,
+              "variance": 0.0
+            },
+            "duplicate_read_count": {
+              "count": 1,
+              "mean": 0.0,
+              "median": 0.0,
+              "p10": 0.0,
+              "worst": 0.0,
+              "variance": 0.0
+            },
+            "total_tokens": {
+              "count": 1,
+              "mean": 57499.0,
+              "median": 57499.0,
+              "p10": 57499.0,
+              "worst": 57499.0,
+              "variance": 0.0
+            },
+            "model_duration_ms": {
+              "count": 1,
+              "mean": 8781.0,
+              "median": 8781.0,
+              "p10": 8781.0,
+              "worst": 8781.0,
+              "variance": 0.0
+            },
+            "soft_quality": {
+              "count": 1,
+              "mean": 1.0,
+              "median": 1.0,
+              "p10": 1.0,
+              "worst": 1.0,
+              "variance": 0.0
+            },
+            "visible_tool_count_mean": {
+              "count": 1,
+              "mean": 7.0,
+              "median": 7.0,
+              "p10": 7.0,
+              "worst": 7.0,
+              "variance": 0.0
+            }
+          },
+          "prompt_breakdown_tokens": {
+            "behavioral_memory_tokens": 0,
+            "conversation_tokens": 1683,
+            "memory_context_tokens": 0,
+            "semantic_memory_tokens": 0,
+            "system_prompt_tokens": 41635,
+            "tool_observation_tokens": 10474,
+            "tool_schema_tokens": 18155,
+            "unattributed_input_tokens": 0
+          },
+          "tool_name_run_counts": {
+            "abandon_schedule_plan": 1,
+            "apply_schedule_plan": 1,
+            "edit_schedule_plan": 1,
+            "get_current_datetime": 1,
+            "get_planning_context": 1,
+            "propose_schedule_plan": 1,
+            "validate_schedule_plan": 1
+          },
+          "error_category_run_counts": {}
+        }
+      }
+    },
+    "case_be8a3874a2127a68": {
+      "run_count": 1,
+      "variants": {
+        "candidate_standard": {
+          "run_count": 1,
+          "accepted_observation_count": 0,
+          "hard_violation_run_count": 0,
+          "tool_error_run_count": 0,
+          "tool_error_count": 0,
+          "unresolved_tool_error_run_count": 0,
+          "unresolved_tool_error_count": 0,
+          "repair_run_count": 0,
+          "repair_call_count": 0,
+          "accepted_run_count": 0,
+          "catastrophic_run_count": 0,
+          "passed_run_count": 1,
+          "rates": {
+            "hard_violation": 0.0,
+            "tool_error": 0.0,
+            "unresolved_tool_error": 0.0,
+            "repair": 0.0,
+            "acceptance": null,
+            "catastrophic": 0.0,
+            "passed": 1.0
+          },
+          "metrics": {
+            "duration_seconds": {
+              "count": 1,
+              "mean": 6.8175,
+              "median": 6.8175,
+              "p10": 6.8175,
+              "worst": 6.8175,
+              "variance": 0.0
+            },
+            "hard_violations_per_run": {
+              "count": 1,
+              "mean": 0.0,
+              "median": 0.0,
+              "p10": 0.0,
+              "worst": 0.0,
+              "variance": 0.0
+            },
+            "tool_errors_per_run": {
+              "count": 1,
+              "mean": 0.0,
+              "median": 0.0,
+              "p10": 0.0,
+              "worst": 0.0,
+              "variance": 0.0
+            },
+            "unresolved_tool_errors_per_run": {
+              "count": 1,
+              "mean": 0.0,
+              "median": 0.0,
+              "p10": 0.0,
+              "worst": 0.0,
+              "variance": 0.0
+            },
+            "repair_calls_per_run": {
+              "count": 1,
+              "mean": 0.0,
+              "median": 0.0,
+              "p10": 0.0,
+              "worst": 0.0,
+              "variance": 0.0
+            },
+            "passed": {
+              "count": 1,
+              "mean": 1.0,
+              "median": 1.0,
+              "p10": 1.0,
+              "worst": 1.0,
+              "variance": 0.0
+            },
+            "accepted": {
+              "count": 0,
+              "mean": null,
+              "median": null,
+              "p10": null,
+              "worst": null,
+              "variance": null
+            },
+            "catastrophic": {
+              "count": 1,
+              "mean": 0.0,
+              "median": 0.0,
+              "p10": 0.0,
+              "worst": 0.0,
+              "variance": 0.0
+            },
+            "model_call_count": {
+              "count": 1,
+              "mean": 4.0,
+              "median": 4.0,
+              "p10": 4.0,
+              "worst": 4.0,
+              "variance": 0.0
+            },
+            "tool_call_count": {
+              "count": 1,
+              "mean": 4.0,
+              "median": 4.0,
+              "p10": 4.0,
+              "worst": 4.0,
+              "variance": 0.0
+            },
+            "duplicate_read_count": {
+              "count": 1,
+              "mean": 0.0,
+              "median": 0.0,
+              "p10": 0.0,
+              "worst": 0.0,
+              "variance": 0.0
+            },
+            "total_tokens": {
+              "count": 1,
+              "mean": 42605.0,
+              "median": 42605.0,
+              "p10": 42605.0,
+              "worst": 42605.0,
+              "variance": 0.0
+            },
+            "model_duration_ms": {
+              "count": 1,
+              "mean": 6593.0,
+              "median": 6593.0,
+              "p10": 6593.0,
+              "worst": 6593.0,
+              "variance": 0.0
+            },
+            "soft_quality": {
+              "count": 1,
+              "mean": 1.0,
+              "median": 1.0,
+              "p10": 1.0,
+              "worst": 1.0,
+              "variance": 0.0
+            },
+            "visible_tool_count_mean": {
+              "count": 1,
+              "mean": 7.0,
+              "median": 7.0,
+              "p10": 7.0,
+              "worst": 7.0,
+              "variance": 0.0
+            }
+          },
+          "prompt_breakdown_tokens": {
+            "behavioral_memory_tokens": 0,
+            "conversation_tokens": 796,
+            "memory_context_tokens": 0,
+            "semantic_memory_tokens": 0,
+            "system_prompt_tokens": 33308,
+            "tool_observation_tokens": 6289,
+            "tool_schema_tokens": 14524,
+            "unattributed_input_tokens": 0
+          },
+          "tool_name_run_counts": {
+            "abandon_schedule_plan": 1,
+            "apply_schedule_plan": 1,
+            "edit_schedule_plan": 1,
+            "get_current_datetime": 1,
+            "get_planning_context": 1,
+            "propose_schedule_plan": 1,
+            "validate_schedule_plan": 1
+          },
+          "error_category_run_counts": {}
+        }
+      }
+    },
+    "case_be7c52547aa7c6b9": {
+      "run_count": 1,
+      "variants": {
+        "candidate_standard": {
+          "run_count": 1,
+          "accepted_observation_count": 0,
+          "hard_violation_run_count": 0,
+          "tool_error_run_count": 0,
+          "tool_error_count": 0,
+          "unresolved_tool_error_run_count": 0,
+          "unresolved_tool_error_count": 0,
+          "repair_run_count": 0,
+          "repair_call_count": 0,
+          "accepted_run_count": 0,
+          "catastrophic_run_count": 0,
+          "passed_run_count": 1,
+          "rates": {
+            "hard_violation": 0.0,
+            "tool_error": 0.0,
+            "unresolved_tool_error": 0.0,
+            "repair": 0.0,
+            "acceptance": null,
+            "catastrophic": 0.0,
+            "passed": 1.0
+          },
+          "metrics": {
+            "duration_seconds": {
+              "count": 1,
+              "mean": 5.6897,
+              "median": 5.6897,
+              "p10": 5.6897,
+              "worst": 5.6897,
+              "variance": 0.0
+            },
+            "hard_violations_per_run": {
+              "count": 1,
+              "mean": 0.0,
+              "median": 0.0,
+              "p10": 0.0,
+              "worst": 0.0,
+              "variance": 0.0
+            },
+            "tool_errors_per_run": {
+              "count": 1,
+              "mean": 0.0,
+              "median": 0.0,
+              "p10": 0.0,
+              "worst": 0.0,
+              "variance": 0.0
+            },
+            "unresolved_tool_errors_per_run": {
+              "count": 1,
+              "mean": 0.0,
+              "median": 0.0,
+              "p10": 0.0,
+              "worst": 0.0,
+              "variance": 0.0
+            },
+            "repair_calls_per_run": {
+              "count": 1,
+              "mean": 0.0,
+              "median": 0.0,
+              "p10": 0.0,
+              "worst": 0.0,
+              "variance": 0.0
+            },
+            "passed": {
+              "count": 1,
+              "mean": 1.0,
+              "median": 1.0,
+              "p10": 1.0,
+              "worst": 1.0,
+              "variance": 0.0
+            },
+            "accepted": {
+              "count": 0,
+              "mean": null,
+              "median": null,
+              "p10": null,
+              "worst": null,
+              "variance": null
+            },
+            "catastrophic": {
+              "count": 1,
+              "mean": 0.0,
+              "median": 0.0,
+              "p10": 0.0,
+              "worst": 0.0,
+              "variance": 0.0
+            },
+            "model_call_count": {
+              "count": 1,
+              "mean": 4.0,
+              "median": 4.0,
+              "p10": 4.0,
+              "worst": 4.0,
+              "variance": 0.0
+            },
+            "tool_call_count": {
+              "count": 1,
+              "mean": 4.0,
+              "median": 4.0,
+              "p10": 4.0,
+              "worst": 4.0,
+              "variance": 0.0
+            },
+            "duplicate_read_count": {
+              "count": 1,
+              "mean": 0.0,
+              "median": 0.0,
+              "p10": 0.0,
+              "worst": 0.0,
+              "variance": 0.0
+            },
+            "total_tokens": {
+              "count": 1,
+              "mean": 42903.0,
+              "median": 42903.0,
+              "p10": 42903.0,
+              "worst": 42903.0,
+              "variance": 0.0
+            },
+            "model_duration_ms": {
+              "count": 1,
+              "mean": 5454.0,
+              "median": 5454.0,
+              "p10": 5454.0,
+              "worst": 5454.0,
+              "variance": 0.0
+            },
+            "soft_quality": {
+              "count": 1,
+              "mean": 1.0,
+              "median": 1.0,
+              "p10": 1.0,
+              "worst": 1.0,
+              "variance": 0.0
+            },
+            "visible_tool_count_mean": {
+              "count": 1,
+              "mean": 7.0,
+              "median": 7.0,
+              "p10": 7.0,
+              "worst": 7.0,
+              "variance": 0.0
+            }
+          },
+          "prompt_breakdown_tokens": {
+            "behavioral_memory_tokens": 0,
+            "conversation_tokens": 532,
+            "memory_context_tokens": 0,
+            "semantic_memory_tokens": 0,
+            "system_prompt_tokens": 33316,
+            "tool_observation_tokens": 7044,
+            "tool_schema_tokens": 14524,
+            "unattributed_input_tokens": 0
+          },
+          "tool_name_run_counts": {
+            "abandon_schedule_plan": 1,
+            "apply_schedule_plan": 1,
+            "edit_schedule_plan": 1,
+            "get_current_datetime": 1,
+            "get_planning_context": 1,
+            "propose_schedule_plan": 1,
+            "validate_schedule_plan": 1
+          },
+          "error_category_run_counts": {}
+        }
+      }
+    },
+    "case_9267938859a78051": {
+      "run_count": 1,
+      "variants": {
+        "candidate_standard": {
+          "run_count": 1,
+          "accepted_observation_count": 0,
+          "hard_violation_run_count": 0,
+          "tool_error_run_count": 0,
+          "tool_error_count": 0,
+          "unresolved_tool_error_run_count": 0,
+          "unresolved_tool_error_count": 0,
+          "repair_run_count": 0,
+          "repair_call_count": 0,
+          "accepted_run_count": 0,
+          "catastrophic_run_count": 0,
+          "passed_run_count": 1,
+          "rates": {
+            "hard_violation": 0.0,
+            "tool_error": 0.0,
+            "unresolved_tool_error": 0.0,
+            "repair": 0.0,
+            "acceptance": null,
+            "catastrophic": 0.0,
+            "passed": 1.0
+          },
+          "metrics": {
+            "duration_seconds": {
+              "count": 1,
+              "mean": 7.8348,
+              "median": 7.8348,
+              "p10": 7.8348,
+              "worst": 7.8348,
+              "variance": 0.0
+            },
+            "hard_violations_per_run": {
+              "count": 1,
+              "mean": 0.0,
+              "median": 0.0,
+              "p10": 0.0,
+              "worst": 0.0,
+              "variance": 0.0
+            },
+            "tool_errors_per_run": {
+              "count": 1,
+              "mean": 0.0,
+              "median": 0.0,
+              "p10": 0.0,
+              "worst": 0.0,
+              "variance": 0.0
+            },
+            "unresolved_tool_errors_per_run": {
+              "count": 1,
+              "mean": 0.0,
+              "median": 0.0,
+              "p10": 0.0,
+              "worst": 0.0,
+              "variance": 0.0
+            },
+            "repair_calls_per_run": {
+              "count": 1,
+              "mean": 0.0,
+              "median": 0.0,
+              "p10": 0.0,
+              "worst": 0.0,
+              "variance": 0.0
+            },
+            "passed": {
+              "count": 1,
+              "mean": 1.0,
+              "median": 1.0,
+              "p10": 1.0,
+              "worst": 1.0,
+              "variance": 0.0
+            },
+            "accepted": {
+              "count": 0,
+              "mean": null,
+              "median": null,
+              "p10": null,
+              "worst": null,
+              "variance": null
+            },
+            "catastrophic": {
+              "count": 1,
+              "mean": 0.0,
+              "median": 0.0,
+              "p10": 0.0,
+              "worst": 0.0,
+              "variance": 0.0
+            },
+            "model_call_count": {
+              "count": 1,
+              "mean": 4.0,
+              "median": 4.0,
+              "p10": 4.0,
+              "worst": 4.0,
+              "variance": 0.0
+            },
+            "tool_call_count": {
+              "count": 1,
+              "mean": 6.0,
+              "median": 6.0,
+              "p10": 6.0,
+              "worst": 6.0,
+              "variance": 0.0
+            },
+            "duplicate_read_count": {
+              "count": 1,
+              "mean": 0.0,
+              "median": 0.0,
+              "p10": 0.0,
+              "worst": 0.0,
+              "variance": 0.0
+            },
+            "total_tokens": {
+              "count": 1,
+              "mean": 48504.0,
+              "median": 48504.0,
+              "p10": 48504.0,
+              "worst": 48504.0,
+              "variance": 0.0
+            },
+            "model_duration_ms": {
+              "count": 1,
+              "mean": 7563.0,
+              "median": 7563.0,
+              "p10": 7563.0,
+              "worst": 7563.0,
+              "variance": 0.0
+            },
+            "soft_quality": {
+              "count": 1,
+              "mean": 1.0,
+              "median": 1.0,
+              "p10": 1.0,
+              "worst": 1.0,
+              "variance": 0.0
+            },
+            "visible_tool_count_mean": {
+              "count": 1,
+              "mean": 7.0,
+              "median": 7.0,
+              "p10": 7.0,
+              "worst": 7.0,
+              "variance": 0.0
+            }
+          },
+          "prompt_breakdown_tokens": {
+            "behavioral_memory_tokens": 0,
+            "conversation_tokens": 586,
+            "memory_context_tokens": 0,
+            "semantic_memory_tokens": 0,
+            "system_prompt_tokens": 33308,
+            "tool_observation_tokens": 10815,
+            "tool_schema_tokens": 14524,
+            "unattributed_input_tokens": 0
+          },
+          "tool_name_run_counts": {
+            "abandon_schedule_plan": 1,
+            "apply_schedule_plan": 1,
+            "edit_schedule_plan": 1,
+            "get_current_datetime": 1,
+            "get_planning_context": 1,
+            "propose_schedule_plan": 1,
+            "validate_schedule_plan": 1
+          },
+          "error_category_run_counts": {}
+        }
+      }
+    },
+    "case_49834e34f8abb46b": {
+      "run_count": 1,
+      "variants": {
+        "candidate_standard": {
+          "run_count": 1,
+          "accepted_observation_count": 0,
+          "hard_violation_run_count": 0,
+          "tool_error_run_count": 0,
+          "tool_error_count": 0,
+          "unresolved_tool_error_run_count": 0,
+          "unresolved_tool_error_count": 0,
+          "repair_run_count": 0,
+          "repair_call_count": 0,
+          "accepted_run_count": 0,
+          "catastrophic_run_count": 0,
+          "passed_run_count": 1,
+          "rates": {
+            "hard_violation": 0.0,
+            "tool_error": 0.0,
+            "unresolved_tool_error": 0.0,
+            "repair": 0.0,
+            "acceptance": null,
+            "catastrophic": 0.0,
+            "passed": 1.0
+          },
+          "metrics": {
+            "duration_seconds": {
+              "count": 1,
+              "mean": 5.7885,
+              "median": 5.7885,
+              "p10": 5.7885,
+              "worst": 5.7885,
+              "variance": 0.0
+            },
+            "hard_violations_per_run": {
+              "count": 1,
+              "mean": 0.0,
+              "median": 0.0,
+              "p10": 0.0,
+              "worst": 0.0,
+              "variance": 0.0
+            },
+            "tool_errors_per_run": {
+              "count": 1,
+              "mean": 0.0,
+              "median": 0.0,
+              "p10": 0.0,
+              "worst": 0.0,
+              "variance": 0.0
+            },
+            "unresolved_tool_errors_per_run": {
+              "count": 1,
+              "mean": 0.0,
+              "median": 0.0,
+              "p10": 0.0,
+              "worst": 0.0,
+              "variance": 0.0
+            },
+            "repair_calls_per_run": {
+              "count": 1,
+              "mean": 0.0,
+              "median": 0.0,
+              "p10": 0.0,
+              "worst": 0.0,
+              "variance": 0.0
+            },
+            "passed": {
+              "count": 1,
+              "mean": 1.0,
+              "median": 1.0,
+              "p10": 1.0,
+              "worst": 1.0,
+              "variance": 0.0
+            },
+            "accepted": {
+              "count": 0,
+              "mean": null,
+              "median": null,
+              "p10": null,
+              "worst": null,
+              "variance": null
+            },
+            "catastrophic": {
+              "count": 1,
+              "mean": 0.0,
+              "median": 0.0,
+              "p10": 0.0,
+              "worst": 0.0,
+              "variance": 0.0
+            },
+            "model_call_count": {
+              "count": 1,
+              "mean": 4.0,
+              "median": 4.0,
+              "p10": 4.0,
+              "worst": 4.0,
+              "variance": 0.0
+            },
+            "tool_call_count": {
+              "count": 1,
+              "mean": 4.0,
+              "median": 4.0,
+              "p10": 4.0,
+              "worst": 4.0,
+              "variance": 0.0
+            },
+            "duplicate_read_count": {
+              "count": 1,
+              "mean": 0.0,
+              "median": 0.0,
+              "p10": 0.0,
+              "worst": 0.0,
+              "variance": 0.0
+            },
+            "total_tokens": {
+              "count": 1,
+              "mean": 44485.0,
+              "median": 44485.0,
+              "p10": 44485.0,
+              "worst": 44485.0,
+              "variance": 0.0
+            },
+            "model_duration_ms": {
+              "count": 1,
+              "mean": 5530.0,
+              "median": 5530.0,
+              "p10": 5530.0,
+              "worst": 5530.0,
+              "variance": 0.0
+            },
+            "soft_quality": {
+              "count": 1,
+              "mean": 1.0,
+              "median": 1.0,
+              "p10": 1.0,
+              "worst": 1.0,
+              "variance": 0.0
+            },
+            "visible_tool_count_mean": {
+              "count": 1,
+              "mean": 7.0,
+              "median": 7.0,
+              "p10": 7.0,
+              "worst": 7.0,
+              "variance": 0.0
+            }
+          },
+          "prompt_breakdown_tokens": {
+            "behavioral_memory_tokens": 0,
+            "conversation_tokens": 634,
+            "memory_context_tokens": 0,
+            "semantic_memory_tokens": 0,
+            "system_prompt_tokens": 33308,
+            "tool_observation_tokens": 8339,
+            "tool_schema_tokens": 14524,
+            "unattributed_input_tokens": 0
+          },
+          "tool_name_run_counts": {
+            "abandon_schedule_plan": 1,
+            "apply_schedule_plan": 1,
+            "edit_schedule_plan": 1,
+            "get_current_datetime": 1,
+            "get_planning_context": 1,
+            "propose_schedule_plan": 1,
+            "validate_schedule_plan": 1
+          },
+          "error_category_run_counts": {}
+        }
+      }
+    },
+    "case_677b89f7f27514eb": {
+      "run_count": 1,
+      "variants": {
+        "candidate_standard": {
+          "run_count": 1,
+          "accepted_observation_count": 0,
+          "hard_violation_run_count": 0,
+          "tool_error_run_count": 0,
+          "tool_error_count": 0,
+          "unresolved_tool_error_run_count": 0,
+          "unresolved_tool_error_count": 0,
+          "repair_run_count": 0,
+          "repair_call_count": 0,
+          "accepted_run_count": 0,
+          "catastrophic_run_count": 0,
+          "passed_run_count": 1,
+          "rates": {
+            "hard_violation": 0.0,
+            "tool_error": 0.0,
+            "unresolved_tool_error": 0.0,
+            "repair": 0.0,
+            "acceptance": null,
+            "catastrophic": 0.0,
+            "passed": 1.0
+          },
+          "metrics": {
+            "duration_seconds": {
+              "count": 1,
+              "mean": 6.9903,
+              "median": 6.9903,
+              "p10": 6.9903,
+              "worst": 6.9903,
+              "variance": 0.0
+            },
+            "hard_violations_per_run": {
+              "count": 1,
+              "mean": 0.0,
+              "median": 0.0,
+              "p10": 0.0,
+              "worst": 0.0,
+              "variance": 0.0
+            },
+            "tool_errors_per_run": {
+              "count": 1,
+              "mean": 0.0,
+              "median": 0.0,
+              "p10": 0.0,
+              "worst": 0.0,
+              "variance": 0.0
+            },
+            "unresolved_tool_errors_per_run": {
+              "count": 1,
+              "mean": 0.0,
+              "median": 0.0,
+              "p10": 0.0,
+              "worst": 0.0,
+              "variance": 0.0
+            },
+            "repair_calls_per_run": {
+              "count": 1,
+              "mean": 0.0,
+              "median": 0.0,
+              "p10": 0.0,
+              "worst": 0.0,
+              "variance": 0.0
+            },
+            "passed": {
+              "count": 1,
+              "mean": 1.0,
+              "median": 1.0,
+              "p10": 1.0,
+              "worst": 1.0,
+              "variance": 0.0
+            },
+            "accepted": {
+              "count": 0,
+              "mean": null,
+              "median": null,
+              "p10": null,
+              "worst": null,
+              "variance": null
+            },
+            "catastrophic": {
+              "count": 1,
+              "mean": 0.0,
+              "median": 0.0,
+              "p10": 0.0,
+              "worst": 0.0,
+              "variance": 0.0
+            },
+            "model_call_count": {
+              "count": 1,
+              "mean": 4.0,
+              "median": 4.0,
+              "p10": 4.0,
+              "worst": 4.0,
+              "variance": 0.0
+            },
+            "tool_call_count": {
+              "count": 1,
+              "mean": 7.0,
+              "median": 7.0,
+              "p10": 7.0,
+              "worst": 7.0,
+              "variance": 0.0
+            },
+            "duplicate_read_count": {
+              "count": 1,
+              "mean": 0.0,
+              "median": 0.0,
+              "p10": 0.0,
+              "worst": 0.0,
+              "variance": 0.0
+            },
+            "total_tokens": {
+              "count": 1,
+              "mean": 45519.0,
+              "median": 45519.0,
+              "p10": 45519.0,
+              "worst": 45519.0,
+              "variance": 0.0
+            },
+            "model_duration_ms": {
+              "count": 1,
+              "mean": 6781.0,
+              "median": 6781.0,
+              "p10": 6781.0,
+              "worst": 6781.0,
+              "variance": 0.0
+            },
+            "soft_quality": {
+              "count": 0,
+              "mean": null,
+              "median": null,
+              "p10": null,
+              "worst": null,
+              "variance": null
+            },
+            "visible_tool_count_mean": {
+              "count": 1,
+              "mean": 17.0,
+              "median": 17.0,
+              "p10": 17.0,
+              "worst": 17.0,
+              "variance": 0.0
+            }
+          },
+          "prompt_breakdown_tokens": {
+            "behavioral_memory_tokens": 0,
+            "conversation_tokens": 615,
+            "memory_context_tokens": 0,
+            "semantic_memory_tokens": 0,
+            "system_prompt_tokens": 33564,
+            "tool_observation_tokens": 9616,
+            "tool_schema_tokens": 13776,
+            "unattributed_input_tokens": 0
+          },
+          "tool_name_run_counts": {
+            "detect_schedule_disruptions": 1,
+            "get_capacity_forecast": 1,
+            "get_current_datetime": 1,
+            "get_event": 1,
+            "get_planning_context": 1,
+            "get_reminder": 1,
+            "get_task": 1,
+            "get_task_execution_summary": 1,
+            "get_temporal_insight": 1,
+            "list_automation_policies": 1,
+            "list_calendar_sync_status": 1,
+            "list_events": 1,
+            "list_reminders": 1,
+            "list_tasks": 1,
+            "list_temporal_insights": 1,
+            "recommend_task_duration": 1,
+            "transfer_to_briefing": 1
+          },
+          "error_category_run_counts": {}
+        }
+      }
+    },
+    "case_cbf271cafe4dcd61": {
+      "run_count": 1,
+      "variants": {
+        "candidate_standard": {
+          "run_count": 1,
+          "accepted_observation_count": 0,
+          "hard_violation_run_count": 0,
+          "tool_error_run_count": 0,
+          "tool_error_count": 0,
+          "unresolved_tool_error_run_count": 0,
+          "unresolved_tool_error_count": 0,
+          "repair_run_count": 0,
+          "repair_call_count": 0,
+          "accepted_run_count": 0,
+          "catastrophic_run_count": 0,
+          "passed_run_count": 1,
+          "rates": {
+            "hard_violation": 0.0,
+            "tool_error": 0.0,
+            "unresolved_tool_error": 0.0,
+            "repair": 0.0,
+            "acceptance": null,
+            "catastrophic": 0.0,
+            "passed": 1.0
+          },
+          "metrics": {
+            "duration_seconds": {
+              "count": 1,
+              "mean": 6.3567,
+              "median": 6.3567,
+              "p10": 6.3567,
+              "worst": 6.3567,
+              "variance": 0.0
+            },
+            "hard_violations_per_run": {
+              "count": 1,
+              "mean": 0.0,
+              "median": 0.0,
+              "p10": 0.0,
+              "worst": 0.0,
+              "variance": 0.0
+            },
+            "tool_errors_per_run": {
+              "count": 1,
+              "mean": 0.0,
+              "median": 0.0,
+              "p10": 0.0,
+              "worst": 0.0,
+              "variance": 0.0
+            },
+            "unresolved_tool_errors_per_run": {
+              "count": 1,
+              "mean": 0.0,
+              "median": 0.0,
+              "p10": 0.0,
+              "worst": 0.0,
+              "variance": 0.0
+            },
+            "repair_calls_per_run": {
+              "count": 1,
+              "mean": 0.0,
+              "median": 0.0,
+              "p10": 0.0,
+              "worst": 0.0,
+              "variance": 0.0
+            },
+            "passed": {
+              "count": 1,
+              "mean": 1.0,
+              "median": 1.0,
+              "p10": 1.0,
+              "worst": 1.0,
+              "variance": 0.0
+            },
+            "accepted": {
+              "count": 0,
+              "mean": null,
+              "median": null,
+              "p10": null,
+              "worst": null,
+              "variance": null
+            },
+            "catastrophic": {
+              "count": 1,
+              "mean": 0.0,
+              "median": 0.0,
+              "p10": 0.0,
+              "worst": 0.0,
+              "variance": 0.0
+            },
+            "model_call_count": {
+              "count": 1,
+              "mean": 3.0,
+              "median": 3.0,
+              "p10": 3.0,
+              "worst": 3.0,
+              "variance": 0.0
+            },
+            "tool_call_count": {
+              "count": 1,
+              "mean": 3.0,
+              "median": 3.0,
+              "p10": 3.0,
+              "worst": 3.0,
+              "variance": 0.0
+            },
+            "duplicate_read_count": {
+              "count": 1,
+              "mean": 0.0,
+              "median": 0.0,
+              "p10": 0.0,
+              "worst": 0.0,
+              "variance": 0.0
+            },
+            "total_tokens": {
+              "count": 1,
+              "mean": 32209.0,
+              "median": 32209.0,
+              "p10": 32209.0,
+              "worst": 32209.0,
+              "variance": 0.0
+            },
+            "model_duration_ms": {
+              "count": 1,
+              "mean": 6141.0,
+              "median": 6141.0,
+              "p10": 6141.0,
+              "worst": 6141.0,
+              "variance": 0.0
+            },
+            "soft_quality": {
+              "count": 1,
+              "mean": 1.0,
+              "median": 1.0,
+              "p10": 1.0,
+              "worst": 1.0,
+              "variance": 0.0
+            },
+            "visible_tool_count_mean": {
+              "count": 1,
+              "mean": 7.0,
+              "median": 7.0,
+              "p10": 7.0,
+              "worst": 7.0,
+              "variance": 0.0
+            }
+          },
+          "prompt_breakdown_tokens": {
+            "behavioral_memory_tokens": 0,
+            "conversation_tokens": 759,
+            "memory_context_tokens": 0,
+            "semantic_memory_tokens": 0,
+            "system_prompt_tokens": 24981,
+            "tool_observation_tokens": 4279,
+            "tool_schema_tokens": 10893,
+            "unattributed_input_tokens": 0
+          },
+          "tool_name_run_counts": {
+            "abandon_schedule_plan": 1,
+            "apply_schedule_plan": 1,
+            "edit_schedule_plan": 1,
+            "get_current_datetime": 1,
+            "get_planning_context": 1,
+            "propose_schedule_plan": 1,
+            "validate_schedule_plan": 1
+          },
+          "error_category_run_counts": {}
+        }
+      }
+    },
+    "case_b22492748031f0d0": {
+      "run_count": 1,
+      "variants": {
+        "candidate_standard": {
+          "run_count": 1,
+          "accepted_observation_count": 0,
+          "hard_violation_run_count": 0,
+          "tool_error_run_count": 0,
+          "tool_error_count": 0,
+          "unresolved_tool_error_run_count": 0,
+          "unresolved_tool_error_count": 0,
+          "repair_run_count": 0,
+          "repair_call_count": 0,
+          "accepted_run_count": 0,
+          "catastrophic_run_count": 0,
+          "passed_run_count": 1,
+          "rates": {
+            "hard_violation": 0.0,
+            "tool_error": 0.0,
+            "unresolved_tool_error": 0.0,
+            "repair": 0.0,
+            "acceptance": null,
+            "catastrophic": 0.0,
+            "passed": 1.0
+          },
+          "metrics": {
+            "duration_seconds": {
+              "count": 1,
+              "mean": 7.1113,
+              "median": 7.1113,
+              "p10": 7.1113,
+              "worst": 7.1113,
+              "variance": 0.0
+            },
+            "hard_violations_per_run": {
+              "count": 1,
+              "mean": 0.0,
+              "median": 0.0,
+              "p10": 0.0,
+              "worst": 0.0,
+              "variance": 0.0
+            },
+            "tool_errors_per_run": {
+              "count": 1,
+              "mean": 0.0,
+              "median": 0.0,
+              "p10": 0.0,
+              "worst": 0.0,
+              "variance": 0.0
+            },
+            "unresolved_tool_errors_per_run": {
+              "count": 1,
+              "mean": 0.0,
+              "median": 0.0,
+              "p10": 0.0,
+              "worst": 0.0,
+              "variance": 0.0
+            },
+            "repair_calls_per_run": {
+              "count": 1,
+              "mean": 0.0,
+              "median": 0.0,
+              "p10": 0.0,
+              "worst": 0.0,
+              "variance": 0.0
+            },
+            "passed": {
+              "count": 1,
+              "mean": 1.0,
+              "median": 1.0,
+              "p10": 1.0,
+              "worst": 1.0,
+              "variance": 0.0
+            },
+            "accepted": {
+              "count": 0,
+              "mean": null,
+              "median": null,
+              "p10": null,
+              "worst": null,
+              "variance": null
+            },
+            "catastrophic": {
+              "count": 1,
+              "mean": 0.0,
+              "median": 0.0,
+              "p10": 0.0,
+              "worst": 0.0,
+              "variance": 0.0
+            },
+            "model_call_count": {
+              "count": 1,
+              "mean": 4.0,
+              "median": 4.0,
+              "p10": 4.0,
+              "worst": 4.0,
+              "variance": 0.0
+            },
+            "tool_call_count": {
+              "count": 1,
+              "mean": 4.0,
+              "median": 4.0,
+              "p10": 4.0,
+              "worst": 4.0,
+              "variance": 0.0
+            },
+            "duplicate_read_count": {
+              "count": 1,
+              "mean": 0.0,
+              "median": 0.0,
+              "p10": 0.0,
+              "worst": 0.0,
+              "variance": 0.0
+            },
+            "total_tokens": {
+              "count": 1,
+              "mean": 42949.0,
+              "median": 42949.0,
+              "p10": 42949.0,
+              "worst": 42949.0,
+              "variance": 0.0
+            },
+            "model_duration_ms": {
+              "count": 1,
+              "mean": 6890.0,
+              "median": 6890.0,
+              "p10": 6890.0,
+              "worst": 6890.0,
+              "variance": 0.0
+            },
+            "soft_quality": {
+              "count": 1,
+              "mean": 1.0,
+              "median": 1.0,
+              "p10": 1.0,
+              "worst": 1.0,
+              "variance": 0.0
+            },
+            "visible_tool_count_mean": {
+              "count": 1,
+              "mean": 7.0,
+              "median": 7.0,
+              "p10": 7.0,
+              "worst": 7.0,
+              "variance": 0.0
+            }
+          },
+          "prompt_breakdown_tokens": {
+            "behavioral_memory_tokens": 0,
+            "conversation_tokens": 1011,
+            "memory_context_tokens": 0,
+            "semantic_memory_tokens": 0,
+            "system_prompt_tokens": 33308,
+            "tool_observation_tokens": 6395,
+            "tool_schema_tokens": 14524,
+            "unattributed_input_tokens": 0
+          },
+          "tool_name_run_counts": {
+            "abandon_schedule_plan": 1,
+            "apply_schedule_plan": 1,
+            "edit_schedule_plan": 1,
+            "get_current_datetime": 1,
+            "get_planning_context": 1,
+            "propose_schedule_plan": 1,
+            "validate_schedule_plan": 1
+          },
+          "error_category_run_counts": {}
+        }
+      }
+    },
+    "case_408633800786caa4": {
+      "run_count": 1,
+      "variants": {
+        "candidate_standard": {
+          "run_count": 1,
+          "accepted_observation_count": 0,
+          "hard_violation_run_count": 0,
+          "tool_error_run_count": 0,
+          "tool_error_count": 0,
+          "unresolved_tool_error_run_count": 0,
+          "unresolved_tool_error_count": 0,
+          "repair_run_count": 0,
+          "repair_call_count": 0,
+          "accepted_run_count": 0,
+          "catastrophic_run_count": 0,
+          "passed_run_count": 1,
+          "rates": {
+            "hard_violation": 0.0,
+            "tool_error": 0.0,
+            "unresolved_tool_error": 0.0,
+            "repair": 0.0,
+            "acceptance": null,
+            "catastrophic": 0.0,
+            "passed": 1.0
+          },
+          "metrics": {
+            "duration_seconds": {
+              "count": 1,
+              "mean": 6.5313,
+              "median": 6.5313,
+              "p10": 6.5313,
+              "worst": 6.5313,
+              "variance": 0.0
+            },
+            "hard_violations_per_run": {
+              "count": 1,
+              "mean": 0.0,
+              "median": 0.0,
+              "p10": 0.0,
+              "worst": 0.0,
+              "variance": 0.0
+            },
+            "tool_errors_per_run": {
+              "count": 1,
+              "mean": 0.0,
+              "median": 0.0,
+              "p10": 0.0,
+              "worst": 0.0,
+              "variance": 0.0
+            },
+            "unresolved_tool_errors_per_run": {
+              "count": 1,
+              "mean": 0.0,
+              "median": 0.0,
+              "p10": 0.0,
+              "worst": 0.0,
+              "variance": 0.0
+            },
+            "repair_calls_per_run": {
+              "count": 1,
+              "mean": 0.0,
+              "median": 0.0,
+              "p10": 0.0,
+              "worst": 0.0,
+              "variance": 0.0
+            },
+            "passed": {
+              "count": 1,
+              "mean": 1.0,
+              "median": 1.0,
+              "p10": 1.0,
+              "worst": 1.0,
+              "variance": 0.0
+            },
+            "accepted": {
+              "count": 0,
+              "mean": null,
+              "median": null,
+              "p10": null,
+              "worst": null,
+              "variance": null
+            },
+            "catastrophic": {
+              "count": 1,
+              "mean": 0.0,
+              "median": 0.0,
+              "p10": 0.0,
+              "worst": 0.0,
+              "variance": 0.0
+            },
+            "model_call_count": {
+              "count": 1,
+              "mean": 4.0,
+              "median": 4.0,
+              "p10": 4.0,
+              "worst": 4.0,
+              "variance": 0.0
+            },
+            "tool_call_count": {
+              "count": 1,
+              "mean": 4.0,
+              "median": 4.0,
+              "p10": 4.0,
+              "worst": 4.0,
+              "variance": 0.0
+            },
+            "duplicate_read_count": {
+              "count": 1,
+              "mean": 0.0,
+              "median": 0.0,
+              "p10": 0.0,
+              "worst": 0.0,
+              "variance": 0.0
+            },
+            "total_tokens": {
+              "count": 1,
+              "mean": 42331.0,
+              "median": 42331.0,
+              "p10": 42331.0,
+              "worst": 42331.0,
+              "variance": 0.0
+            },
+            "model_duration_ms": {
+              "count": 1,
+              "mean": 6329.0,
+              "median": 6329.0,
+              "p10": 6329.0,
+              "worst": 6329.0,
+              "variance": 0.0
+            },
+            "soft_quality": {
+              "count": 1,
+              "mean": 1.0,
+              "median": 1.0,
+              "p10": 1.0,
+              "worst": 1.0,
+              "variance": 0.0
+            },
+            "visible_tool_count_mean": {
+              "count": 1,
+              "mean": 7.0,
+              "median": 7.0,
+              "p10": 7.0,
+              "worst": 7.0,
+              "variance": 0.0
+            }
+          },
+          "prompt_breakdown_tokens": {
+            "behavioral_memory_tokens": 0,
+            "conversation_tokens": 547,
+            "memory_context_tokens": 0,
+            "semantic_memory_tokens": 0,
+            "system_prompt_tokens": 33308,
+            "tool_observation_tokens": 6355,
+            "tool_schema_tokens": 14524,
+            "unattributed_input_tokens": 0
+          },
+          "tool_name_run_counts": {
+            "abandon_schedule_plan": 1,
+            "apply_schedule_plan": 1,
+            "edit_schedule_plan": 1,
+            "get_current_datetime": 1,
+            "get_planning_context": 1,
+            "propose_schedule_plan": 1,
+            "validate_schedule_plan": 1
+          },
+          "error_category_run_counts": {}
+        }
+      }
+    },
+    "case_9fd67c0c4e2bddb7": {
+      "run_count": 1,
+      "variants": {
+        "candidate_standard": {
+          "run_count": 1,
+          "accepted_observation_count": 0,
+          "hard_violation_run_count": 0,
+          "tool_error_run_count": 0,
+          "tool_error_count": 0,
+          "unresolved_tool_error_run_count": 0,
+          "unresolved_tool_error_count": 0,
+          "repair_run_count": 0,
+          "repair_call_count": 0,
+          "accepted_run_count": 0,
+          "catastrophic_run_count": 0,
+          "passed_run_count": 1,
+          "rates": {
+            "hard_violation": 0.0,
+            "tool_error": 0.0,
+            "unresolved_tool_error": 0.0,
+            "repair": 0.0,
+            "acceptance": null,
+            "catastrophic": 0.0,
+            "passed": 1.0
+          },
+          "metrics": {
+            "duration_seconds": {
+              "count": 1,
+              "mean": 7.543,
+              "median": 7.543,
+              "p10": 7.543,
+              "worst": 7.543,
+              "variance": 0.0
+            },
+            "hard_violations_per_run": {
+              "count": 1,
+              "mean": 0.0,
+              "median": 0.0,
+              "p10": 0.0,
+              "worst": 0.0,
+              "variance": 0.0
+            },
+            "tool_errors_per_run": {
+              "count": 1,
+              "mean": 0.0,
+              "median": 0.0,
+              "p10": 0.0,
+              "worst": 0.0,
+              "variance": 0.0
+            },
+            "unresolved_tool_errors_per_run": {
+              "count": 1,
+              "mean": 0.0,
+              "median": 0.0,
+              "p10": 0.0,
+              "worst": 0.0,
+              "variance": 0.0
+            },
+            "repair_calls_per_run": {
+              "count": 1,
+              "mean": 0.0,
+              "median": 0.0,
+              "p10": 0.0,
+              "worst": 0.0,
+              "variance": 0.0
+            },
+            "passed": {
+              "count": 1,
+              "mean": 1.0,
+              "median": 1.0,
+              "p10": 1.0,
+              "worst": 1.0,
+              "variance": 0.0
+            },
+            "accepted": {
+              "count": 0,
+              "mean": null,
+              "median": null,
+              "p10": null,
+              "worst": null,
+              "variance": null
+            },
+            "catastrophic": {
+              "count": 1,
+              "mean": 0.0,
+              "median": 0.0,
+              "p10": 0.0,
+              "worst": 0.0,
+              "variance": 0.0
+            },
+            "model_call_count": {
+              "count": 1,
+              "mean": 4.0,
+              "median": 4.0,
+              "p10": 4.0,
+              "worst": 4.0,
+              "variance": 0.0
+            },
+            "tool_call_count": {
+              "count": 1,
+              "mean": 6.0,
+              "median": 6.0,
+              "p10": 6.0,
+              "worst": 6.0,
+              "variance": 0.0
+            },
+            "duplicate_read_count": {
+              "count": 1,
+              "mean": 0.0,
+              "median": 0.0,
+              "p10": 0.0,
+              "worst": 0.0,
+              "variance": 0.0
+            },
+            "total_tokens": {
+              "count": 1,
+              "mean": 48291.0,
+              "median": 48291.0,
+              "p10": 48291.0,
+              "worst": 48291.0,
+              "variance": 0.0
+            },
+            "model_duration_ms": {
+              "count": 1,
+              "mean": 7312.0,
+              "median": 7312.0,
+              "p10": 7312.0,
+              "worst": 7312.0,
+              "variance": 0.0
+            },
+            "soft_quality": {
+              "count": 1,
+              "mean": 1.0,
+              "median": 1.0,
+              "p10": 1.0,
+              "worst": 1.0,
+              "variance": 0.0
+            },
+            "visible_tool_count_mean": {
+              "count": 1,
+              "mean": 7.0,
+              "median": 7.0,
+              "p10": 7.0,
+              "worst": 7.0,
+              "variance": 0.0
+            }
+          },
+          "prompt_breakdown_tokens": {
+            "behavioral_memory_tokens": 0,
+            "conversation_tokens": 986,
+            "memory_context_tokens": 0,
+            "semantic_memory_tokens": 0,
+            "system_prompt_tokens": 33300,
+            "tool_observation_tokens": 10105,
+            "tool_schema_tokens": 14524,
+            "unattributed_input_tokens": 0
+          },
+          "tool_name_run_counts": {
+            "abandon_schedule_plan": 1,
+            "apply_schedule_plan": 1,
+            "edit_schedule_plan": 1,
+            "get_current_datetime": 1,
+            "get_planning_context": 1,
+            "propose_schedule_plan": 1,
+            "validate_schedule_plan": 1
+          },
+          "error_category_run_counts": {}
+        }
+      }
+    },
+    "case_6d3b48059fa4bae7": {
+      "run_count": 1,
+      "variants": {
+        "candidate_standard": {
+          "run_count": 1,
+          "accepted_observation_count": 0,
+          "hard_violation_run_count": 0,
+          "tool_error_run_count": 0,
+          "tool_error_count": 0,
+          "unresolved_tool_error_run_count": 0,
+          "unresolved_tool_error_count": 0,
+          "repair_run_count": 0,
+          "repair_call_count": 0,
+          "accepted_run_count": 0,
+          "catastrophic_run_count": 0,
+          "passed_run_count": 1,
+          "rates": {
+            "hard_violation": 0.0,
+            "tool_error": 0.0,
+            "unresolved_tool_error": 0.0,
+            "repair": 0.0,
+            "acceptance": null,
+            "catastrophic": 0.0,
+            "passed": 1.0
+          },
+          "metrics": {
+            "duration_seconds": {
+              "count": 1,
+              "mean": 5.9079,
+              "median": 5.9079,
+              "p10": 5.9079,
+              "worst": 5.9079,
+              "variance": 0.0
+            },
+            "hard_violations_per_run": {
+              "count": 1,
+              "mean": 0.0,
+              "median": 0.0,
+              "p10": 0.0,
+              "worst": 0.0,
+              "variance": 0.0
+            },
+            "tool_errors_per_run": {
+              "count": 1,
+              "mean": 0.0,
+              "median": 0.0,
+              "p10": 0.0,
+              "worst": 0.0,
+              "variance": 0.0
+            },
+            "unresolved_tool_errors_per_run": {
+              "count": 1,
+              "mean": 0.0,
+              "median": 0.0,
+              "p10": 0.0,
+              "worst": 0.0,
+              "variance": 0.0
+            },
+            "repair_calls_per_run": {
+              "count": 1,
+              "mean": 0.0,
+              "median": 0.0,
+              "p10": 0.0,
+              "worst": 0.0,
+              "variance": 0.0
+            },
+            "passed": {
+              "count": 1,
+              "mean": 1.0,
+              "median": 1.0,
+              "p10": 1.0,
+              "worst": 1.0,
+              "variance": 0.0
+            },
+            "accepted": {
+              "count": 0,
+              "mean": null,
+              "median": null,
+              "p10": null,
+              "worst": null,
+              "variance": null
+            },
+            "catastrophic": {
+              "count": 1,
+              "mean": 0.0,
+              "median": 0.0,
+              "p10": 0.0,
+              "worst": 0.0,
+              "variance": 0.0
+            },
+            "model_call_count": {
+              "count": 1,
+              "mean": 3.0,
+              "median": 3.0,
+              "p10": 3.0,
+              "worst": 3.0,
+              "variance": 0.0
+            },
+            "tool_call_count": {
+              "count": 1,
+              "mean": 7.0,
+              "median": 7.0,
+              "p10": 7.0,
+              "worst": 7.0,
+              "variance": 0.0
+            },
+            "duplicate_read_count": {
+              "count": 1,
+              "mean": 0.0,
+              "median": 0.0,
+              "p10": 0.0,
+              "worst": 0.0,
+              "variance": 0.0
+            },
+            "total_tokens": {
+              "count": 1,
+              "mean": 34291.0,
+              "median": 34291.0,
+              "p10": 34291.0,
+              "worst": 34291.0,
+              "variance": 0.0
+            },
+            "model_duration_ms": {
+              "count": 1,
+              "mean": 5703.0,
+              "median": 5703.0,
+              "p10": 5703.0,
+              "worst": 5703.0,
+              "variance": 0.0
+            },
+            "soft_quality": {
+              "count": 0,
+              "mean": null,
+              "median": null,
+              "p10": null,
+              "worst": null,
+              "variance": null
+            },
+            "visible_tool_count_mean": {
+              "count": 1,
+              "mean": 17.0,
+              "median": 17.0,
+              "p10": 17.0,
+              "worst": 17.0,
+              "variance": 0.0
+            }
+          },
+          "prompt_breakdown_tokens": {
+            "behavioral_memory_tokens": 0,
+            "conversation_tokens": 347,
+            "memory_context_tokens": 0,
+            "semantic_memory_tokens": 0,
+            "system_prompt_tokens": 25191,
+            "tool_observation_tokens": 7301,
+            "tool_schema_tokens": 10332,
+            "unattributed_input_tokens": 0
+          },
+          "tool_name_run_counts": {
+            "detect_schedule_disruptions": 1,
+            "get_capacity_forecast": 1,
+            "get_current_datetime": 1,
+            "get_event": 1,
+            "get_planning_context": 1,
+            "get_reminder": 1,
+            "get_task": 1,
+            "get_task_execution_summary": 1,
+            "get_temporal_insight": 1,
+            "list_automation_policies": 1,
+            "list_calendar_sync_status": 1,
+            "list_events": 1,
+            "list_reminders": 1,
+            "list_tasks": 1,
+            "list_temporal_insights": 1,
+            "recommend_task_duration": 1,
+            "transfer_to_briefing": 1
+          },
+          "error_category_run_counts": {}
+        }
+      }
+    },
+    "case_fc4ed4193d6cb661": {
+      "run_count": 1,
+      "variants": {
+        "candidate_standard": {
+          "run_count": 1,
+          "accepted_observation_count": 0,
+          "hard_violation_run_count": 0,
+          "tool_error_run_count": 0,
+          "tool_error_count": 0,
+          "unresolved_tool_error_run_count": 0,
+          "unresolved_tool_error_count": 0,
+          "repair_run_count": 0,
+          "repair_call_count": 0,
+          "accepted_run_count": 0,
+          "catastrophic_run_count": 0,
+          "passed_run_count": 1,
+          "rates": {
+            "hard_violation": 0.0,
+            "tool_error": 0.0,
+            "unresolved_tool_error": 0.0,
+            "repair": 0.0,
+            "acceptance": null,
+            "catastrophic": 0.0,
+            "passed": 1.0
+          },
+          "metrics": {
+            "duration_seconds": {
+              "count": 1,
+              "mean": 6.0254,
+              "median": 6.0254,
+              "p10": 6.0254,
+              "worst": 6.0254,
+              "variance": 0.0
+            },
+            "hard_violations_per_run": {
+              "count": 1,
+              "mean": 0.0,
+              "median": 0.0,
+              "p10": 0.0,
+              "worst": 0.0,
+              "variance": 0.0
+            },
+            "tool_errors_per_run": {
+              "count": 1,
+              "mean": 0.0,
+              "median": 0.0,
+              "p10": 0.0,
+              "worst": 0.0,
+              "variance": 0.0
+            },
+            "unresolved_tool_errors_per_run": {
+              "count": 1,
+              "mean": 0.0,
+              "median": 0.0,
+              "p10": 0.0,
+              "worst": 0.0,
+              "variance": 0.0
+            },
+            "repair_calls_per_run": {
+              "count": 1,
+              "mean": 0.0,
+              "median": 0.0,
+              "p10": 0.0,
+              "worst": 0.0,
+              "variance": 0.0
+            },
+            "passed": {
+              "count": 1,
+              "mean": 1.0,
+              "median": 1.0,
+              "p10": 1.0,
+              "worst": 1.0,
+              "variance": 0.0
+            },
+            "accepted": {
+              "count": 0,
+              "mean": null,
+              "median": null,
+              "p10": null,
+              "worst": null,
+              "variance": null
+            },
+            "catastrophic": {
+              "count": 1,
+              "mean": 0.0,
+              "median": 0.0,
+              "p10": 0.0,
+              "worst": 0.0,
+              "variance": 0.0
+            },
+            "model_call_count": {
+              "count": 1,
+              "mean": 4.0,
+              "median": 4.0,
+              "p10": 4.0,
+              "worst": 4.0,
+              "variance": 0.0
+            },
+            "tool_call_count": {
+              "count": 1,
+              "mean": 4.0,
+              "median": 4.0,
+              "p10": 4.0,
+              "worst": 4.0,
+              "variance": 0.0
+            },
+            "duplicate_read_count": {
+              "count": 1,
+              "mean": 0.0,
+              "median": 0.0,
+              "p10": 0.0,
+              "worst": 0.0,
+              "variance": 0.0
+            },
+            "total_tokens": {
+              "count": 1,
+              "mean": 42233.0,
+              "median": 42233.0,
+              "p10": 42233.0,
+              "worst": 42233.0,
+              "variance": 0.0
+            },
+            "model_duration_ms": {
+              "count": 1,
+              "mean": 5843.0,
+              "median": 5843.0,
+              "p10": 5843.0,
+              "worst": 5843.0,
+              "variance": 0.0
+            },
+            "soft_quality": {
+              "count": 1,
+              "mean": 1.0,
+              "median": 1.0,
+              "p10": 1.0,
+              "worst": 1.0,
+              "variance": 0.0
+            },
+            "visible_tool_count_mean": {
+              "count": 1,
+              "mean": 7.0,
+              "median": 7.0,
+              "p10": 7.0,
+              "worst": 7.0,
+              "variance": 0.0
+            }
+          },
+          "prompt_breakdown_tokens": {
+            "behavioral_memory_tokens": 0,
+            "conversation_tokens": 554,
+            "memory_context_tokens": 0,
+            "semantic_memory_tokens": 0,
+            "system_prompt_tokens": 33308,
+            "tool_observation_tokens": 6279,
+            "tool_schema_tokens": 14524,
+            "unattributed_input_tokens": 0
+          },
+          "tool_name_run_counts": {
+            "abandon_schedule_plan": 1,
+            "apply_schedule_plan": 1,
+            "edit_schedule_plan": 1,
+            "get_current_datetime": 1,
+            "get_planning_context": 1,
+            "propose_schedule_plan": 1,
+            "validate_schedule_plan": 1
+          },
+          "error_category_run_counts": {}
+        }
+      }
+    },
+    "case_446f83a008d588d3": {
+      "run_count": 1,
+      "variants": {
+        "candidate_standard": {
+          "run_count": 1,
+          "accepted_observation_count": 0,
+          "hard_violation_run_count": 0,
+          "tool_error_run_count": 0,
+          "tool_error_count": 0,
+          "unresolved_tool_error_run_count": 0,
+          "unresolved_tool_error_count": 0,
+          "repair_run_count": 0,
+          "repair_call_count": 0,
+          "accepted_run_count": 0,
+          "catastrophic_run_count": 0,
+          "passed_run_count": 1,
+          "rates": {
+            "hard_violation": 0.0,
+            "tool_error": 0.0,
+            "unresolved_tool_error": 0.0,
+            "repair": 0.0,
+            "acceptance": null,
+            "catastrophic": 0.0,
+            "passed": 1.0
+          },
+          "metrics": {
+            "duration_seconds": {
+              "count": 1,
+              "mean": 7.0472,
+              "median": 7.0472,
+              "p10": 7.0472,
+              "worst": 7.0472,
+              "variance": 0.0
+            },
+            "hard_violations_per_run": {
+              "count": 1,
+              "mean": 0.0,
+              "median": 0.0,
+              "p10": 0.0,
+              "worst": 0.0,
+              "variance": 0.0
+            },
+            "tool_errors_per_run": {
+              "count": 1,
+              "mean": 0.0,
+              "median": 0.0,
+              "p10": 0.0,
+              "worst": 0.0,
+              "variance": 0.0
+            },
+            "unresolved_tool_errors_per_run": {
+              "count": 1,
+              "mean": 0.0,
+              "median": 0.0,
+              "p10": 0.0,
+              "worst": 0.0,
+              "variance": 0.0
+            },
+            "repair_calls_per_run": {
+              "count": 1,
+              "mean": 0.0,
+              "median": 0.0,
+              "p10": 0.0,
+              "worst": 0.0,
+              "variance": 0.0
+            },
+            "passed": {
+              "count": 1,
+              "mean": 1.0,
+              "median": 1.0,
+              "p10": 1.0,
+              "worst": 1.0,
+              "variance": 0.0
+            },
+            "accepted": {
+              "count": 0,
+              "mean": null,
+              "median": null,
+              "p10": null,
+              "worst": null,
+              "variance": null
+            },
+            "catastrophic": {
+              "count": 1,
+              "mean": 0.0,
+              "median": 0.0,
+              "p10": 0.0,
+              "worst": 0.0,
+              "variance": 0.0
+            },
+            "model_call_count": {
+              "count": 1,
+              "mean": 4.0,
+              "median": 4.0,
+              "p10": 4.0,
+              "worst": 4.0,
+              "variance": 0.0
+            },
+            "tool_call_count": {
+              "count": 1,
+              "mean": 4.0,
+              "median": 4.0,
+              "p10": 4.0,
+              "worst": 4.0,
+              "variance": 0.0
+            },
+            "duplicate_read_count": {
+              "count": 1,
+              "mean": 0.0,
+              "median": 0.0,
+              "p10": 0.0,
+              "worst": 0.0,
+              "variance": 0.0
+            },
+            "total_tokens": {
+              "count": 1,
+              "mean": 43324.0,
+              "median": 43324.0,
+              "p10": 43324.0,
+              "worst": 43324.0,
+              "variance": 0.0
+            },
+            "model_duration_ms": {
+              "count": 1,
+              "mean": 6813.0,
+              "median": 6813.0,
+              "p10": 6813.0,
+              "worst": 6813.0,
+              "variance": 0.0
+            },
+            "soft_quality": {
+              "count": 1,
+              "mean": 1.0,
+              "median": 1.0,
+              "p10": 1.0,
+              "worst": 1.0,
+              "variance": 0.0
+            },
+            "visible_tool_count_mean": {
+              "count": 1,
+              "mean": 7.0,
+              "median": 7.0,
+              "p10": 7.0,
+              "worst": 7.0,
+              "variance": 0.0
+            }
+          },
+          "prompt_breakdown_tokens": {
+            "behavioral_memory_tokens": 0,
+            "conversation_tokens": 992,
+            "memory_context_tokens": 0,
+            "semantic_memory_tokens": 0,
+            "system_prompt_tokens": 33300,
+            "tool_observation_tokens": 6599,
+            "tool_schema_tokens": 14524,
+            "unattributed_input_tokens": 0
+          },
+          "tool_name_run_counts": {
+            "abandon_schedule_plan": 1,
+            "apply_schedule_plan": 1,
+            "edit_schedule_plan": 1,
+            "get_current_datetime": 1,
+            "get_planning_context": 1,
+            "propose_schedule_plan": 1,
+            "validate_schedule_plan": 1
+          },
+          "error_category_run_counts": {}
+        }
+      }
+    },
+    "case_55e990492af9976a": {
+      "run_count": 1,
+      "variants": {
+        "candidate_standard": {
+          "run_count": 1,
+          "accepted_observation_count": 0,
+          "hard_violation_run_count": 0,
+          "tool_error_run_count": 0,
+          "tool_error_count": 0,
+          "unresolved_tool_error_run_count": 0,
+          "unresolved_tool_error_count": 0,
+          "repair_run_count": 0,
+          "repair_call_count": 0,
+          "accepted_run_count": 0,
+          "catastrophic_run_count": 0,
+          "passed_run_count": 1,
+          "rates": {
+            "hard_violation": 0.0,
+            "tool_error": 0.0,
+            "unresolved_tool_error": 0.0,
+            "repair": 0.0,
+            "acceptance": null,
+            "catastrophic": 0.0,
+            "passed": 1.0
+          },
+          "metrics": {
+            "duration_seconds": {
+              "count": 1,
+              "mean": 7.7134,
+              "median": 7.7134,
+              "p10": 7.7134,
+              "worst": 7.7134,
+              "variance": 0.0
+            },
+            "hard_violations_per_run": {
+              "count": 1,
+              "mean": 0.0,
+              "median": 0.0,
+              "p10": 0.0,
+              "worst": 0.0,
+              "variance": 0.0
+            },
+            "tool_errors_per_run": {
+              "count": 1,
+              "mean": 0.0,
+              "median": 0.0,
+              "p10": 0.0,
+              "worst": 0.0,
+              "variance": 0.0
+            },
+            "unresolved_tool_errors_per_run": {
+              "count": 1,
+              "mean": 0.0,
+              "median": 0.0,
+              "p10": 0.0,
+              "worst": 0.0,
+              "variance": 0.0
+            },
+            "repair_calls_per_run": {
+              "count": 1,
+              "mean": 0.0,
+              "median": 0.0,
+              "p10": 0.0,
+              "worst": 0.0,
+              "variance": 0.0
+            },
+            "passed": {
+              "count": 1,
+              "mean": 1.0,
+              "median": 1.0,
+              "p10": 1.0,
+              "worst": 1.0,
+              "variance": 0.0
+            },
+            "accepted": {
+              "count": 0,
+              "mean": null,
+              "median": null,
+              "p10": null,
+              "worst": null,
+              "variance": null
+            },
+            "catastrophic": {
+              "count": 1,
+              "mean": 0.0,
+              "median": 0.0,
+              "p10": 0.0,
+              "worst": 0.0,
+              "variance": 0.0
+            },
+            "model_call_count": {
+              "count": 1,
+              "mean": 4.0,
+              "median": 4.0,
+              "p10": 4.0,
+              "worst": 4.0,
+              "variance": 0.0
+            },
+            "tool_call_count": {
+              "count": 1,
+              "mean": 6.0,
+              "median": 6.0,
+              "p10": 6.0,
+              "worst": 6.0,
+              "variance": 0.0
+            },
+            "duplicate_read_count": {
+              "count": 1,
+              "mean": 0.0,
+              "median": 0.0,
+              "p10": 0.0,
+              "worst": 0.0,
+              "variance": 0.0
+            },
+            "total_tokens": {
+              "count": 1,
+              "mean": 74521.0,
+              "median": 74521.0,
+              "p10": 74521.0,
+              "worst": 74521.0,
+              "variance": 0.0
+            },
+            "model_duration_ms": {
+              "count": 1,
+              "mean": 7500.0,
+              "median": 7500.0,
+              "p10": 7500.0,
+              "worst": 7500.0,
+              "variance": 0.0
+            },
+            "soft_quality": {
+              "count": 1,
+              "mean": 1.0,
+              "median": 1.0,
+              "p10": 1.0,
+              "worst": 1.0,
+              "variance": 0.0
+            },
+            "visible_tool_count_mean": {
+              "count": 1,
+              "mean": 40.0,
+              "median": 40.0,
+              "p10": 40.0,
+              "worst": 40.0,
+              "variance": 0.0
+            }
+          },
+          "prompt_breakdown_tokens": {
+            "behavioral_memory_tokens": 0,
+            "conversation_tokens": 516,
+            "memory_context_tokens": 0,
+            "semantic_memory_tokens": 0,
+            "system_prompt_tokens": 33308,
+            "tool_observation_tokens": 12697,
+            "tool_schema_tokens": 44360,
+            "unattributed_input_tokens": 0
+          },
+          "tool_name_run_counts": {
+            "abandon_schedule_plan": 1,
+            "act_on_temporal_insight": 1,
+            "apply_local_replan": 1,
+            "apply_schedule_plan": 1,
+            "cancel_reminder": 1,
+            "cancel_task": 1,
+            "change_task_batch_state": 1,
+            "change_task_state": 1,
+            "compare_schedule_plans": 1,
+            "complete_task": 1,
+            "create_recurring_event": 1,
+            "create_reminder": 1,
+            "create_task": 1,
+            "create_task_batch": 1,
+            "detect_schedule_disruptions": 1,
+            "edit_schedule_plan": 1,
+            "get_capacity_forecast": 1,
+            "get_current_datetime": 1,
+            "get_event": 1,
+            "get_planning_context": 1,
+            "get_reminder": 1,
+            "get_task": 1,
+            "get_task_execution_summary": 1,
+            "get_temporal_insight": 1,
+            "list_automation_policies": 1,
+            "list_calendar_sync_status": 1,
+            "list_events": 1,
+            "list_reminders": 1,
+            "list_tasks": 1,
+            "list_temporal_insights": 1,
+            "mutate_events": 1,
+            "propose_schedule_plan": 1,
+            "recommend_task_duration": 1,
+            "record_task_duration_feedback": 1,
+            "reschedule_task": 1,
+            "set_reminder_target": 1,
+            "transfer_to_briefing": 1,
+            "update_reminder": 1,
+            "update_task": 1,
+            "validate_schedule_plan": 1
+          },
+          "error_category_run_counts": {}
+        }
+      }
+    },
+    "case_d92f472f89f364c8": {
+      "run_count": 1,
+      "variants": {
+        "candidate_standard": {
+          "run_count": 1,
+          "accepted_observation_count": 0,
+          "hard_violation_run_count": 0,
+          "tool_error_run_count": 0,
+          "tool_error_count": 0,
+          "unresolved_tool_error_run_count": 0,
+          "unresolved_tool_error_count": 0,
+          "repair_run_count": 0,
+          "repair_call_count": 0,
+          "accepted_run_count": 0,
+          "catastrophic_run_count": 0,
+          "passed_run_count": 1,
+          "rates": {
+            "hard_violation": 0.0,
+            "tool_error": 0.0,
+            "unresolved_tool_error": 0.0,
+            "repair": 0.0,
+            "acceptance": null,
+            "catastrophic": 0.0,
+            "passed": 1.0
+          },
+          "metrics": {
+            "duration_seconds": {
+              "count": 1,
+              "mean": 5.4815,
+              "median": 5.4815,
+              "p10": 5.4815,
+              "worst": 5.4815,
+              "variance": 0.0
+            },
+            "hard_violations_per_run": {
+              "count": 1,
+              "mean": 0.0,
+              "median": 0.0,
+              "p10": 0.0,
+              "worst": 0.0,
+              "variance": 0.0
+            },
+            "tool_errors_per_run": {
+              "count": 1,
+              "mean": 0.0,
+              "median": 0.0,
+              "p10": 0.0,
+              "worst": 0.0,
+              "variance": 0.0
+            },
+            "unresolved_tool_errors_per_run": {
+              "count": 1,
+              "mean": 0.0,
+              "median": 0.0,
+              "p10": 0.0,
+              "worst": 0.0,
+              "variance": 0.0
+            },
+            "repair_calls_per_run": {
+              "count": 1,
+              "mean": 0.0,
+              "median": 0.0,
+              "p10": 0.0,
+              "worst": 0.0,
+              "variance": 0.0
+            },
+            "passed": {
+              "count": 1,
+              "mean": 1.0,
+              "median": 1.0,
+              "p10": 1.0,
+              "worst": 1.0,
+              "variance": 0.0
+            },
+            "accepted": {
+              "count": 0,
+              "mean": null,
+              "median": null,
+              "p10": null,
+              "worst": null,
+              "variance": null
+            },
+            "catastrophic": {
+              "count": 1,
+              "mean": 0.0,
+              "median": 0.0,
+              "p10": 0.0,
+              "worst": 0.0,
+              "variance": 0.0
+            },
+            "model_call_count": {
+              "count": 1,
+              "mean": 3.0,
+              "median": 3.0,
+              "p10": 3.0,
+              "worst": 3.0,
+              "variance": 0.0
+            },
+            "tool_call_count": {
+              "count": 1,
+              "mean": 3.0,
+              "median": 3.0,
+              "p10": 3.0,
+              "worst": 3.0,
+              "variance": 0.0
+            },
+            "duplicate_read_count": {
+              "count": 1,
+              "mean": 0.0,
+              "median": 0.0,
+              "p10": 0.0,
+              "worst": 0.0,
+              "variance": 0.0
+            },
+            "total_tokens": {
+              "count": 1,
+              "mean": 31837.0,
+              "median": 31837.0,
+              "p10": 31837.0,
+              "worst": 31837.0,
+              "variance": 0.0
+            },
+            "model_duration_ms": {
+              "count": 1,
+              "mean": 5265.0,
+              "median": 5265.0,
+              "p10": 5265.0,
+              "worst": 5265.0,
+              "variance": 0.0
+            },
+            "soft_quality": {
+              "count": 1,
+              "mean": 1.0,
+              "median": 1.0,
+              "p10": 1.0,
+              "worst": 1.0,
+              "variance": 0.0
+            },
+            "visible_tool_count_mean": {
+              "count": 1,
+              "mean": 7.0,
+              "median": 7.0,
+              "p10": 7.0,
+              "worst": 7.0,
+              "variance": 0.0
+            }
+          },
+          "prompt_breakdown_tokens": {
+            "behavioral_memory_tokens": 0,
+            "conversation_tokens": 417,
+            "memory_context_tokens": 0,
+            "semantic_memory_tokens": 0,
+            "system_prompt_tokens": 24981,
+            "tool_observation_tokens": 4351,
+            "tool_schema_tokens": 10893,
+            "unattributed_input_tokens": 0
+          },
+          "tool_name_run_counts": {
+            "abandon_schedule_plan": 1,
+            "apply_schedule_plan": 1,
+            "edit_schedule_plan": 1,
+            "get_current_datetime": 1,
+            "get_planning_context": 1,
+            "propose_schedule_plan": 1,
+            "validate_schedule_plan": 1
+          },
+          "error_category_run_counts": {}
+        }
+      }
+    },
+    "case_1a855b87da480ab3": {
+      "run_count": 1,
+      "variants": {
+        "candidate_standard": {
+          "run_count": 1,
+          "accepted_observation_count": 0,
+          "hard_violation_run_count": 0,
+          "tool_error_run_count": 0,
+          "tool_error_count": 0,
+          "unresolved_tool_error_run_count": 0,
+          "unresolved_tool_error_count": 0,
+          "repair_run_count": 0,
+          "repair_call_count": 0,
+          "accepted_run_count": 0,
+          "catastrophic_run_count": 0,
+          "passed_run_count": 1,
+          "rates": {
+            "hard_violation": 0.0,
+            "tool_error": 0.0,
+            "unresolved_tool_error": 0.0,
+            "repair": 0.0,
+            "acceptance": null,
+            "catastrophic": 0.0,
+            "passed": 1.0
+          },
+          "metrics": {
+            "duration_seconds": {
+              "count": 1,
+              "mean": 9.1669,
+              "median": 9.1669,
+              "p10": 9.1669,
+              "worst": 9.1669,
+              "variance": 0.0
+            },
+            "hard_violations_per_run": {
+              "count": 1,
+              "mean": 0.0,
+              "median": 0.0,
+              "p10": 0.0,
+              "worst": 0.0,
+              "variance": 0.0
+            },
+            "tool_errors_per_run": {
+              "count": 1,
+              "mean": 0.0,
+              "median": 0.0,
+              "p10": 0.0,
+              "worst": 0.0,
+              "variance": 0.0
+            },
+            "unresolved_tool_errors_per_run": {
+              "count": 1,
+              "mean": 0.0,
+              "median": 0.0,
+              "p10": 0.0,
+              "worst": 0.0,
+              "variance": 0.0
+            },
+            "repair_calls_per_run": {
+              "count": 1,
+              "mean": 0.0,
+              "median": 0.0,
+              "p10": 0.0,
+              "worst": 0.0,
+              "variance": 0.0
+            },
+            "passed": {
+              "count": 1,
+              "mean": 1.0,
+              "median": 1.0,
+              "p10": 1.0,
+              "worst": 1.0,
+              "variance": 0.0
+            },
+            "accepted": {
+              "count": 0,
+              "mean": null,
+              "median": null,
+              "p10": null,
+              "worst": null,
+              "variance": null
+            },
+            "catastrophic": {
+              "count": 1,
+              "mean": 0.0,
+              "median": 0.0,
+              "p10": 0.0,
+              "worst": 0.0,
+              "variance": 0.0
+            },
+            "model_call_count": {
+              "count": 1,
+              "mean": 4.0,
+              "median": 4.0,
+              "p10": 4.0,
+              "worst": 4.0,
+              "variance": 0.0
+            },
+            "tool_call_count": {
+              "count": 1,
+              "mean": 8.0,
+              "median": 8.0,
+              "p10": 8.0,
+              "worst": 8.0,
+              "variance": 0.0
+            },
+            "duplicate_read_count": {
+              "count": 1,
+              "mean": 0.0,
+              "median": 0.0,
+              "p10": 0.0,
+              "worst": 0.0,
+              "variance": 0.0
+            },
+            "total_tokens": {
+              "count": 1,
+              "mean": 48491.0,
+              "median": 48491.0,
+              "p10": 48491.0,
+              "worst": 48491.0,
+              "variance": 0.0
+            },
+            "model_duration_ms": {
+              "count": 1,
+              "mean": 8907.0,
+              "median": 8907.0,
+              "p10": 8907.0,
+              "worst": 8907.0,
+              "variance": 0.0
+            },
+            "soft_quality": {
+              "count": 0,
+              "mean": null,
+              "median": null,
+              "p10": null,
+              "worst": null,
+              "variance": null
+            },
+            "visible_tool_count_mean": {
+              "count": 1,
+              "mean": 17.0,
+              "median": 17.0,
+              "p10": 17.0,
+              "worst": 17.0,
+              "variance": 0.0
+            }
+          },
+          "prompt_breakdown_tokens": {
+            "behavioral_memory_tokens": 0,
+            "conversation_tokens": 631,
+            "memory_context_tokens": 0,
+            "semantic_memory_tokens": 0,
+            "system_prompt_tokens": 33572,
+            "tool_observation_tokens": 11588,
+            "tool_schema_tokens": 13776,
+            "unattributed_input_tokens": 0
+          },
+          "tool_name_run_counts": {
+            "detect_schedule_disruptions": 1,
+            "get_capacity_forecast": 1,
+            "get_current_datetime": 1,
+            "get_event": 1,
+            "get_planning_context": 1,
+            "get_reminder": 1,
+            "get_task": 1,
+            "get_task_execution_summary": 1,
+            "get_temporal_insight": 1,
+            "list_automation_policies": 1,
+            "list_calendar_sync_status": 1,
+            "list_events": 1,
+            "list_reminders": 1,
+            "list_tasks": 1,
+            "list_temporal_insights": 1,
+            "recommend_task_duration": 1,
+            "transfer_to_briefing": 1
+          },
+          "error_category_run_counts": {}
+        }
+      }
+    },
+    "case_378eab32736a2d5b": {
+      "run_count": 1,
+      "variants": {
+        "candidate_standard": {
+          "run_count": 1,
+          "accepted_observation_count": 0,
+          "hard_violation_run_count": 0,
+          "tool_error_run_count": 0,
+          "tool_error_count": 0,
+          "unresolved_tool_error_run_count": 0,
+          "unresolved_tool_error_count": 0,
+          "repair_run_count": 0,
+          "repair_call_count": 0,
+          "accepted_run_count": 0,
+          "catastrophic_run_count": 0,
+          "passed_run_count": 1,
+          "rates": {
+            "hard_violation": 0.0,
+            "tool_error": 0.0,
+            "unresolved_tool_error": 0.0,
+            "repair": 0.0,
+            "acceptance": null,
+            "catastrophic": 0.0,
+            "passed": 1.0
+          },
+          "metrics": {
+            "duration_seconds": {
+              "count": 1,
+              "mean": 6.775,
+              "median": 6.775,
+              "p10": 6.775,
+              "worst": 6.775,
+              "variance": 0.0
+            },
+            "hard_violations_per_run": {
+              "count": 1,
+              "mean": 0.0,
+              "median": 0.0,
+              "p10": 0.0,
+              "worst": 0.0,
+              "variance": 0.0
+            },
+            "tool_errors_per_run": {
+              "count": 1,
+              "mean": 0.0,
+              "median": 0.0,
+              "p10": 0.0,
+              "worst": 0.0,
+              "variance": 0.0
+            },
+            "unresolved_tool_errors_per_run": {
+              "count": 1,
+              "mean": 0.0,
+              "median": 0.0,
+              "p10": 0.0,
+              "worst": 0.0,
+              "variance": 0.0
+            },
+            "repair_calls_per_run": {
+              "count": 1,
+              "mean": 0.0,
+              "median": 0.0,
+              "p10": 0.0,
+              "worst": 0.0,
+              "variance": 0.0
+            },
+            "passed": {
+              "count": 1,
+              "mean": 1.0,
+              "median": 1.0,
+              "p10": 1.0,
+              "worst": 1.0,
+              "variance": 0.0
+            },
+            "accepted": {
+              "count": 0,
+              "mean": null,
+              "median": null,
+              "p10": null,
+              "worst": null,
+              "variance": null
+            },
+            "catastrophic": {
+              "count": 1,
+              "mean": 0.0,
+              "median": 0.0,
+              "p10": 0.0,
+              "worst": 0.0,
+              "variance": 0.0
+            },
+            "model_call_count": {
+              "count": 1,
+              "mean": 4.0,
+              "median": 4.0,
+              "p10": 4.0,
+              "worst": 4.0,
+              "variance": 0.0
+            },
+            "tool_call_count": {
+              "count": 1,
+              "mean": 4.0,
+              "median": 4.0,
+              "p10": 4.0,
+              "worst": 4.0,
+              "variance": 0.0
+            },
+            "duplicate_read_count": {
+              "count": 1,
+              "mean": 0.0,
+              "median": 0.0,
+              "p10": 0.0,
+              "worst": 0.0,
+              "variance": 0.0
+            },
+            "total_tokens": {
+              "count": 1,
+              "mean": 41893.0,
+              "median": 41893.0,
+              "p10": 41893.0,
+              "worst": 41893.0,
+              "variance": 0.0
+            },
+            "model_duration_ms": {
+              "count": 1,
+              "mean": 6578.0,
+              "median": 6578.0,
+              "p10": 6578.0,
+              "worst": 6578.0,
+              "variance": 0.0
+            },
+            "soft_quality": {
+              "count": 1,
+              "mean": 1.0,
+              "median": 1.0,
+              "p10": 1.0,
+              "worst": 1.0,
+              "variance": 0.0
+            },
+            "visible_tool_count_mean": {
+              "count": 1,
+              "mean": 7.0,
+              "median": 7.0,
+              "p10": 7.0,
+              "worst": 7.0,
+              "variance": 0.0
+            }
+          },
+          "prompt_breakdown_tokens": {
+            "behavioral_memory_tokens": 0,
+            "conversation_tokens": 553,
+            "memory_context_tokens": 0,
+            "semantic_memory_tokens": 0,
+            "system_prompt_tokens": 33308,
+            "tool_observation_tokens": 5916,
+            "tool_schema_tokens": 14524,
+            "unattributed_input_tokens": 0
+          },
+          "tool_name_run_counts": {
+            "abandon_schedule_plan": 1,
+            "apply_schedule_plan": 1,
+            "edit_schedule_plan": 1,
+            "get_current_datetime": 1,
+            "get_planning_context": 1,
+            "propose_schedule_plan": 1,
+            "validate_schedule_plan": 1
+          },
+          "error_category_run_counts": {}
+        }
+      }
+    },
+    "case_6ee8d70ec0aca64e": {
+      "run_count": 1,
+      "variants": {
+        "candidate_standard": {
+          "run_count": 1,
+          "accepted_observation_count": 0,
+          "hard_violation_run_count": 0,
+          "tool_error_run_count": 0,
+          "tool_error_count": 0,
+          "unresolved_tool_error_run_count": 0,
+          "unresolved_tool_error_count": 0,
+          "repair_run_count": 0,
+          "repair_call_count": 0,
+          "accepted_run_count": 0,
+          "catastrophic_run_count": 0,
+          "passed_run_count": 1,
+          "rates": {
+            "hard_violation": 0.0,
+            "tool_error": 0.0,
+            "unresolved_tool_error": 0.0,
+            "repair": 0.0,
+            "acceptance": null,
+            "catastrophic": 0.0,
+            "passed": 1.0
+          },
+          "metrics": {
+            "duration_seconds": {
+              "count": 1,
+              "mean": 5.0805,
+              "median": 5.0805,
+              "p10": 5.0805,
+              "worst": 5.0805,
+              "variance": 0.0
+            },
+            "hard_violations_per_run": {
+              "count": 1,
+              "mean": 0.0,
+              "median": 0.0,
+              "p10": 0.0,
+              "worst": 0.0,
+              "variance": 0.0
+            },
+            "tool_errors_per_run": {
+              "count": 1,
+              "mean": 0.0,
+              "median": 0.0,
+              "p10": 0.0,
+              "worst": 0.0,
+              "variance": 0.0
+            },
+            "unresolved_tool_errors_per_run": {
+              "count": 1,
+              "mean": 0.0,
+              "median": 0.0,
+              "p10": 0.0,
+              "worst": 0.0,
+              "variance": 0.0
+            },
+            "repair_calls_per_run": {
+              "count": 1,
+              "mean": 0.0,
+              "median": 0.0,
+              "p10": 0.0,
+              "worst": 0.0,
+              "variance": 0.0
+            },
+            "passed": {
+              "count": 1,
+              "mean": 1.0,
+              "median": 1.0,
+              "p10": 1.0,
+              "worst": 1.0,
+              "variance": 0.0
+            },
+            "accepted": {
+              "count": 0,
+              "mean": null,
+              "median": null,
+              "p10": null,
+              "worst": null,
+              "variance": null
+            },
+            "catastrophic": {
+              "count": 1,
+              "mean": 0.0,
+              "median": 0.0,
+              "p10": 0.0,
+              "worst": 0.0,
+              "variance": 0.0
+            },
+            "model_call_count": {
+              "count": 1,
+              "mean": 3.0,
+              "median": 3.0,
+              "p10": 3.0,
+              "worst": 3.0,
+              "variance": 0.0
+            },
+            "tool_call_count": {
+              "count": 1,
+              "mean": 3.0,
+              "median": 3.0,
+              "p10": 3.0,
+              "worst": 3.0,
+              "variance": 0.0
+            },
+            "duplicate_read_count": {
+              "count": 1,
+              "mean": 0.0,
+              "median": 0.0,
+              "p10": 0.0,
+              "worst": 0.0,
+              "variance": 0.0
+            },
+            "total_tokens": {
+              "count": 1,
+              "mean": 30633.0,
+              "median": 30633.0,
+              "p10": 30633.0,
+              "worst": 30633.0,
+              "variance": 0.0
+            },
+            "model_duration_ms": {
+              "count": 1,
+              "mean": 4844.0,
+              "median": 4844.0,
+              "p10": 4844.0,
+              "worst": 4844.0,
+              "variance": 0.0
+            },
+            "soft_quality": {
+              "count": 1,
+              "mean": 1.0,
+              "median": 1.0,
+              "p10": 1.0,
+              "worst": 1.0,
+              "variance": 0.0
+            },
+            "visible_tool_count_mean": {
+              "count": 1,
+              "mean": 7.0,
+              "median": 7.0,
+              "p10": 7.0,
+              "worst": 7.0,
+              "variance": 0.0
+            }
+          },
+          "prompt_breakdown_tokens": {
+            "behavioral_memory_tokens": 0,
+            "conversation_tokens": 377,
+            "memory_context_tokens": 0,
+            "semantic_memory_tokens": 0,
+            "system_prompt_tokens": 24975,
+            "tool_observation_tokens": 3646,
+            "tool_schema_tokens": 10893,
+            "unattributed_input_tokens": 0
+          },
+          "tool_name_run_counts": {
+            "abandon_schedule_plan": 1,
+            "apply_schedule_plan": 1,
+            "edit_schedule_plan": 1,
+            "get_current_datetime": 1,
+            "get_planning_context": 1,
+            "propose_schedule_plan": 1,
+            "validate_schedule_plan": 1
+          },
+          "error_category_run_counts": {}
+        }
+      }
+    },
+    "case_291a482ed450ca66": {
+      "run_count": 1,
+      "variants": {
+        "candidate_standard": {
+          "run_count": 1,
+          "accepted_observation_count": 0,
+          "hard_violation_run_count": 0,
+          "tool_error_run_count": 0,
+          "tool_error_count": 0,
+          "unresolved_tool_error_run_count": 0,
+          "unresolved_tool_error_count": 0,
+          "repair_run_count": 0,
+          "repair_call_count": 0,
+          "accepted_run_count": 0,
+          "catastrophic_run_count": 0,
+          "passed_run_count": 1,
+          "rates": {
+            "hard_violation": 0.0,
+            "tool_error": 0.0,
+            "unresolved_tool_error": 0.0,
+            "repair": 0.0,
+            "acceptance": null,
+            "catastrophic": 0.0,
+            "passed": 1.0
+          },
+          "metrics": {
+            "duration_seconds": {
+              "count": 1,
+              "mean": 8.9174,
+              "median": 8.9174,
+              "p10": 8.9174,
+              "worst": 8.9174,
+              "variance": 0.0
+            },
+            "hard_violations_per_run": {
+              "count": 1,
+              "mean": 0.0,
+              "median": 0.0,
+              "p10": 0.0,
+              "worst": 0.0,
+              "variance": 0.0
+            },
+            "tool_errors_per_run": {
+              "count": 1,
+              "mean": 0.0,
+              "median": 0.0,
+              "p10": 0.0,
+              "worst": 0.0,
+              "variance": 0.0
+            },
+            "unresolved_tool_errors_per_run": {
+              "count": 1,
+              "mean": 0.0,
+              "median": 0.0,
+              "p10": 0.0,
+              "worst": 0.0,
+              "variance": 0.0
+            },
+            "repair_calls_per_run": {
+              "count": 1,
+              "mean": 0.0,
+              "median": 0.0,
+              "p10": 0.0,
+              "worst": 0.0,
+              "variance": 0.0
+            },
+            "passed": {
+              "count": 1,
+              "mean": 1.0,
+              "median": 1.0,
+              "p10": 1.0,
+              "worst": 1.0,
+              "variance": 0.0
+            },
+            "accepted": {
+              "count": 0,
+              "mean": null,
+              "median": null,
+              "p10": null,
+              "worst": null,
+              "variance": null
+            },
+            "catastrophic": {
+              "count": 1,
+              "mean": 0.0,
+              "median": 0.0,
+              "p10": 0.0,
+              "worst": 0.0,
+              "variance": 0.0
+            },
+            "model_call_count": {
+              "count": 1,
+              "mean": 4.0,
+              "median": 4.0,
+              "p10": 4.0,
+              "worst": 4.0,
+              "variance": 0.0
+            },
+            "tool_call_count": {
+              "count": 1,
+              "mean": 7.0,
+              "median": 7.0,
+              "p10": 7.0,
+              "worst": 7.0,
+              "variance": 0.0
+            },
+            "duplicate_read_count": {
+              "count": 1,
+              "mean": 0.0,
+              "median": 0.0,
+              "p10": 0.0,
+              "worst": 0.0,
+              "variance": 0.0
+            },
+            "total_tokens": {
+              "count": 1,
+              "mean": 54088.0,
+              "median": 54088.0,
+              "p10": 54088.0,
+              "worst": 54088.0,
+              "variance": 0.0
+            },
+            "model_duration_ms": {
+              "count": 1,
+              "mean": 8672.0,
+              "median": 8672.0,
+              "p10": 8672.0,
+              "worst": 8672.0,
+              "variance": 0.0
+            },
+            "soft_quality": {
+              "count": 1,
+              "mean": 1.0,
+              "median": 1.0,
+              "p10": 1.0,
+              "worst": 1.0,
+              "variance": 0.0
+            },
+            "visible_tool_count_mean": {
+              "count": 1,
+              "mean": 7.0,
+              "median": 7.0,
+              "p10": 7.0,
+              "worst": 7.0,
+              "variance": 0.0
+            }
+          },
+          "prompt_breakdown_tokens": {
+            "behavioral_memory_tokens": 0,
+            "conversation_tokens": 713,
+            "memory_context_tokens": 0,
+            "semantic_memory_tokens": 0,
+            "system_prompt_tokens": 33308,
+            "tool_observation_tokens": 15831,
+            "tool_schema_tokens": 14524,
+            "unattributed_input_tokens": 0
+          },
+          "tool_name_run_counts": {
+            "abandon_schedule_plan": 1,
+            "apply_schedule_plan": 1,
+            "edit_schedule_plan": 1,
+            "get_current_datetime": 1,
+            "get_planning_context": 1,
+            "propose_schedule_plan": 1,
+            "validate_schedule_plan": 1
+          },
+          "error_category_run_counts": {}
+        }
+      }
+    },
+    "case_bf1a7c8ee1ac0c5f": {
+      "run_count": 1,
+      "variants": {
+        "candidate_standard": {
+          "run_count": 1,
+          "accepted_observation_count": 0,
+          "hard_violation_run_count": 0,
+          "tool_error_run_count": 0,
+          "tool_error_count": 0,
+          "unresolved_tool_error_run_count": 0,
+          "unresolved_tool_error_count": 0,
+          "repair_run_count": 0,
+          "repair_call_count": 0,
+          "accepted_run_count": 0,
+          "catastrophic_run_count": 0,
+          "passed_run_count": 1,
+          "rates": {
+            "hard_violation": 0.0,
+            "tool_error": 0.0,
+            "unresolved_tool_error": 0.0,
+            "repair": 0.0,
+            "acceptance": null,
+            "catastrophic": 0.0,
+            "passed": 1.0
+          },
+          "metrics": {
+            "duration_seconds": {
+              "count": 1,
+              "mean": 6.2351,
+              "median": 6.2351,
+              "p10": 6.2351,
+              "worst": 6.2351,
+              "variance": 0.0
+            },
+            "hard_violations_per_run": {
+              "count": 1,
+              "mean": 0.0,
+              "median": 0.0,
+              "p10": 0.0,
+              "worst": 0.0,
+              "variance": 0.0
+            },
+            "tool_errors_per_run": {
+              "count": 1,
+              "mean": 0.0,
+              "median": 0.0,
+              "p10": 0.0,
+              "worst": 0.0,
+              "variance": 0.0
+            },
+            "unresolved_tool_errors_per_run": {
+              "count": 1,
+              "mean": 0.0,
+              "median": 0.0,
+              "p10": 0.0,
+              "worst": 0.0,
+              "variance": 0.0
+            },
+            "repair_calls_per_run": {
+              "count": 1,
+              "mean": 0.0,
+              "median": 0.0,
+              "p10": 0.0,
+              "worst": 0.0,
+              "variance": 0.0
+            },
+            "passed": {
+              "count": 1,
+              "mean": 1.0,
+              "median": 1.0,
+              "p10": 1.0,
+              "worst": 1.0,
+              "variance": 0.0
+            },
+            "accepted": {
+              "count": 0,
+              "mean": null,
+              "median": null,
+              "p10": null,
+              "worst": null,
+              "variance": null
+            },
+            "catastrophic": {
+              "count": 1,
+              "mean": 0.0,
+              "median": 0.0,
+              "p10": 0.0,
+              "worst": 0.0,
+              "variance": 0.0
+            },
+            "model_call_count": {
+              "count": 1,
+              "mean": 4.0,
+              "median": 4.0,
+              "p10": 4.0,
+              "worst": 4.0,
+              "variance": 0.0
+            },
+            "tool_call_count": {
+              "count": 1,
+              "mean": 7.0,
+              "median": 7.0,
+              "p10": 7.0,
+              "worst": 7.0,
+              "variance": 0.0
+            },
+            "duplicate_read_count": {
+              "count": 1,
+              "mean": 0.0,
+              "median": 0.0,
+              "p10": 0.0,
+              "worst": 0.0,
+              "variance": 0.0
+            },
+            "total_tokens": {
+              "count": 1,
+              "mean": 44076.0,
+              "median": 44076.0,
+              "p10": 44076.0,
+              "worst": 44076.0,
+              "variance": 0.0
+            },
+            "model_duration_ms": {
+              "count": 1,
+              "mean": 6031.0,
+              "median": 6031.0,
+              "p10": 6031.0,
+              "worst": 6031.0,
+              "variance": 0.0
+            },
+            "soft_quality": {
+              "count": 0,
+              "mean": null,
+              "median": null,
+              "p10": null,
+              "worst": null,
+              "variance": null
+            },
+            "visible_tool_count_mean": {
+              "count": 1,
+              "mean": 17.0,
+              "median": 17.0,
+              "p10": 17.0,
+              "worst": 17.0,
+              "variance": 0.0
+            }
+          },
+          "prompt_breakdown_tokens": {
+            "behavioral_memory_tokens": 0,
+            "conversation_tokens": 595,
+            "memory_context_tokens": 0,
+            "semantic_memory_tokens": 0,
+            "system_prompt_tokens": 33564,
+            "tool_observation_tokens": 8330,
+            "tool_schema_tokens": 13776,
+            "unattributed_input_tokens": 0
+          },
+          "tool_name_run_counts": {
+            "detect_schedule_disruptions": 1,
+            "get_capacity_forecast": 1,
+            "get_current_datetime": 1,
+            "get_event": 1,
+            "get_planning_context": 1,
+            "get_reminder": 1,
+            "get_task": 1,
+            "get_task_execution_summary": 1,
+            "get_temporal_insight": 1,
+            "list_automation_policies": 1,
+            "list_calendar_sync_status": 1,
+            "list_events": 1,
+            "list_reminders": 1,
+            "list_tasks": 1,
+            "list_temporal_insights": 1,
+            "recommend_task_duration": 1,
+            "transfer_to_briefing": 1
+          },
+          "error_category_run_counts": {}
+        }
+      }
+    },
+    "case_5df95dbec0a56e9a": {
+      "run_count": 1,
+      "variants": {
+        "candidate_standard": {
+          "run_count": 1,
+          "accepted_observation_count": 0,
+          "hard_violation_run_count": 0,
+          "tool_error_run_count": 0,
+          "tool_error_count": 0,
+          "unresolved_tool_error_run_count": 0,
+          "unresolved_tool_error_count": 0,
+          "repair_run_count": 1,
+          "repair_call_count": 1,
+          "accepted_run_count": 0,
+          "catastrophic_run_count": 0,
+          "passed_run_count": 1,
+          "rates": {
+            "hard_violation": 0.0,
+            "tool_error": 0.0,
+            "unresolved_tool_error": 0.0,
+            "repair": 1.0,
+            "acceptance": null,
+            "catastrophic": 0.0,
+            "passed": 1.0
+          },
+          "metrics": {
+            "duration_seconds": {
+              "count": 1,
+              "mean": 10.1293,
+              "median": 10.1293,
+              "p10": 10.1293,
+              "worst": 10.1293,
+              "variance": 0.0
+            },
+            "hard_violations_per_run": {
+              "count": 1,
+              "mean": 0.0,
+              "median": 0.0,
+              "p10": 0.0,
+              "worst": 0.0,
+              "variance": 0.0
+            },
+            "tool_errors_per_run": {
+              "count": 1,
+              "mean": 0.0,
+              "median": 0.0,
+              "p10": 0.0,
+              "worst": 0.0,
+              "variance": 0.0
+            },
+            "unresolved_tool_errors_per_run": {
+              "count": 1,
+              "mean": 0.0,
+              "median": 0.0,
+              "p10": 0.0,
+              "worst": 0.0,
+              "variance": 0.0
+            },
+            "repair_calls_per_run": {
+              "count": 1,
+              "mean": 1.0,
+              "median": 1.0,
+              "p10": 1.0,
+              "worst": 1.0,
+              "variance": 0.0
+            },
+            "passed": {
+              "count": 1,
+              "mean": 1.0,
+              "median": 1.0,
+              "p10": 1.0,
+              "worst": 1.0,
+              "variance": 0.0
+            },
+            "accepted": {
+              "count": 0,
+              "mean": null,
+              "median": null,
+              "p10": null,
+              "worst": null,
+              "variance": null
+            },
+            "catastrophic": {
+              "count": 1,
+              "mean": 0.0,
+              "median": 0.0,
+              "p10": 0.0,
+              "worst": 0.0,
+              "variance": 0.0
+            },
+            "model_call_count": {
+              "count": 1,
+              "mean": 5.0,
+              "median": 5.0,
+              "p10": 5.0,
+              "worst": 5.0,
+              "variance": 0.0
+            },
+            "tool_call_count": {
+              "count": 1,
+              "mean": 7.0,
+              "median": 7.0,
+              "p10": 7.0,
+              "worst": 7.0,
+              "variance": 0.0
+            },
+            "duplicate_read_count": {
+              "count": 1,
+              "mean": 0.0,
+              "median": 0.0,
+              "p10": 0.0,
+              "worst": 0.0,
+              "variance": 0.0
+            },
+            "total_tokens": {
+              "count": 1,
+              "mean": 69899.0,
+              "median": 69899.0,
+              "p10": 69899.0,
+              "worst": 69899.0,
+              "variance": 0.0
+            },
+            "model_duration_ms": {
+              "count": 1,
+              "mean": 9861.0,
+              "median": 9861.0,
+              "p10": 9861.0,
+              "worst": 9861.0,
+              "variance": 0.0
+            },
+            "soft_quality": {
+              "count": 1,
+              "mean": 1.0,
+              "median": 1.0,
+              "p10": 1.0,
+              "worst": 1.0,
+              "variance": 0.0
+            },
+            "visible_tool_count_mean": {
+              "count": 1,
+              "mean": 7.0,
+              "median": 7.0,
+              "p10": 7.0,
+              "worst": 7.0,
+              "variance": 0.0
+            }
+          },
+          "prompt_breakdown_tokens": {
+            "behavioral_memory_tokens": 0,
+            "conversation_tokens": 954,
+            "memory_context_tokens": 0,
+            "semantic_memory_tokens": 0,
+            "system_prompt_tokens": 41635,
+            "tool_observation_tokens": 20522,
+            "tool_schema_tokens": 18155,
+            "unattributed_input_tokens": 0
+          },
+          "tool_name_run_counts": {
+            "abandon_schedule_plan": 1,
+            "apply_schedule_plan": 1,
+            "edit_schedule_plan": 1,
+            "get_current_datetime": 1,
+            "get_planning_context": 1,
+            "propose_schedule_plan": 1,
+            "validate_schedule_plan": 1
+          },
+          "error_category_run_counts": {}
+        }
+      }
+    },
+    "case_2f44440b245bb834": {
+      "run_count": 1,
+      "variants": {
+        "candidate_standard": {
+          "run_count": 1,
+          "accepted_observation_count": 0,
+          "hard_violation_run_count": 0,
+          "tool_error_run_count": 0,
+          "tool_error_count": 0,
+          "unresolved_tool_error_run_count": 0,
+          "unresolved_tool_error_count": 0,
+          "repair_run_count": 0,
+          "repair_call_count": 0,
+          "accepted_run_count": 0,
+          "catastrophic_run_count": 0,
+          "passed_run_count": 1,
+          "rates": {
+            "hard_violation": 0.0,
+            "tool_error": 0.0,
+            "unresolved_tool_error": 0.0,
+            "repair": 0.0,
+            "acceptance": null,
+            "catastrophic": 0.0,
+            "passed": 1.0
+          },
+          "metrics": {
+            "duration_seconds": {
+              "count": 1,
+              "mean": 6.7947,
+              "median": 6.7947,
+              "p10": 6.7947,
+              "worst": 6.7947,
+              "variance": 0.0
+            },
+            "hard_violations_per_run": {
+              "count": 1,
+              "mean": 0.0,
+              "median": 0.0,
+              "p10": 0.0,
+              "worst": 0.0,
+              "variance": 0.0
+            },
+            "tool_errors_per_run": {
+              "count": 1,
+              "mean": 0.0,
+              "median": 0.0,
+              "p10": 0.0,
+              "worst": 0.0,
+              "variance": 0.0
+            },
+            "unresolved_tool_errors_per_run": {
+              "count": 1,
+              "mean": 0.0,
+              "median": 0.0,
+              "p10": 0.0,
+              "worst": 0.0,
+              "variance": 0.0
+            },
+            "repair_calls_per_run": {
+              "count": 1,
+              "mean": 0.0,
+              "median": 0.0,
+              "p10": 0.0,
+              "worst": 0.0,
+              "variance": 0.0
+            },
+            "passed": {
+              "count": 1,
+              "mean": 1.0,
+              "median": 1.0,
+              "p10": 1.0,
+              "worst": 1.0,
+              "variance": 0.0
+            },
+            "accepted": {
+              "count": 0,
+              "mean": null,
+              "median": null,
+              "p10": null,
+              "worst": null,
+              "variance": null
+            },
+            "catastrophic": {
+              "count": 1,
+              "mean": 0.0,
+              "median": 0.0,
+              "p10": 0.0,
+              "worst": 0.0,
+              "variance": 0.0
+            },
+            "model_call_count": {
+              "count": 1,
+              "mean": 4.0,
+              "median": 4.0,
+              "p10": 4.0,
+              "worst": 4.0,
+              "variance": 0.0
+            },
+            "tool_call_count": {
+              "count": 1,
+              "mean": 4.0,
+              "median": 4.0,
+              "p10": 4.0,
+              "worst": 4.0,
+              "variance": 0.0
+            },
+            "duplicate_read_count": {
+              "count": 1,
+              "mean": 0.0,
+              "median": 0.0,
+              "p10": 0.0,
+              "worst": 0.0,
+              "variance": 0.0
+            },
+            "total_tokens": {
+              "count": 1,
+              "mean": 44574.0,
+              "median": 44574.0,
+              "p10": 44574.0,
+              "worst": 44574.0,
+              "variance": 0.0
+            },
+            "model_duration_ms": {
+              "count": 1,
+              "mean": 6530.0,
+              "median": 6530.0,
+              "p10": 6530.0,
+              "worst": 6530.0,
+              "variance": 0.0
+            },
+            "soft_quality": {
+              "count": 1,
+              "mean": 1.0,
+              "median": 1.0,
+              "p10": 1.0,
+              "worst": 1.0,
+              "variance": 0.0
+            },
+            "visible_tool_count_mean": {
+              "count": 1,
+              "mean": 7.0,
+              "median": 7.0,
+              "p10": 7.0,
+              "worst": 7.0,
+              "variance": 0.0
+            }
+          },
+          "prompt_breakdown_tokens": {
+            "behavioral_memory_tokens": 0,
+            "conversation_tokens": 596,
+            "memory_context_tokens": 0,
+            "semantic_memory_tokens": 0,
+            "system_prompt_tokens": 33308,
+            "tool_observation_tokens": 8396,
+            "tool_schema_tokens": 14524,
+            "unattributed_input_tokens": 0
+          },
+          "tool_name_run_counts": {
+            "abandon_schedule_plan": 1,
+            "apply_schedule_plan": 1,
+            "edit_schedule_plan": 1,
+            "get_current_datetime": 1,
+            "get_planning_context": 1,
+            "propose_schedule_plan": 1,
+            "validate_schedule_plan": 1
+          },
+          "error_category_run_counts": {}
+        }
+      }
+    },
+    "case_0aa06a80a1e9ba45": {
+      "run_count": 1,
+      "variants": {
+        "candidate_standard": {
+          "run_count": 1,
+          "accepted_observation_count": 0,
+          "hard_violation_run_count": 0,
+          "tool_error_run_count": 0,
+          "tool_error_count": 0,
+          "unresolved_tool_error_run_count": 0,
+          "unresolved_tool_error_count": 0,
+          "repair_run_count": 0,
+          "repair_call_count": 0,
+          "accepted_run_count": 0,
+          "catastrophic_run_count": 0,
+          "passed_run_count": 1,
+          "rates": {
+            "hard_violation": 0.0,
+            "tool_error": 0.0,
+            "unresolved_tool_error": 0.0,
+            "repair": 0.0,
+            "acceptance": null,
+            "catastrophic": 0.0,
+            "passed": 1.0
+          },
+          "metrics": {
+            "duration_seconds": {
+              "count": 1,
+              "mean": 8.1759,
+              "median": 8.1759,
+              "p10": 8.1759,
+              "worst": 8.1759,
+              "variance": 0.0
+            },
+            "hard_violations_per_run": {
+              "count": 1,
+              "mean": 0.0,
+              "median": 0.0,
+              "p10": 0.0,
+              "worst": 0.0,
+              "variance": 0.0
+            },
+            "tool_errors_per_run": {
+              "count": 1,
+              "mean": 0.0,
+              "median": 0.0,
+              "p10": 0.0,
+              "worst": 0.0,
+              "variance": 0.0
+            },
+            "unresolved_tool_errors_per_run": {
+              "count": 1,
+              "mean": 0.0,
+              "median": 0.0,
+              "p10": 0.0,
+              "worst": 0.0,
+              "variance": 0.0
+            },
+            "repair_calls_per_run": {
+              "count": 1,
+              "mean": 0.0,
+              "median": 0.0,
+              "p10": 0.0,
+              "worst": 0.0,
+              "variance": 0.0
+            },
+            "passed": {
+              "count": 1,
+              "mean": 1.0,
+              "median": 1.0,
+              "p10": 1.0,
+              "worst": 1.0,
+              "variance": 0.0
+            },
+            "accepted": {
+              "count": 0,
+              "mean": null,
+              "median": null,
+              "p10": null,
+              "worst": null,
+              "variance": null
+            },
+            "catastrophic": {
+              "count": 1,
+              "mean": 0.0,
+              "median": 0.0,
+              "p10": 0.0,
+              "worst": 0.0,
+              "variance": 0.0
+            },
+            "model_call_count": {
+              "count": 1,
+              "mean": 4.0,
+              "median": 4.0,
+              "p10": 4.0,
+              "worst": 4.0,
+              "variance": 0.0
+            },
+            "tool_call_count": {
+              "count": 1,
+              "mean": 6.0,
+              "median": 6.0,
+              "p10": 6.0,
+              "worst": 6.0,
+              "variance": 0.0
+            },
+            "duplicate_read_count": {
+              "count": 1,
+              "mean": 0.0,
+              "median": 0.0,
+              "p10": 0.0,
+              "worst": 0.0,
+              "variance": 0.0
+            },
+            "total_tokens": {
+              "count": 1,
+              "mean": 50508.0,
+              "median": 50508.0,
+              "p10": 50508.0,
+              "worst": 50508.0,
+              "variance": 0.0
+            },
+            "model_duration_ms": {
+              "count": 1,
+              "mean": 7937.0,
+              "median": 7937.0,
+              "p10": 7937.0,
+              "worst": 7937.0,
+              "variance": 0.0
+            },
+            "soft_quality": {
+              "count": 1,
+              "mean": 1.0,
+              "median": 1.0,
+              "p10": 1.0,
+              "worst": 1.0,
+              "variance": 0.0
+            },
+            "visible_tool_count_mean": {
+              "count": 1,
+              "mean": 7.0,
+              "median": 7.0,
+              "p10": 7.0,
+              "worst": 7.0,
+              "variance": 0.0
+            }
+          },
+          "prompt_breakdown_tokens": {
+            "behavioral_memory_tokens": 0,
+            "conversation_tokens": 547,
+            "memory_context_tokens": 0,
+            "semantic_memory_tokens": 0,
+            "system_prompt_tokens": 33308,
+            "tool_observation_tokens": 11998,
+            "tool_schema_tokens": 14524,
+            "unattributed_input_tokens": 0
+          },
+          "tool_name_run_counts": {
+            "abandon_schedule_plan": 1,
+            "apply_schedule_plan": 1,
+            "edit_schedule_plan": 1,
+            "get_current_datetime": 1,
+            "get_planning_context": 1,
+            "propose_schedule_plan": 1,
+            "validate_schedule_plan": 1
+          },
+          "error_category_run_counts": {}
+        }
+      }
+    },
+    "case_fb39019a95d3bc03": {
+      "run_count": 1,
+      "variants": {
+        "candidate_standard": {
+          "run_count": 1,
+          "accepted_observation_count": 0,
+          "hard_violation_run_count": 0,
+          "tool_error_run_count": 0,
+          "tool_error_count": 0,
+          "unresolved_tool_error_run_count": 0,
+          "unresolved_tool_error_count": 0,
+          "repair_run_count": 0,
+          "repair_call_count": 0,
+          "accepted_run_count": 0,
+          "catastrophic_run_count": 0,
+          "passed_run_count": 1,
+          "rates": {
+            "hard_violation": 0.0,
+            "tool_error": 0.0,
+            "unresolved_tool_error": 0.0,
+            "repair": 0.0,
+            "acceptance": null,
+            "catastrophic": 0.0,
+            "passed": 1.0
+          },
+          "metrics": {
+            "duration_seconds": {
+              "count": 1,
+              "mean": 8.4024,
+              "median": 8.4024,
+              "p10": 8.4024,
+              "worst": 8.4024,
+              "variance": 0.0
+            },
+            "hard_violations_per_run": {
+              "count": 1,
+              "mean": 0.0,
+              "median": 0.0,
+              "p10": 0.0,
+              "worst": 0.0,
+              "variance": 0.0
+            },
+            "tool_errors_per_run": {
+              "count": 1,
+              "mean": 0.0,
+              "median": 0.0,
+              "p10": 0.0,
+              "worst": 0.0,
+              "variance": 0.0
+            },
+            "unresolved_tool_errors_per_run": {
+              "count": 1,
+              "mean": 0.0,
+              "median": 0.0,
+              "p10": 0.0,
+              "worst": 0.0,
+              "variance": 0.0
+            },
+            "repair_calls_per_run": {
+              "count": 1,
+              "mean": 0.0,
+              "median": 0.0,
+              "p10": 0.0,
+              "worst": 0.0,
+              "variance": 0.0
+            },
+            "passed": {
+              "count": 1,
+              "mean": 1.0,
+              "median": 1.0,
+              "p10": 1.0,
+              "worst": 1.0,
+              "variance": 0.0
+            },
+            "accepted": {
+              "count": 0,
+              "mean": null,
+              "median": null,
+              "p10": null,
+              "worst": null,
+              "variance": null
+            },
+            "catastrophic": {
+              "count": 1,
+              "mean": 0.0,
+              "median": 0.0,
+              "p10": 0.0,
+              "worst": 0.0,
+              "variance": 0.0
+            },
+            "model_call_count": {
+              "count": 1,
+              "mean": 4.0,
+              "median": 4.0,
+              "p10": 4.0,
+              "worst": 4.0,
+              "variance": 0.0
+            },
+            "tool_call_count": {
+              "count": 1,
+              "mean": 6.0,
+              "median": 6.0,
+              "p10": 6.0,
+              "worst": 6.0,
+              "variance": 0.0
+            },
+            "duplicate_read_count": {
+              "count": 1,
+              "mean": 0.0,
+              "median": 0.0,
+              "p10": 0.0,
+              "worst": 0.0,
+              "variance": 0.0
+            },
+            "total_tokens": {
+              "count": 1,
+              "mean": 49313.0,
+              "median": 49313.0,
+              "p10": 49313.0,
+              "worst": 49313.0,
+              "variance": 0.0
+            },
+            "model_duration_ms": {
+              "count": 1,
+              "mean": 8218.0,
+              "median": 8218.0,
+              "p10": 8218.0,
+              "worst": 8218.0,
+              "variance": 0.0
+            },
+            "soft_quality": {
+              "count": 1,
+              "mean": 1.0,
+              "median": 1.0,
+              "p10": 1.0,
+              "worst": 1.0,
+              "variance": 0.0
+            },
+            "visible_tool_count_mean": {
+              "count": 1,
+              "mean": 7.0,
+              "median": 7.0,
+              "p10": 7.0,
+              "worst": 7.0,
+              "variance": 0.0
+            }
+          },
+          "prompt_breakdown_tokens": {
+            "behavioral_memory_tokens": 0,
+            "conversation_tokens": 914,
+            "memory_context_tokens": 0,
+            "semantic_memory_tokens": 0,
+            "system_prompt_tokens": 33300,
+            "tool_observation_tokens": 11416,
+            "tool_schema_tokens": 14524,
+            "unattributed_input_tokens": 0
+          },
+          "tool_name_run_counts": {
+            "abandon_schedule_plan": 1,
+            "apply_schedule_plan": 1,
+            "edit_schedule_plan": 1,
+            "get_current_datetime": 1,
+            "get_planning_context": 1,
+            "propose_schedule_plan": 1,
+            "validate_schedule_plan": 1
+          },
+          "error_category_run_counts": {}
+        }
+      }
+    },
+    "case_3e2d4862f07bc34b": {
+      "run_count": 1,
+      "variants": {
+        "candidate_standard": {
+          "run_count": 1,
+          "accepted_observation_count": 0,
+          "hard_violation_run_count": 0,
+          "tool_error_run_count": 0,
+          "tool_error_count": 0,
+          "unresolved_tool_error_run_count": 0,
+          "unresolved_tool_error_count": 0,
+          "repair_run_count": 0,
+          "repair_call_count": 0,
+          "accepted_run_count": 0,
+          "catastrophic_run_count": 0,
+          "passed_run_count": 1,
+          "rates": {
+            "hard_violation": 0.0,
+            "tool_error": 0.0,
+            "unresolved_tool_error": 0.0,
+            "repair": 0.0,
+            "acceptance": null,
+            "catastrophic": 0.0,
+            "passed": 1.0
+          },
+          "metrics": {
+            "duration_seconds": {
+              "count": 1,
+              "mean": 6.5983,
+              "median": 6.5983,
+              "p10": 6.5983,
+              "worst": 6.5983,
+              "variance": 0.0
+            },
+            "hard_violations_per_run": {
+              "count": 1,
+              "mean": 0.0,
+              "median": 0.0,
+              "p10": 0.0,
+              "worst": 0.0,
+              "variance": 0.0
+            },
+            "tool_errors_per_run": {
+              "count": 1,
+              "mean": 0.0,
+              "median": 0.0,
+              "p10": 0.0,
+              "worst": 0.0,
+              "variance": 0.0
+            },
+            "unresolved_tool_errors_per_run": {
+              "count": 1,
+              "mean": 0.0,
+              "median": 0.0,
+              "p10": 0.0,
+              "worst": 0.0,
+              "variance": 0.0
+            },
+            "repair_calls_per_run": {
+              "count": 1,
+              "mean": 0.0,
+              "median": 0.0,
+              "p10": 0.0,
+              "worst": 0.0,
+              "variance": 0.0
+            },
+            "passed": {
+              "count": 1,
+              "mean": 1.0,
+              "median": 1.0,
+              "p10": 1.0,
+              "worst": 1.0,
+              "variance": 0.0
+            },
+            "accepted": {
+              "count": 0,
+              "mean": null,
+              "median": null,
+              "p10": null,
+              "worst": null,
+              "variance": null
+            },
+            "catastrophic": {
+              "count": 1,
+              "mean": 0.0,
+              "median": 0.0,
+              "p10": 0.0,
+              "worst": 0.0,
+              "variance": 0.0
+            },
+            "model_call_count": {
+              "count": 1,
+              "mean": 4.0,
+              "median": 4.0,
+              "p10": 4.0,
+              "worst": 4.0,
+              "variance": 0.0
+            },
+            "tool_call_count": {
+              "count": 1,
+              "mean": 5.0,
+              "median": 5.0,
+              "p10": 5.0,
+              "worst": 5.0,
+              "variance": 0.0
+            },
+            "duplicate_read_count": {
+              "count": 1,
+              "mean": 0.0,
+              "median": 0.0,
+              "p10": 0.0,
+              "worst": 0.0,
+              "variance": 0.0
+            },
+            "total_tokens": {
+              "count": 1,
+              "mean": 65529.0,
+              "median": 65529.0,
+              "p10": 65529.0,
+              "worst": 65529.0,
+              "variance": 0.0
+            },
+            "model_duration_ms": {
+              "count": 1,
+              "mean": 6376.0,
+              "median": 6376.0,
+              "p10": 6376.0,
+              "worst": 6376.0,
+              "variance": 0.0
+            },
+            "soft_quality": {
+              "count": 1,
+              "mean": 1.0,
+              "median": 1.0,
+              "p10": 1.0,
+              "worst": 1.0,
+              "variance": 0.0
+            },
+            "visible_tool_count_mean": {
+              "count": 1,
+              "mean": 39.0,
+              "median": 39.0,
+              "p10": 39.0,
+              "worst": 39.0,
+              "variance": 0.0
+            }
+          },
+          "prompt_breakdown_tokens": {
+            "behavioral_memory_tokens": 0,
+            "conversation_tokens": 536,
+            "memory_context_tokens": 0,
+            "semantic_memory_tokens": 0,
+            "system_prompt_tokens": 33308,
+            "tool_observation_tokens": 6775,
+            "tool_schema_tokens": 43140,
+            "unattributed_input_tokens": 0
+          },
+          "tool_name_run_counts": {
+            "abandon_schedule_plan": 1,
+            "act_on_temporal_insight": 1,
+            "apply_local_replan": 1,
+            "apply_schedule_plan": 1,
+            "cancel_reminder": 1,
+            "cancel_task": 1,
+            "change_task_batch_state": 1,
+            "change_task_state": 1,
+            "compare_schedule_plans": 1,
+            "complete_task": 1,
+            "create_recurring_event": 1,
+            "create_reminder": 1,
+            "create_task": 1,
+            "create_task_batch": 1,
+            "detect_schedule_disruptions": 1,
+            "edit_schedule_plan": 1,
+            "get_capacity_forecast": 1,
+            "get_current_datetime": 1,
+            "get_event": 1,
+            "get_planning_context": 1,
+            "get_reminder": 1,
+            "get_task": 1,
+            "get_task_execution_summary": 1,
+            "get_temporal_insight": 1,
+            "list_automation_policies": 1,
+            "list_calendar_sync_status": 1,
+            "list_events": 1,
+            "list_reminders": 1,
+            "list_tasks": 1,
+            "list_temporal_insights": 1,
+            "mutate_events": 1,
+            "propose_schedule_plan": 1,
+            "recommend_task_duration": 1,
+            "record_task_duration_feedback": 1,
+            "set_reminder_target": 1,
+            "transfer_to_briefing": 1,
+            "update_reminder": 1,
+            "update_task": 1,
+            "validate_schedule_plan": 1
+          },
+          "error_category_run_counts": {}
+        }
+      }
+    },
+    "case_41dae54ed2b03870": {
+      "run_count": 1,
+      "variants": {
+        "candidate_standard": {
+          "run_count": 1,
+          "accepted_observation_count": 0,
+          "hard_violation_run_count": 0,
+          "tool_error_run_count": 0,
+          "tool_error_count": 0,
+          "unresolved_tool_error_run_count": 0,
+          "unresolved_tool_error_count": 0,
+          "repair_run_count": 0,
+          "repair_call_count": 0,
+          "accepted_run_count": 0,
+          "catastrophic_run_count": 0,
+          "passed_run_count": 1,
+          "rates": {
+            "hard_violation": 0.0,
+            "tool_error": 0.0,
+            "unresolved_tool_error": 0.0,
+            "repair": 0.0,
+            "acceptance": null,
+            "catastrophic": 0.0,
+            "passed": 1.0
+          },
+          "metrics": {
+            "duration_seconds": {
+              "count": 1,
+              "mean": 9.4849,
+              "median": 9.4849,
+              "p10": 9.4849,
+              "worst": 9.4849,
+              "variance": 0.0
+            },
+            "hard_violations_per_run": {
+              "count": 1,
+              "mean": 0.0,
+              "median": 0.0,
+              "p10": 0.0,
+              "worst": 0.0,
+              "variance": 0.0
+            },
+            "tool_errors_per_run": {
+              "count": 1,
+              "mean": 0.0,
+              "median": 0.0,
+              "p10": 0.0,
+              "worst": 0.0,
+              "variance": 0.0
+            },
+            "unresolved_tool_errors_per_run": {
+              "count": 1,
+              "mean": 0.0,
+              "median": 0.0,
+              "p10": 0.0,
+              "worst": 0.0,
+              "variance": 0.0
+            },
+            "repair_calls_per_run": {
+              "count": 1,
+              "mean": 0.0,
+              "median": 0.0,
+              "p10": 0.0,
+              "worst": 0.0,
+              "variance": 0.0
+            },
+            "passed": {
+              "count": 1,
+              "mean": 1.0,
+              "median": 1.0,
+              "p10": 1.0,
+              "worst": 1.0,
+              "variance": 0.0
+            },
+            "accepted": {
+              "count": 0,
+              "mean": null,
+              "median": null,
+              "p10": null,
+              "worst": null,
+              "variance": null
+            },
+            "catastrophic": {
+              "count": 1,
+              "mean": 0.0,
+              "median": 0.0,
+              "p10": 0.0,
+              "worst": 0.0,
+              "variance": 0.0
+            },
+            "model_call_count": {
+              "count": 1,
+              "mean": 4.0,
+              "median": 4.0,
+              "p10": 4.0,
+              "worst": 4.0,
+              "variance": 0.0
+            },
+            "tool_call_count": {
+              "count": 1,
+              "mean": 7.0,
+              "median": 7.0,
+              "p10": 7.0,
+              "worst": 7.0,
+              "variance": 0.0
+            },
+            "duplicate_read_count": {
+              "count": 1,
+              "mean": 0.0,
+              "median": 0.0,
+              "p10": 0.0,
+              "worst": 0.0,
+              "variance": 0.0
+            },
+            "total_tokens": {
+              "count": 1,
+              "mean": 56511.0,
+              "median": 56511.0,
+              "p10": 56511.0,
+              "worst": 56511.0,
+              "variance": 0.0
+            },
+            "model_duration_ms": {
+              "count": 1,
+              "mean": 9218.0,
+              "median": 9218.0,
+              "p10": 9218.0,
+              "worst": 9218.0,
+              "variance": 0.0
+            },
+            "soft_quality": {
+              "count": 1,
+              "mean": 1.0,
+              "median": 1.0,
+              "p10": 1.0,
+              "worst": 1.0,
+              "variance": 0.0
+            },
+            "visible_tool_count_mean": {
+              "count": 1,
+              "mean": 7.0,
+              "median": 7.0,
+              "p10": 7.0,
+              "worst": 7.0,
+              "variance": 0.0
+            }
+          },
+          "prompt_breakdown_tokens": {
+            "behavioral_memory_tokens": 0,
+            "conversation_tokens": 1128,
+            "memory_context_tokens": 0,
+            "semantic_memory_tokens": 0,
+            "system_prompt_tokens": 33324,
+            "tool_observation_tokens": 17014,
+            "tool_schema_tokens": 14524,
+            "unattributed_input_tokens": 0
+          },
+          "tool_name_run_counts": {
+            "abandon_schedule_plan": 1,
+            "apply_schedule_plan": 1,
+            "edit_schedule_plan": 1,
+            "get_current_datetime": 1,
+            "get_planning_context": 1,
+            "propose_schedule_plan": 1,
+            "validate_schedule_plan": 1
+          },
+          "error_category_run_counts": {}
+        }
+      }
+    },
+    "case_696e353ede11bf4f": {
+      "run_count": 1,
+      "variants": {
+        "candidate_standard": {
+          "run_count": 1,
+          "accepted_observation_count": 0,
+          "hard_violation_run_count": 0,
+          "tool_error_run_count": 0,
+          "tool_error_count": 0,
+          "unresolved_tool_error_run_count": 0,
+          "unresolved_tool_error_count": 0,
+          "repair_run_count": 0,
+          "repair_call_count": 0,
+          "accepted_run_count": 0,
+          "catastrophic_run_count": 0,
+          "passed_run_count": 1,
+          "rates": {
+            "hard_violation": 0.0,
+            "tool_error": 0.0,
+            "unresolved_tool_error": 0.0,
+            "repair": 0.0,
+            "acceptance": null,
+            "catastrophic": 0.0,
+            "passed": 1.0
+          },
+          "metrics": {
+            "duration_seconds": {
+              "count": 1,
+              "mean": 6.4999,
+              "median": 6.4999,
+              "p10": 6.4999,
+              "worst": 6.4999,
+              "variance": 0.0
+            },
+            "hard_violations_per_run": {
+              "count": 1,
+              "mean": 0.0,
+              "median": 0.0,
+              "p10": 0.0,
+              "worst": 0.0,
+              "variance": 0.0
+            },
+            "tool_errors_per_run": {
+              "count": 1,
+              "mean": 0.0,
+              "median": 0.0,
+              "p10": 0.0,
+              "worst": 0.0,
+              "variance": 0.0
+            },
+            "unresolved_tool_errors_per_run": {
+              "count": 1,
+              "mean": 0.0,
+              "median": 0.0,
+              "p10": 0.0,
+              "worst": 0.0,
+              "variance": 0.0
+            },
+            "repair_calls_per_run": {
+              "count": 1,
+              "mean": 0.0,
+              "median": 0.0,
+              "p10": 0.0,
+              "worst": 0.0,
+              "variance": 0.0
+            },
+            "passed": {
+              "count": 1,
+              "mean": 1.0,
+              "median": 1.0,
+              "p10": 1.0,
+              "worst": 1.0,
+              "variance": 0.0
+            },
+            "accepted": {
+              "count": 0,
+              "mean": null,
+              "median": null,
+              "p10": null,
+              "worst": null,
+              "variance": null
+            },
+            "catastrophic": {
+              "count": 1,
+              "mean": 0.0,
+              "median": 0.0,
+              "p10": 0.0,
+              "worst": 0.0,
+              "variance": 0.0
+            },
+            "model_call_count": {
+              "count": 1,
+              "mean": 3.0,
+              "median": 3.0,
+              "p10": 3.0,
+              "worst": 3.0,
+              "variance": 0.0
+            },
+            "tool_call_count": {
+              "count": 1,
+              "mean": 5.0,
+              "median": 5.0,
+              "p10": 5.0,
+              "worst": 5.0,
+              "variance": 0.0
+            },
+            "duplicate_read_count": {
+              "count": 1,
+              "mean": 0.0,
+              "median": 0.0,
+              "p10": 0.0,
+              "worst": 0.0,
+              "variance": 0.0
+            },
+            "total_tokens": {
+              "count": 1,
+              "mean": 29179.0,
+              "median": 29179.0,
+              "p10": 29179.0,
+              "worst": 29179.0,
+              "variance": 0.0
+            },
+            "model_duration_ms": {
+              "count": 1,
+              "mean": 6328.0,
+              "median": 6328.0,
+              "p10": 6328.0,
+              "worst": 6328.0,
+              "variance": 0.0
+            },
+            "soft_quality": {
+              "count": 0,
+              "mean": null,
+              "median": null,
+              "p10": null,
+              "worst": null,
+              "variance": null
+            },
+            "visible_tool_count_mean": {
+              "count": 1,
+              "mean": 2.0,
+              "median": 2.0,
+              "p10": 2.0,
+              "worst": 2.0,
+              "variance": 0.0
+            }
+          },
+          "prompt_breakdown_tokens": {
+            "behavioral_memory_tokens": 0,
+            "conversation_tokens": 427,
+            "memory_context_tokens": 0,
+            "semantic_memory_tokens": 0,
+            "system_prompt_tokens": 25173,
+            "tool_observation_tokens": 6140,
+            "tool_schema_tokens": 4389,
+            "unattributed_input_tokens": 0
+          },
+          "tool_name_run_counts": {
+            "get_current_datetime": 1,
+            "get_planning_context": 1
+          },
+          "error_category_run_counts": {}
+        }
+      }
+    },
+    "case_93c05ecbfa24d59e": {
+      "run_count": 1,
+      "variants": {
+        "candidate_standard": {
+          "run_count": 1,
+          "accepted_observation_count": 0,
+          "hard_violation_run_count": 0,
+          "tool_error_run_count": 0,
+          "tool_error_count": 0,
+          "unresolved_tool_error_run_count": 0,
+          "unresolved_tool_error_count": 0,
+          "repair_run_count": 0,
+          "repair_call_count": 0,
+          "accepted_run_count": 0,
+          "catastrophic_run_count": 0,
+          "passed_run_count": 1,
+          "rates": {
+            "hard_violation": 0.0,
+            "tool_error": 0.0,
+            "unresolved_tool_error": 0.0,
+            "repair": 0.0,
+            "acceptance": null,
+            "catastrophic": 0.0,
+            "passed": 1.0
+          },
+          "metrics": {
+            "duration_seconds": {
+              "count": 1,
+              "mean": 7.6399,
+              "median": 7.6399,
+              "p10": 7.6399,
+              "worst": 7.6399,
+              "variance": 0.0
+            },
+            "hard_violations_per_run": {
+              "count": 1,
+              "mean": 0.0,
+              "median": 0.0,
+              "p10": 0.0,
+              "worst": 0.0,
+              "variance": 0.0
+            },
+            "tool_errors_per_run": {
+              "count": 1,
+              "mean": 0.0,
+              "median": 0.0,
+              "p10": 0.0,
+              "worst": 0.0,
+              "variance": 0.0
+            },
+            "unresolved_tool_errors_per_run": {
+              "count": 1,
+              "mean": 0.0,
+              "median": 0.0,
+              "p10": 0.0,
+              "worst": 0.0,
+              "variance": 0.0
+            },
+            "repair_calls_per_run": {
+              "count": 1,
+              "mean": 0.0,
+              "median": 0.0,
+              "p10": 0.0,
+              "worst": 0.0,
+              "variance": 0.0
+            },
+            "passed": {
+              "count": 1,
+              "mean": 1.0,
+              "median": 1.0,
+              "p10": 1.0,
+              "worst": 1.0,
+              "variance": 0.0
+            },
+            "accepted": {
+              "count": 0,
+              "mean": null,
+              "median": null,
+              "p10": null,
+              "worst": null,
+              "variance": null
+            },
+            "catastrophic": {
+              "count": 1,
+              "mean": 0.0,
+              "median": 0.0,
+              "p10": 0.0,
+              "worst": 0.0,
+              "variance": 0.0
+            },
+            "model_call_count": {
+              "count": 1,
+              "mean": 4.0,
+              "median": 4.0,
+              "p10": 4.0,
+              "worst": 4.0,
+              "variance": 0.0
+            },
+            "tool_call_count": {
+              "count": 1,
+              "mean": 7.0,
+              "median": 7.0,
+              "p10": 7.0,
+              "worst": 7.0,
+              "variance": 0.0
+            },
+            "duplicate_read_count": {
+              "count": 1,
+              "mean": 0.0,
+              "median": 0.0,
+              "p10": 0.0,
+              "worst": 0.0,
+              "variance": 0.0
+            },
+            "total_tokens": {
+              "count": 1,
+              "mean": 55176.0,
+              "median": 55176.0,
+              "p10": 55176.0,
+              "worst": 55176.0,
+              "variance": 0.0
+            },
+            "model_duration_ms": {
+              "count": 1,
+              "mean": 7390.0,
+              "median": 7390.0,
+              "p10": 7390.0,
+              "worst": 7390.0,
+              "variance": 0.0
+            },
+            "soft_quality": {
+              "count": 1,
+              "mean": 1.0,
+              "median": 1.0,
+              "p10": 1.0,
+              "worst": 1.0,
+              "variance": 0.0
+            },
+            "visible_tool_count_mean": {
+              "count": 1,
+              "mean": 7.0,
+              "median": 7.0,
+              "p10": 7.0,
+              "worst": 7.0,
+              "variance": 0.0
+            }
+          },
+          "prompt_breakdown_tokens": {
+            "behavioral_memory_tokens": 0,
+            "conversation_tokens": 1005,
+            "memory_context_tokens": 0,
+            "semantic_memory_tokens": 0,
+            "system_prompt_tokens": 33316,
+            "tool_observation_tokens": 16623,
+            "tool_schema_tokens": 14524,
+            "unattributed_input_tokens": 0
+          },
+          "tool_name_run_counts": {
+            "abandon_schedule_plan": 1,
+            "apply_schedule_plan": 1,
+            "edit_schedule_plan": 1,
+            "get_current_datetime": 1,
+            "get_planning_context": 1,
+            "propose_schedule_plan": 1,
+            "validate_schedule_plan": 1
+          },
+          "error_category_run_counts": {}
+        }
+      }
+    }
+  },
+  "statistical_conventions": {
+    "p10": "linear interpolation at index (n - 1) * 0.10",
+    "variance": "population variance",
+    "worst": "maximum for durations, failures, and counts; minimum for pass/accept rates",
+    "acceptance": "computed only from rows with accepted=true/false; null is excluded",
+    "rate_denominators": "all runs except acceptance, which uses known observations"
+  }
+}

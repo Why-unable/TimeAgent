@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from datetime import UTC, datetime, time, timedelta
 from typing import Annotated, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, TypeAdapter
+from pydantic import AwareDatetime, BaseModel, ConfigDict, Field, TypeAdapter
 
 from common.time import resolve_local_datetime, to_user_timezone, to_utc, validate_timezone
 
@@ -16,8 +16,8 @@ class AbsoluteEventTime(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     kind: Literal["absolute"]
-    start_at: datetime
-    end_at: datetime
+    start_at: AwareDatetime
+    end_at: AwareDatetime
 
 
 class RelativeEventTime(BaseModel):

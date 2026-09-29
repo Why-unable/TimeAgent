@@ -5579,6 +5579,12 @@
                         "type": "string",
                         "format": "date-time"
                     },
+                    "total_schedulable_capacity_minutes": {
+                        "type": "integer"
+                    },
+                    "remaining_free_minutes": {
+                        "type": "integer"
+                    },
                     "available_minutes": {
                         "type": "integer"
                     },
@@ -5604,7 +5610,9 @@
                     "range_end",
                     "range_start",
                     "reason_codes",
+                    "remaining_free_minutes",
                     "risk",
+                    "total_schedulable_capacity_minutes",
                     "unplanned_minutes"
                 ]
             },

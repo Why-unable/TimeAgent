@@ -1,8 +1,8 @@
-from datetime import datetime
+from typing import Literal
 from uuid import UUID
 
 from langchain.tools import ToolRuntime, tool
-from pydantic import BaseModel, Field
+from pydantic import AwareDatetime, BaseModel, Field
 
 from apps.agents.context import RuntimeContext
 from apps.agents.tools.common import model_dict, require_actor, require_writable
@@ -35,9 +35,9 @@ class TaskDraftInput(BaseModel):
     description: str = ""
     project: str = ""
     priority: str = "medium"
-    due_at: datetime | None = None
-    planned_start_at: datetime | None = None
-    planned_end_at: datetime | None = None
+    due_at: AwareDatetime | None = None
+    planned_start_at: AwareDatetime | None = None
+    planned_end_at: AwareDatetime | None = None
     estimated_minutes: int | None = None
     tags: list[str] = Field(default_factory=list)
 
@@ -45,7 +45,7 @@ class TaskDraftInput(BaseModel):
 @tool
 def list_tasks(
     statuses: list[str] | None = None,
-    due_before: datetime | None = None,
+    due_before: AwareDatetime | None = None,
     runtime: ToolRuntime[RuntimeContext] = None,  # type: ignore[assignment]
 ) -> list[dict[str, object]]:
     """List the user's tasks; *_at is UTC and *_at_local is the trusted user-zone display time."""
@@ -105,9 +105,9 @@ def create_task(
     description: str = "",
     project: str = "",
     priority: str = "medium",
-    due_at: datetime | None = None,
-    planned_start_at: datetime | None = None,
-    planned_end_at: datetime | None = None,
+    due_at: AwareDatetime | None = None,
+    planned_start_at: AwareDatetime | None = None,
+    planned_end_at: AwareDatetime | None = None,
     estimated_minutes: int | None = None,
     tags: list[str] | None = None,
 ) -> dict[str, object]:
@@ -172,7 +172,7 @@ def update_task(
     description: str | None = None,
     project: str | None = None,
     priority: str | None = None,
-    due_at: datetime | None = None,
+    due_at: AwareDatetime | None = None,
     estimated_minutes: int | None = None,
     tags: list[str] | None = None,
 ) -> dict[str, object]:
@@ -208,10 +208,10 @@ def update_task(
 @tool
 def change_task_state(
     task_id: UUID,
-    status: str,
+    status: Literal["in_progress"],
     runtime: ToolRuntime[RuntimeContext],
 ) -> dict[str, object]:
-    """Move a task through its state machine: in_progress, completed, or cancelled."""
+    """Mark a task in progress; use complete_task or the approval-gated cancel_task otherwise."""
 
     task = TaskService.change_task_state(
         task_id=task_id,
@@ -287,12 +287,19 @@ def cancel_task(task_id: UUID, runtime: ToolRuntime[RuntimeContext]) -> dict[str
 @tool
 def reschedule_task(
     task_id: UUID,
-    planned_start_at: datetime,
-    planned_end_at: datetime,
+    planned_start_at: AwareDatetime,
+    planned_end_at: AwareDatetime,
     expected_version: int,
     runtime: ToolRuntime[RuntimeContext],
 ) -> dict[str, object]:
-    """Submit a requested move for HITL approval without writing first."""
+    """Submit one explicitly requested task move for HITL approval.
+
+    When the user has directly asked to resolve a one-task schedule conflict and
+    a valid replacement slot is available, call this tool immediately. The call
+    requests approval and pauses before changing data; do not ask for a second
+    verbal confirmation first. Use only the task version and slot returned by
+    the latest task-scoped planning context.
+    """
 
     task = TaskService.reschedule_task(
         task_id=task_id,

@@ -1,0 +1,1227 @@
+{
+  "schema_version": "timeagent.sanitized-evaluation-runs.v1",
+  "runs": [
+    {
+      "case_id": "case_46d4158a316aeaf5",
+      "variant": "candidate_standard",
+      "repeat": 1,
+      "passed": false,
+      "duration_seconds": 16.1326,
+      "hard_violations": [],
+      "tool_error_count": 1,
+      "unresolved_tool_error_count": 1,
+      "repair_call_count": 1,
+      "accepted": null,
+      "catastrophic": true,
+      "model_call_count": 8,
+      "tool_call_count": 9,
+      "duplicate_read_count": 0,
+      "total_tokens": 107270,
+      "model_duration_ms": 15625,
+      "prompt_breakdown_tokens": {
+        "system_prompt_tokens": 68472,
+        "behavioral_memory_tokens": 0,
+        "semantic_memory_tokens": 0,
+        "memory_context_tokens": 0,
+        "tool_schema_tokens": 29048,
+        "conversation_tokens": 5197,
+        "tool_observation_tokens": 24425,
+        "unattributed_input_tokens": 0
+      },
+      "visible_tool_count_mean": 7.0,
+      "tool_names": [
+        "abandon_schedule_plan",
+        "apply_schedule_plan",
+        "edit_schedule_plan",
+        "get_current_datetime",
+        "get_planning_context",
+        "propose_schedule_plan",
+        "validate_schedule_plan"
+      ],
+      "tool_calls": [
+        {
+          "name": "get_current_datetime",
+          "status": "success",
+          "arguments_redacted": {}
+        },
+        {
+          "name": "get_planning_context",
+          "status": "success",
+          "arguments_redacted": {
+            "mode": "[redacted:string]",
+            "range_start": "[redacted:datetime]",
+            "range_end": "[redacted:datetime]"
+          }
+        },
+        {
+          "name": "get_planning_context",
+          "status": "success",
+          "arguments_redacted": {
+            "mode": "[redacted:string]",
+            "range_start": "[redacted:datetime]",
+            "range_end": "[redacted:datetime]"
+          }
+        },
+        {
+          "name": "propose_schedule_plan",
+          "status": "success",
+          "arguments_redacted": {
+            "task_ids": [
+              "[redacted:string]",
+              "[redacted:string]",
+              "[redacted:string]"
+            ],
+            "range_start": "[redacted:datetime]",
+            "range_end": "[redacted:datetime]",
+            "allowed_weekdays": [
+              0,
+              1,
+              2,
+              3,
+              4
+            ],
+            "max_daily_minutes": 180,
+            "daily_worktime_overrides": [
+              {
+                "start_date": "[redacted:string]",
+                "end_date": "[redacted:string]",
+                "daily_start": "[redacted:string]",
+                "daily_end": "[redacted:string]"
+              }
+            ],
+            "task_decisions": [
+              {
+                "task_id": "[redacted:string]",
+                "preferred_start_at": "[redacted:datetime]",
+                "rationale": "[redacted:string]"
+              },
+              {
+                "task_id": "[redacted:string]",
+                "predecessor_task_ids": [
+                  "[redacted:string]"
+                ],
+                "preferred_start_at": "[redacted:datetime]",
+                "rationale": "[redacted:string]"
+              },
+              {
+                "task_id": "[redacted:string]",
+                "predecessor_task_ids": [
+                  "[redacted:string]"
+                ],
+                "preferred_start_at": "[redacted:datetime]",
+                "rationale": "[redacted:string]"
+              }
+            ]
+          }
+        },
+        {
+          "name": "get_planning_context",
+          "status": "success",
+          "arguments_redacted": {
+            "mode": "[redacted:string]",
+            "range_start": "[redacted:datetime]",
+            "range_end": "[redacted:datetime]",
+            "task_id": "[redacted:string]",
+            "allowed_weekdays": [
+              0,
+              1,
+              2,
+              3,
+              4
+            ],
+            "daily_worktime_overrides": [
+              {
+                "start_date": "[redacted:string]",
+                "end_date": "[redacted:string]",
+                "daily_start": "[redacted:string]",
+                "daily_end": "[redacted:string]"
+              }
+            ],
+            "one_slot_per_local_date": true,
+            "max_free_slots": 10
+          }
+        },
+        {
+          "name": "get_planning_context",
+          "status": "success",
+          "arguments_redacted": {
+            "allowed_weekdays": [
+              0,
+              1,
+              2,
+              3,
+              4
+            ],
+            "daily_worktime_overrides": [
+              {
+                "daily_end": "[redacted:string]",
+                "daily_start": "[redacted:string]",
+                "end_date": "[redacted:string]",
+                "start_date": "[redacted:string]"
+              }
+            ],
+            "max_free_slots": 10,
+            "mode": "[redacted:string]",
+            "one_slot_per_local_date": true,
+            "range_end": "[redacted:datetime]",
+            "range_start": "[redacted:datetime]",
+            "task_id": "[redacted:string]"
+          }
+        },
+        {
+          "name": "edit_schedule_plan",
+          "status": "error",
+          "arguments_redacted": {
+            "plan_id": "[redacted:string]",
+            "expected_version": 1,
+            "edits": [
+              {
+                "task_id": "[redacted:string]",
+                "start_at": "[redacted:datetime]",
+                "end_at": "[redacted:datetime]"
+              }
+            ]
+          }
+        },
+        {
+          "name": "get_planning_context",
+          "status": "success",
+          "arguments_redacted": {
+            "allowed_weekdays": [
+              0,
+              1,
+              2,
+              3,
+              4
+            ],
+            "daily_worktime_overrides": [
+              {
+                "daily_end": "[redacted:string]",
+                "daily_start": "[redacted:string]",
+                "end_date": "[redacted:string]",
+                "start_date": "[redacted:string]"
+              }
+            ],
+            "max_free_slots": 10,
+            "mode": "[redacted:string]",
+            "one_slot_per_local_date": true,
+            "range_end": "[redacted:datetime]",
+            "range_start": "[redacted:datetime]",
+            "task_id": "[redacted:string]"
+          }
+        },
+        {
+          "name": "get_planning_context",
+          "status": "success",
+          "arguments_redacted": {
+            "allowed_weekdays": [
+              0,
+              1,
+              2,
+              3,
+              4
+            ],
+            "daily_worktime_overrides": [
+              {
+                "daily_end": "[redacted:string]",
+                "daily_start": "[redacted:string]",
+                "end_date": "[redacted:string]",
+                "start_date": "[redacted:string]"
+              }
+            ],
+            "max_free_slots": 20,
+            "mode": "[redacted:string]",
+            "range_end": "[redacted:datetime]",
+            "range_start": "[redacted:datetime]",
+            "task_id": "[redacted:string]"
+          }
+        }
+      ],
+      "final_schedule": [
+        {
+          "candidate_index": 1,
+          "status": "draft",
+          "task_count": 3,
+          "placed_task_count": 3,
+          "unplaced_task_count": 0,
+          "placed_minutes": 240,
+          "placed_segments": 3,
+          "distinct_day_count": 2,
+          "distinct_week_count": 2,
+          "schedule": [
+            {
+              "task_id": "task_01",
+              "segments": [
+                {
+                  "start_at": "2026-11-02T17:00:00+00:00",
+                  "end_at": "2026-11-02T18:00:00+00:00"
+                }
+              ]
+            },
+            {
+              "task_id": "task_02",
+              "segments": [
+                {
+                  "start_at": "2026-10-30T18:30:00+00:00",
+                  "end_at": "2026-10-30T20:00:00+00:00"
+                }
+              ]
+            },
+            {
+              "task_id": "task_03",
+              "segments": [
+                {
+                  "start_at": "2026-10-30T16:00:00+00:00",
+                  "end_at": "2026-10-30T17:30:00+00:00"
+                }
+              ]
+            }
+          ],
+          "hard_violations": [],
+          "soft_check_pass_rate": 0.8,
+          "soft_checks": [
+            {
+              "code": "precedence",
+              "passed": true
+            },
+            {
+              "code": "precedence",
+              "passed": true
+            },
+            {
+              "code": "min_distinct_days",
+              "passed": false
+            },
+            {
+              "code": "max_daily_minutes",
+              "passed": true
+            },
+            {
+              "code": "max_unplaced",
+              "passed": true
+            }
+          ]
+        }
+      ],
+      "soft_quality": 0.8,
+      "error_categories": [
+        "edit_schedule_plan"
+      ]
+    },
+    {
+      "case_id": "case_46d4158a316aeaf5",
+      "variant": "candidate_standard",
+      "repeat": 2,
+      "passed": true,
+      "duration_seconds": 8.3977,
+      "hard_violations": [],
+      "tool_error_count": 0,
+      "unresolved_tool_error_count": 0,
+      "repair_call_count": 0,
+      "accepted": null,
+      "catastrophic": false,
+      "model_call_count": 4,
+      "tool_call_count": 4,
+      "duplicate_read_count": 0,
+      "total_tokens": 44262,
+      "model_duration_ms": 8125,
+      "prompt_breakdown_tokens": {
+        "system_prompt_tokens": 34236,
+        "behavioral_memory_tokens": 0,
+        "semantic_memory_tokens": 0,
+        "memory_context_tokens": 0,
+        "tool_schema_tokens": 14524,
+        "conversation_tokens": 1210,
+        "tool_observation_tokens": 6603,
+        "unattributed_input_tokens": 0
+      },
+      "visible_tool_count_mean": 7.0,
+      "tool_names": [
+        "abandon_schedule_plan",
+        "apply_schedule_plan",
+        "edit_schedule_plan",
+        "get_current_datetime",
+        "get_planning_context",
+        "propose_schedule_plan",
+        "validate_schedule_plan"
+      ],
+      "tool_calls": [
+        {
+          "name": "get_current_datetime",
+          "status": "success",
+          "arguments_redacted": {}
+        },
+        {
+          "name": "get_planning_context",
+          "status": "success",
+          "arguments_redacted": {
+            "range_start": "[redacted:datetime]",
+            "range_end": "[redacted:datetime]",
+            "mode": "[redacted:string]"
+          }
+        },
+        {
+          "name": "get_planning_context",
+          "status": "success",
+          "arguments_redacted": {
+            "mode": "[redacted:string]",
+            "range_start": "[redacted:datetime]",
+            "range_end": "[redacted:datetime]"
+          }
+        },
+        {
+          "name": "propose_schedule_plan",
+          "status": "success",
+          "arguments_redacted": {
+            "task_ids": [
+              "[redacted:string]",
+              "[redacted:string]",
+              "[redacted:string]"
+            ],
+            "range_start": "[redacted:datetime]",
+            "range_end": "[redacted:datetime]",
+            "allowed_weekdays": [
+              0,
+              1,
+              2,
+              3,
+              4
+            ],
+            "max_daily_minutes": 180,
+            "daily_worktime_overrides": [
+              {
+                "start_date": "[redacted:string]",
+                "end_date": "[redacted:string]",
+                "daily_start": "[redacted:string]",
+                "daily_end": "[redacted:string]"
+              }
+            ],
+            "task_decisions": [
+              {
+                "task_id": "[redacted:string]",
+                "preferred_start_at": "[redacted:datetime]",
+                "rationale": "[redacted:string]"
+              },
+              {
+                "task_id": "[redacted:string]",
+                "predecessor_task_ids": [
+                  "[redacted:string]"
+                ],
+                "preferred_start_at": "[redacted:datetime]",
+                "rationale": "[redacted:string]"
+              },
+              {
+                "task_id": "[redacted:string]",
+                "predecessor_task_ids": [
+                  "[redacted:string]"
+                ],
+                "preferred_start_at": "[redacted:datetime]",
+                "rationale": "[redacted:string]"
+              }
+            ]
+          }
+        }
+      ],
+      "final_schedule": [
+        {
+          "candidate_index": 1,
+          "status": "draft",
+          "task_count": 3,
+          "placed_task_count": 3,
+          "unplaced_task_count": 0,
+          "placed_minutes": 240,
+          "placed_segments": 3,
+          "distinct_day_count": 3,
+          "distinct_week_count": 2,
+          "schedule": [
+            {
+              "task_id": "task_01",
+              "segments": [
+                {
+                  "start_at": "2026-11-05T15:00:00+00:00",
+                  "end_at": "2026-11-05T16:00:00+00:00"
+                }
+              ]
+            },
+            {
+              "task_id": "task_02",
+              "segments": [
+                {
+                  "start_at": "2026-11-03T15:00:00+00:00",
+                  "end_at": "2026-11-03T16:30:00+00:00"
+                }
+              ]
+            },
+            {
+              "task_id": "task_03",
+              "segments": [
+                {
+                  "start_at": "2026-10-30T16:00:00+00:00",
+                  "end_at": "2026-10-30T17:30:00+00:00"
+                }
+              ]
+            }
+          ],
+          "hard_violations": [],
+          "soft_check_pass_rate": 1.0,
+          "soft_checks": [
+            {
+              "code": "precedence",
+              "passed": true
+            },
+            {
+              "code": "precedence",
+              "passed": true
+            },
+            {
+              "code": "min_distinct_days",
+              "passed": true
+            },
+            {
+              "code": "max_daily_minutes",
+              "passed": true
+            },
+            {
+              "code": "max_unplaced",
+              "passed": true
+            }
+          ]
+        }
+      ],
+      "soft_quality": 1.0,
+      "error_categories": []
+    },
+    {
+      "case_id": "case_46d4158a316aeaf5",
+      "variant": "candidate_standard",
+      "repeat": 3,
+      "passed": true,
+      "duration_seconds": 7.7216,
+      "hard_violations": [],
+      "tool_error_count": 0,
+      "unresolved_tool_error_count": 0,
+      "repair_call_count": 0,
+      "accepted": null,
+      "catastrophic": false,
+      "model_call_count": 4,
+      "tool_call_count": 4,
+      "duplicate_read_count": 0,
+      "total_tokens": 44199,
+      "model_duration_ms": 7391,
+      "prompt_breakdown_tokens": {
+        "system_prompt_tokens": 34236,
+        "behavioral_memory_tokens": 0,
+        "semantic_memory_tokens": 0,
+        "memory_context_tokens": 0,
+        "tool_schema_tokens": 14524,
+        "conversation_tokens": 1128,
+        "tool_observation_tokens": 6635,
+        "unattributed_input_tokens": 0
+      },
+      "visible_tool_count_mean": 7.0,
+      "tool_names": [
+        "abandon_schedule_plan",
+        "apply_schedule_plan",
+        "edit_schedule_plan",
+        "get_current_datetime",
+        "get_planning_context",
+        "propose_schedule_plan",
+        "validate_schedule_plan"
+      ],
+      "tool_calls": [
+        {
+          "name": "get_current_datetime",
+          "status": "success",
+          "arguments_redacted": {}
+        },
+        {
+          "name": "get_planning_context",
+          "status": "success",
+          "arguments_redacted": {
+            "mode": "[redacted:string]",
+            "range_start": "[redacted:datetime]",
+            "range_end": "[redacted:datetime]"
+          }
+        },
+        {
+          "name": "get_planning_context",
+          "status": "success",
+          "arguments_redacted": {
+            "mode": "[redacted:string]",
+            "range_start": "[redacted:datetime]",
+            "range_end": "[redacted:datetime]"
+          }
+        },
+        {
+          "name": "propose_schedule_plan",
+          "status": "success",
+          "arguments_redacted": {
+            "task_ids": [
+              "[redacted:string]",
+              "[redacted:string]",
+              "[redacted:string]"
+            ],
+            "range_start": "[redacted:datetime]",
+            "range_end": "[redacted:datetime]",
+            "allowed_weekdays": [
+              0,
+              1,
+              2,
+              3,
+              4
+            ],
+            "max_daily_minutes": 180,
+            "daily_worktime_overrides": [
+              {
+                "start_date": "[redacted:string]",
+                "end_date": "[redacted:string]",
+                "daily_start": "[redacted:string]",
+                "daily_end": "[redacted:string]"
+              }
+            ],
+            "task_decisions": [
+              {
+                "task_id": "[redacted:string]",
+                "preferred_start_at": "[redacted:datetime]",
+                "rationale": "[redacted:string]"
+              },
+              {
+                "task_id": "[redacted:string]",
+                "predecessor_task_ids": [
+                  "[redacted:string]"
+                ],
+                "preferred_start_at": "[redacted:datetime]",
+                "rationale": "[redacted:string]"
+              },
+              {
+                "task_id": "[redacted:string]",
+                "predecessor_task_ids": [
+                  "[redacted:string]"
+                ],
+                "preferred_start_at": "[redacted:datetime]",
+                "rationale": "[redacted:string]"
+              }
+            ]
+          }
+        }
+      ],
+      "final_schedule": [
+        {
+          "candidate_index": 1,
+          "status": "draft",
+          "task_count": 3,
+          "placed_task_count": 3,
+          "unplaced_task_count": 0,
+          "placed_minutes": 240,
+          "placed_segments": 3,
+          "distinct_day_count": 3,
+          "distinct_week_count": 2,
+          "schedule": [
+            {
+              "task_id": "task_01",
+              "segments": [
+                {
+                  "start_at": "2026-11-04T15:00:00+00:00",
+                  "end_at": "2026-11-04T16:00:00+00:00"
+                }
+              ]
+            },
+            {
+              "task_id": "task_02",
+              "segments": [
+                {
+                  "start_at": "2026-11-03T15:00:00+00:00",
+                  "end_at": "2026-11-03T16:30:00+00:00"
+                }
+              ]
+            },
+            {
+              "task_id": "task_03",
+              "segments": [
+                {
+                  "start_at": "2026-10-30T16:00:00+00:00",
+                  "end_at": "2026-10-30T17:30:00+00:00"
+                }
+              ]
+            }
+          ],
+          "hard_violations": [],
+          "soft_check_pass_rate": 1.0,
+          "soft_checks": [
+            {
+              "code": "precedence",
+              "passed": true
+            },
+            {
+              "code": "precedence",
+              "passed": true
+            },
+            {
+              "code": "min_distinct_days",
+              "passed": true
+            },
+            {
+              "code": "max_daily_minutes",
+              "passed": true
+            },
+            {
+              "code": "max_unplaced",
+              "passed": true
+            }
+          ]
+        }
+      ],
+      "soft_quality": 1.0,
+      "error_categories": []
+    },
+    {
+      "case_id": "case_094fa91ca0068f76",
+      "variant": "candidate_standard",
+      "repeat": 1,
+      "passed": false,
+      "duration_seconds": 8.4405,
+      "hard_violations": [],
+      "tool_error_count": 0,
+      "unresolved_tool_error_count": 0,
+      "repair_call_count": 0,
+      "accepted": null,
+      "catastrophic": false,
+      "model_call_count": 5,
+      "tool_call_count": 5,
+      "duplicate_read_count": 0,
+      "total_tokens": 54866,
+      "model_duration_ms": 8173,
+      "prompt_breakdown_tokens": {
+        "system_prompt_tokens": 42805,
+        "behavioral_memory_tokens": 0,
+        "semantic_memory_tokens": 0,
+        "memory_context_tokens": 0,
+        "tool_schema_tokens": 18155,
+        "conversation_tokens": 933,
+        "tool_observation_tokens": 8824,
+        "unattributed_input_tokens": 0
+      },
+      "visible_tool_count_mean": 7.0,
+      "tool_names": [
+        "abandon_schedule_plan",
+        "apply_schedule_plan",
+        "edit_schedule_plan",
+        "get_current_datetime",
+        "get_planning_context",
+        "propose_schedule_plan",
+        "validate_schedule_plan"
+      ],
+      "tool_calls": [
+        {
+          "name": "get_current_datetime",
+          "status": "success",
+          "arguments_redacted": {}
+        },
+        {
+          "name": "get_planning_context",
+          "status": "success",
+          "arguments_redacted": {
+            "mode": "[redacted:string]",
+            "range_start": "[redacted:datetime]",
+            "range_end": "[redacted:datetime]"
+          }
+        },
+        {
+          "name": "get_planning_context",
+          "status": "success",
+          "arguments_redacted": {
+            "mode": "[redacted:string]",
+            "range_start": "[redacted:datetime]",
+            "range_end": "[redacted:datetime]"
+          }
+        },
+        {
+          "name": "get_planning_context",
+          "status": "success",
+          "arguments_redacted": {
+            "mode": "[redacted:string]",
+            "range_start": "[redacted:datetime]",
+            "range_end": "[redacted:datetime]",
+            "duration_minutes": 60,
+            "one_slot_per_local_date": true,
+            "max_free_slots": 12
+          }
+        },
+        {
+          "name": "propose_schedule_plan",
+          "status": "success",
+          "arguments_redacted": {
+            "task_ids": [
+              "[redacted:string]",
+              "[redacted:string]",
+              "[redacted:string]"
+            ],
+            "range_start": "[redacted:datetime]",
+            "range_end": "[redacted:datetime]",
+            "max_daily_minutes": 180,
+            "daily_worktime_overrides": [
+              {
+                "start_date": "[redacted:string]",
+                "end_date": "[redacted:string]",
+                "daily_start": "[redacted:string]",
+                "daily_end": "[redacted:string]"
+              }
+            ],
+            "task_decisions": [
+              {
+                "task_id": "[redacted:string]",
+                "preferred_start_at": "[redacted:datetime]",
+                "rationale": "[redacted:string]"
+              },
+              {
+                "task_id": "[redacted:string]",
+                "predecessor_task_ids": [
+                  "[redacted:string]"
+                ],
+                "preferred_start_at": "[redacted:datetime]",
+                "rationale": "[redacted:string]"
+              },
+              {
+                "task_id": "[redacted:string]",
+                "predecessor_task_ids": [
+                  "[redacted:string]"
+                ],
+                "preferred_start_at": "[redacted:datetime]",
+                "rationale": "[redacted:string]"
+              }
+            ]
+          }
+        }
+      ],
+      "final_schedule": [
+        {
+          "candidate_index": 1,
+          "status": "draft",
+          "task_count": 3,
+          "placed_task_count": 3,
+          "unplaced_task_count": 0,
+          "placed_minutes": 300,
+          "placed_segments": 3,
+          "distinct_day_count": 3,
+          "distinct_week_count": 1,
+          "schedule": [
+            {
+              "task_id": "task_01",
+              "segments": [
+                {
+                  "start_at": "2026-12-29T15:00:00+00:00",
+                  "end_at": "2026-12-29T17:30:00+00:00"
+                }
+              ]
+            },
+            {
+              "task_id": "task_02",
+              "segments": [
+                {
+                  "start_at": "2026-12-31T15:00:00+00:00",
+                  "end_at": "2026-12-31T16:00:00+00:00"
+                }
+              ]
+            },
+            {
+              "task_id": "task_03",
+              "segments": [
+                {
+                  "start_at": "2026-12-28T15:00:00+00:00",
+                  "end_at": "2026-12-28T16:30:00+00:00"
+                }
+              ]
+            }
+          ],
+          "hard_violations": [],
+          "soft_check_pass_rate": 0.8,
+          "soft_checks": [
+            {
+              "code": "precedence",
+              "passed": true
+            },
+            {
+              "code": "min_distinct_days",
+              "passed": true
+            },
+            {
+              "code": "max_daily_minutes",
+              "passed": true
+            },
+            {
+              "code": "max_unplaced",
+              "passed": true
+            },
+            {
+              "code": "ask_planning_clarification",
+              "passed": false
+            }
+          ]
+        }
+      ],
+      "soft_quality": 0.8,
+      "error_categories": []
+    },
+    {
+      "case_id": "case_094fa91ca0068f76",
+      "variant": "candidate_standard",
+      "repeat": 2,
+      "passed": true,
+      "duration_seconds": 6.673,
+      "hard_violations": [],
+      "tool_error_count": 0,
+      "unresolved_tool_error_count": 0,
+      "repair_call_count": 0,
+      "accepted": null,
+      "catastrophic": false,
+      "model_call_count": 4,
+      "tool_call_count": 4,
+      "duplicate_read_count": 0,
+      "total_tokens": 42268,
+      "model_duration_ms": 6421,
+      "prompt_breakdown_tokens": {
+        "system_prompt_tokens": 34244,
+        "behavioral_memory_tokens": 0,
+        "semantic_memory_tokens": 0,
+        "memory_context_tokens": 0,
+        "tool_schema_tokens": 14524,
+        "conversation_tokens": 584,
+        "tool_observation_tokens": 5689,
+        "unattributed_input_tokens": 0
+      },
+      "visible_tool_count_mean": 7.0,
+      "tool_names": [
+        "abandon_schedule_plan",
+        "apply_schedule_plan",
+        "edit_schedule_plan",
+        "get_current_datetime",
+        "get_planning_context",
+        "propose_schedule_plan",
+        "validate_schedule_plan"
+      ],
+      "tool_calls": [
+        {
+          "name": "get_current_datetime",
+          "status": "success",
+          "arguments_redacted": {}
+        },
+        {
+          "name": "get_planning_context",
+          "status": "success",
+          "arguments_redacted": {
+            "mode": "[redacted:string]",
+            "range_start": "[redacted:datetime]",
+            "range_end": "[redacted:datetime]"
+          }
+        },
+        {
+          "name": "get_planning_context",
+          "status": "success",
+          "arguments_redacted": {
+            "mode": "[redacted:string]",
+            "range_start": "[redacted:datetime]",
+            "range_end": "[redacted:datetime]"
+          }
+        },
+        {
+          "name": "propose_schedule_plan",
+          "status": "success",
+          "arguments_redacted": {
+            "task_ids": [
+              "[redacted:string]",
+              "[redacted:string]",
+              "[redacted:string]"
+            ],
+            "range_start": "[redacted:datetime]",
+            "range_end": "[redacted:datetime]",
+            "allowed_weekdays": [
+              0,
+              1,
+              2,
+              3,
+              4,
+              5,
+              6
+            ],
+            "max_daily_minutes": 180,
+            "daily_worktime_overrides": [
+              {
+                "start_date": "[redacted:string]",
+                "end_date": "[redacted:string]",
+                "daily_start": "[redacted:string]",
+                "daily_end": "[redacted:string]"
+              }
+            ],
+            "task_decisions": [
+              {
+                "task_id": "[redacted:string]",
+                "preferred_start_at": "[redacted:datetime]",
+                "rationale": "[redacted:string]"
+              },
+              {
+                "task_id": "[redacted:string]",
+                "predecessor_task_ids": [
+                  "[redacted:string]"
+                ],
+                "preferred_start_at": "[redacted:datetime]",
+                "rationale": "[redacted:string]"
+              },
+              {
+                "task_id": "[redacted:string]",
+                "predecessor_task_ids": [
+                  "[redacted:string]"
+                ],
+                "preferred_start_at": "[redacted:datetime]",
+                "rationale": "[redacted:string]"
+              }
+            ]
+          }
+        }
+      ],
+      "final_schedule": [
+        {
+          "candidate_index": 1,
+          "status": "draft",
+          "task_count": 3,
+          "placed_task_count": 3,
+          "unplaced_task_count": 0,
+          "placed_minutes": 300,
+          "placed_segments": 3,
+          "distinct_day_count": 3,
+          "distinct_week_count": 1,
+          "schedule": [
+            {
+              "task_id": "task_01",
+              "segments": [
+                {
+                  "start_at": "2026-12-29T15:00:00+00:00",
+                  "end_at": "2026-12-29T17:30:00+00:00"
+                }
+              ]
+            },
+            {
+              "task_id": "task_02",
+              "segments": [
+                {
+                  "start_at": "2026-12-31T15:00:00+00:00",
+                  "end_at": "2026-12-31T16:00:00+00:00"
+                }
+              ]
+            },
+            {
+              "task_id": "task_03",
+              "segments": [
+                {
+                  "start_at": "2026-12-28T15:00:00+00:00",
+                  "end_at": "2026-12-28T16:30:00+00:00"
+                }
+              ]
+            }
+          ],
+          "hard_violations": [],
+          "soft_check_pass_rate": 1.0,
+          "soft_checks": [
+            {
+              "code": "precedence",
+              "passed": true
+            },
+            {
+              "code": "min_distinct_days",
+              "passed": true
+            },
+            {
+              "code": "max_daily_minutes",
+              "passed": true
+            },
+            {
+              "code": "max_unplaced",
+              "passed": true
+            },
+            {
+              "code": "ask_planning_clarification",
+              "passed": true
+            }
+          ]
+        }
+      ],
+      "soft_quality": 1.0,
+      "error_categories": []
+    },
+    {
+      "case_id": "case_094fa91ca0068f76",
+      "variant": "candidate_standard",
+      "repeat": 3,
+      "passed": true,
+      "duration_seconds": 6.1283,
+      "hard_violations": [],
+      "tool_error_count": 0,
+      "unresolved_tool_error_count": 0,
+      "repair_call_count": 0,
+      "accepted": null,
+      "catastrophic": false,
+      "model_call_count": 4,
+      "tool_call_count": 4,
+      "duplicate_read_count": 0,
+      "total_tokens": 42154,
+      "model_duration_ms": 5876,
+      "prompt_breakdown_tokens": {
+        "system_prompt_tokens": 34244,
+        "behavioral_memory_tokens": 0,
+        "semantic_memory_tokens": 0,
+        "memory_context_tokens": 0,
+        "tool_schema_tokens": 14524,
+        "conversation_tokens": 584,
+        "tool_observation_tokens": 5691,
+        "unattributed_input_tokens": 0
+      },
+      "visible_tool_count_mean": 7.0,
+      "tool_names": [
+        "abandon_schedule_plan",
+        "apply_schedule_plan",
+        "edit_schedule_plan",
+        "get_current_datetime",
+        "get_planning_context",
+        "propose_schedule_plan",
+        "validate_schedule_plan"
+      ],
+      "tool_calls": [
+        {
+          "name": "get_current_datetime",
+          "status": "success",
+          "arguments_redacted": {}
+        },
+        {
+          "name": "get_planning_context",
+          "status": "success",
+          "arguments_redacted": {
+            "mode": "[redacted:string]",
+            "range_start": "[redacted:datetime]",
+            "range_end": "[redacted:datetime]"
+          }
+        },
+        {
+          "name": "get_planning_context",
+          "status": "success",
+          "arguments_redacted": {
+            "mode": "[redacted:string]",
+            "range_start": "[redacted:datetime]",
+            "range_end": "[redacted:datetime]"
+          }
+        },
+        {
+          "name": "propose_schedule_plan",
+          "status": "success",
+          "arguments_redacted": {
+            "task_ids": [
+              "[redacted:string]",
+              "[redacted:string]",
+              "[redacted:string]"
+            ],
+            "range_start": "[redacted:datetime]",
+            "range_end": "[redacted:datetime]",
+            "max_daily_minutes": 180,
+            "daily_worktime_overrides": [
+              {
+                "start_date": "[redacted:string]",
+                "end_date": "[redacted:string]",
+                "daily_start": "[redacted:string]",
+                "daily_end": "[redacted:string]"
+              }
+            ],
+            "task_decisions": [
+              {
+                "task_id": "[redacted:string]",
+                "preferred_start_at": "[redacted:datetime]",
+                "rationale": "[redacted:string]"
+              },
+              {
+                "task_id": "[redacted:string]",
+                "predecessor_task_ids": [
+                  "[redacted:string]"
+                ],
+                "preferred_start_at": "[redacted:datetime]",
+                "rationale": "[redacted:string]"
+              },
+              {
+                "task_id": "[redacted:string]",
+                "predecessor_task_ids": [
+                  "[redacted:string]"
+                ],
+                "preferred_start_at": "[redacted:datetime]",
+                "rationale": "[redacted:string]"
+              }
+            ]
+          }
+        }
+      ],
+      "final_schedule": [
+        {
+          "candidate_index": 1,
+          "status": "draft",
+          "task_count": 3,
+          "placed_task_count": 3,
+          "unplaced_task_count": 0,
+          "placed_minutes": 300,
+          "placed_segments": 3,
+          "distinct_day_count": 3,
+          "distinct_week_count": 1,
+          "schedule": [
+            {
+              "task_id": "task_01",
+              "segments": [
+                {
+                  "start_at": "2026-12-29T15:00:00+00:00",
+                  "end_at": "2026-12-29T17:30:00+00:00"
+                }
+              ]
+            },
+            {
+              "task_id": "task_02",
+              "segments": [
+                {
+                  "start_at": "2026-12-31T15:00:00+00:00",
+                  "end_at": "2026-12-31T16:00:00+00:00"
+                }
+              ]
+            },
+            {
+              "task_id": "task_03",
+              "segments": [
+                {
+                  "start_at": "2026-12-28T15:00:00+00:00",
+                  "end_at": "2026-12-28T16:30:00+00:00"
+                }
+              ]
+            }
+          ],
+          "hard_violations": [],
+          "soft_check_pass_rate": 1.0,
+          "soft_checks": [
+            {
+              "code": "precedence",
+              "passed": true
+            },
+            {
+              "code": "min_distinct_days",
+              "passed": true
+            },
+            {
+              "code": "max_daily_minutes",
+              "passed": true
+            },
+            {
+              "code": "max_unplaced",
+              "passed": true
+            },
+            {
+              "code": "ask_planning_clarification",
+              "passed": true
+            }
+          ]
+        }
+      ],
+      "soft_quality": 1.0,
+      "error_categories": []
+    }
+  ]
+}

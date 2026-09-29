@@ -13,36 +13,153 @@
       "workday_end": "18:00",
       "prompt": "请在 10 月 8 日到 10 月 23 日的工作日内安排这些发布任务，按截止日期推进，保留所有已定会议。不要把两周任务都塞进第一天；每天最多安排 6 小时，并为上线前留出缓冲。不要安排周末或 18:00 以后。",
       "tasks": [
-        { "key": "freeze_scope", "title": "冻结版本范围并确认负责人", "description": "确认本次发布边界和每项工作的负责人。", "estimated_minutes": 90, "priority": "high", "due_at": "2026-10-09T18:00:00+08:00" },
-        { "key": "acceptance_criteria", "title": "整理验收标准与边界用例", "description": "为核心用户流程补充可验证的验收条件。", "estimated_minutes": 120, "priority": "high", "due_at": "2026-10-12T18:00:00+08:00" },
-        { "key": "dependency_risks", "title": "核对跨团队依赖和风险清单", "description": "确认依赖负责人、阻塞项和应急措施。", "estimated_minutes": 90, "priority": "high", "due_at": "2026-10-14T18:00:00+08:00" },
-        { "key": "regression_test", "title": "执行核心流程回归验收", "description": "验证发布范围内的核心业务流程。", "estimated_minutes": 150, "priority": "urgent", "due_at": "2026-10-20T18:00:00+08:00" },
-        { "key": "release_notes", "title": "撰写用户可见的版本说明", "description": "写清新增能力、限制和升级提示。", "estimated_minutes": 60, "priority": "medium", "due_at": "2026-10-21T18:00:00+08:00" },
-        { "key": "rollback_checklist", "title": "准备发布检查表和回滚步骤", "description": "确保上线前检查和回退动作可执行。", "estimated_minutes": 90, "priority": "high", "due_at": "2026-10-22T18:00:00+08:00" }
+        {
+          "key": "freeze_scope",
+          "title": "冻结版本范围并确认负责人",
+          "description": "确认本次发布边界和每项工作的负责人。",
+          "estimated_minutes": 90,
+          "priority": "high",
+          "due_at": "2026-10-09T18:00:00+08:00"
+        },
+        {
+          "key": "acceptance_criteria",
+          "title": "整理验收标准与边界用例",
+          "description": "为核心用户流程补充可验证的验收条件。",
+          "estimated_minutes": 120,
+          "priority": "high",
+          "due_at": "2026-10-12T18:00:00+08:00"
+        },
+        {
+          "key": "dependency_risks",
+          "title": "核对跨团队依赖和风险清单",
+          "description": "确认依赖负责人、阻塞项和应急措施。",
+          "estimated_minutes": 90,
+          "priority": "high",
+          "due_at": "2026-10-14T18:00:00+08:00"
+        },
+        {
+          "key": "regression_test",
+          "title": "执行核心流程回归验收",
+          "description": "验证发布范围内的核心业务流程。",
+          "estimated_minutes": 150,
+          "priority": "urgent",
+          "due_at": "2026-10-20T18:00:00+08:00"
+        },
+        {
+          "key": "release_notes",
+          "title": "撰写用户可见的版本说明",
+          "description": "写清新增能力、限制和升级提示。",
+          "estimated_minutes": 60,
+          "priority": "medium",
+          "due_at": "2026-10-21T18:00:00+08:00"
+        },
+        {
+          "key": "rollback_checklist",
+          "title": "准备发布检查表和回滚步骤",
+          "description": "确保上线前检查和回退动作可执行。",
+          "estimated_minutes": 90,
+          "priority": "high",
+          "due_at": "2026-10-22T18:00:00+08:00"
+        }
       ],
       "events": [
-        { "title": "版本启动会", "start_at": "2026-10-08T10:00:00+08:00", "end_at": "2026-10-08T11:00:00+08:00", "immutable": true },
-        { "title": "跨团队依赖评审", "start_at": "2026-10-12T14:00:00+08:00", "end_at": "2026-10-12T15:00:00+08:00", "immutable": true },
-        { "title": "回归验收门禁会", "start_at": "2026-10-14T10:00:00+08:00", "end_at": "2026-10-14T11:00:00+08:00", "immutable": true },
-        { "title": "发布准备会", "start_at": "2026-10-20T10:00:00+08:00", "end_at": "2026-10-20T11:00:00+08:00", "immutable": true },
-        { "title": "上线 Go/No-Go", "start_at": "2026-10-22T14:00:00+08:00", "end_at": "2026-10-22T15:00:00+08:00", "immutable": true }
+        {
+          "title": "版本启动会",
+          "start_at": "2026-10-08T10:00:00+08:00",
+          "end_at": "2026-10-08T11:00:00+08:00",
+          "immutable": true
+        },
+        {
+          "title": "跨团队依赖评审",
+          "start_at": "2026-10-12T14:00:00+08:00",
+          "end_at": "2026-10-12T15:00:00+08:00",
+          "immutable": true
+        },
+        {
+          "title": "回归验收门禁会",
+          "start_at": "2026-10-14T10:00:00+08:00",
+          "end_at": "2026-10-14T11:00:00+08:00",
+          "immutable": true
+        },
+        {
+          "title": "发布准备会",
+          "start_at": "2026-10-20T10:00:00+08:00",
+          "end_at": "2026-10-20T11:00:00+08:00",
+          "immutable": true
+        },
+        {
+          "title": "上线 Go/No-Go",
+          "start_at": "2026-10-22T14:00:00+08:00",
+          "end_at": "2026-10-22T15:00:00+08:00",
+          "immutable": true
+        }
       ],
       "expectations": {
-        "hard": ["within_range", "respect_deadlines", "no_overlap_with_immutable_events", "within_work_hours", "no_weekend", "max_daily_minutes"],
-        "soft": ["phase_windows", "min_distinct_days", "max_daily_minutes", "max_unplaced"],
+        "hard": [
+          "within_range",
+          "respect_deadlines",
+          "no_overlap_with_immutable_events",
+          "within_work_hours",
+          "no_weekend",
+          "max_daily_minutes"
+        ],
+        "soft": [
+          "phase_windows",
+          "min_distinct_days",
+          "max_daily_minutes",
+          "max_unplaced"
+        ],
         "phase_windows": [
-          { "task_keys": ["freeze_scope", "acceptance_criteria", "dependency_risks"], "not_before": "2026-10-08T00:00:00+08:00", "not_after": "2026-10-15T23:59:00+08:00" },
-          { "task_keys": ["regression_test", "release_notes", "rollback_checklist"], "not_before": "2026-10-15T00:00:00+08:00", "not_after": "2026-10-22T23:59:00+08:00" }
+          {
+            "task_keys": [
+              "freeze_scope",
+              "acceptance_criteria",
+              "dependency_risks"
+            ],
+            "not_before": "2026-10-08T00:00:00+08:00",
+            "not_after": "2026-10-15T23:59:00+08:00"
+          },
+          {
+            "task_keys": [
+              "regression_test",
+              "release_notes",
+              "rollback_checklist"
+            ],
+            "not_before": "2026-10-15T00:00:00+08:00",
+            "not_after": "2026-10-22T23:59:00+08:00"
+          }
         ],
         "precedence": [
-          { "before": "freeze_scope", "after": "acceptance_criteria", "min_gap_days": 0 },
-          { "before": "dependency_risks", "after": "regression_test", "min_gap_days": 0 },
-          { "before": "regression_test", "after": "release_notes", "min_gap_days": 0 }
+          {
+            "before": "freeze_scope",
+            "after": "acceptance_criteria",
+            "min_gap_days": 0
+          },
+          {
+            "before": "dependency_risks",
+            "after": "regression_test",
+            "min_gap_days": 0
+          },
+          {
+            "before": "regression_test",
+            "after": "release_notes",
+            "min_gap_days": 0
+          }
         ],
         "no_weekend": true,
         "min_distinct_days": 4,
         "max_daily_minutes": 360,
         "max_unplaced": 0
+      },
+      "request_contract": {
+        "user_requested_range": {
+          "end_at": "2026-10-24T00:00:00+08:00",
+          "start_at": "2026-10-08T00:00:00+08:00",
+          "source_quote": "10 月 8 日到 10 月 23 日"
+        },
+        "intent": "schedule_plan",
+        "write_policy": "allow_schedule_draft",
+        "intent_quote": "安排这些发布任务"
       }
     },
     {
@@ -57,46 +174,210 @@
       "workday_end": "17:00",
       "prompt": "请从 10 月 8 日起把备考任务安排到 10 月 30 日考试前。先梳理考试范围，再学完两个模块，然后做第一套模拟卷、根据错题补强，最后做第二套模拟卷和考前准备。请把复习分散在四周，不要连续几天排满，也不要让第二套模拟卷早于第一套。保留课程和工作会议，不排周末。",
       "tasks": [
-        { "key": "exam_scope", "title": "梳理认证考试范围和知识点", "description": "列出考试主题并形成复习清单。", "estimated_minutes": 60, "priority": "high", "due_at": "2026-10-12T17:00:00+08:00" },
-        { "key": "law_module", "title": "复习法规模块并完成章节练习", "description": "完成法规主题学习和对应练习。", "estimated_minutes": 150, "priority": "high", "due_at": "2026-10-16T17:00:00+08:00" },
-        { "key": "process_module", "title": "复习流程模块并整理易错点", "description": "完成流程主题学习，标记不确定知识点。", "estimated_minutes": 150, "priority": "high", "due_at": "2026-10-21T17:00:00+08:00" },
-        { "key": "mock_exam_one", "title": "完成第一套限时模拟卷", "description": "完整计时作答并记录各模块得分。", "estimated_minutes": 180, "priority": "high", "due_at": "2026-10-23T17:00:00+08:00" },
-        { "key": "review_mistakes", "title": "复盘第一套模拟卷错题", "description": "归因错题并确定需要补强的主题。", "estimated_minutes": 120, "priority": "high", "due_at": "2026-10-27T17:00:00+08:00" },
-        { "key": "targeted_review", "title": "补强模拟卷暴露的薄弱章节", "description": "针对错题复习知识点并完成短练习。", "estimated_minutes": 150, "priority": "medium", "due_at": "2026-10-28T17:00:00+08:00" },
-        { "key": "mock_exam_two", "title": "完成第二套模拟卷并复盘", "description": "在补强之后进行第二次完整模拟。", "estimated_minutes": 180, "priority": "high", "due_at": "2026-10-29T17:00:00+08:00" },
-        { "key": "exam_materials", "title": "准备考试材料并确认考场交通", "description": "核对证件、考试用品和出行安排。", "estimated_minutes": 60, "priority": "medium", "due_at": "2026-10-30T17:00:00+08:00" }
+        {
+          "key": "exam_scope",
+          "title": "梳理认证考试范围和知识点",
+          "description": "列出考试主题并形成复习清单。",
+          "estimated_minutes": 60,
+          "priority": "high",
+          "due_at": "2026-10-12T17:00:00+08:00"
+        },
+        {
+          "key": "law_module",
+          "title": "复习法规模块并完成章节练习",
+          "description": "完成法规主题学习和对应练习。",
+          "estimated_minutes": 150,
+          "priority": "high",
+          "due_at": "2026-10-16T17:00:00+08:00"
+        },
+        {
+          "key": "process_module",
+          "title": "复习流程模块并整理易错点",
+          "description": "完成流程主题学习，标记不确定知识点。",
+          "estimated_minutes": 150,
+          "priority": "high",
+          "due_at": "2026-10-21T17:00:00+08:00"
+        },
+        {
+          "key": "mock_exam_one",
+          "title": "完成第一套限时模拟卷",
+          "description": "完整计时作答并记录各模块得分。",
+          "estimated_minutes": 180,
+          "priority": "high",
+          "due_at": "2026-10-23T17:00:00+08:00"
+        },
+        {
+          "key": "review_mistakes",
+          "title": "复盘第一套模拟卷错题",
+          "description": "归因错题并确定需要补强的主题。",
+          "estimated_minutes": 120,
+          "priority": "high",
+          "due_at": "2026-10-27T17:00:00+08:00"
+        },
+        {
+          "key": "targeted_review",
+          "title": "补强模拟卷暴露的薄弱章节",
+          "description": "针对错题复习知识点并完成短练习。",
+          "estimated_minutes": 150,
+          "priority": "medium",
+          "due_at": "2026-10-28T17:00:00+08:00"
+        },
+        {
+          "key": "mock_exam_two",
+          "title": "完成第二套模拟卷并复盘",
+          "description": "在补强之后进行第二次完整模拟。",
+          "estimated_minutes": 180,
+          "priority": "high",
+          "due_at": "2026-10-29T17:00:00+08:00"
+        },
+        {
+          "key": "exam_materials",
+          "title": "准备考试材料并确认考场交通",
+          "description": "核对证件、考试用品和出行安排。",
+          "estimated_minutes": 60,
+          "priority": "medium",
+          "due_at": "2026-10-30T17:00:00+08:00"
+        }
       ],
       "events": [
-        { "title": "课程讲座", "start_at": "2026-10-08T13:00:00+08:00", "end_at": "2026-10-08T14:00:00+08:00", "immutable": true },
-        { "title": "导师答疑", "start_at": "2026-10-12T15:00:00+08:00", "end_at": "2026-10-12T16:00:00+08:00", "immutable": true },
-        { "title": "实验课", "start_at": "2026-10-16T13:00:00+08:00", "end_at": "2026-10-16T15:00:00+08:00", "immutable": true },
-        { "title": "项目小组讨论", "start_at": "2026-10-20T14:00:00+08:00", "end_at": "2026-10-20T16:00:00+08:00", "immutable": true },
-        { "title": "复习答疑", "start_at": "2026-10-23T10:00:00+08:00", "end_at": "2026-10-23T11:00:00+08:00", "immutable": true },
-        { "title": "考试冲刺课", "start_at": "2026-10-28T13:00:00+08:00", "end_at": "2026-10-28T15:00:00+08:00", "immutable": true }
+        {
+          "title": "课程讲座",
+          "start_at": "2026-10-08T13:00:00+08:00",
+          "end_at": "2026-10-08T14:00:00+08:00",
+          "immutable": true
+        },
+        {
+          "title": "导师答疑",
+          "start_at": "2026-10-12T15:00:00+08:00",
+          "end_at": "2026-10-12T16:00:00+08:00",
+          "immutable": true
+        },
+        {
+          "title": "实验课",
+          "start_at": "2026-10-16T13:00:00+08:00",
+          "end_at": "2026-10-16T15:00:00+08:00",
+          "immutable": true
+        },
+        {
+          "title": "项目小组讨论",
+          "start_at": "2026-10-20T14:00:00+08:00",
+          "end_at": "2026-10-20T16:00:00+08:00",
+          "immutable": true
+        },
+        {
+          "title": "复习答疑",
+          "start_at": "2026-10-23T10:00:00+08:00",
+          "end_at": "2026-10-23T11:00:00+08:00",
+          "immutable": true
+        },
+        {
+          "title": "考试冲刺课",
+          "start_at": "2026-10-28T13:00:00+08:00",
+          "end_at": "2026-10-28T15:00:00+08:00",
+          "immutable": true
+        }
       ],
       "expectations": {
-        "hard": ["within_range", "respect_deadlines", "no_overlap_with_immutable_events", "within_work_hours", "no_weekend"],
-        "soft": ["phase_windows", "precedence", "min_distinct_weeks", "min_distinct_days", "max_daily_minutes", "max_unplaced"],
+        "hard": [
+          "within_range",
+          "respect_deadlines",
+          "no_overlap_with_immutable_events",
+          "within_work_hours",
+          "no_weekend"
+        ],
+        "soft": [
+          "phase_windows",
+          "precedence",
+          "min_distinct_weeks",
+          "min_distinct_days",
+          "max_daily_minutes",
+          "max_unplaced"
+        ],
         "phase_windows": [
-        { "task_keys": ["exam_scope", "law_module"], "not_before": "2026-10-08T00:00:00+08:00", "not_after": "2026-10-14T23:59:00+08:00" },
-        { "task_keys": ["process_module", "mock_exam_one"], "not_before": "2026-10-15T00:00:00+08:00", "not_after": "2026-10-20T23:59:00+08:00" },
-        { "task_keys": ["review_mistakes", "targeted_review"], "not_before": "2026-10-21T00:00:00+08:00", "not_after": "2026-10-25T23:59:00+08:00" },
-        { "task_keys": ["mock_exam_two", "exam_materials"], "not_before": "2026-10-26T00:00:00+08:00", "not_after": "2026-10-30T23:59:00+08:00" }
+          {
+            "task_keys": [
+              "exam_scope",
+              "law_module"
+            ],
+            "not_before": "2026-10-08T00:00:00+08:00",
+            "not_after": "2026-10-14T23:59:00+08:00"
+          },
+          {
+            "task_keys": [
+              "process_module",
+              "mock_exam_one"
+            ],
+            "not_before": "2026-10-15T00:00:00+08:00",
+            "not_after": "2026-10-20T23:59:00+08:00"
+          },
+          {
+            "task_keys": [
+              "review_mistakes",
+              "targeted_review"
+            ],
+            "not_before": "2026-10-21T00:00:00+08:00",
+            "not_after": "2026-10-25T23:59:00+08:00"
+          },
+          {
+            "task_keys": [
+              "mock_exam_two",
+              "exam_materials"
+            ],
+            "not_before": "2026-10-26T00:00:00+08:00",
+            "not_after": "2026-10-30T23:59:00+08:00"
+          }
         ],
         "precedence": [
-          { "before": "exam_scope", "after": "law_module", "min_gap_days": 0 },
-          { "before": "law_module", "after": "mock_exam_one", "min_gap_days": 0 },
-          { "before": "process_module", "after": "mock_exam_one", "min_gap_days": 0 },
-          { "before": "mock_exam_one", "after": "review_mistakes", "min_gap_days": 1 },
-          { "before": "review_mistakes", "after": "targeted_review", "min_gap_days": 0 },
-          { "before": "targeted_review", "after": "mock_exam_two", "min_gap_days": 1 },
-          { "before": "mock_exam_two", "after": "exam_materials", "min_gap_days": 0 }
+          {
+            "before": "exam_scope",
+            "after": "law_module",
+            "min_gap_days": 0
+          },
+          {
+            "before": "law_module",
+            "after": "mock_exam_one",
+            "min_gap_days": 0
+          },
+          {
+            "before": "process_module",
+            "after": "mock_exam_one",
+            "min_gap_days": 0
+          },
+          {
+            "before": "mock_exam_one",
+            "after": "review_mistakes",
+            "min_gap_days": 1
+          },
+          {
+            "before": "review_mistakes",
+            "after": "targeted_review",
+            "min_gap_days": 0
+          },
+          {
+            "before": "targeted_review",
+            "after": "mock_exam_two",
+            "min_gap_days": 1
+          },
+          {
+            "before": "mock_exam_two",
+            "after": "exam_materials",
+            "min_gap_days": 0
+          }
         ],
         "no_weekend": true,
         "min_distinct_weeks": 4,
         "min_distinct_days": 7,
         "max_daily_minutes": 300,
         "max_unplaced": 0
+      },
+      "request_contract": {
+        "user_requested_range": {
+          "source_quote": "10 月 8 日起",
+          "start_at": "2026-10-08T00:00:00+08:00"
+        },
+        "intent": "schedule_plan",
+        "write_policy": "allow_schedule_draft",
+        "intent_quote": "把备考任务安排到"
       }
     },
     {
@@ -111,32 +392,170 @@
       "workday_end": "18:00",
       "prompt": "10 月 12 日到 16 日每天 9:00–15:00 都被不可移动会议占用，只能在 15:00–18:00 工作。请按优先级和截止日期先排 urgent/high 任务；容量不够时把较低优先级任务留为未安排并解释，不要拆分 3 小时任务、加班或占用周末。我的优先级已经明确，不需要再问我。",
       "tasks": [
-        { "key": "sales_analysis", "title": "整理三个月销售数据", "description": "整理并核对销售数据，任务需一次连续完成。", "estimated_minutes": 180, "priority": "high", "due_at": "2026-10-14T18:00:00+08:00", "flags": { "splittable": false } },
-        { "key": "quarter_budget", "title": "完成季度预算复核", "description": "复核预算差异并标记超支项，任务需一次连续完成。", "estimated_minutes": 180, "priority": "urgent", "due_at": "2026-10-14T18:00:00+08:00", "flags": { "splittable": false } },
-        { "key": "board_deck", "title": "准备董事会汇报初稿", "description": "形成董事会汇报的首版材料，任务需一次连续完成。", "estimated_minutes": 180, "priority": "urgent", "due_at": "2026-10-15T18:00:00+08:00", "flags": { "splittable": false } },
-        { "key": "contract_review", "title": "复核重点合同条款", "description": "核对重点商务条款并记录风险，任务需一次连续完成。", "estimated_minutes": 180, "priority": "high", "due_at": "2026-10-16T18:00:00+08:00", "flags": { "splittable": false } },
-        { "key": "client_issue_summary", "title": "完成客户问题汇总回复", "description": "整理并回复主要客户问题，任务需一次连续完成。", "estimated_minutes": 180, "priority": "high", "due_at": "2026-10-16T18:00:00+08:00", "flags": { "splittable": false } },
-        { "key": "launch_runbook", "title": "编写产品上线应急流程", "description": "补充上线应急步骤和升级联系人。", "estimated_minutes": 180, "priority": "medium", "due_at": "2026-10-16T18:00:00+08:00", "flags": { "splittable": false } },
-        { "key": "supplier_material", "title": "准备供应商谈判材料", "description": "整理谈判底线和备选方案。", "estimated_minutes": 180, "priority": "medium", "due_at": "2026-10-16T18:00:00+08:00", "flags": { "splittable": false } },
-        { "key": "hr_feedback", "title": "整理团队招聘面试反馈", "description": "汇总本周候选人面试意见。", "estimated_minutes": 180, "priority": "low", "due_at": "2026-10-16T18:00:00+08:00", "flags": { "splittable": false } }
+        {
+          "key": "sales_analysis",
+          "title": "整理三个月销售数据",
+          "description": "整理并核对销售数据，任务需一次连续完成。",
+          "estimated_minutes": 180,
+          "priority": "high",
+          "due_at": "2026-10-14T18:00:00+08:00",
+          "flags": {
+            "splittable": false
+          }
+        },
+        {
+          "key": "quarter_budget",
+          "title": "完成季度预算复核",
+          "description": "复核预算差异并标记超支项，任务需一次连续完成。",
+          "estimated_minutes": 180,
+          "priority": "urgent",
+          "due_at": "2026-10-14T18:00:00+08:00",
+          "flags": {
+            "splittable": false
+          }
+        },
+        {
+          "key": "board_deck",
+          "title": "准备董事会汇报初稿",
+          "description": "形成董事会汇报的首版材料，任务需一次连续完成。",
+          "estimated_minutes": 180,
+          "priority": "urgent",
+          "due_at": "2026-10-15T18:00:00+08:00",
+          "flags": {
+            "splittable": false
+          }
+        },
+        {
+          "key": "contract_review",
+          "title": "复核重点合同条款",
+          "description": "核对重点商务条款并记录风险，任务需一次连续完成。",
+          "estimated_minutes": 180,
+          "priority": "high",
+          "due_at": "2026-10-16T18:00:00+08:00",
+          "flags": {
+            "splittable": false
+          }
+        },
+        {
+          "key": "client_issue_summary",
+          "title": "完成客户问题汇总回复",
+          "description": "整理并回复主要客户问题，任务需一次连续完成。",
+          "estimated_minutes": 180,
+          "priority": "high",
+          "due_at": "2026-10-16T18:00:00+08:00",
+          "flags": {
+            "splittable": false
+          }
+        },
+        {
+          "key": "launch_runbook",
+          "title": "编写产品上线应急流程",
+          "description": "补充上线应急步骤和升级联系人。",
+          "estimated_minutes": 180,
+          "priority": "medium",
+          "due_at": "2026-10-16T18:00:00+08:00",
+          "flags": {
+            "splittable": false
+          }
+        },
+        {
+          "key": "supplier_material",
+          "title": "准备供应商谈判材料",
+          "description": "整理谈判底线和备选方案。",
+          "estimated_minutes": 180,
+          "priority": "medium",
+          "due_at": "2026-10-16T18:00:00+08:00",
+          "flags": {
+            "splittable": false
+          }
+        },
+        {
+          "key": "hr_feedback",
+          "title": "整理团队招聘面试反馈",
+          "description": "汇总本周候选人面试意见。",
+          "estimated_minutes": 180,
+          "priority": "low",
+          "due_at": "2026-10-16T18:00:00+08:00",
+          "flags": {
+            "splittable": false
+          }
+        }
       ],
       "events": [
-        { "title": "周一连续会议", "start_at": "2026-10-12T09:00:00+08:00", "end_at": "2026-10-12T15:00:00+08:00", "immutable": true },
-        { "title": "周二连续会议", "start_at": "2026-10-13T09:00:00+08:00", "end_at": "2026-10-13T15:00:00+08:00", "immutable": true },
-        { "title": "周三连续会议", "start_at": "2026-10-14T09:00:00+08:00", "end_at": "2026-10-14T15:00:00+08:00", "immutable": true },
-        { "title": "周四连续会议", "start_at": "2026-10-15T09:00:00+08:00", "end_at": "2026-10-15T15:00:00+08:00", "immutable": true },
-        { "title": "周五连续会议", "start_at": "2026-10-16T09:00:00+08:00", "end_at": "2026-10-16T15:00:00+08:00", "immutable": true }
+        {
+          "title": "周一连续会议",
+          "start_at": "2026-10-12T09:00:00+08:00",
+          "end_at": "2026-10-12T15:00:00+08:00",
+          "immutable": true
+        },
+        {
+          "title": "周二连续会议",
+          "start_at": "2026-10-13T09:00:00+08:00",
+          "end_at": "2026-10-13T15:00:00+08:00",
+          "immutable": true
+        },
+        {
+          "title": "周三连续会议",
+          "start_at": "2026-10-14T09:00:00+08:00",
+          "end_at": "2026-10-14T15:00:00+08:00",
+          "immutable": true
+        },
+        {
+          "title": "周四连续会议",
+          "start_at": "2026-10-15T09:00:00+08:00",
+          "end_at": "2026-10-15T15:00:00+08:00",
+          "immutable": true
+        },
+        {
+          "title": "周五连续会议",
+          "start_at": "2026-10-16T09:00:00+08:00",
+          "end_at": "2026-10-16T15:00:00+08:00",
+          "immutable": true
+        }
       ],
       "expectations": {
-        "hard": ["within_range", "respect_deadlines", "no_overlap_with_immutable_events", "within_work_hours", "no_weekend", "do_not_split_unsplittable_tasks", "max_daily_minutes"],
-        "soft": ["priority_alignment", "max_daily_minutes", "max_unplaced", "unplaced_priority_order"],
+        "hard": [
+          "within_range",
+          "respect_deadlines",
+          "no_overlap_with_immutable_events",
+          "within_work_hours",
+          "no_weekend",
+          "do_not_split_unsplittable_tasks",
+          "max_daily_minutes"
+        ],
+        "soft": [
+          "priority_alignment",
+          "max_daily_minutes",
+          "max_unplaced",
+          "unplaced_priority_order"
+        ],
         "precedence": [],
         "no_weekend": true,
         "max_daily_minutes": 180,
         "max_unplaced": 3,
-        "must_schedule_task_keys": ["sales_analysis", "quarter_budget", "board_deck", "contract_review", "client_issue_summary"],
-        "preferred_unplaced_task_keys": ["launch_runbook", "supplier_material", "hr_feedback"],
+        "must_schedule_task_keys": [
+          "sales_analysis",
+          "quarter_budget",
+          "board_deck",
+          "contract_review",
+          "client_issue_summary"
+        ],
+        "preferred_unplaced_task_keys": [
+          "launch_runbook",
+          "supplier_material",
+          "hr_feedback"
+        ],
         "ask_planning_clarification": false
+      },
+      "request_contract": {
+        "user_requested_range": {
+          "end_at": "2026-10-17T00:00:00+08:00",
+          "start_at": "2026-10-12T00:00:00+08:00",
+          "source_quote": "10 月 12 日到 16 日"
+        },
+        "intent": "schedule_plan",
+        "write_policy": "allow_schedule_draft",
+        "intent_quote": "先排 urgent/high 任务"
       }
     },
     {
@@ -151,35 +570,156 @@
       "workday_end": "17:00",
       "prompt": "请在 10 月 8 日到 16 日的工作日安排报告和零散行政任务。报告分析和报告撰写各需要一个完整、不被切开的 90 分钟专注块，并安排在不同工作日；不要把它们塞进多个短空档。邮件、电话等短任务可放在碎片时间。不要排周末，保留会议。",
       "tasks": [
-        { "key": "report_analysis", "title": "季度报告：分析数据并形成结论", "description": "需要连续专注完成的数据分析阶段。", "estimated_minutes": 90, "priority": "urgent", "due_at": "2026-10-13T17:00:00+08:00", "flags": { "splittable": false } },
-        { "key": "report_writing", "title": "季度报告：撰写结论和建议", "description": "在分析完成后形成报告结论和建议。", "estimated_minutes": 90, "priority": "high", "due_at": "2026-10-15T17:00:00+08:00", "flags": { "splittable": false } },
-        { "key": "proposal", "title": "起草下季度项目提案", "description": "整理方案范围、资源和风险。", "estimated_minutes": 120, "priority": "high", "due_at": "2026-10-16T17:00:00+08:00", "flags": { "splittable": false } },
-        { "key": "email_batch", "title": "回复待处理客户邮件", "description": "批量回复不需要长时间专注的客户问题。", "estimated_minutes": 45, "priority": "medium", "due_at": "2026-10-12T17:00:00+08:00" },
-        { "key": "invoice_check", "title": "核对本周发票", "description": "检查发票信息并标记缺项。", "estimated_minutes": 30, "priority": "low", "due_at": "2026-10-13T17:00:00+08:00" },
-        { "key": "callback", "title": "回电确认供应商交付时间", "description": "在工作日开放时段完成一次简短电话。", "estimated_minutes": 30, "priority": "medium", "due_at": "2026-10-14T17:00:00+08:00" },
-        { "key": "action_notes", "title": "整理评审会行动项", "description": "把会议结论转换为责任人和下一步。", "estimated_minutes": 45, "priority": "medium", "due_at": "2026-10-16T17:00:00+08:00" }
+        {
+          "key": "report_analysis",
+          "title": "季度报告：分析数据并形成结论",
+          "description": "需要连续专注完成的数据分析阶段。",
+          "estimated_minutes": 90,
+          "priority": "urgent",
+          "due_at": "2026-10-13T17:00:00+08:00",
+          "flags": {
+            "splittable": false
+          }
+        },
+        {
+          "key": "report_writing",
+          "title": "季度报告：撰写结论和建议",
+          "description": "在分析完成后形成报告结论和建议。",
+          "estimated_minutes": 90,
+          "priority": "high",
+          "due_at": "2026-10-15T17:00:00+08:00",
+          "flags": {
+            "splittable": false
+          }
+        },
+        {
+          "key": "proposal",
+          "title": "起草下季度项目提案",
+          "description": "整理方案范围、资源和风险。",
+          "estimated_minutes": 120,
+          "priority": "high",
+          "due_at": "2026-10-16T17:00:00+08:00",
+          "flags": {
+            "splittable": false
+          }
+        },
+        {
+          "key": "email_batch",
+          "title": "回复待处理客户邮件",
+          "description": "批量回复不需要长时间专注的客户问题。",
+          "estimated_minutes": 45,
+          "priority": "medium",
+          "due_at": "2026-10-12T17:00:00+08:00"
+        },
+        {
+          "key": "invoice_check",
+          "title": "核对本周发票",
+          "description": "检查发票信息并标记缺项。",
+          "estimated_minutes": 30,
+          "priority": "low",
+          "due_at": "2026-10-13T17:00:00+08:00"
+        },
+        {
+          "key": "callback",
+          "title": "回电确认供应商交付时间",
+          "description": "在工作日开放时段完成一次简短电话。",
+          "estimated_minutes": 30,
+          "priority": "medium",
+          "due_at": "2026-10-14T17:00:00+08:00"
+        },
+        {
+          "key": "action_notes",
+          "title": "整理评审会行动项",
+          "description": "把会议结论转换为责任人和下一步。",
+          "estimated_minutes": 45,
+          "priority": "medium",
+          "due_at": "2026-10-16T17:00:00+08:00"
+        }
       ],
       "events": [
-        { "title": "设计同步", "start_at": "2026-10-08T09:30:00+08:00", "end_at": "2026-10-08T10:15:00+08:00", "immutable": true },
-        { "title": "团队站会", "start_at": "2026-10-08T13:00:00+08:00", "end_at": "2026-10-08T14:00:00+08:00", "immutable": true },
-        { "title": "客户状态电话", "start_at": "2026-10-09T11:00:00+08:00", "end_at": "2026-10-09T12:00:00+08:00", "immutable": true },
-        { "title": "供应商评审", "start_at": "2026-10-12T14:00:00+08:00", "end_at": "2026-10-12T15:00:00+08:00", "immutable": true },
-        { "title": "项目决策会", "start_at": "2026-10-14T10:00:00+08:00", "end_at": "2026-10-14T11:00:00+08:00", "immutable": true }
+        {
+          "title": "设计同步",
+          "start_at": "2026-10-08T09:30:00+08:00",
+          "end_at": "2026-10-08T10:15:00+08:00",
+          "immutable": true
+        },
+        {
+          "title": "团队站会",
+          "start_at": "2026-10-08T13:00:00+08:00",
+          "end_at": "2026-10-08T14:00:00+08:00",
+          "immutable": true
+        },
+        {
+          "title": "客户状态电话",
+          "start_at": "2026-10-09T11:00:00+08:00",
+          "end_at": "2026-10-09T12:00:00+08:00",
+          "immutable": true
+        },
+        {
+          "title": "供应商评审",
+          "start_at": "2026-10-12T14:00:00+08:00",
+          "end_at": "2026-10-12T15:00:00+08:00",
+          "immutable": true
+        },
+        {
+          "title": "项目决策会",
+          "start_at": "2026-10-14T10:00:00+08:00",
+          "end_at": "2026-10-14T11:00:00+08:00",
+          "immutable": true
+        }
       ],
       "expectations": {
-        "hard": ["within_range", "respect_deadlines", "no_overlap_with_immutable_events", "within_work_hours", "no_weekend", "do_not_split_unsplittable_tasks"],
-        "soft": ["precedence", "min_distinct_days", "max_daily_minutes", "focus_continuity"],
+        "hard": [
+          "within_range",
+          "respect_deadlines",
+          "no_overlap_with_immutable_events",
+          "within_work_hours",
+          "no_weekend",
+          "do_not_split_unsplittable_tasks"
+        ],
+        "soft": [
+          "precedence",
+          "min_distinct_days",
+          "max_daily_minutes",
+          "focus_continuity"
+        ],
         "precedence": [
-          { "before": "report_analysis", "after": "report_writing", "min_gap_days": 0 }
+          {
+            "before": "report_analysis",
+            "after": "report_writing",
+            "min_gap_days": 0
+          }
         ],
         "phase_windows": [
-          { "task_keys": ["report_analysis"], "not_before": "2026-10-08T00:00:00+08:00", "not_after": "2026-10-13T17:00:00+08:00" },
-          { "task_keys": ["report_writing"], "not_before": "2026-10-09T00:00:00+08:00", "not_after": "2026-10-15T17:00:00+08:00" }
+          {
+            "task_keys": [
+              "report_analysis"
+            ],
+            "not_before": "2026-10-08T00:00:00+08:00",
+            "not_after": "2026-10-13T17:00:00+08:00"
+          },
+          {
+            "task_keys": [
+              "report_writing"
+            ],
+            "not_before": "2026-10-09T00:00:00+08:00",
+            "not_after": "2026-10-15T17:00:00+08:00"
+          }
         ],
         "no_weekend": true,
         "min_distinct_days": 4,
         "max_daily_minutes": 240,
         "max_unplaced": 0
+      },
+      "request_contract": {
+        "user_requested_range": {
+          "end_at": "2026-10-17T00:00:00+08:00",
+          "start_at": "2026-10-08T00:00:00+08:00",
+          "source_quote": "10 月 8 日到 16 日"
+        },
+        "intent": "schedule_plan",
+        "write_policy": "allow_schedule_draft",
+        "intent_quote": "安排报告和零散行政任务"
       }
     },
     {
@@ -193,82 +733,316 @@
       "workday_start": "09:00",
       "workday_end": "17:00",
       "memory_context": [
-        { "kind": "soft_behavioral_preference", "text": "用户通常喜欢在上午安排分析和高专注任务。", "confidence": 0.86, "recorded_at": "2026-08-12T08:00:00+08:00" }
+        {
+          "kind": "soft_behavioral_preference",
+          "text": "用户通常喜欢在上午安排分析和高专注任务。",
+          "confidence": 0.86,
+          "recorded_at": "2026-08-12T08:00:00+08:00"
+        }
       ],
       "prompt": "请安排 10 月 8 日到 23 日的任务。你记得我通常喜欢上午做分析，不过到 10 月 16 日我需要照顾家人，任何任务都不要安排在 10:30 之前；10 月 17 日起上午可以恢复。每天 17:00 后都不安排工作。请把这个新情况优先于旧习惯，并保留已有会议。",
       "tasks": [
-        { "key": "forecast", "title": "完成季度经营预测", "description": "核对预测假设并更新关键指标。", "estimated_minutes": 90, "priority": "high", "due_at": "2026-10-14T17:00:00+08:00" },
-        { "key": "feedback_draft", "title": "完成团队季度反馈初稿", "description": "为团队成员准备季度反馈要点。", "estimated_minutes": 120, "priority": "high", "due_at": "2026-10-16T17:00:00+08:00" },
-        { "key": "school_form", "title": "提交孩子学校活动报名表", "description": "检查信息后在线提交报名表。", "estimated_minutes": 45, "priority": "urgent", "due_at": "2026-10-12T17:00:00+08:00" },
-        { "key": "isp_review", "title": "比较家庭网络续约方案", "description": "查看续约报价并确认是否切换套餐。", "estimated_minutes": 60, "priority": "medium", "due_at": "2026-10-19T17:00:00+08:00" },
-        { "key": "expense_docs", "title": "整理季度报销凭证", "description": "核对票据并补齐缺少的凭证。", "estimated_minutes": 75, "priority": "medium", "due_at": "2026-10-21T17:00:00+08:00" },
-        { "key": "family_budget", "title": "整理月底家庭预算", "description": "核对账单并整理月底家庭支出。", "estimated_minutes": 90, "priority": "low", "due_at": "2026-10-23T17:00:00+08:00" }
+        {
+          "key": "forecast",
+          "title": "完成季度经营预测",
+          "description": "核对预测假设并更新关键指标。",
+          "estimated_minutes": 90,
+          "priority": "high",
+          "due_at": "2026-10-14T17:00:00+08:00"
+        },
+        {
+          "key": "feedback_draft",
+          "title": "完成团队季度反馈初稿",
+          "description": "为团队成员准备季度反馈要点。",
+          "estimated_minutes": 120,
+          "priority": "high",
+          "due_at": "2026-10-16T17:00:00+08:00"
+        },
+        {
+          "key": "school_form",
+          "title": "提交孩子学校活动报名表",
+          "description": "检查信息后在线提交报名表。",
+          "estimated_minutes": 45,
+          "priority": "urgent",
+          "due_at": "2026-10-12T17:00:00+08:00"
+        },
+        {
+          "key": "isp_review",
+          "title": "比较家庭网络续约方案",
+          "description": "查看续约报价并确认是否切换套餐。",
+          "estimated_minutes": 60,
+          "priority": "medium",
+          "due_at": "2026-10-19T17:00:00+08:00"
+        },
+        {
+          "key": "expense_docs",
+          "title": "整理季度报销凭证",
+          "description": "核对票据并补齐缺少的凭证。",
+          "estimated_minutes": 75,
+          "priority": "medium",
+          "due_at": "2026-10-21T17:00:00+08:00"
+        },
+        {
+          "key": "family_budget",
+          "title": "整理月底家庭预算",
+          "description": "核对账单并整理月底家庭支出。",
+          "estimated_minutes": 90,
+          "priority": "low",
+          "due_at": "2026-10-23T17:00:00+08:00"
+        }
       ],
       "events": [
-        { "title": "家庭照护安排", "start_at": "2026-10-08T09:00:00+08:00", "end_at": "2026-10-08T10:30:00+08:00", "immutable": true },
-        { "title": "家庭照护安排", "start_at": "2026-10-12T09:00:00+08:00", "end_at": "2026-10-12T10:30:00+08:00", "immutable": true },
-        { "title": "季度项目评审", "start_at": "2026-10-15T14:00:00+08:00", "end_at": "2026-10-15T15:00:00+08:00", "immutable": true },
-        { "title": "家庭照护安排", "start_at": "2026-10-16T09:00:00+08:00", "end_at": "2026-10-16T10:30:00+08:00", "immutable": true }
+        {
+          "title": "家庭照护安排",
+          "start_at": "2026-10-08T09:00:00+08:00",
+          "end_at": "2026-10-08T10:30:00+08:00",
+          "immutable": true
+        },
+        {
+          "title": "家庭照护安排",
+          "start_at": "2026-10-12T09:00:00+08:00",
+          "end_at": "2026-10-12T10:30:00+08:00",
+          "immutable": true
+        },
+        {
+          "title": "季度项目评审",
+          "start_at": "2026-10-15T14:00:00+08:00",
+          "end_at": "2026-10-15T15:00:00+08:00",
+          "immutable": true
+        },
+        {
+          "title": "家庭照护安排",
+          "start_at": "2026-10-16T09:00:00+08:00",
+          "end_at": "2026-10-16T10:30:00+08:00",
+          "immutable": true
+        }
       ],
       "expectations": {
-        "hard": ["within_range", "respect_deadlines", "no_overlap_with_immutable_events", "within_work_hours", "no_weekend", "respect_explicit_preference_over_memory"],
-        "soft": ["phase_windows", "min_distinct_days", "memory_used_only_when_not_conflicting", "max_daily_minutes"],
+        "hard": [
+          "within_range",
+          "respect_deadlines",
+          "no_overlap_with_immutable_events",
+          "within_work_hours",
+          "no_weekend",
+          "respect_explicit_preference_over_memory"
+        ],
+        "soft": [
+          "phase_windows",
+          "min_distinct_days",
+          "memory_used_only_when_not_conflicting",
+          "max_daily_minutes"
+        ],
         "daily_availability_windows": [
-          { "start_date": "2026-10-08", "end_date": "2026-10-16", "daily_start": "10:30", "daily_end": "17:00" }
+          {
+            "start_date": "2026-10-08",
+            "end_date": "2026-10-16",
+            "daily_start": "10:30",
+            "daily_end": "17:00"
+          }
         ],
         "phase_windows": [
-          { "name": "explicit_care_window", "task_keys": ["forecast", "feedback_draft", "school_form"], "not_before": "2026-10-08T10:30:00+08:00", "not_after": "2026-10-16T17:00:00+08:00" },
-          { "name": "morning_preference_resumes", "task_keys": ["isp_review", "expense_docs", "family_budget"], "not_before": "2026-10-17T00:00:00+08:00", "not_after": "2026-10-24T00:00:00+08:00" }
+          {
+            "name": "explicit_care_window",
+            "task_keys": [
+              "forecast",
+              "feedback_draft",
+              "school_form"
+            ],
+            "not_before": "2026-10-08T10:30:00+08:00",
+            "not_after": "2026-10-16T17:00:00+08:00"
+          },
+          {
+            "name": "morning_preference_resumes",
+            "task_keys": [
+              "isp_review",
+              "expense_docs",
+              "family_budget"
+            ],
+            "not_before": "2026-10-17T00:00:00+08:00",
+            "not_after": "2026-10-24T00:00:00+08:00"
+          }
         ],
         "no_weekend": true,
         "min_distinct_days": 4,
         "max_daily_minutes": 300,
         "max_unplaced": 0,
         "ask_planning_clarification": false
+      },
+      "request_contract": {
+        "user_requested_range": {
+          "end_at": "2026-10-24T00:00:00+08:00",
+          "start_at": "2026-10-08T00:00:00+08:00",
+          "source_quote": "10 月 8 日到 23 日"
+        },
+        "intent": "schedule_plan",
+        "write_policy": "allow_schedule_draft",
+        "intent_quote": "请安排 10 月 8 日到 23 日的任务"
       }
     },
     {
       "id": "tokyo_shanghai_travel",
       "split": "regression",
       "name": "东京用户准备上海差旅：跨时区会议与出行缓冲",
-      "anchor_at": "2026-10-05T08:00:00+09:00",
+      "anchor_at": "2026-10-05T07:00:00+08:00",
       "timezone": "Asia/Tokyo",
-      "range_start": "2026-10-08T00:00:00+09:00",
-      "range_end": "2026-10-16T23:59:00+09:00",
+      "range_start": "2026-10-07T23:00:00+08:00",
+      "range_end": "2026-10-16T22:59:00+08:00",
       "workday_start": "09:00",
       "workday_end": "18:00",
       "prompt": "我在东京，请按东京当地工作时间把 10 月 8 日到 16 日的上海差旅准备分散到多个工作日，每天最多安排 5 小时。两场按上海时间登记的会议请正确换算并避开；证件、审批、客户材料和演示准备按截止日期安排在出发前，返程后的跟进放在 10 月 15 日或 16 日。10 月 14 日是往返行程日，不要把任务安排在当天；不要移动会议或安排周末。",
       "tasks": [
-        { "key": "travel_documents", "title": "确认东京至上海差旅证件和保险", "description": "核对证件有效期、差旅保险和预订信息。", "estimated_minutes": 60, "priority": "urgent", "due_at": "2026-10-09T18:00:00+09:00" },
-        { "key": "client_brief", "title": "准备上海客户方案双语摘要", "description": "形成现场沟通用的中日文摘要。", "estimated_minutes": 120, "priority": "high", "due_at": "2026-10-12T18:00:00+09:00" },
-        { "key": "travel_budget", "title": "完成差旅预算和报销预估", "description": "核算交通、住宿和差旅报销项目。", "estimated_minutes": 60, "priority": "medium", "due_at": "2026-10-13T18:00:00+09:00" },
-        { "key": "demo_backup", "title": "整理客户演示的备用流程", "description": "检查网络不可用时可用的演示材料。", "estimated_minutes": 90, "priority": "high", "due_at": "2026-10-13T18:00:00+09:00" },
-        { "key": "travel_approval", "title": "提交差旅审批和行程信息", "description": "提交审批并向相关同事同步行程。", "estimated_minutes": 45, "priority": "high", "due_at": "2026-10-12T18:00:00+09:00" },
-        { "key": "meeting_template", "title": "准备上海会议纪要模板", "description": "为现场会议准备议题和记录模板。", "estimated_minutes": 45, "priority": "medium", "due_at": "2026-10-13T18:00:00+09:00" },
-        { "key": "return_followups", "title": "整理返程后的客户跟进清单", "description": "列出返程后需要确认的客户事项。", "estimated_minutes": 60, "priority": "medium", "due_at": "2026-10-16T18:00:00+09:00" }
+        {
+          "key": "travel_documents",
+          "title": "确认东京至上海差旅证件和保险",
+          "description": "核对证件有效期、差旅保险和预订信息。",
+          "estimated_minutes": 60,
+          "priority": "urgent",
+          "due_at": "2026-10-09T17:00:00+08:00"
+        },
+        {
+          "key": "client_brief",
+          "title": "准备上海客户方案双语摘要",
+          "description": "形成现场沟通用的中日文摘要。",
+          "estimated_minutes": 120,
+          "priority": "high",
+          "due_at": "2026-10-12T17:00:00+08:00"
+        },
+        {
+          "key": "travel_budget",
+          "title": "完成差旅预算和报销预估",
+          "description": "核算交通、住宿和差旅报销项目。",
+          "estimated_minutes": 60,
+          "priority": "medium",
+          "due_at": "2026-10-13T17:00:00+08:00"
+        },
+        {
+          "key": "demo_backup",
+          "title": "整理客户演示的备用流程",
+          "description": "检查网络不可用时可用的演示材料。",
+          "estimated_minutes": 90,
+          "priority": "high",
+          "due_at": "2026-10-13T17:00:00+08:00"
+        },
+        {
+          "key": "travel_approval",
+          "title": "提交差旅审批和行程信息",
+          "description": "提交审批并向相关同事同步行程。",
+          "estimated_minutes": 45,
+          "priority": "high",
+          "due_at": "2026-10-12T17:00:00+08:00"
+        },
+        {
+          "key": "meeting_template",
+          "title": "准备上海会议纪要模板",
+          "description": "为现场会议准备议题和记录模板。",
+          "estimated_minutes": 45,
+          "priority": "medium",
+          "due_at": "2026-10-13T17:00:00+08:00"
+        },
+        {
+          "key": "return_followups",
+          "title": "整理返程后的客户跟进清单",
+          "description": "列出返程后需要确认的客户事项。",
+          "estimated_minutes": 60,
+          "priority": "medium",
+          "due_at": "2026-10-16T17:00:00+08:00"
+        }
       ],
       "events": [
-        { "title": "东京团队周会", "start_at": "2026-10-08T10:00:00+09:00", "end_at": "2026-10-08T11:00:00+09:00", "immutable": true },
-        { "title": "上海客户远程确认（上海时间 10 月 9 日 09:00）", "start_at": "2026-10-09T09:00:00+08:00", "end_at": "2026-10-09T10:00:00+08:00", "immutable": true },
-        { "title": "东京差旅审批同步", "start_at": "2026-10-12T10:00:00+09:00", "end_at": "2026-10-12T11:00:00+09:00", "immutable": true },
-        { "title": "往返上海行程日", "start_at": "2026-10-14T00:00:00+09:00", "end_at": "2026-10-15T00:00:00+09:00", "immutable": true },
-        { "title": "上海项目同步（上海时间 10 月 15 日 15:00）", "start_at": "2026-10-15T15:00:00+08:00", "end_at": "2026-10-15T16:00:00+08:00", "immutable": true }
+        {
+          "title": "东京团队周会",
+          "start_at": "2026-10-08T09:00:00+08:00",
+          "end_at": "2026-10-08T10:00:00+08:00",
+          "immutable": true
+        },
+        {
+          "title": "上海客户远程确认（上海时间 10 月 9 日 09:00）",
+          "start_at": "2026-10-09T09:00:00+08:00",
+          "end_at": "2026-10-09T10:00:00+08:00",
+          "immutable": true
+        },
+        {
+          "title": "东京差旅审批同步",
+          "start_at": "2026-10-12T09:00:00+08:00",
+          "end_at": "2026-10-12T10:00:00+08:00",
+          "immutable": true
+        },
+        {
+          "title": "往返上海行程日",
+          "start_at": "2026-10-13T23:00:00+08:00",
+          "end_at": "2026-10-14T23:00:00+08:00",
+          "immutable": true
+        },
+        {
+          "title": "上海项目同步（上海时间 10 月 15 日 15:00）",
+          "start_at": "2026-10-15T15:00:00+08:00",
+          "end_at": "2026-10-15T16:00:00+08:00",
+          "immutable": true
+        }
       ],
       "expectations": {
-        "hard": ["within_range", "respect_deadlines", "no_overlap_with_immutable_events", "within_work_hours_local_timezone", "no_weekend", "do_not_schedule_during_travel_event", "max_daily_minutes"],
-        "soft": ["phase_windows", "min_distinct_days", "travel_buffer", "max_daily_minutes"],
+        "hard": [
+          "within_range",
+          "respect_deadlines",
+          "no_overlap_with_immutable_events",
+          "within_work_hours_local_timezone",
+          "no_weekend",
+          "do_not_schedule_during_travel_event",
+          "max_daily_minutes"
+        ],
+        "soft": [
+          "phase_windows",
+          "min_distinct_days",
+          "travel_buffer",
+          "max_daily_minutes"
+        ],
         "phase_windows": [
-          { "task_keys": ["travel_documents", "travel_approval", "client_brief", "travel_budget", "demo_backup", "meeting_template"], "not_before": "2026-10-08T00:00:00+09:00", "not_after": "2026-10-13T23:59:00+09:00" },
-          { "task_keys": ["return_followups"], "not_before": "2026-10-15T00:00:00+09:00", "not_after": "2026-10-16T23:59:00+09:00" }
+          {
+            "task_keys": [
+              "travel_documents",
+              "travel_approval",
+              "client_brief",
+              "travel_budget",
+              "demo_backup",
+              "meeting_template"
+            ],
+            "not_before": "2026-10-07T23:00:00+08:00",
+            "not_after": "2026-10-13T22:59:00+08:00"
+          },
+          {
+            "task_keys": [
+              "return_followups"
+            ],
+            "not_before": "2026-10-14T23:00:00+08:00",
+            "not_after": "2026-10-16T22:59:00+08:00"
+          }
         ],
         "precedence": [
-          { "before": "travel_documents", "after": "travel_approval", "min_gap_days": 0 },
-          { "before": "demo_backup", "after": "return_followups", "min_gap_days": 0 }
+          {
+            "before": "travel_documents",
+            "after": "travel_approval",
+            "min_gap_days": 0
+          },
+          {
+            "before": "demo_backup",
+            "after": "return_followups",
+            "min_gap_days": 0
+          }
         ],
         "no_weekend": true,
         "min_distinct_days": 4,
         "max_daily_minutes": 300,
         "max_unplaced": 0
+      },
+      "request_contract": {
+        "user_requested_range": {
+          "end_at": "2026-10-17T00:00:00+09:00",
+          "start_at": "2026-10-08T00:00:00+09:00",
+          "source_quote": "10 月 8 日到 16 日"
+        },
+        "intent": "schedule_plan",
+        "write_policy": "allow_schedule_draft",
+        "intent_quote": "按东京当地工作时间把 10 月 8 日到 16 日的上海差旅准备分散到多个工作日"
       }
     },
     {
@@ -283,35 +1057,139 @@
       "workday_end": "17:00",
       "prompt": "请安排 10 月 5 日到 25 日这三周的工作和家庭待办，保留学校沟通、接送和工作会议。16:00 后不要放需要专注的任务；需要打电话的事情安排在工作日 09:00–16:00。不要安排晚上或周末，每天最多 5 小时，尽量让计划留有余地。",
       "tasks": [
-        { "key": "school_registration", "title": "提交孩子学校活动报名表", "description": "检查活动信息并在截止前提交。", "estimated_minutes": 60, "priority": "urgent", "due_at": "2026-10-09T17:00:00+08:00" },
-        { "key": "quarter_report", "title": "准备季度业务汇报数据和图表", "description": "汇总指标并制作管理层可读的图表。", "estimated_minutes": 150, "priority": "high", "due_at": "2026-10-16T17:00:00+08:00" },
-        { "key": "medical_forms", "title": "整理孩子体检资料和预约信息", "description": "核对资料并确认预约所需文件。", "estimated_minutes": 60, "priority": "high", "due_at": "2026-10-19T17:00:00+08:00" },
-        { "key": "utility_call", "title": "工作时间致电办理家庭网络续约", "description": "需在服务商工作时段内完成电话确认。", "estimated_minutes": 45, "priority": "medium", "due_at": "2026-10-20T17:00:00+08:00" },
-        { "key": "reimbursement", "title": "提交季度报销凭证", "description": "核对票据并完成报销提交。", "estimated_minutes": 90, "priority": "medium", "due_at": "2026-10-21T17:00:00+08:00" },
-        { "key": "family_budget", "title": "整理月底家庭预算和账单", "description": "核对账单并更新家庭预算。", "estimated_minutes": 90, "priority": "low", "due_at": "2026-10-23T17:00:00+08:00" }
+        {
+          "key": "school_registration",
+          "title": "提交孩子学校活动报名表",
+          "description": "检查活动信息并在截止前提交。",
+          "estimated_minutes": 60,
+          "priority": "urgent",
+          "due_at": "2026-10-09T17:00:00+08:00"
+        },
+        {
+          "key": "quarter_report",
+          "title": "准备季度业务汇报数据和图表",
+          "description": "汇总指标并制作管理层可读的图表。",
+          "estimated_minutes": 150,
+          "priority": "high",
+          "due_at": "2026-10-16T17:00:00+08:00"
+        },
+        {
+          "key": "medical_forms",
+          "title": "整理孩子体检资料和预约信息",
+          "description": "核对资料并确认预约所需文件。",
+          "estimated_minutes": 60,
+          "priority": "high",
+          "due_at": "2026-10-19T17:00:00+08:00"
+        },
+        {
+          "key": "utility_call",
+          "title": "工作时间致电办理家庭网络续约",
+          "description": "需在服务商工作时段内完成电话确认。",
+          "estimated_minutes": 45,
+          "priority": "medium",
+          "due_at": "2026-10-20T17:00:00+08:00"
+        },
+        {
+          "key": "reimbursement",
+          "title": "提交季度报销凭证",
+          "description": "核对票据并完成报销提交。",
+          "estimated_minutes": 90,
+          "priority": "medium",
+          "due_at": "2026-10-21T17:00:00+08:00"
+        },
+        {
+          "key": "family_budget",
+          "title": "整理月底家庭预算和账单",
+          "description": "核对账单并更新家庭预算。",
+          "estimated_minutes": 90,
+          "priority": "low",
+          "due_at": "2026-10-23T17:00:00+08:00"
+        }
       ],
       "events": [
-        { "title": "孩子放学接送", "start_at": "2026-10-08T16:30:00+08:00", "end_at": "2026-10-08T17:30:00+08:00", "immutable": true },
-        { "title": "幼儿园家长沟通", "start_at": "2026-10-12T15:30:00+08:00", "end_at": "2026-10-12T16:30:00+08:00", "immutable": true },
-        { "title": "孩子看牙接送", "start_at": "2026-10-19T16:00:00+08:00", "end_at": "2026-10-19T17:00:00+08:00", "immutable": true },
-        { "title": "季度部门业务评审", "start_at": "2026-10-15T09:30:00+08:00", "end_at": "2026-10-15T11:00:00+08:00", "immutable": true },
-        { "title": "家庭午餐安排", "start_at": "2026-10-22T12:00:00+08:00", "end_at": "2026-10-22T13:00:00+08:00", "immutable": true }
+        {
+          "title": "孩子放学接送",
+          "start_at": "2026-10-08T16:30:00+08:00",
+          "end_at": "2026-10-08T17:30:00+08:00",
+          "immutable": true
+        },
+        {
+          "title": "幼儿园家长沟通",
+          "start_at": "2026-10-12T15:30:00+08:00",
+          "end_at": "2026-10-12T16:30:00+08:00",
+          "immutable": true
+        },
+        {
+          "title": "孩子看牙接送",
+          "start_at": "2026-10-19T16:00:00+08:00",
+          "end_at": "2026-10-19T17:00:00+08:00",
+          "immutable": true
+        },
+        {
+          "title": "季度部门业务评审",
+          "start_at": "2026-10-15T09:30:00+08:00",
+          "end_at": "2026-10-15T11:00:00+08:00",
+          "immutable": true
+        },
+        {
+          "title": "家庭午餐安排",
+          "start_at": "2026-10-22T12:00:00+08:00",
+          "end_at": "2026-10-22T13:00:00+08:00",
+          "immutable": true
+        }
       ],
       "expectations": {
-        "hard": ["within_range", "respect_deadlines", "no_overlap_with_immutable_events", "within_work_hours", "no_weekend", "no_focus_tasks_after_16_local", "max_daily_minutes"],
-        "soft": ["phase_windows", "min_distinct_days", "work_family_balance", "max_daily_minutes", "buffer_time"],
+        "hard": [
+          "within_range",
+          "respect_deadlines",
+          "no_overlap_with_immutable_events",
+          "within_work_hours",
+          "no_weekend",
+          "no_focus_tasks_after_16_local",
+          "max_daily_minutes"
+        ],
+        "soft": [
+          "phase_windows",
+          "min_distinct_days",
+          "work_family_balance",
+          "max_daily_minutes",
+          "buffer_time"
+        ],
         "phase_windows": [
-          { "task_keys": ["utility_call"], "not_before": "2026-10-05T09:00:00+08:00", "not_after": "2026-10-20T16:00:00+08:00", "allowed_weekdays": ["MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY"] }
+          {
+            "task_keys": [
+              "utility_call"
+            ],
+            "not_before": "2026-10-05T09:00:00+08:00",
+            "not_after": "2026-10-20T16:00:00+08:00",
+            "allowed_weekdays": [
+              "MONDAY",
+              "TUESDAY",
+              "WEDNESDAY",
+              "THURSDAY",
+              "FRIDAY"
+            ]
+          }
         ],
         "no_weekend": true,
         "min_distinct_days": 4,
         "max_daily_minutes": 300,
         "max_unplaced": 0
+      },
+      "request_contract": {
+        "user_requested_range": {
+          "end_at": "2026-10-26T00:00:00+08:00",
+          "start_at": "2026-10-05T00:00:00+08:00",
+          "source_quote": "10 月 5 日到 25 日"
+        },
+        "intent": "schedule_plan",
+        "write_policy": "allow_schedule_draft",
+        "intent_quote": "安排 10 月 5 日到 25 日这三周的工作和家庭待办"
       }
     },
     {
       "id": "minimal_churn_replan_holdout",
-      "split": "holdout",
+      "split": "regression",
       "name": "计划中途新增会议：最小改动 Replan",
       "anchor_at": "2026-10-05T08:00:00+08:00",
       "timezone": "Asia/Shanghai",
@@ -321,40 +1199,161 @@
       "workday_end": "17:00",
       "prompt": "我已经按当前日程做了一部分工作。客户刚刚加了 10 月 12 日 13:00–16:00 的不可移动会议，和数据分析块冲突。请只重排未完成且受影响的任务；保留已完成事项、已有固定会和其他未受影响的安排，尽量减少移动，不要把任务推过截止时间，也不要安排周末。",
       "tasks": [
-        { "key": "market_audit", "title": "完成市场数据核对", "description": "已完成，请保持完成状态和原记录。", "estimated_minutes": 120, "priority": "high", "due_at": "2026-10-09T17:00:00+08:00", "flags": { "status": "completed", "planned_start_at": "2026-10-08T09:00:00+08:00", "planned_end_at": "2026-10-08T11:00:00+08:00" } },
-        { "key": "draft_findings", "title": "整理初步研究发现", "description": "已完成，请不要移动或重新打开。", "estimated_minutes": 120, "priority": "high", "due_at": "2026-10-12T17:00:00+08:00", "flags": { "status": "completed", "planned_start_at": "2026-10-09T09:00:00+08:00", "planned_end_at": "2026-10-09T11:00:00+08:00" } },
-        { "key": "prototype_review", "title": "评审产品原型关键流程", "description": "未完成，原计划保留。", "estimated_minutes": 90, "priority": "high", "due_at": "2026-10-14T17:00:00+08:00", "flags": { "status": "pending", "planned_start_at": "2026-10-12T09:00:00+08:00", "planned_end_at": "2026-10-12T10:30:00+08:00" } },
-        { "key": "data_analysis", "title": "分析客户使用数据", "description": "未完成，原计划被新会议覆盖，需重排。", "estimated_minutes": 120, "priority": "high", "due_at": "2026-10-15T17:00:00+08:00", "flags": { "status": "pending", "planned_start_at": "2026-10-12T13:00:00+08:00", "planned_end_at": "2026-10-12T15:00:00+08:00" } },
-        { "key": "customer_test", "title": "整理客户测试反馈", "description": "未完成，原计划不受新会议影响。", "estimated_minutes": 120, "priority": "high", "due_at": "2026-10-16T17:00:00+08:00", "flags": { "status": "pending", "planned_start_at": "2026-10-13T09:00:00+08:00", "planned_end_at": "2026-10-13T11:00:00+08:00" } },
-        { "key": "final_recommendations", "title": "撰写最终研究建议", "description": "未完成，原计划不受新会议影响。", "estimated_minutes": 90, "priority": "high", "due_at": "2026-10-16T17:00:00+08:00", "flags": { "status": "pending", "planned_start_at": "2026-10-15T09:00:00+08:00", "planned_end_at": "2026-10-15T10:30:00+08:00" } }
+        {
+          "key": "market_audit",
+          "title": "完成市场数据核对",
+          "description": "已完成，请保持完成状态和原记录。",
+          "estimated_minutes": 120,
+          "priority": "high",
+          "due_at": "2026-10-09T17:00:00+08:00",
+          "flags": {
+            "status": "completed",
+            "planned_start_at": "2026-10-08T09:00:00+08:00",
+            "planned_end_at": "2026-10-08T11:00:00+08:00"
+          }
+        },
+        {
+          "key": "draft_findings",
+          "title": "整理初步研究发现",
+          "description": "已完成，请不要移动或重新打开。",
+          "estimated_minutes": 120,
+          "priority": "high",
+          "due_at": "2026-10-12T17:00:00+08:00",
+          "flags": {
+            "status": "completed",
+            "planned_start_at": "2026-10-09T09:00:00+08:00",
+            "planned_end_at": "2026-10-09T11:00:00+08:00"
+          }
+        },
+        {
+          "key": "prototype_review",
+          "title": "评审产品原型关键流程",
+          "description": "未完成，原计划保留。",
+          "estimated_minutes": 90,
+          "priority": "high",
+          "due_at": "2026-10-14T17:00:00+08:00",
+          "flags": {
+            "status": "pending",
+            "planned_start_at": "2026-10-12T09:00:00+08:00",
+            "planned_end_at": "2026-10-12T10:30:00+08:00"
+          }
+        },
+        {
+          "key": "data_analysis",
+          "title": "分析客户使用数据",
+          "description": "未完成，原计划被新会议覆盖，需重排。",
+          "estimated_minutes": 120,
+          "priority": "high",
+          "due_at": "2026-10-15T17:00:00+08:00",
+          "flags": {
+            "status": "pending",
+            "planned_start_at": "2026-10-12T13:00:00+08:00",
+            "planned_end_at": "2026-10-12T15:00:00+08:00"
+          }
+        },
+        {
+          "key": "customer_test",
+          "title": "整理客户测试反馈",
+          "description": "未完成，原计划不受新会议影响。",
+          "estimated_minutes": 120,
+          "priority": "high",
+          "due_at": "2026-10-16T17:00:00+08:00",
+          "flags": {
+            "status": "pending",
+            "planned_start_at": "2026-10-13T09:00:00+08:00",
+            "planned_end_at": "2026-10-13T11:00:00+08:00"
+          }
+        },
+        {
+          "key": "final_recommendations",
+          "title": "撰写最终研究建议",
+          "description": "未完成，原计划不受新会议影响。",
+          "estimated_minutes": 90,
+          "priority": "high",
+          "due_at": "2026-10-16T17:00:00+08:00",
+          "flags": {
+            "status": "pending",
+            "planned_start_at": "2026-10-15T09:00:00+08:00",
+            "planned_end_at": "2026-10-15T10:30:00+08:00"
+          }
+        }
       ],
       "events": [
-        { "title": "研究进度会", "start_at": "2026-10-08T14:00:00+08:00", "end_at": "2026-10-08T15:00:00+08:00", "immutable": true },
-        { "title": "客户新增评审会", "start_at": "2026-10-12T13:00:00+08:00", "end_at": "2026-10-12T16:00:00+08:00", "immutable": true, "added_after_initial_plan": true },
-        { "title": "产品设计评审", "start_at": "2026-10-13T14:00:00+08:00", "end_at": "2026-10-13T15:00:00+08:00", "immutable": true },
-        { "title": "阶段审批会", "start_at": "2026-10-15T13:00:00+08:00", "end_at": "2026-10-15T14:00:00+08:00", "immutable": true }
+        {
+          "title": "研究进度会",
+          "start_at": "2026-10-08T14:00:00+08:00",
+          "end_at": "2026-10-08T15:00:00+08:00",
+          "immutable": true
+        },
+        {
+          "title": "客户新增评审会",
+          "start_at": "2026-10-12T13:00:00+08:00",
+          "end_at": "2026-10-12T16:00:00+08:00",
+          "immutable": true,
+          "added_after_initial_plan": true
+        },
+        {
+          "title": "产品设计评审",
+          "start_at": "2026-10-13T14:00:00+08:00",
+          "end_at": "2026-10-13T15:00:00+08:00",
+          "immutable": true
+        },
+        {
+          "title": "阶段审批会",
+          "start_at": "2026-10-15T13:00:00+08:00",
+          "end_at": "2026-10-15T14:00:00+08:00",
+          "immutable": true
+        }
       ],
       "expectations": {
-        "hard": ["within_range", "respect_deadlines", "no_overlap_with_immutable_events", "within_work_hours", "no_weekend", "preserve_completed_tasks"],
-        "soft": ["minimal_schedule_churn", "preserve_unaffected_existing_slots", "max_moved_tasks", "max_total_shift_minutes"],
+        "hard": [
+          "within_range",
+          "respect_deadlines",
+          "no_overlap_with_immutable_events",
+          "within_work_hours",
+          "no_weekend",
+          "preserve_completed_tasks"
+        ],
+        "soft": [
+          "minimal_schedule_churn",
+          "preserve_unaffected_existing_slots",
+          "max_moved_tasks",
+          "max_total_shift_minutes"
+        ],
         "no_weekend": true,
         "max_daily_minutes": 300,
         "max_unplaced": 0,
         "ask_planning_clarification": false,
         "approval_required": true,
-        "ask_user_about_task_keys": ["data_analysis"],
+        "ask_user_about_task_keys": [
+          "data_analysis"
+        ],
         "max_clarifying_questions": 1,
         "no_schedule_write_before_answer": true,
-        "preserve_completed_task_keys": ["market_audit", "draft_findings"],
-        "preserve_unaffected_plan_task_keys": ["prototype_review", "customer_test", "final_recommendations"],
-        "expected_moved_task_keys": ["data_analysis"],
+        "preserve_completed_task_keys": [
+          "market_audit",
+          "draft_findings"
+        ],
+        "preserve_unaffected_plan_task_keys": [
+          "prototype_review",
+          "customer_test",
+          "final_recommendations"
+        ],
+        "expected_moved_task_keys": [
+          "data_analysis"
+        ],
         "max_moved_tasks": 1,
         "max_total_shift_minutes": 240
+      },
+      "request_contract": {
+        "intent": "replan_proposal",
+        "write_policy": "allow_schedule_draft",
+        "intent_quote": "请只重排未完成且受影响的任务"
       }
     },
     {
       "id": "ambiguous_priority_clarification_holdout",
-      "split": "holdout",
+      "split": "regression",
       "name": "同等优先级任务争夺稀缺时段：先询问",
       "anchor_at": "2026-10-05T08:00:00+08:00",
       "timezone": "Asia/Shanghai",
@@ -364,38 +1363,134 @@
       "workday_end": "17:00",
       "prompt": "这周先把最重要的事安排好。客户甲提案和客户乙风险报告同为高优先级、同一天截止，各需要一个完整的 3 小时块；两件事对我都重要，但我没说哪个客户更优先。你看到的固定会议使截止日前只剩一个 3 小时块。请先问我该优先哪一个，收到答复前不要创建或应用排程。",
       "tasks": [
-        { "key": "client_a_proposal", "title": "完成客户甲合作提案", "description": "完整连续工作块；与客户乙报告同优先级、同截止时间。", "estimated_minutes": 180, "priority": "high", "due_at": "2026-10-16T17:00:00+08:00", "flags": { "splittable": false } },
-        { "key": "client_b_risk_report", "title": "完成客户乙风险报告", "description": "完整连续工作块；与客户甲提案同优先级、同截止时间。", "estimated_minutes": 180, "priority": "high", "due_at": "2026-10-16T17:00:00+08:00", "flags": { "splittable": false } },
-        { "key": "meeting_notes", "title": "整理客户会议纪要", "description": "整理下周的低优先级会议笔记。", "estimated_minutes": 45, "priority": "low", "due_at": "2026-10-22T17:00:00+08:00" },
-        { "key": "timesheet", "title": "提交本周工时记录", "description": "核对工时并提交。", "estimated_minutes": 30, "priority": "low", "due_at": "2026-10-23T17:00:00+08:00" },
-        { "key": "team_updates", "title": "更新项目状态摘要", "description": "整理非紧急项目状态供团队查看。", "estimated_minutes": 60, "priority": "medium", "due_at": "2026-10-23T17:00:00+08:00" },
-        { "key": "expense_receipts", "title": "归档本周报销凭证", "description": "归档非紧急报销凭证。", "estimated_minutes": 45, "priority": "low", "due_at": "2026-10-23T17:00:00+08:00" }
+        {
+          "key": "client_a_proposal",
+          "title": "完成客户甲合作提案",
+          "description": "完整连续工作块；与客户乙报告同优先级、同截止时间。",
+          "estimated_minutes": 180,
+          "priority": "high",
+          "due_at": "2026-10-16T17:00:00+08:00",
+          "flags": {
+            "splittable": false
+          }
+        },
+        {
+          "key": "client_b_risk_report",
+          "title": "完成客户乙风险报告",
+          "description": "完整连续工作块；与客户甲提案同优先级、同截止时间。",
+          "estimated_minutes": 180,
+          "priority": "high",
+          "due_at": "2026-10-16T17:00:00+08:00",
+          "flags": {
+            "splittable": false
+          }
+        },
+        {
+          "key": "meeting_notes",
+          "title": "整理客户会议纪要",
+          "description": "整理下周的低优先级会议笔记。",
+          "estimated_minutes": 45,
+          "priority": "low",
+          "due_at": "2026-10-22T17:00:00+08:00"
+        },
+        {
+          "key": "timesheet",
+          "title": "提交本周工时记录",
+          "description": "核对工时并提交。",
+          "estimated_minutes": 30,
+          "priority": "low",
+          "due_at": "2026-10-23T17:00:00+08:00"
+        },
+        {
+          "key": "team_updates",
+          "title": "更新项目状态摘要",
+          "description": "整理非紧急项目状态供团队查看。",
+          "estimated_minutes": 60,
+          "priority": "medium",
+          "due_at": "2026-10-23T17:00:00+08:00"
+        },
+        {
+          "key": "expense_receipts",
+          "title": "归档本周报销凭证",
+          "description": "归档非紧急报销凭证。",
+          "estimated_minutes": 45,
+          "priority": "low",
+          "due_at": "2026-10-23T17:00:00+08:00"
+        }
       ],
       "events": [
-        { "title": "行业客户峰会", "start_at": "2026-10-12T09:00:00+08:00", "end_at": "2026-10-12T17:00:00+08:00", "immutable": true },
-        { "title": "客户现场评审", "start_at": "2026-10-13T09:00:00+08:00", "end_at": "2026-10-13T17:00:00+08:00", "immutable": true },
-        { "title": "供应商工作坊", "start_at": "2026-10-14T09:00:00+08:00", "end_at": "2026-10-14T17:00:00+08:00", "immutable": true },
-        { "title": "客户季度复盘", "start_at": "2026-10-15T09:00:00+08:00", "end_at": "2026-10-15T17:00:00+08:00", "immutable": true },
-        { "title": "董事会预备会", "start_at": "2026-10-16T09:00:00+08:00", "end_at": "2026-10-16T14:00:00+08:00", "immutable": true }
+        {
+          "title": "行业客户峰会",
+          "start_at": "2026-10-12T09:00:00+08:00",
+          "end_at": "2026-10-12T17:00:00+08:00",
+          "immutable": true
+        },
+        {
+          "title": "客户现场评审",
+          "start_at": "2026-10-13T09:00:00+08:00",
+          "end_at": "2026-10-13T17:00:00+08:00",
+          "immutable": true
+        },
+        {
+          "title": "供应商工作坊",
+          "start_at": "2026-10-14T09:00:00+08:00",
+          "end_at": "2026-10-14T17:00:00+08:00",
+          "immutable": true
+        },
+        {
+          "title": "客户季度复盘",
+          "start_at": "2026-10-15T09:00:00+08:00",
+          "end_at": "2026-10-15T17:00:00+08:00",
+          "immutable": true
+        },
+        {
+          "title": "董事会预备会",
+          "start_at": "2026-10-16T09:00:00+08:00",
+          "end_at": "2026-10-16T14:00:00+08:00",
+          "immutable": true
+        }
       ],
       "expectations": {
-        "hard": ["within_range", "respect_deadlines", "no_overlap_with_immutable_events", "within_work_hours", "no_weekend", "no_schedule_write_before_clarification"],
-        "soft": ["ask_planning_clarification", "ask_one_targeted_question", "do_not_infer_client_priority"],
+        "hard": [
+          "within_range",
+          "respect_deadlines",
+          "no_overlap_with_immutable_events",
+          "within_work_hours",
+          "no_weekend",
+          "no_schedule_write_before_clarification"
+        ],
+        "soft": [
+          "ask_planning_clarification",
+          "ask_one_targeted_question",
+          "do_not_infer_client_priority"
+        ],
         "no_weekend": true,
         "max_daily_minutes": 300,
         "ask_planning_clarification": true,
-        "ask_user_about_task_keys": ["client_a_proposal", "client_b_risk_report"],
+        "ask_user_about_task_keys": [
+          "client_a_proposal",
+          "client_b_risk_report"
+        ],
         "ask_user_task_aliases": {
-          "client_a_proposal": ["客户甲提案"],
-          "client_b_risk_report": ["客户乙风险报告"]
+          "client_a_proposal": [
+            "客户甲提案"
+          ],
+          "client_b_risk_report": [
+            "客户乙风险报告"
+          ]
         },
         "max_clarifying_questions": 1,
         "no_schedule_write_before_answer": true
+      },
+      "request_contract": {
+        "intent": "clarification",
+        "write_policy": "no_schedule_write_before_answer",
+        "intent_quote": "请先问我该优先哪一个"
       }
     },
     {
       "id": "progressive_training_4w_holdout",
-      "split": "holdout",
+      "split": "regression",
       "name": "四周渐进训练：阶段、恢复和周末安排",
       "anchor_at": "2026-10-05T08:00:00+08:00",
       "timezone": "Asia/Shanghai",
@@ -405,40 +1500,205 @@
       "workday_end": "20:00",
       "prompt": "请从 10 月 8 日到 11 月 1 日安排四周 10 公里训练计划：前 3 周每周两次训练，由轻松跑和基础力量逐步进阶到节奏跑/长距离；最后一周减量并确认比赛交通。每周的两次训练至少间隔一天；周末早上可以跑，工作日可以安排在下班后但不要晚于 20:00。不要把整个月训练都排在第一周，也给恢复留空间。",
       "tasks": [
-        { "key": "week1_easy_run", "title": "第 1 周：轻松跑并记录体感", "description": "低强度入门跑，记录体感和配速。", "estimated_minutes": 45, "priority": "medium", "due_at": "2026-10-11T20:00:00+08:00", "flags": { "splittable": false } },
-        { "key": "week1_strength", "title": "第 1 周：基础力量和拉伸", "description": "完成基础力量训练和跑后拉伸。", "estimated_minutes": 30, "priority": "medium", "due_at": "2026-10-11T20:00:00+08:00", "flags": { "splittable": false } },
-        { "key": "week2_tempo", "title": "第 2 周：节奏跑训练", "description": "较轻的节奏训练，不追求比赛强度。", "estimated_minutes": 60, "priority": "medium", "due_at": "2026-10-18T20:00:00+08:00", "flags": { "splittable": false } },
-        { "key": "week2_mobility", "title": "第 2 周：灵活性和恢复训练", "description": "安排低强度活动促进恢复。", "estimated_minutes": 30, "priority": "low", "due_at": "2026-10-18T20:00:00+08:00", "flags": { "splittable": false } },
-        { "key": "week3_long_run", "title": "第 3 周：渐进长距离跑", "description": "本周期最长训练，之后留出恢复时间。", "estimated_minutes": 75, "priority": "high", "due_at": "2026-10-25T20:00:00+08:00", "flags": { "splittable": false } },
-        { "key": "week3_strength", "title": "第 3 周：核心力量训练", "description": "补足核心力量和稳定性练习。", "estimated_minutes": 30, "priority": "medium", "due_at": "2026-10-25T20:00:00+08:00", "flags": { "splittable": false } },
-        { "key": "week4_taper", "title": "第 4 周：赛前减量轻松跑", "description": "降低训练量，保持轻松状态。", "estimated_minutes": 45, "priority": "high", "due_at": "2026-11-01T20:00:00+08:00", "flags": { "splittable": false } },
-        { "key": "race_logistics", "title": "第 4 周：确认比赛路线和交通", "description": "确认比赛出发时间、路线和交通方案。", "estimated_minutes": 45, "priority": "high", "due_at": "2026-11-01T20:00:00+08:00" }
+        {
+          "key": "week1_easy_run",
+          "title": "第 1 周：轻松跑并记录体感",
+          "description": "低强度入门跑，记录体感和配速。",
+          "estimated_minutes": 45,
+          "priority": "medium",
+          "due_at": "2026-10-11T20:00:00+08:00",
+          "flags": {
+            "splittable": false
+          }
+        },
+        {
+          "key": "week1_strength",
+          "title": "第 1 周：基础力量和拉伸",
+          "description": "完成基础力量训练和跑后拉伸。",
+          "estimated_minutes": 30,
+          "priority": "medium",
+          "due_at": "2026-10-11T20:00:00+08:00",
+          "flags": {
+            "splittable": false
+          }
+        },
+        {
+          "key": "week2_tempo",
+          "title": "第 2 周：节奏跑训练",
+          "description": "较轻的节奏训练，不追求比赛强度。",
+          "estimated_minutes": 60,
+          "priority": "medium",
+          "due_at": "2026-10-18T20:00:00+08:00",
+          "flags": {
+            "splittable": false
+          }
+        },
+        {
+          "key": "week2_mobility",
+          "title": "第 2 周：灵活性和恢复训练",
+          "description": "安排低强度活动促进恢复。",
+          "estimated_minutes": 30,
+          "priority": "low",
+          "due_at": "2026-10-18T20:00:00+08:00",
+          "flags": {
+            "splittable": false
+          }
+        },
+        {
+          "key": "week3_long_run",
+          "title": "第 3 周：渐进长距离跑",
+          "description": "本周期最长训练，之后留出恢复时间。",
+          "estimated_minutes": 75,
+          "priority": "high",
+          "due_at": "2026-10-25T20:00:00+08:00",
+          "flags": {
+            "splittable": false
+          }
+        },
+        {
+          "key": "week3_strength",
+          "title": "第 3 周：核心力量训练",
+          "description": "补足核心力量和稳定性练习。",
+          "estimated_minutes": 30,
+          "priority": "medium",
+          "due_at": "2026-10-25T20:00:00+08:00",
+          "flags": {
+            "splittable": false
+          }
+        },
+        {
+          "key": "week4_taper",
+          "title": "第 4 周：赛前减量轻松跑",
+          "description": "降低训练量，保持轻松状态。",
+          "estimated_minutes": 45,
+          "priority": "high",
+          "due_at": "2026-11-01T20:00:00+08:00",
+          "flags": {
+            "splittable": false
+          }
+        },
+        {
+          "key": "race_logistics",
+          "title": "第 4 周：确认比赛路线和交通",
+          "description": "确认比赛出发时间、路线和交通方案。",
+          "estimated_minutes": 45,
+          "priority": "high",
+          "due_at": "2026-11-01T20:00:00+08:00"
+        }
       ],
       "events": [
-        { "title": "团队例会", "start_at": "2026-10-12T09:00:00+08:00", "end_at": "2026-10-12T10:00:00+08:00", "immutable": true },
-        { "title": "项目评审", "start_at": "2026-10-20T09:30:00+08:00", "end_at": "2026-10-20T10:30:00+08:00", "immutable": true },
-        { "title": "团队月度回顾", "start_at": "2026-10-27T09:30:00+08:00", "end_at": "2026-10-27T10:30:00+08:00", "immutable": true },
-        { "title": "发布同步会", "start_at": "2026-10-30T09:30:00+08:00", "end_at": "2026-10-30T10:30:00+08:00", "immutable": true }
+        {
+          "title": "团队例会",
+          "start_at": "2026-10-12T09:00:00+08:00",
+          "end_at": "2026-10-12T10:00:00+08:00",
+          "immutable": true
+        },
+        {
+          "title": "项目评审",
+          "start_at": "2026-10-20T09:30:00+08:00",
+          "end_at": "2026-10-20T10:30:00+08:00",
+          "immutable": true
+        },
+        {
+          "title": "团队月度回顾",
+          "start_at": "2026-10-27T09:30:00+08:00",
+          "end_at": "2026-10-27T10:30:00+08:00",
+          "immutable": true
+        },
+        {
+          "title": "发布同步会",
+          "start_at": "2026-10-30T09:30:00+08:00",
+          "end_at": "2026-10-30T10:30:00+08:00",
+          "immutable": true
+        }
       ],
       "expectations": {
-        "hard": ["within_range", "respect_deadlines", "no_overlap_with_immutable_events", "within_user_available_hours"],
-        "soft": ["phase_windows", "precedence", "min_distinct_weeks", "min_distinct_days", "max_daily_minutes", "recovery_spacing"],
-        "phase_windows": [
-          { "task_keys": ["week1_easy_run", "week1_strength"], "not_before": "2026-10-08T00:00:00+08:00", "not_after": "2026-10-11T20:00:00+08:00" },
-          { "task_keys": ["week2_tempo", "week2_mobility"], "not_before": "2026-10-12T00:00:00+08:00", "not_after": "2026-10-18T20:00:00+08:00" },
-          { "task_keys": ["week3_long_run", "week3_strength"], "not_before": "2026-10-19T00:00:00+08:00", "not_after": "2026-10-25T20:00:00+08:00" },
-          { "task_keys": ["week4_taper", "race_logistics"], "not_before": "2026-10-26T00:00:00+08:00", "not_after": "2026-11-01T20:00:00+08:00" }
+        "hard": [
+          "within_range",
+          "respect_deadlines",
+          "no_overlap_with_immutable_events",
+          "within_user_available_hours"
         ],
-      "precedence": [],
-      "separation_constraints": [
-        { "task_keys": ["week1_easy_run", "week1_strength"], "minimum_gap_days": 1 },
-        { "task_keys": ["week2_tempo", "week2_mobility"], "minimum_gap_days": 1 },
-        { "task_keys": ["week3_long_run", "week3_strength"], "minimum_gap_days": 1 }
-      ],
+        "soft": [
+          "phase_windows",
+          "precedence",
+          "min_distinct_weeks",
+          "min_distinct_days",
+          "max_daily_minutes",
+          "recovery_spacing"
+        ],
+        "phase_windows": [
+          {
+            "task_keys": [
+              "week1_easy_run",
+              "week1_strength"
+            ],
+            "not_before": "2026-10-08T00:00:00+08:00",
+            "not_after": "2026-10-11T20:00:00+08:00"
+          },
+          {
+            "task_keys": [
+              "week2_tempo",
+              "week2_mobility"
+            ],
+            "not_before": "2026-10-12T00:00:00+08:00",
+            "not_after": "2026-10-18T20:00:00+08:00"
+          },
+          {
+            "task_keys": [
+              "week3_long_run",
+              "week3_strength"
+            ],
+            "not_before": "2026-10-19T00:00:00+08:00",
+            "not_after": "2026-10-25T20:00:00+08:00"
+          },
+          {
+            "task_keys": [
+              "week4_taper",
+              "race_logistics"
+            ],
+            "not_before": "2026-10-26T00:00:00+08:00",
+            "not_after": "2026-11-01T20:00:00+08:00"
+          }
+        ],
+        "precedence": [],
+        "separation_constraints": [
+          {
+            "task_keys": [
+              "week1_easy_run",
+              "week1_strength"
+            ],
+            "minimum_gap_days": 1
+          },
+          {
+            "task_keys": [
+              "week2_tempo",
+              "week2_mobility"
+            ],
+            "minimum_gap_days": 1
+          },
+          {
+            "task_keys": [
+              "week3_long_run",
+              "week3_strength"
+            ],
+            "minimum_gap_days": 1
+          }
+        ],
         "min_distinct_weeks": 4,
         "min_distinct_days": 6,
         "max_daily_minutes": 90,
         "max_unplaced": 0
+      },
+      "request_contract": {
+        "user_requested_range": {
+          "end_at": "2026-11-02T00:00:00+08:00",
+          "start_at": "2026-10-08T00:00:00+08:00",
+          "source_quote": "10 月 8 日到 11 月 1 日"
+        },
+        "intent": "schedule_plan",
+        "write_policy": "allow_schedule_draft",
+        "intent_quote": "安排四周 10 公里训练计划"
       }
     }
   ]

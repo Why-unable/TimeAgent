@@ -146,6 +146,98 @@ def test_free_slot_mode_returns_availability_without_planning_facts() -> None:
     assert "planning_rules" not in result
 
 
+def test_reference_ranked_free_slots_include_nearest_candidate_across_long_range() -> None:
+    user = _user_and_preferences("nearest-free-slot-across-range")
+    reference_start = local(12, 13)
+    reference_end = local(12, 15)
+    task = TaskService.create_task(
+        CreateTaskCommand(
+            user=user,
+            title="Analyze customer usage",
+            priority="high",
+            estimated_minutes=120,
+            due_at=local(15, 17),
+            planned_start_at=reference_start,
+            planned_end_at=reference_end,
+        )
+    )
+    EventService.create_event(
+        CreateEventCommand(
+            user=user,
+            title="Customer review",
+            start_at=local(12, 13),
+            end_at=local(12, 16),
+            timezone="Asia/Shanghai",
+        )
+    )
+
+    result = PlanningService.get_planning_context(
+        user=user,
+        range_start=datetime(2026, 10, 5, 0, tzinfo=SHANGHAI),
+        range_end=local(15, 17),
+        mode="free_slots",
+        duration_minutes=120,
+        allowed_weekdays=[0, 1, 2, 3, 4],
+        reference_start_at=reference_start,
+        reference_end_at=reference_end,
+    )
+    slots = cast(list[dict[str, Any]], result["free_slots"])
+
+    assert slots[0]["start_at_local"] == local(12, 11).isoformat()
+    assert slots[0]["end_at_local"] == local(12, 13).isoformat()
+    assert slots[0]["movement_minutes"] == 240
+    assert Task.objects.get(pk=task.pk).planned_start_at == reference_start.astimezone(UTC)
+
+
+def test_task_scoped_free_slots_derive_duration_reference_deadline_and_version() -> None:
+    user = _user_and_preferences("task-scoped-free-slots")
+    original_start = local(12, 13)
+    original_end = local(12, 15)
+    task = TaskService.create_task(
+        CreateTaskCommand(
+            user=user,
+            title="Analyze customer usage",
+            estimated_minutes=120,
+            due_at=local(15, 17),
+            planned_start_at=original_start,
+            planned_end_at=original_end,
+        )
+    )
+    EventService.create_event(
+        CreateEventCommand(
+            user=user,
+            title="Customer review",
+            start_at=local(12, 13),
+            end_at=local(12, 16),
+            timezone="Asia/Shanghai",
+        )
+    )
+
+    result = PlanningService.get_planning_context(
+        user=user,
+        range_start=datetime(2026, 10, 5, 0, tzinfo=SHANGHAI),
+        range_end=local(31, 17),
+        mode="free_slots",
+        duration_minutes=180,
+        task_id=task.pk,
+        allowed_weekdays=[0, 1, 2, 3, 4],
+        reference_start_at=local(12, 13),
+        reference_end_at=local(12, 16),
+    )
+    slots = cast(list[dict[str, Any]], result["free_slots"])
+    task_context = cast(dict[str, Any], result["task"])
+
+    assert result["duration_minutes"] == 120
+    assert result["range_end_local"] == local(15, 17).isoformat()
+    assert result["reference_start_at_local"] == original_start.isoformat()
+    assert result["reference_end_at_local"] == original_end.isoformat()
+    assert task_context["id"] == str(task.pk)
+    assert task_context["version"] == task.version
+    assert slots[0]["start_at_local"] == local(12, 11).isoformat()
+    assert slots[0]["end_at_local"] == local(12, 13).isoformat()
+    assert slots[0]["movement_minutes"] == 240
+
+
 def test_free_slot_mode_requires_duration_and_valid_weekday_values() -> None:
     user = _user_and_preferences("free-slot-validation-user")
 

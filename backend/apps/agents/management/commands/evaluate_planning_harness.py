@@ -22,10 +22,10 @@ from langgraph.checkpoint.memory import InMemorySaver
 from apps.agents.agents.time_steward import build_time_steward_agent
 from apps.agents.context import RuntimeContext
 from apps.agents.model import build_chat_model
+from apps.agents.tools import TOOL_SPECS
 from apps.events.services import CreateEventCommand, EventService
 from apps.observability.models import LLMCallAudit
 from apps.planning.models import SchedulePlan
-from apps.planning.schemas import DailyAvailabilityWindow
 from apps.planning.services import PlanningService
 from apps.preferences.services import UserPreferenceService
 from apps.tasks.models import TaskStatus
@@ -36,6 +36,18 @@ from apps.time_memory.semantic_services import SemanticMemoryService
 
 class Command(BaseCommand):
     help = "Compare the deterministic planner with the real Time Steward harness."
+    REQUEST_INTENTS = frozenset(
+        {
+            "schedule_plan",
+            "read_only_answer",
+            "clarification",
+            "approval_pending",
+            "replan_proposal",
+        }
+    )
+    WRITE_POLICIES = frozenset(
+        {"allow_schedule_draft", "read_only", "no_schedule_write_before_answer"}
+    )
 
     def add_arguments(self, parser: CommandParser) -> None:
         parser.add_argument("--dataset", type=Path, help="Planning scenario JSON fixture.")
@@ -43,6 +55,15 @@ class Command(BaseCommand):
         parser.add_argument("--include-holdout", action="store_true")
         parser.add_argument("--repeats", type=int, default=1)
         parser.add_argument("--variant", choices=("baseline", "agent", "both"), default="both")
+        parser.add_argument(
+            "--tool-surface",
+            choices=("standard", "compact"),
+            default="standard",
+            help=(
+                "Use the standard surface or a planning-focused surface that hides broad "
+                "reads and unrelated task mutations unless explicitly requested."
+            ),
+        )
         parser.add_argument(
             "--model",
             help="Configured model alias; defaults to agent.default_model.",
@@ -70,6 +91,7 @@ class Command(BaseCommand):
             raise CommandError("No planning scenarios selected")
 
         variant = str(options["variant"])
+        tool_surface = str(options["tool_surface"])
         variants = ("baseline", "agent") if variant == "both" else (variant,)
         agent = None
         if "agent" in variants:
@@ -80,12 +102,14 @@ class Command(BaseCommand):
                 build_time_steward_agent(
                     checkpointer=InMemorySaver(),
                     store=InMemoryStore(),
+                    compact_planning_surface=tool_surface == "compact",
                 )
                 if model_alias is None
                 else build_time_steward_agent(
                     model=build_chat_model(model_alias),
                     checkpointer=InMemorySaver(),
                     store=InMemoryStore(),
+                    compact_planning_surface=tool_surface == "compact",
                 )
             )
 
@@ -95,6 +119,14 @@ class Command(BaseCommand):
             for scenario in scenarios:
                 for repeat_index in range(1, repeats + 1):
                     for selected_variant in variants:
+                        request_contract = self._request_contract(scenario)
+                        request_intent = str(request_contract["intent"])
+                        expectations = scenario.get("expectations", {})
+                        if selected_variant == "baseline" and not self._baseline_applicable(
+                            request_intent=request_intent,
+                            expectations=expectations,
+                        ):
+                            continue
                         started = perf_counter()
                         user, task_map = self._seed_scenario(scenario)
                         request_id = str(uuid4())
@@ -106,22 +138,8 @@ class Command(BaseCommand):
                         pending_approval_tool_names: list[str] = []
                         try:
                             if selected_variant == "baseline":
-                                raw_expectations = scenario.get("expectations", {})
-                                expectations_for_baseline = (
-                                    raw_expectations if isinstance(raw_expectations, dict) else {}
-                                )
-                                hard_labels = expectations_for_baseline.get("hard", [])
-                                baseline_daily_limit = (
-                                    expectations_for_baseline.get("max_daily_minutes")
-                                    if "max_daily_minutes" in hard_labels
-                                    else None
-                                )
-                                baseline_daily_windows = [
-                                    DailyAvailabilityWindow.model_validate(window)
-                                    for window in expectations_for_baseline.get(
-                                        "daily_availability_windows", []
-                                    )
-                                ]
+                                # The deterministic baseline receives product facts only. Hidden
+                                # evaluator expectations must never act as planning inputs.
                                 active_task_ids = [
                                     task.pk
                                     for task in task_map.values()
@@ -135,8 +153,6 @@ class Command(BaseCommand):
                                         range_start=self._datetime(scenario["range_start"]),
                                         range_end=self._datetime(scenario["range_end"]),
                                         strategy="plan_tasks_only",
-                                        max_daily_minutes=baseline_daily_limit,
-                                        daily_worktime_overrides=baseline_daily_windows,
                                         now=self._datetime(scenario["anchor_at"]),
                                     )
                                 ]
@@ -178,6 +194,15 @@ class Command(BaseCommand):
                                     final_response,
                                     scenario=scenario,
                                     tool_trace=tool_trace,
+                                    plan_intervals=[
+                                        (str(item["start_at"]), str(item["end_at"]))
+                                        for plan in plans
+                                        for item in plan.items
+                                        if isinstance(item, dict)
+                                        and item.get("state") == "placed"
+                                        and item.get("start_at")
+                                        and item.get("end_at")
+                                    ],
                                 )
                                 if selected_variant == "agent"
                                 else []
@@ -203,11 +228,7 @@ class Command(BaseCommand):
                             )
                             approval_interrupt_pending = bool(pending_approval_tool_names)
                             expectations = scenario.get("expectations", {})
-                            max_candidate_plans = (
-                                expectations.get("max_candidate_plans", 1)
-                                if isinstance(expectations, dict)
-                                else 1
-                            )
+                            max_candidate_plans = self._max_candidate_plans(expectations)
                             plan_count_limit_passed = selected_variant != "agent" or (
                                 self._plan_count_limit_passed(
                                     candidate_count=len(plans),
@@ -219,19 +240,33 @@ class Command(BaseCommand):
                                 if isinstance(expectations, dict)
                                 else None
                             )
-                            if selected_variant == "baseline":
-                                workflow_succeeded = (
-                                    bool(plans) and clarification_expectation is not True
-                                )
-                            elif clarification_expectation is True:
-                                workflow_succeeded = agent_requested_clarification
-                            elif (
+                            comparison_expected = (
                                 isinstance(expectations, dict)
-                                and expectations.get("approval_required") is True
-                            ):
-                                workflow_succeeded = approval_interrupt_pending
-                            else:
-                                workflow_succeeded = bool(plans)
+                                and expectations.get("explicit_plan_comparison") is True
+                            )
+                            comparison_expectation_met = (
+                                self._explicit_comparison_met(plans, tool_trace)
+                                if comparison_expected and selected_variant == "agent"
+                                else None
+                            )
+                            clarification_expectation_met = (
+                                agent_requested_clarification == clarification_expectation
+                                if isinstance(clarification_expectation, bool)
+                                and selected_variant == "agent"
+                                else None
+                            )
+                            workflow_succeeded = self._workflow_succeeded(
+                                request_intent=request_intent,
+                                variant=selected_variant,
+                                candidate_count=len(plans),
+                                asked_clarification=agent_requested_clarification,
+                                approval_pending=approval_interrupt_pending,
+                                clarification_expected=clarification_expectation is True,
+                                approval_expected=(
+                                    isinstance(expectations, dict)
+                                    and expectations.get("approval_required") is True
+                                ),
+                            )
                             forbidden_tool_names = {
                                 "mutate_events",
                                 "create_recurring_event",
@@ -246,7 +281,15 @@ class Command(BaseCommand):
                                 "complete_task",
                                 "cancel_task",
                             }
-                            if (
+                            if request_contract["write_policy"] == "read_only":
+                                forbidden_tool_names.update(
+                                    name
+                                    for name, spec in TOOL_SPECS.items()
+                                    if "write" in spec.run_modes
+                                )
+                            if request_contract[
+                                "write_policy"
+                            ] == "no_schedule_write_before_answer" or (
                                 isinstance(expectations, dict)
                                 and expectations.get("no_schedule_write_before_answer") is True
                             ):
@@ -271,6 +314,16 @@ class Command(BaseCommand):
                                 forbidden_tools_used.append(
                                     "baseline_schedule_created_before_clarification"
                                 )
+                            catastrophic_failure = bool(
+                                hard_failures
+                                or forbidden_tools_used
+                                or unresolved_tool_errors
+                                or (
+                                    clarification_expectation is True
+                                    and not agent_requested_clarification
+                                )
+                                or comparison_expectation_met is False
+                            )
                             clarification_question_count = (
                                 self._clarifying_question_count(final_response)
                                 if selected_variant == "agent"
@@ -298,6 +351,7 @@ class Command(BaseCommand):
                             )
                             result = {
                                 "scenario_id": scenario["id"],
+                                "request_intent": request_intent,
                                 "split": scenario.get("split", "regression"),
                                 "variant": selected_variant,
                                 "repeat": repeat_index,
@@ -310,11 +364,24 @@ class Command(BaseCommand):
                                     and plan_count_limit_passed
                                     and clarification_targets_met is not False
                                     and replan_metrics.get("passed", True)
+                                    and comparison_expectation_met is not False
+                                    and clarification_expectation_met is not False
                                 ),
                                 "duration_seconds": round(perf_counter() - started, 4),
+                                "tool_surface": tool_surface
+                                if selected_variant == "agent"
+                                else None,
                                 "task_facts": self._task_facts(scenario),
                                 "event_facts": scenario.get("events", []),
                                 "tool_trajectory": tool_trace,
+                                "tool_call_count": len(tool_trace),
+                                "tool_error_count": len(failed_tools),
+                                "duplicate_read_count": self._duplicate_read_count(tool_trace),
+                                "repair_call_count": sum(
+                                    call.get("name")
+                                    in {"edit_schedule_plan", "regenerate_schedule_plan"}
+                                    for call in tool_trace
+                                ),
                                 "pending_approval_tool_names": pending_approval_tool_names,
                                 "pending_approval_count": len(pending_approval_tool_names),
                                 "failed_tools": failed_tools,
@@ -323,7 +390,10 @@ class Command(BaseCommand):
                                 "memory_context": memory_context,
                                 "final_response": final_response,
                                 "candidate_count": len(plans),
+                                "hard_violations": hard_failures,
+                                "catastrophic_failure": catastrophic_failure,
                                 "plan_count_limit_passed": plan_count_limit_passed,
+                                "comparison_expectation_met": comparison_expectation_met,
                                 "plans": metrics,
                                 "candidate_time_violations": candidate_time_violations,
                                 "replan_candidate_metrics": replan_metrics,
@@ -332,12 +402,7 @@ class Command(BaseCommand):
                                 "clarifying_question_count": clarification_question_count,
                                 "clarification_question_limit_passed": question_limit_passed,
                                 "clarification_targets_met": clarification_targets_met,
-                                "clarification_expectation_met": (
-                                    agent_requested_clarification == clarification_expectation
-                                    if isinstance(clarification_expectation, bool)
-                                    and selected_variant == "agent"
-                                    else None
-                                ),
+                                "clarification_expectation_met": clarification_expectation_met,
                                 "approval_expectation_met": (
                                     approval_interrupt_pending
                                     == expectations.get("approval_required")
@@ -396,7 +461,7 @@ class Command(BaseCommand):
                     component="time_steward",
                 ).delete()
 
-        gate_results = [item for item in results if item["variant"] == "agent"] or results
+        gate_results = [item for item in results if item["variant"] == "agent"]
         gate_passed_count = sum(bool(item.get("passed")) for item in gate_results)
         report = {
             "schema_version": "timeagent.planning-harness-evaluation.v1",
@@ -407,10 +472,26 @@ class Command(BaseCommand):
             },
             "model_alias": options.get("model") or "default",
             "variant_selection": variant,
+            "tool_surface": tool_surface,
             "repeat_count": repeats,
             "holdout_included": bool(options["include_holdout"]),
             "case_count": len(scenarios),
             "run_count": len(results),
+            "baseline_not_applicable_case_count": sum(
+                not self._baseline_applicable(
+                    request_intent=str(self._request_contract(scenario)["intent"]),
+                    expectations=scenario.get("expectations", {}),
+                )
+                for scenario in scenarios
+            ),
+            "baseline_not_applicable_run_count": repeats
+            * sum(
+                not self._baseline_applicable(
+                    request_intent=str(self._request_contract(scenario)["intent"]),
+                    expectations=scenario.get("expectations", {}),
+                )
+                for scenario in scenarios
+            ),
             "passed_count": sum(bool(item.get("passed")) for item in results),
             "agent_gate": {
                 "run_count": len(gate_results),
@@ -428,7 +509,7 @@ class Command(BaseCommand):
             )
         self._write_report(output_path, report)
         self.stdout.write(f"Evaluation report: {output_path}")
-        if gate_passed_count != len(gate_results):
+        if gate_results and gate_passed_count != len(gate_results):
             raise CommandError(
                 "Planning Agent evaluation failed: "
                 f"{gate_passed_count}/{len(gate_results)} Agent runs passed"
@@ -455,7 +536,128 @@ class Command(BaseCommand):
         scenarios = document["scenarios"]
         if not scenarios or any(not isinstance(item, dict) for item in scenarios):
             raise CommandError("Planning scenario fixture is empty or malformed")
-        return cast(list[dict[str, Any]], scenarios)
+        validated = cast(list[dict[str, Any]], scenarios)
+        for scenario in validated:
+            contract = scenario.get("request_contract")
+            if contract is None:
+                if scenario.get("split") == "holdout":
+                    raise CommandError(
+                        f"Holdout scenario {scenario.get('id')} needs a request_contract"
+                    )
+                continue
+            if not isinstance(contract, dict):
+                raise CommandError(f"Invalid request_contract in scenario {scenario.get('id')}")
+            intent = contract.get("intent")
+            write_policy = contract.get("write_policy")
+            if intent not in Command.REQUEST_INTENTS or write_policy not in Command.WRITE_POLICIES:
+                raise CommandError(
+                    f"Invalid request intent or write policy in scenario {scenario.get('id')}"
+                )
+            if intent == "read_only_answer" and write_policy != "read_only":
+                raise CommandError(
+                    f"Read-only scenario {scenario.get('id')} must use read_only policy"
+                )
+            if intent == "clarification" and write_policy != "no_schedule_write_before_answer":
+                raise CommandError(
+                    f"Clarification scenario {scenario.get('id')} must prohibit schedule drafts"
+                )
+            intent_quote = contract.get("intent_quote")
+            prompt = scenario.get("prompt")
+            if (
+                not isinstance(intent_quote, str)
+                or not intent_quote.strip()
+                or not isinstance(prompt, str)
+                or intent_quote not in prompt
+            ):
+                raise CommandError(
+                    f"Scenario {scenario.get('id')} needs an intent quote from its prompt"
+                )
+            requested_range = contract.get("user_requested_range")
+            if requested_range is not None:
+                if not isinstance(requested_range, dict):
+                    raise CommandError(f"Invalid requested range in scenario {scenario.get('id')}")
+                quote = requested_range.get("source_quote")
+                if (
+                    not isinstance(quote, str)
+                    or not quote.strip()
+                    or not isinstance(prompt, str)
+                    or quote not in prompt
+                ):
+                    raise CommandError(
+                        f"Requested range in scenario {scenario.get('id')} needs a quote "
+                        "from its prompt"
+                    )
+                starts_at = requested_range.get("start_at")
+                ends_at = requested_range.get("end_at")
+                if starts_at is None and ends_at is None:
+                    raise CommandError(
+                        f"Requested range in scenario {scenario.get('id')} needs a start or end"
+                    )
+                try:
+                    parsed_start = Command._datetime(starts_at) if starts_at is not None else None
+                    parsed_end = Command._datetime(ends_at) if ends_at is not None else None
+                except (TypeError, ValueError) as exc:
+                    raise CommandError(
+                        f"Requested range in scenario {scenario.get('id')} must be timezone-aware"
+                    ) from exc
+                if (
+                    parsed_start is not None
+                    and parsed_end is not None
+                    and parsed_end <= parsed_start
+                ):
+                    raise CommandError(
+                        f"Requested range in scenario {scenario.get('id')} has invalid bounds"
+                    )
+        return validated
+
+    @staticmethod
+    def _request_contract(scenario: dict[str, Any]) -> dict[str, Any]:
+        contract = scenario.get("request_contract")
+        if isinstance(contract, dict):
+            return {
+                "intent": contract.get("intent", "schedule_plan"),
+                "write_policy": contract.get("write_policy", "allow_schedule_draft"),
+                "user_requested_range": contract.get("user_requested_range"),
+            }
+        return {
+            "intent": "schedule_plan",
+            "write_policy": "allow_schedule_draft",
+            "user_requested_range": None,
+        }
+
+    @staticmethod
+    def _workflow_succeeded(
+        *,
+        request_intent: str,
+        variant: str,
+        candidate_count: int,
+        asked_clarification: bool,
+        approval_pending: bool,
+        clarification_expected: bool,
+        approval_expected: bool,
+    ) -> bool:
+        if variant == "baseline":
+            return request_intent == "schedule_plan" and candidate_count > 0
+        if request_intent == "read_only_answer":
+            return candidate_count == 0
+        if request_intent == "clarification":
+            return asked_clarification and candidate_count == 0
+        if request_intent == "approval_pending" or approval_expected:
+            return approval_pending
+        if clarification_expected:
+            return asked_clarification
+        return candidate_count > 0
+
+    @staticmethod
+    def _baseline_applicable(*, request_intent: str, expectations: object) -> bool:
+        if request_intent != "schedule_plan":
+            return False
+        if not isinstance(expectations, dict):
+            return True
+        return not (
+            expectations.get("ask_planning_clarification") is True
+            or expectations.get("approval_required") is True
+        )
 
     @staticmethod
     def _datetime(value: object) -> datetime:
@@ -717,6 +919,17 @@ class Command(BaseCommand):
             )
         raw_expectations = scenario.get("expectations", {})
         expectations = raw_expectations if isinstance(raw_expectations, dict) else {}
+        requested_range = cls._request_contract(scenario)["user_requested_range"]
+        requested_start = (
+            cls._datetime(requested_range["start_at"])
+            if isinstance(requested_range, dict) and requested_range.get("start_at") is not None
+            else None
+        )
+        requested_end = (
+            cls._datetime(requested_range["end_at"])
+            if isinstance(requested_range, dict) and requested_range.get("end_at") is not None
+            else None
+        )
         # Fixture `hard`/`soft` keys are human-readable label lists. Concrete
         # parameters live at the expectation object's top level.
         hard_expectations = expectations
@@ -760,11 +973,10 @@ class Command(BaseCommand):
                 )
                 if local_start.weekday() >= 5 and hard_expectations.get("no_weekend") is True:
                     hard_violations.append(f"weekend:{task_key}")
-                if not (
-                    cls._datetime(scenario["range_start"]) <= start
-                    and end <= cls._datetime(scenario["range_end"])
-                ):
-                    hard_violations.append(f"outside_range:{task_key}")
+                if requested_start is not None and start < requested_start:
+                    hard_violations.append(f"outside_user_requested_range:{task_key}")
+                if requested_end is not None and end > requested_end:
+                    hard_violations.append(f"outside_user_requested_range:{task_key}")
                 if local_start.date() != local_end.date():
                     hard_violations.append(f"cross_day:{task_key}")
                 if local_start.time().replace(tzinfo=None) < time.fromisoformat(
@@ -814,6 +1026,7 @@ class Command(BaseCommand):
                 final_response,
                 title=title,
                 year=response_year,
+                reference_days=expected_days,
             )
             if response_days and not response_days.issubset(expected_days):
                 hard_violations.append(f"final_schedule_date_mismatch:{task_key}")
@@ -972,6 +1185,15 @@ class Command(BaseCommand):
 
         return {
             "plan_id": str(plan.pk),
+            "strategy": plan.strategy,
+            "ordering": next(
+                (
+                    str(item.get("ordering"))
+                    for item in plan.items
+                    if item.get("kind") == "plan_evidence"
+                ),
+                None,
+            ),
             "status": plan.status,
             "placed_task_count": len(scheduled_by_key),
             "task_count": sum(
@@ -1023,19 +1245,91 @@ class Command(BaseCommand):
         )
 
     @staticmethod
+    def _max_candidate_plans(expectations: object) -> object:
+        if not isinstance(expectations, dict):
+            return 1
+        configured = expectations.get("max_candidate_plans")
+        if configured is not None:
+            return configured
+        return 2 if expectations.get("explicit_plan_comparison") is True else 1
+
+    @staticmethod
+    def _explicit_comparison_met(
+        plans: list[SchedulePlan], tool_trace: list[dict[str, Any]]
+    ) -> bool:
+        comparison_calls = [
+            call
+            for call in tool_trace
+            if call.get("name") == "compare_schedule_plans" and call.get("status") == "success"
+        ]
+        orderings = {
+            str(item.get("ordering"))
+            for plan in plans
+            for item in plan.items
+            if item.get("kind") == "plan_evidence"
+        }
+        return (
+            len(comparison_calls) == 1
+            and len(plans) == 2
+            and orderings == {"priority_deadline", "longest_first"}
+        )
+
+    @staticmethod
+    def _duplicate_read_count(tool_trace: list[dict[str, Any]]) -> int:
+        read_tools = {
+            "get_current_datetime",
+            "get_planning_context",
+            "list_tasks",
+            "get_task",
+            "list_events",
+            "get_event",
+            "get_capacity_forecast",
+            "recommend_task_duration",
+            "list_temporal_insights",
+            "get_temporal_insight",
+            "search_time_memories",
+        }
+        seen: set[tuple[str, str]] = set()
+        duplicates = 0
+        for call in tool_trace:
+            name = str(call.get("name", ""))
+            if name not in read_tools or call.get("status") != "success":
+                continue
+            arguments = call.get("arguments", {})
+            signature = json.dumps(arguments, sort_keys=True, ensure_ascii=False, default=str)
+            key = (name, signature)
+            if key in seen:
+                duplicates += 1
+            seen.add(key)
+        return duplicates
+
+    @staticmethod
     def _asks_planning_clarification(response: str) -> bool:
         normalized = re.sub(r"\s+", " ", response)
+        # An optional offer to revise an already-created draft is not a blocker
+        # that asks the user to resolve ambiguity before planning can proceed.
+        normalized = re.sub(
+            r"(?:如需|如有需要|如果|若)(?:你)?(?:希望)?[^。！？\n]{0,80}"
+            r"(?:我(?:也)?可以|也可以|可以).{0,16}"
+            r"(?:调整|修改|更改|合并|拆分|移动|重排|改)[^。！？\n]*(?:[。！？]|$)",
+            " ",
+            normalized,
+        )
         return bool(
             re.search(
-                r"优先.{0,24}(?:哪|哪个|哪一|选择|先)|"
-                r"安排.{0,24}(?:哪|哪个|哪一项|哪一天|哪天)|"
+                r"(?i)\bbefore (?:i |we )?(?:draft|plan|schedule|proceed).{0,80}"
+                r"\b(?:need|must|your call|answer|clarif(?:y|ication)?)\b|"
+                r"优先(?!级).{0,24}(?:哪|哪个|哪一|选择|先(?:安排|做|处理))[^。！？\n]{0,80}[？?]|"
+                r"安排.{0,24}(?:哪|哪个|哪一项|哪一天|哪天)[^。！？\n]{0,80}[？?]|"
                 r"(?:哪|哪个|哪一项|哪一天|哪天|什么时间|哪个时段).{0,24}"
-                r"(?:优先|安排|选择|任务|客户|时间|时段|日期)|"
-                r"你希望.{0,24}(?:优先|哪|哪个|哪一|日期|时间|时段|顺序|怎么处理|如何安排)|"
+                r"(?:优先|安排|选择|任务|客户|时间|时段|日期)[^。！？\n]{0,80}[？?]|"
+                r"你希望[^。！？\n]{0,60}(?:先给|优先给|安排给|留给|分给|交给)"
+                r"[^。！？\n]{0,80}还是[^。！？\n]{0,40}[？?]|"
+                r"你希望.{0,24}(?:优先|哪|哪个|哪一|日期|时间|时段|顺序|怎么处理|如何安排)[^。！？\n]{0,80}[？?]|"
                 r"请(?:问|先)?(?:选择|决定|确认|告诉我|补充).{0,24}"
                 r"(?:优先|哪|哪个|范围|日期|时间|时段|可用|顺序|客户|任务)|"
-                r"(?:需要你|需要您).{0,24}(?:决定|选择|补充|告诉|优先|范围|日期|时间|时段)|"
-                r"(?:怎么|如何).{0,12}(?:处理|安排|排入|选择)",
+                r"(?:需要你|需要您).{0,24}(?:选择|补充|告诉|优先|范围|日期|时间|时段)|"
+                r"(?:怎么|如何).{0,12}(?:处理|安排|排入|选择)[^。！？\n]{0,80}[？?]",
                 normalized,
             )
         )
@@ -1068,44 +1362,63 @@ class Command(BaseCommand):
         return count if count else int(cls._asks_planning_clarification(response))
 
     @staticmethod
-    def _schedule_days_in_response(response: str, *, title: str, year: int) -> set[date]:
+    def _schedule_days_in_response(
+        response: str,
+        *,
+        title: str,
+        year: int,
+        reference_days: set[date] | None = None,
+    ) -> set[date]:
         date_pattern = re.compile(r"(?<!\d)(\d{1,2})\s*(?:/|-|月)\s*(\d{1,2})日?")
         heading_pattern = re.compile(
             r"(\d{1,2})\s*(?:月|/|-)\s*(\d{1,2})\s*日?(?:\s*[（(].*?[）)])?"
         )
+
+        def response_date(month: str, day: str) -> date | None:
+            candidates: list[date] = []
+            for candidate_year in {year - 1, year, year + 1}:
+                try:
+                    candidates.append(date(candidate_year, int(month), int(day)))
+                except ValueError:
+                    continue
+            if not candidates:
+                return None
+            if not reference_days:
+                return next((candidate for candidate in candidates if candidate.year == year), None)
+            return min(
+                candidates,
+                key=lambda candidate: min(
+                    abs((candidate - reference).days) for reference in reference_days
+                ),
+            )
+
         section_day: date | None = None
         scheduled_days: set[date] = set()
         for line in response.splitlines():
             cleaned = line.strip().strip("*#_ ").strip()
             heading = heading_pattern.fullmatch(cleaned)
             if heading is not None:
-                try:
-                    section_day = date(year, int(heading.group(1)), int(heading.group(2)))
-                except ValueError:
-                    section_day = None
+                section_day = response_date(heading.group(1), heading.group(2))
                 continue
             if not title or title not in line:
                 continue
             before_title = line.split(title, maxsplit=1)[0]
             match = date_pattern.search(before_title)
-            if match is not None:
-                has_schedule_time_before_title = bool(
-                    re.search(
-                        r"\d{1,2}:\d{2}\s*[–—-]\s*\d{1,2}:\d{2}",
-                        before_title,
-                    )
+            has_schedule_time_before_title = bool(
+                re.search(
+                    r"\d{1,2}:\d{2}\s*[–—-]\s*\d{1,2}:\d{2}",
+                    before_title,
                 )
-                has_deadline_context = bool(
-                    re.search(r"截止|截至|deadline|due date", line, re.IGNORECASE)
-                )
-                if has_deadline_context and not has_schedule_time_before_title:
-                    match = None
+            )
+            if match is not None and not has_schedule_time_before_title:
+                match = None
             if match is not None:
-                try:
-                    scheduled_days.add(date(year, int(match.group(1)), int(match.group(2))))
-                except ValueError:
-                    continue
-            elif section_day is not None:
+                resolved = response_date(match.group(1), match.group(2))
+                if resolved is not None:
+                    scheduled_days.add(resolved)
+            elif section_day is not None and re.search(
+                r"\d{1,2}:\d{2}\s*[–—-]\s*\d{1,2}:\d{2}", line
+            ):
                 scheduled_days.add(section_day)
         return scheduled_days
 
@@ -1169,6 +1482,7 @@ class Command(BaseCommand):
         *,
         scenario: dict[str, Any],
         tool_trace: list[dict[str, Any]],
+        plan_intervals: list[tuple[str, str]] | None = None,
     ) -> list[str]:
         timezone = ZoneInfo(str(scenario["timezone"]))
         anchor_year = Command._datetime(scenario["anchor_at"]).astimezone(timezone).year
@@ -1186,6 +1500,30 @@ class Command(BaseCommand):
             r"(?:改到|移到|挪到|候选时段)"
         )
         free_slots: list[tuple[datetime, datetime]] = []
+        existing_event_ranges: set[tuple[date, time, time]] = set()
+        existing_event_titles: dict[tuple[date, time, time], set[str]] = {}
+        raw_events = scenario.get("events", [])
+        for event in raw_events if isinstance(raw_events, list) else []:
+            if not isinstance(event, dict):
+                continue
+            try:
+                event_start = Command._datetime(event["start_at"]).astimezone(timezone)
+                event_end = Command._datetime(event["end_at"]).astimezone(timezone)
+            except (KeyError, TypeError, ValueError):
+                continue
+            event_range = (event_start.date(), event_start.time(), event_end.time())
+            existing_event_ranges.add(event_range)
+            existing_event_titles.setdefault(event_range, set()).add(str(event.get("title", "")))
+        planned_intervals: set[tuple[datetime, datetime]] = set()
+        for raw_start, raw_end in plan_intervals or []:
+            try:
+                plan_start = datetime.fromisoformat(raw_start).astimezone(timezone)
+                plan_end = datetime.fromisoformat(raw_end).astimezone(timezone)
+            except (TypeError, ValueError):
+                continue
+            if plan_start.utcoffset() is None or plan_end.utcoffset() is None:
+                continue
+            planned_intervals.add((plan_start, plan_end))
         for call in tool_trace:
             arguments = call.get("arguments", {})
             if (
@@ -1257,12 +1595,40 @@ class Command(BaseCommand):
                     time(int(match.group(3)), int(match.group(4))),
                     tzinfo=timezone,
                 )
+                referenced_event = (
+                    candidate_day,
+                    candidate_start.time(),
+                    candidate_end.time(),
+                ) in existing_event_ranges
+                event_range = (
+                    candidate_day,
+                    candidate_start.time(),
+                    candidate_end.time(),
+                )
+                event_named_in_line = any(
+                    title and title in line
+                    for title in existing_event_titles.get(event_range, set())
+                )
+                direct_suggestion_before_time = suggestion_pattern.search(line[: match.start()])
+                trailing_event_context = re.search(
+                    r"已避开|已保留|未与[^。；]{0,24}冲突|不与[^。；]{0,24}冲突",
+                    line[match.end() :],
+                )
+                if (
+                    referenced_event
+                    and not direct_suggestion_before_time
+                    and (event_named_in_line or trailing_event_context)
+                ):
+                    continue
                 if candidate_start.time() < workday_start or candidate_end.time() > workday_end:
                     violations.append("suggested_time_outside_work_hours")
-                has_slot_evidence = any(
-                    slot_start.astimezone(timezone) <= candidate_start
-                    and candidate_end <= slot_end.astimezone(timezone)
-                    for slot_start, slot_end in free_slots
+                has_slot_evidence = (
+                    any(
+                        slot_start.astimezone(timezone) <= candidate_start
+                        and candidate_end <= slot_end.astimezone(timezone)
+                        for slot_start, slot_end in free_slots
+                    )
+                    or (candidate_start, candidate_end) in planned_intervals
                 )
                 if not has_slot_evidence:
                     violations.append("suggested_time_missing_free_slot_evidence")
@@ -1481,19 +1847,62 @@ class Command(BaseCommand):
         ]
 
     @staticmethod
-    def _usage_for_request(request_id: str) -> dict[str, int | None]:
+    def _usage_for_request(request_id: str) -> dict[str, Any]:
         rows = list(
             LLMCallAudit.objects.filter(request_id=request_id, component="time_steward").values(
-                "status", "total_tokens", "duration_ms"
+                "status", "total_tokens", "duration_ms", "prompt_breakdown"
             )
         )
         completed = [row for row in rows if row["status"] == "completed"]
         token_values = [int(row["total_tokens"]) for row in completed if row["total_tokens"]]
+        breakdown_keys = (
+            "system_prompt_tokens",
+            "behavioral_memory_tokens",
+            "semantic_memory_tokens",
+            "memory_context_tokens",
+            "tool_schema_tokens",
+            "conversation_tokens",
+            "tool_observation_tokens",
+            "unattributed_input_tokens",
+        )
+        breakdown = {
+            key: sum(
+                int(row["prompt_breakdown"].get(key) or 0)
+                for row in completed
+                if isinstance(row["prompt_breakdown"], dict)
+                and isinstance(row["prompt_breakdown"].get(key), int)
+            )
+            for key in breakdown_keys
+        }
+        visible_counts = [
+            int(row["prompt_breakdown"]["visible_tool_count"])
+            for row in completed
+            if isinstance(row["prompt_breakdown"], dict)
+            and isinstance(row["prompt_breakdown"].get("visible_tool_count"), int)
+        ]
+        visible_tools = sorted(
+            {
+                str(name)
+                for row in completed
+                if isinstance(row["prompt_breakdown"], dict)
+                for name in row["prompt_breakdown"].get("visible_tool_names", [])
+                if isinstance(name, str)
+            }
+        )
         return {
             "model_call_count": len(rows),
             "completed_model_call_count": len(completed),
             "total_tokens": sum(token_values) if token_values else None,
             "model_duration_ms": sum(int(row["duration_ms"]) for row in completed),
+            "prompt_breakdown": breakdown,
+            "visible_tool_surface_stats": {
+                "call_count": len(visible_counts),
+                "mean_tool_count": (
+                    round(sum(visible_counts) / len(visible_counts), 2) if visible_counts else None
+                ),
+                "max_tool_count": max(visible_counts) if visible_counts else None,
+                "tool_names_union": visible_tools,
+            },
         }
 
     @staticmethod
@@ -1549,6 +1958,29 @@ class Command(BaseCommand):
                 "mean_model_calls": (
                     round(sum(call_values) / len(call_values), 4) if call_values else None
                 ),
+                "mean_tool_calls": round(
+                    sum(int(item.get("tool_call_count", 0)) for item in selected) / len(selected),
+                    4,
+                ),
+                "mean_duplicate_reads": round(
+                    sum(int(item.get("duplicate_read_count", 0)) for item in selected)
+                    / len(selected),
+                    4,
+                ),
+                "mean_repair_calls": round(
+                    sum(int(item.get("repair_call_count", 0)) for item in selected) / len(selected),
+                    4,
+                ),
+                "tool_error_rate": round(
+                    sum(int(item.get("tool_error_count", 0)) > 0 for item in selected)
+                    / len(selected),
+                    4,
+                ),
+                "catastrophic_failure_rate": round(
+                    sum(bool(item.get("catastrophic_failure")) for item in selected)
+                    / len(selected),
+                    4,
+                ),
                 "total_tokens": sum(token_values) if token_values else None,
                 "mean_tokens_per_run": (
                     round(sum(token_values) / len(token_values), 2) if token_values else None
@@ -1556,6 +1988,56 @@ class Command(BaseCommand):
                 "mean_soft_check_pass_rate": (
                     round(sum(soft_values) / len(soft_values), 4) if soft_values else None
                 ),
+                "mean_visible_tools_per_model_call": (
+                    round(
+                        sum(
+                            float(item.get("visible_tool_surface_stats", {}).get("mean_tool_count"))
+                            for item in selected
+                            if isinstance(item.get("visible_tool_surface_stats"), dict)
+                            and isinstance(
+                                item["visible_tool_surface_stats"].get("mean_tool_count"),
+                                int | float,
+                            )
+                        )
+                        / max(
+                            sum(
+                                isinstance(item.get("visible_tool_surface_stats"), dict)
+                                and isinstance(
+                                    item["visible_tool_surface_stats"].get("mean_tool_count"),
+                                    int | float,
+                                )
+                                for item in selected
+                            ),
+                            1,
+                        ),
+                        2,
+                    )
+                    if any(
+                        isinstance(item.get("visible_tool_surface_stats"), dict)
+                        and isinstance(
+                            item["visible_tool_surface_stats"].get("mean_tool_count"), int | float
+                        )
+                        for item in selected
+                    )
+                    else None
+                ),
+                "prompt_breakdown_tokens": {
+                    key: sum(
+                        int(item.get("prompt_breakdown", {}).get(key) or 0)
+                        for item in selected
+                        if isinstance(item.get("prompt_breakdown"), dict)
+                    )
+                    for key in (
+                        "system_prompt_tokens",
+                        "behavioral_memory_tokens",
+                        "semantic_memory_tokens",
+                        "memory_context_tokens",
+                        "tool_schema_tokens",
+                        "conversation_tokens",
+                        "tool_observation_tokens",
+                        "unattributed_input_tokens",
+                    )
+                },
                 "clarification_expectation_cases": len(clarification_cases),
                 "clarification_expectation_met": sum(
                     bool(item.get("clarification_expectation_met")) for item in clarification_cases

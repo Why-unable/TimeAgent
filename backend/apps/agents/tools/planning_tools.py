@@ -1,8 +1,10 @@
 from datetime import datetime
 from typing import Literal
 from uuid import UUID
+from zoneinfo import ZoneInfo
 
 from langchain.tools import ToolRuntime, tool
+from pydantic import AwareDatetime
 
 from apps.agents.context import RuntimeContext
 from apps.agents.tools.common import require_actor, require_writable
@@ -17,24 +19,69 @@ from apps.planning.services import PlanningService
 from apps.time_memory.decision_profile import DecisionProfileService
 
 
+def _plan_items_with_local_times(
+    items: list[dict[str, object]],
+    *,
+    timezone: str,
+) -> list[dict[str, object]]:
+    """Keep canonical UTC plan times and add user-local display values for the Agent."""
+    user_timezone = ZoneInfo(timezone)
+
+    def convert(value: object) -> object:
+        if isinstance(value, list):
+            return [convert(child) for child in value]
+        if not isinstance(value, dict):
+            return value
+
+        result = {key: convert(child) for key, child in value.items()}
+        for field in ("start_at", "end_at"):
+            raw = value.get(field)
+            if raw is None:
+                continue
+            if isinstance(raw, datetime):
+                parsed = raw
+            elif isinstance(raw, str):
+                parsed = datetime.fromisoformat(raw.replace("Z", "+00:00"))
+            else:
+                continue
+            if parsed.utcoffset() is None:
+                raise ValueError(f"Schedule plan {field} must include a timezone")
+            result[f"{field}_local"] = parsed.astimezone(user_timezone).isoformat()
+        return result
+
+    converted = convert(items)
+    return converted if isinstance(converted, list) else []
+
+
 @tool
 def get_planning_context(
-    range_start: datetime,
-    range_end: datetime,
+    range_start: AwareDatetime,
+    range_end: AwareDatetime,
     runtime: ToolRuntime[RuntimeContext],
     mode: Literal["context", "free_slots"] = "context",
     duration_minutes: int | None = None,
+    task_id: UUID | None = None,
     allowed_weekdays: list[int] | None = None,
+    daily_worktime_overrides: list[DailyAvailabilityWindow] | None = None,
+    one_slot_per_local_date: bool = False,
     max_free_slots: int = 10,
-    reference_start_at: datetime | None = None,
-    reference_end_at: datetime | None = None,
+    reference_start_at: AwareDatetime | None = None,
+    reference_end_at: AwareDatetime | None = None,
 ) -> dict[str, object]:
     """Read one planning view for a time range.
 
     Use ``context`` for selected tasks, calendar events, work hours and planning
     preferences, with canonical UTC timestamps and parallel ``*_local`` display
     timestamps in the user's IANA timezone. Use ``free_slots`` for availability or
-    replan candidates; it returns deterministic time windows without task or event details.
+    replan candidates; it returns deterministic time windows without event details. When
+    finding slots for a specific existing task, pass ``task_id``; the service derives its
+    duration, deadline, original plan, and version from stored task facts, excludes its old
+    interval from busy time, and returns the task facts with the candidates.
+    Pass ``daily_worktime_overrides`` when the user gives date-bounded working hours; those
+    hours apply only on the inclusive local dates, and ordinary work hours apply otherwise.
+    Set ``one_slot_per_local_date`` when comparing a task's fit across multiple days; the
+    service then returns at most the earliest valid candidate on each local date, up to
+    ``max_free_slots``, instead of filling the result with many 15-minute variants from one day.
     For minimum-churn replanning, pass the existing planned start and end as the reference
     range; results are ranked by total movement minutes, lowest first.
     If its duration is
@@ -54,18 +101,22 @@ def get_planning_context(
         range_end=range_end,
         mode=mode,
         duration_minutes=selected_duration,
+        task_id=task_id,
         allowed_weekdays=allowed_weekdays,
+        daily_worktime_overrides=daily_worktime_overrides,
+        one_slot_per_local_date=one_slot_per_local_date,
         max_free_slots=max_free_slots,
         reference_start_at=reference_start_at,
         reference_end_at=reference_end_at,
+        not_before=(runtime.context.current_datetime if mode == "free_slots" else None),
     )
 
 
 @tool
 def propose_schedule_plan(
     task_ids: list[UUID],
-    range_start: datetime,
-    range_end: datetime,
+    range_start: AwareDatetime,
+    range_end: AwareDatetime,
     runtime: ToolRuntime[RuntimeContext],
     strategy: str = "plan_tasks_only",
     allowed_weekdays: list[int] | None = None,
@@ -79,20 +130,23 @@ def propose_schedule_plan(
     links, minimum gaps, date-bounded daily availability windows and a requested
     daily task-minute cap are validated as hard constraints. Use daily_worktime_overrides
     when the user gives a temporary daily time restriction that later changes. The
-    draft is not applied.
+    draft is not applied. Create one draft per request; use its plan_id and
+    edit_schedule_plan for refinements instead of proposing a replacement draft. Returned
+    UTC start/end values have parallel user-local fields.
     """
 
+    actor = require_writable(runtime)
     decision_profile_snapshot: dict[str, object] = {
         "status": "unavailable",
         "reason": "agent_store_unavailable",
     }
     if runtime.store is not None:
         decision_profile_snapshot = DecisionProfileService.get(
-            user=require_actor(runtime),
+            user=actor,
             store=runtime.store,
         ).as_dict()
     plan = PlanningService.propose_schedule_plan(
-        user=require_actor(runtime),
+        user=actor,
         task_ids=task_ids,
         range_start=range_start,
         range_end=range_end,
@@ -115,15 +169,18 @@ def propose_schedule_plan(
         "version": plan.version,
         "strategy": plan.strategy,
         "validation": creation_validation,
-        "items": plan.items,
+        "items": _plan_items_with_local_times(
+            plan.items,
+            timezone=runtime.context.timezone,
+        ),
     }
 
 
 @tool
 def compare_schedule_plans(
     task_ids: list[UUID],
-    range_start: datetime,
-    range_end: datetime,
+    range_start: AwareDatetime,
+    range_end: AwareDatetime,
     runtime: ToolRuntime[RuntimeContext],
     strategy: str = "plan_tasks_only",
     allowed_weekdays: list[int] | None = None,
@@ -131,9 +188,9 @@ def compare_schedule_plans(
     daily_worktime_overrides: list[DailyAvailabilityWindow] | None = None,
     task_decisions: list[TaskScheduleDecision] | None = None,
 ) -> dict[str, object]:
-    """Compare two draft orderings while retaining the Agent's timing and dependency decisions."""
+    """Compare draft orderings; UTC schedule times include parallel user-local fields."""
 
-    actor = require_actor(runtime)
+    actor = require_writable(runtime)
     snapshot: dict[str, object] = {
         "status": "unavailable",
         "reason": "agent_store_unavailable",
@@ -160,7 +217,10 @@ def compare_schedule_plans(
                 "plan_id": str(plan.pk),
                 "version": plan.version,
                 "strategy": plan.strategy,
-                "items": plan.items,
+                "items": _plan_items_with_local_times(
+                    plan.items,
+                    timezone=runtime.context.timezone,
+                ),
             }
             for plan in result.alternatives
         ],
@@ -170,8 +230,8 @@ def compare_schedule_plans(
 
 @tool
 def detect_schedule_disruptions(
-    range_start: datetime,
-    range_end: datetime,
+    range_start: AwareDatetime,
+    range_end: AwareDatetime,
     runtime: ToolRuntime[RuntimeContext],
 ) -> list[dict[str, object]]:
     """Detect factual overlaps between planned tasks and current calendar events."""
@@ -247,7 +307,12 @@ def edit_schedule_plan(
     edits: list[SchedulePlanItemEdit],
     runtime: ToolRuntime[RuntimeContext],
 ) -> dict[str, object]:
-    """Revise selected items in one saved draft; all edits are validated atomically."""
+    """Revise one draft atomically; returned UTC schedule times include user-local fields.
+
+    Include only tasks that actually need to move or change lock state; omit unchanged
+    items. A moved item on the current Runtime-local date must start strictly after the
+    Runtime current time, not merely at or after the day's work start.
+    """
 
     plan = PlanningService.edit_schedule_plan(
         user=require_writable(runtime),
@@ -260,7 +325,10 @@ def edit_schedule_plan(
         "plan_id": str(plan.pk),
         "version": plan.version,
         "status": plan.status,
-        "items": plan.items,
+        "items": _plan_items_with_local_times(
+            plan.items,
+            timezone=runtime.context.timezone,
+        ),
     }
 
 
@@ -302,10 +370,10 @@ def apply_schedule_plan(
 @tool
 def apply_local_replan(
     policy_id: UUID,
-    blocked_start: datetime,
-    blocked_end: datetime,
+    blocked_start: AwareDatetime,
+    blocked_end: AwareDatetime,
     movable_task_ids: list[UUID],
-    horizon_end: datetime,
+    horizon_end: AwareDatetime,
     operation_id: UUID,
     runtime: ToolRuntime[RuntimeContext],
 ) -> dict[str, object]:

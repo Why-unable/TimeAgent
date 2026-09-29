@@ -1,7 +1,7 @@
-from datetime import datetime
 from uuid import UUID
 
 from langchain.tools import ToolRuntime, tool
+from pydantic import AwareDatetime
 
 from apps.agents.context import RuntimeContext
 from apps.agents.tools.common import (
@@ -36,7 +36,7 @@ REMINDER_FIELDS = (
 @tool
 def list_reminders(
     statuses: list[str] | None = None,
-    trigger_before: datetime | None = None,
+    trigger_before: AwareDatetime | None = None,
     runtime: ToolRuntime[RuntimeContext] = None,  # type: ignore[assignment]
 ) -> list[dict[str, object]]:
     """List reminders owned by the current user with optional filters."""
@@ -68,7 +68,7 @@ def get_reminder(
 @tool
 def create_reminder(
     title: str,
-    trigger_at: datetime,
+    trigger_at: AwareDatetime,
     timezone: str,
     runtime: ToolRuntime[RuntimeContext],
     target_type: str = ReminderTargetType.CUSTOM,
@@ -98,7 +98,7 @@ def update_reminder(
     expected_version: int,
     runtime: ToolRuntime[RuntimeContext],
     title: str | None = None,
-    trigger_at: datetime | None = None,
+    trigger_at: AwareDatetime | None = None,
     timezone: str | None = None,
     channel: str | None = None,
 ) -> dict[str, object]:

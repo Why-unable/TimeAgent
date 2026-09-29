@@ -1,0 +1,2030 @@
+{
+  "schema_version": "timeagent.sanitized-evaluation-runs.v1",
+  "runs": [
+    {
+      "case_id": "case_66703e3d4d32bf60",
+      "variant": "baseline",
+      "repeat": 1,
+      "passed": false,
+      "duration_seconds": 0.1293,
+      "hard_violations": [
+        "max_daily_minutes"
+      ],
+      "tool_error_count": 0,
+      "unresolved_tool_error_count": 0,
+      "repair_call_count": 0,
+      "accepted": null,
+      "catastrophic": true,
+      "model_call_count": 0,
+      "tool_call_count": 0,
+      "duplicate_read_count": 0,
+      "total_tokens": 0,
+      "model_duration_ms": 0,
+      "prompt_breakdown_tokens": {
+        "system_prompt_tokens": 0,
+        "behavioral_memory_tokens": 0,
+        "semantic_memory_tokens": 0,
+        "memory_context_tokens": 0,
+        "tool_schema_tokens": 0,
+        "conversation_tokens": 0,
+        "tool_observation_tokens": 0,
+        "unattributed_input_tokens": 0
+      },
+      "visible_tool_count_mean": null,
+      "tool_names": [],
+      "tool_calls": [],
+      "final_schedule": [
+        {
+          "candidate_index": 1,
+          "status": "draft",
+          "task_count": 3,
+          "placed_task_count": 3,
+          "unplaced_task_count": 0,
+          "placed_minutes": 300,
+          "placed_segments": 3,
+          "distinct_day_count": 1,
+          "distinct_week_count": 1,
+          "schedule": [
+            {
+              "task_id": "task_01",
+              "segments": [
+                {
+                  "start_at": "2026-10-06T08:00:00+00:00",
+                  "end_at": "2026-10-06T09:30:00+00:00"
+                }
+              ]
+            },
+            {
+              "task_id": "task_02",
+              "segments": [
+                {
+                  "start_at": "2026-10-06T11:30:00+00:00",
+                  "end_at": "2026-10-06T13:00:00+00:00"
+                }
+              ]
+            },
+            {
+              "task_id": "task_03",
+              "segments": [
+                {
+                  "start_at": "2026-10-06T09:30:00+00:00",
+                  "end_at": "2026-10-06T11:30:00+00:00"
+                }
+              ]
+            }
+          ],
+          "hard_violations": [
+            "max_daily_minutes"
+          ],
+          "soft_check_pass_rate": 0.6,
+          "soft_checks": [
+            {
+              "code": "precedence",
+              "passed": true
+            },
+            {
+              "code": "precedence",
+              "passed": true
+            },
+            {
+              "code": "min_distinct_days",
+              "passed": false
+            },
+            {
+              "code": "max_daily_minutes",
+              "passed": false
+            },
+            {
+              "code": "max_unplaced",
+              "passed": true
+            }
+          ]
+        }
+      ],
+      "soft_quality": 0.6,
+      "error_categories": []
+    },
+    {
+      "case_id": "case_025fd24c9e578e9f",
+      "variant": "baseline",
+      "repeat": 1,
+      "passed": false,
+      "duration_seconds": 0.1132,
+      "hard_violations": [
+        "max_daily_minutes"
+      ],
+      "tool_error_count": 0,
+      "unresolved_tool_error_count": 0,
+      "repair_call_count": 0,
+      "accepted": null,
+      "catastrophic": true,
+      "model_call_count": 0,
+      "tool_call_count": 0,
+      "duplicate_read_count": 0,
+      "total_tokens": 0,
+      "model_duration_ms": 0,
+      "prompt_breakdown_tokens": {
+        "system_prompt_tokens": 0,
+        "behavioral_memory_tokens": 0,
+        "semantic_memory_tokens": 0,
+        "memory_context_tokens": 0,
+        "tool_schema_tokens": 0,
+        "conversation_tokens": 0,
+        "tool_observation_tokens": 0,
+        "unattributed_input_tokens": 0
+      },
+      "visible_tool_count_mean": null,
+      "tool_names": [],
+      "tool_calls": [],
+      "final_schedule": [
+        {
+          "candidate_index": 1,
+          "status": "draft",
+          "task_count": 4,
+          "placed_task_count": 4,
+          "unplaced_task_count": 0,
+          "placed_minutes": 390,
+          "placed_segments": 4,
+          "distinct_day_count": 1,
+          "distinct_week_count": 1,
+          "schedule": [
+            {
+              "task_id": "task_01",
+              "segments": [
+                {
+                  "start_at": "2026-10-15T01:00:00+00:00",
+                  "end_at": "2026-10-15T03:00:00+00:00"
+                }
+              ]
+            },
+            {
+              "task_id": "task_02",
+              "segments": [
+                {
+                  "start_at": "2026-10-15T03:00:00+00:00",
+                  "end_at": "2026-10-15T04:30:00+00:00"
+                }
+              ]
+            },
+            {
+              "task_id": "task_03",
+              "segments": [
+                {
+                  "start_at": "2026-10-14T23:00:00+00:00",
+                  "end_at": "2026-10-15T01:00:00+00:00"
+                }
+              ]
+            },
+            {
+              "task_id": "task_04",
+              "segments": [
+                {
+                  "start_at": "2026-10-14T22:00:00+00:00",
+                  "end_at": "2026-10-14T23:00:00+00:00"
+                }
+              ]
+            }
+          ],
+          "hard_violations": [
+            "max_daily_minutes"
+          ],
+          "soft_check_pass_rate": 0.6667,
+          "soft_checks": [
+            {
+              "code": "precedence",
+              "passed": true
+            },
+            {
+              "code": "precedence",
+              "passed": true
+            },
+            {
+              "code": "precedence",
+              "passed": true
+            },
+            {
+              "code": "min_distinct_days",
+              "passed": false
+            },
+            {
+              "code": "max_daily_minutes",
+              "passed": false
+            },
+            {
+              "code": "max_unplaced",
+              "passed": true
+            }
+          ]
+        }
+      ],
+      "soft_quality": 0.6667,
+      "error_categories": []
+    },
+    {
+      "case_id": "case_3f7f91e010319865",
+      "variant": "baseline",
+      "repeat": 1,
+      "passed": true,
+      "duration_seconds": 0.072,
+      "hard_violations": [],
+      "tool_error_count": 0,
+      "unresolved_tool_error_count": 0,
+      "repair_call_count": 0,
+      "accepted": null,
+      "catastrophic": false,
+      "model_call_count": 0,
+      "tool_call_count": 0,
+      "duplicate_read_count": 0,
+      "total_tokens": 0,
+      "model_duration_ms": 0,
+      "prompt_breakdown_tokens": {
+        "system_prompt_tokens": 0,
+        "behavioral_memory_tokens": 0,
+        "semantic_memory_tokens": 0,
+        "memory_context_tokens": 0,
+        "tool_schema_tokens": 0,
+        "conversation_tokens": 0,
+        "tool_observation_tokens": 0,
+        "unattributed_input_tokens": 0
+      },
+      "visible_tool_count_mean": null,
+      "tool_names": [],
+      "tool_calls": [],
+      "final_schedule": [
+        {
+          "candidate_index": 1,
+          "status": "draft",
+          "task_count": 3,
+          "placed_task_count": 3,
+          "unplaced_task_count": 0,
+          "placed_minutes": 240,
+          "placed_segments": 3,
+          "distinct_day_count": 1,
+          "distinct_week_count": 1,
+          "schedule": [
+            {
+              "task_id": "task_01",
+              "segments": [
+                {
+                  "start_at": "2026-10-21T01:00:00+00:00",
+                  "end_at": "2026-10-21T02:30:00+00:00"
+                }
+              ]
+            },
+            {
+              "task_id": "task_02",
+              "segments": [
+                {
+                  "start_at": "2026-10-21T02:30:00+00:00",
+                  "end_at": "2026-10-21T04:00:00+00:00"
+                }
+              ]
+            },
+            {
+              "task_id": "task_03",
+              "segments": [
+                {
+                  "start_at": "2026-10-21T00:00:00+00:00",
+                  "end_at": "2026-10-21T01:00:00+00:00"
+                }
+              ]
+            }
+          ],
+          "hard_violations": [],
+          "soft_check_pass_rate": 0.6,
+          "soft_checks": [
+            {
+              "code": "precedence",
+              "passed": false
+            },
+            {
+              "code": "precedence",
+              "passed": true
+            },
+            {
+              "code": "min_distinct_days",
+              "passed": false
+            },
+            {
+              "code": "max_daily_minutes",
+              "passed": true
+            },
+            {
+              "code": "max_unplaced",
+              "passed": true
+            }
+          ]
+        }
+      ],
+      "soft_quality": 0.6,
+      "error_categories": []
+    },
+    {
+      "case_id": "case_11bb360ea02eba78",
+      "variant": "baseline",
+      "repeat": 1,
+      "passed": false,
+      "duration_seconds": 0.0709,
+      "hard_violations": [
+        "max_daily_minutes"
+      ],
+      "tool_error_count": 0,
+      "unresolved_tool_error_count": 0,
+      "repair_call_count": 0,
+      "accepted": null,
+      "catastrophic": true,
+      "model_call_count": 0,
+      "tool_call_count": 0,
+      "duplicate_read_count": 0,
+      "total_tokens": 0,
+      "model_duration_ms": 0,
+      "prompt_breakdown_tokens": {
+        "system_prompt_tokens": 0,
+        "behavioral_memory_tokens": 0,
+        "semantic_memory_tokens": 0,
+        "memory_context_tokens": 0,
+        "tool_schema_tokens": 0,
+        "conversation_tokens": 0,
+        "tool_observation_tokens": 0,
+        "unattributed_input_tokens": 0
+      },
+      "visible_tool_count_mean": null,
+      "tool_names": [],
+      "tool_calls": [],
+      "final_schedule": [
+        {
+          "candidate_index": 1,
+          "status": "draft",
+          "task_count": 3,
+          "placed_task_count": 3,
+          "unplaced_task_count": 0,
+          "placed_minutes": 270,
+          "placed_segments": 3,
+          "distinct_day_count": 1,
+          "distinct_week_count": 1,
+          "schedule": [
+            {
+              "task_id": "task_01",
+              "segments": [
+                {
+                  "start_at": "2026-10-26T07:00:00+00:00",
+                  "end_at": "2026-10-26T08:30:00+00:00"
+                }
+              ]
+            },
+            {
+              "task_id": "task_02",
+              "segments": [
+                {
+                  "start_at": "2026-10-26T08:30:00+00:00",
+                  "end_at": "2026-10-26T10:30:00+00:00"
+                }
+              ]
+            },
+            {
+              "task_id": "task_03",
+              "segments": [
+                {
+                  "start_at": "2026-10-26T10:30:00+00:00",
+                  "end_at": "2026-10-26T11:30:00+00:00"
+                }
+              ]
+            }
+          ],
+          "hard_violations": [
+            "max_daily_minutes"
+          ],
+          "soft_check_pass_rate": 0.4,
+          "soft_checks": [
+            {
+              "code": "precedence",
+              "passed": false
+            },
+            {
+              "code": "precedence",
+              "passed": true
+            },
+            {
+              "code": "min_distinct_days",
+              "passed": false
+            },
+            {
+              "code": "max_daily_minutes",
+              "passed": false
+            },
+            {
+              "code": "max_unplaced",
+              "passed": true
+            }
+          ]
+        }
+      ],
+      "soft_quality": 0.4,
+      "error_categories": []
+    },
+    {
+      "case_id": "case_bc89a387ebf1008e",
+      "variant": "baseline",
+      "repeat": 1,
+      "passed": true,
+      "duration_seconds": 0.0842,
+      "hard_violations": [],
+      "tool_error_count": 0,
+      "unresolved_tool_error_count": 0,
+      "repair_call_count": 0,
+      "accepted": null,
+      "catastrophic": false,
+      "model_call_count": 0,
+      "tool_call_count": 0,
+      "duplicate_read_count": 0,
+      "total_tokens": 0,
+      "model_duration_ms": 0,
+      "prompt_breakdown_tokens": {
+        "system_prompt_tokens": 0,
+        "behavioral_memory_tokens": 0,
+        "semantic_memory_tokens": 0,
+        "memory_context_tokens": 0,
+        "tool_schema_tokens": 0,
+        "conversation_tokens": 0,
+        "tool_observation_tokens": 0,
+        "unattributed_input_tokens": 0
+      },
+      "visible_tool_count_mean": null,
+      "tool_names": [],
+      "tool_calls": [],
+      "final_schedule": [
+        {
+          "candidate_index": 1,
+          "status": "draft",
+          "task_count": 3,
+          "placed_task_count": 3,
+          "unplaced_task_count": 0,
+          "placed_minutes": 195,
+          "placed_segments": 3,
+          "distinct_day_count": 1,
+          "distinct_week_count": 1,
+          "schedule": [
+            {
+              "task_id": "task_01",
+              "segments": [
+                {
+                  "start_at": "2026-11-05T02:30:00+00:00",
+                  "end_at": "2026-11-05T03:15:00+00:00"
+                }
+              ]
+            },
+            {
+              "task_id": "task_02",
+              "segments": [
+                {
+                  "start_at": "2026-11-05T03:15:00+00:00",
+                  "end_at": "2026-11-05T04:45:00+00:00"
+                }
+              ]
+            },
+            {
+              "task_id": "task_03",
+              "segments": [
+                {
+                  "start_at": "2026-11-05T01:30:00+00:00",
+                  "end_at": "2026-11-05T02:30:00+00:00"
+                }
+              ]
+            }
+          ],
+          "hard_violations": [],
+          "soft_check_pass_rate": 0.5,
+          "soft_checks": [
+            {
+              "code": "precedence",
+              "passed": false
+            },
+            {
+              "code": "min_distinct_days",
+              "passed": false
+            },
+            {
+              "code": "max_daily_minutes",
+              "passed": true
+            },
+            {
+              "code": "max_unplaced",
+              "passed": true
+            }
+          ]
+        }
+      ],
+      "soft_quality": 0.5,
+      "error_categories": []
+    },
+    {
+      "case_id": "case_28a474e5056cbff5",
+      "variant": "baseline",
+      "repeat": 1,
+      "passed": false,
+      "duration_seconds": 0.0956,
+      "hard_violations": [
+        "max_daily_minutes"
+      ],
+      "tool_error_count": 0,
+      "unresolved_tool_error_count": 0,
+      "repair_call_count": 0,
+      "accepted": null,
+      "catastrophic": true,
+      "model_call_count": 0,
+      "tool_call_count": 0,
+      "duplicate_read_count": 0,
+      "total_tokens": 0,
+      "model_duration_ms": 0,
+      "prompt_breakdown_tokens": {
+        "system_prompt_tokens": 0,
+        "behavioral_memory_tokens": 0,
+        "semantic_memory_tokens": 0,
+        "memory_context_tokens": 0,
+        "tool_schema_tokens": 0,
+        "conversation_tokens": 0,
+        "tool_observation_tokens": 0,
+        "unattributed_input_tokens": 0
+      },
+      "visible_tool_count_mean": null,
+      "tool_names": [],
+      "tool_calls": [],
+      "final_schedule": [
+        {
+          "candidate_index": 1,
+          "status": "draft",
+          "task_count": 4,
+          "placed_task_count": 4,
+          "unplaced_task_count": 0,
+          "placed_minutes": 570,
+          "placed_segments": 4,
+          "distinct_day_count": 2,
+          "distinct_week_count": 1,
+          "schedule": [
+            {
+              "task_id": "task_01",
+              "segments": [
+                {
+                  "start_at": "2026-11-09T18:00:00+00:00",
+                  "end_at": "2026-11-09T20:30:00+00:00"
+                }
+              ]
+            },
+            {
+              "task_id": "task_02",
+              "segments": [
+                {
+                  "start_at": "2026-11-09T15:00:00+00:00",
+                  "end_at": "2026-11-09T18:00:00+00:00"
+                }
+              ]
+            },
+            {
+              "task_id": "task_03",
+              "segments": [
+                {
+                  "start_at": "2026-11-09T20:30:00+00:00",
+                  "end_at": "2026-11-09T23:00:00+00:00"
+                }
+              ]
+            },
+            {
+              "task_id": "task_04",
+              "segments": [
+                {
+                  "start_at": "2026-11-10T15:00:00+00:00",
+                  "end_at": "2026-11-10T16:30:00+00:00"
+                }
+              ]
+            }
+          ],
+          "hard_violations": [
+            "max_daily_minutes"
+          ],
+          "soft_check_pass_rate": 0.5,
+          "soft_checks": [
+            {
+              "code": "precedence",
+              "passed": true
+            },
+            {
+              "code": "precedence",
+              "passed": false
+            },
+            {
+              "code": "precedence",
+              "passed": true
+            },
+            {
+              "code": "min_distinct_days",
+              "passed": false
+            },
+            {
+              "code": "max_daily_minutes",
+              "passed": false
+            },
+            {
+              "code": "max_unplaced",
+              "passed": true
+            }
+          ]
+        }
+      ],
+      "soft_quality": 0.5,
+      "error_categories": []
+    },
+    {
+      "case_id": "case_36056a76457588f4",
+      "variant": "baseline",
+      "repeat": 1,
+      "passed": false,
+      "duration_seconds": 0.0907,
+      "hard_violations": [
+        "max_daily_minutes"
+      ],
+      "tool_error_count": 0,
+      "unresolved_tool_error_count": 0,
+      "repair_call_count": 0,
+      "accepted": null,
+      "catastrophic": true,
+      "model_call_count": 0,
+      "tool_call_count": 0,
+      "duplicate_read_count": 0,
+      "total_tokens": 0,
+      "model_duration_ms": 0,
+      "prompt_breakdown_tokens": {
+        "system_prompt_tokens": 0,
+        "behavioral_memory_tokens": 0,
+        "semantic_memory_tokens": 0,
+        "memory_context_tokens": 0,
+        "tool_schema_tokens": 0,
+        "conversation_tokens": 0,
+        "tool_observation_tokens": 0,
+        "unattributed_input_tokens": 0
+      },
+      "visible_tool_count_mean": null,
+      "tool_names": [],
+      "tool_calls": [],
+      "final_schedule": [
+        {
+          "candidate_index": 1,
+          "status": "draft",
+          "task_count": 4,
+          "placed_task_count": 4,
+          "unplaced_task_count": 0,
+          "placed_minutes": 330,
+          "placed_segments": 4,
+          "distinct_day_count": 1,
+          "distinct_week_count": 1,
+          "schedule": [
+            {
+              "task_id": "task_01",
+              "segments": [
+                {
+                  "start_at": "2026-11-16T18:30:00+00:00",
+                  "end_at": "2026-11-16T19:30:00+00:00"
+                }
+              ]
+            },
+            {
+              "task_id": "task_02",
+              "segments": [
+                {
+                  "start_at": "2026-11-16T14:00:00+00:00",
+                  "end_at": "2026-11-16T15:00:00+00:00"
+                }
+              ]
+            },
+            {
+              "task_id": "task_03",
+              "segments": [
+                {
+                  "start_at": "2026-11-16T15:00:00+00:00",
+                  "end_at": "2026-11-16T16:30:00+00:00"
+                }
+              ]
+            },
+            {
+              "task_id": "task_04",
+              "segments": [
+                {
+                  "start_at": "2026-11-16T16:30:00+00:00",
+                  "end_at": "2026-11-16T18:30:00+00:00"
+                }
+              ]
+            }
+          ],
+          "hard_violations": [
+            "max_daily_minutes"
+          ],
+          "soft_check_pass_rate": 0.6667,
+          "soft_checks": [
+            {
+              "code": "precedence",
+              "passed": true
+            },
+            {
+              "code": "precedence",
+              "passed": true
+            },
+            {
+              "code": "precedence",
+              "passed": true
+            },
+            {
+              "code": "min_distinct_days",
+              "passed": false
+            },
+            {
+              "code": "max_daily_minutes",
+              "passed": false
+            },
+            {
+              "code": "max_unplaced",
+              "passed": true
+            }
+          ]
+        }
+      ],
+      "soft_quality": 0.6667,
+      "error_categories": []
+    },
+    {
+      "case_id": "case_398adab729e64eba",
+      "variant": "baseline",
+      "repeat": 1,
+      "passed": false,
+      "duration_seconds": 0.0659,
+      "hard_violations": [
+        "max_daily_minutes"
+      ],
+      "tool_error_count": 0,
+      "unresolved_tool_error_count": 0,
+      "repair_call_count": 0,
+      "accepted": null,
+      "catastrophic": true,
+      "model_call_count": 0,
+      "tool_call_count": 0,
+      "duplicate_read_count": 0,
+      "total_tokens": 0,
+      "model_duration_ms": 0,
+      "prompt_breakdown_tokens": {
+        "system_prompt_tokens": 0,
+        "behavioral_memory_tokens": 0,
+        "semantic_memory_tokens": 0,
+        "memory_context_tokens": 0,
+        "tool_schema_tokens": 0,
+        "conversation_tokens": 0,
+        "tool_observation_tokens": 0,
+        "unattributed_input_tokens": 0
+      },
+      "visible_tool_count_mean": null,
+      "tool_names": [],
+      "tool_calls": [],
+      "final_schedule": [
+        {
+          "candidate_index": 1,
+          "status": "draft",
+          "task_count": 3,
+          "placed_task_count": 3,
+          "unplaced_task_count": 0,
+          "placed_minutes": 240,
+          "placed_segments": 3,
+          "distinct_day_count": 1,
+          "distinct_week_count": 1,
+          "schedule": [
+            {
+              "task_id": "task_01",
+              "segments": [
+                {
+                  "start_at": "2026-11-17T02:30:00+00:00",
+                  "end_at": "2026-11-17T04:00:00+00:00"
+                }
+              ]
+            },
+            {
+              "task_id": "task_02",
+              "segments": [
+                {
+                  "start_at": "2026-11-17T01:00:00+00:00",
+                  "end_at": "2026-11-17T02:30:00+00:00"
+                }
+              ]
+            },
+            {
+              "task_id": "task_03",
+              "segments": [
+                {
+                  "start_at": "2026-11-17T00:00:00+00:00",
+                  "end_at": "2026-11-17T01:00:00+00:00"
+                }
+              ]
+            }
+          ],
+          "hard_violations": [
+            "max_daily_minutes"
+          ],
+          "soft_check_pass_rate": 0.5,
+          "soft_checks": [
+            {
+              "code": "precedence",
+              "passed": true
+            },
+            {
+              "code": "min_distinct_days",
+              "passed": false
+            },
+            {
+              "code": "max_daily_minutes",
+              "passed": false
+            },
+            {
+              "code": "max_unplaced",
+              "passed": true
+            }
+          ]
+        }
+      ],
+      "soft_quality": 0.5,
+      "error_categories": []
+    },
+    {
+      "case_id": "case_15e6b041257076ad",
+      "variant": "baseline",
+      "repeat": 1,
+      "passed": false,
+      "duration_seconds": 0.078,
+      "hard_violations": [
+        "max_daily_minutes"
+      ],
+      "tool_error_count": 0,
+      "unresolved_tool_error_count": 0,
+      "repair_call_count": 0,
+      "accepted": null,
+      "catastrophic": true,
+      "model_call_count": 0,
+      "tool_call_count": 0,
+      "duplicate_read_count": 0,
+      "total_tokens": 0,
+      "model_duration_ms": 0,
+      "prompt_breakdown_tokens": {
+        "system_prompt_tokens": 0,
+        "behavioral_memory_tokens": 0,
+        "semantic_memory_tokens": 0,
+        "memory_context_tokens": 0,
+        "tool_schema_tokens": 0,
+        "conversation_tokens": 0,
+        "tool_observation_tokens": 0,
+        "unattributed_input_tokens": 0
+      },
+      "visible_tool_count_mean": null,
+      "tool_names": [],
+      "tool_calls": [],
+      "final_schedule": [
+        {
+          "candidate_index": 1,
+          "status": "draft",
+          "task_count": 3,
+          "placed_task_count": 3,
+          "unplaced_task_count": 0,
+          "placed_minutes": 240,
+          "placed_segments": 3,
+          "distinct_day_count": 1,
+          "distinct_week_count": 1,
+          "schedule": [
+            {
+              "task_id": "task_01",
+              "segments": [
+                {
+                  "start_at": "2026-11-26T19:00:00+00:00",
+                  "end_at": "2026-11-26T21:00:00+00:00"
+                }
+              ]
+            },
+            {
+              "task_id": "task_02",
+              "segments": [
+                {
+                  "start_at": "2026-11-26T21:00:00+00:00",
+                  "end_at": "2026-11-26T22:00:00+00:00"
+                }
+              ]
+            },
+            {
+              "task_id": "task_03",
+              "segments": [
+                {
+                  "start_at": "2026-11-26T18:00:00+00:00",
+                  "end_at": "2026-11-26T19:00:00+00:00"
+                }
+              ]
+            }
+          ],
+          "hard_violations": [
+            "max_daily_minutes"
+          ],
+          "soft_check_pass_rate": 0.4,
+          "soft_checks": [
+            {
+              "code": "precedence",
+              "passed": true
+            },
+            {
+              "code": "precedence",
+              "passed": false
+            },
+            {
+              "code": "min_distinct_days",
+              "passed": false
+            },
+            {
+              "code": "max_daily_minutes",
+              "passed": false
+            },
+            {
+              "code": "max_unplaced",
+              "passed": true
+            }
+          ]
+        }
+      ],
+      "soft_quality": 0.4,
+      "error_categories": []
+    },
+    {
+      "case_id": "case_00cb64b753369074",
+      "variant": "baseline",
+      "repeat": 1,
+      "passed": false,
+      "duration_seconds": 0.0688,
+      "hard_violations": [
+        "max_daily_minutes"
+      ],
+      "tool_error_count": 0,
+      "unresolved_tool_error_count": 0,
+      "repair_call_count": 0,
+      "accepted": null,
+      "catastrophic": true,
+      "model_call_count": 0,
+      "tool_call_count": 0,
+      "duplicate_read_count": 0,
+      "total_tokens": 0,
+      "model_duration_ms": 0,
+      "prompt_breakdown_tokens": {
+        "system_prompt_tokens": 0,
+        "behavioral_memory_tokens": 0,
+        "semantic_memory_tokens": 0,
+        "memory_context_tokens": 0,
+        "tool_schema_tokens": 0,
+        "conversation_tokens": 0,
+        "tool_observation_tokens": 0,
+        "unattributed_input_tokens": 0
+      },
+      "visible_tool_count_mean": null,
+      "tool_names": [],
+      "tool_calls": [],
+      "final_schedule": [
+        {
+          "candidate_index": 1,
+          "status": "draft",
+          "task_count": 3,
+          "placed_task_count": 3,
+          "unplaced_task_count": 0,
+          "placed_minutes": 270,
+          "placed_segments": 3,
+          "distinct_day_count": 1,
+          "distinct_week_count": 1,
+          "schedule": [
+            {
+              "task_id": "task_01",
+              "segments": [
+                {
+                  "start_at": "2026-11-30T14:00:00+00:00",
+                  "end_at": "2026-11-30T15:30:00+00:00"
+                }
+              ]
+            },
+            {
+              "task_id": "task_02",
+              "segments": [
+                {
+                  "start_at": "2026-11-30T17:30:00+00:00",
+                  "end_at": "2026-11-30T18:30:00+00:00"
+                }
+              ]
+            },
+            {
+              "task_id": "task_03",
+              "segments": [
+                {
+                  "start_at": "2026-11-30T15:30:00+00:00",
+                  "end_at": "2026-11-30T17:30:00+00:00"
+                }
+              ]
+            }
+          ],
+          "hard_violations": [
+            "max_daily_minutes"
+          ],
+          "soft_check_pass_rate": 0.2,
+          "soft_checks": [
+            {
+              "code": "precedence",
+              "passed": false
+            },
+            {
+              "code": "precedence",
+              "passed": false
+            },
+            {
+              "code": "min_distinct_days",
+              "passed": false
+            },
+            {
+              "code": "max_daily_minutes",
+              "passed": false
+            },
+            {
+              "code": "max_unplaced",
+              "passed": true
+            }
+          ]
+        }
+      ],
+      "soft_quality": 0.2,
+      "error_categories": []
+    },
+    {
+      "case_id": "case_544c854ddf1a6e99",
+      "variant": "baseline",
+      "repeat": 1,
+      "passed": true,
+      "duration_seconds": 0.0884,
+      "hard_violations": [],
+      "tool_error_count": 0,
+      "unresolved_tool_error_count": 0,
+      "repair_call_count": 0,
+      "accepted": null,
+      "catastrophic": false,
+      "model_call_count": 0,
+      "tool_call_count": 0,
+      "duplicate_read_count": 0,
+      "total_tokens": 0,
+      "model_duration_ms": 0,
+      "prompt_breakdown_tokens": {
+        "system_prompt_tokens": 0,
+        "behavioral_memory_tokens": 0,
+        "semantic_memory_tokens": 0,
+        "memory_context_tokens": 0,
+        "tool_schema_tokens": 0,
+        "conversation_tokens": 0,
+        "tool_observation_tokens": 0,
+        "unattributed_input_tokens": 0
+      },
+      "visible_tool_count_mean": null,
+      "tool_names": [],
+      "tool_calls": [],
+      "final_schedule": [
+        {
+          "candidate_index": 1,
+          "status": "draft",
+          "task_count": 4,
+          "placed_task_count": 4,
+          "unplaced_task_count": 0,
+          "placed_minutes": 225,
+          "placed_segments": 4,
+          "distinct_day_count": 1,
+          "distinct_week_count": 1,
+          "schedule": [
+            {
+              "task_id": "task_01",
+              "segments": [
+                {
+                  "start_at": "2026-12-02T06:00:00+00:00",
+                  "end_at": "2026-12-02T06:45:00+00:00"
+                }
+              ]
+            },
+            {
+              "task_id": "task_02",
+              "segments": [
+                {
+                  "start_at": "2026-12-02T08:15:00+00:00",
+                  "end_at": "2026-12-02T08:45:00+00:00"
+                }
+              ]
+            },
+            {
+              "task_id": "task_03",
+              "segments": [
+                {
+                  "start_at": "2026-12-02T05:00:00+00:00",
+                  "end_at": "2026-12-02T06:00:00+00:00"
+                }
+              ]
+            },
+            {
+              "task_id": "task_04",
+              "segments": [
+                {
+                  "start_at": "2026-12-02T06:45:00+00:00",
+                  "end_at": "2026-12-02T08:15:00+00:00"
+                }
+              ]
+            }
+          ],
+          "hard_violations": [],
+          "soft_check_pass_rate": 0.8,
+          "soft_checks": [
+            {
+              "code": "precedence",
+              "passed": true
+            },
+            {
+              "code": "precedence",
+              "passed": true
+            },
+            {
+              "code": "min_distinct_days",
+              "passed": false
+            },
+            {
+              "code": "max_daily_minutes",
+              "passed": true
+            },
+            {
+              "code": "max_unplaced",
+              "passed": true
+            }
+          ]
+        }
+      ],
+      "soft_quality": 0.8,
+      "error_categories": []
+    },
+    {
+      "case_id": "case_bcb3505a240b9c96",
+      "variant": "baseline",
+      "repeat": 1,
+      "passed": false,
+      "duration_seconds": 0.1037,
+      "hard_violations": [
+        "max_daily_minutes"
+      ],
+      "tool_error_count": 0,
+      "unresolved_tool_error_count": 0,
+      "repair_call_count": 0,
+      "accepted": null,
+      "catastrophic": true,
+      "model_call_count": 0,
+      "tool_call_count": 0,
+      "duplicate_read_count": 0,
+      "total_tokens": 0,
+      "model_duration_ms": 0,
+      "prompt_breakdown_tokens": {
+        "system_prompt_tokens": 0,
+        "behavioral_memory_tokens": 0,
+        "semantic_memory_tokens": 0,
+        "memory_context_tokens": 0,
+        "tool_schema_tokens": 0,
+        "conversation_tokens": 0,
+        "tool_observation_tokens": 0,
+        "unattributed_input_tokens": 0
+      },
+      "visible_tool_count_mean": null,
+      "tool_names": [],
+      "tool_calls": [],
+      "final_schedule": [
+        {
+          "candidate_index": 1,
+          "status": "draft",
+          "task_count": 4,
+          "placed_task_count": 4,
+          "unplaced_task_count": 0,
+          "placed_minutes": 240,
+          "placed_segments": 4,
+          "distinct_day_count": 1,
+          "distinct_week_count": 1,
+          "schedule": [
+            {
+              "task_id": "task_01",
+              "segments": [
+                {
+                  "start_at": "2026-12-07T16:45:00+00:00",
+                  "end_at": "2026-12-07T18:15:00+00:00"
+                }
+              ]
+            },
+            {
+              "task_id": "task_02",
+              "segments": [
+                {
+                  "start_at": "2026-12-07T16:00:00+00:00",
+                  "end_at": "2026-12-07T16:45:00+00:00"
+                }
+              ]
+            },
+            {
+              "task_id": "task_03",
+              "segments": [
+                {
+                  "start_at": "2026-12-07T18:15:00+00:00",
+                  "end_at": "2026-12-07T19:00:00+00:00"
+                }
+              ]
+            },
+            {
+              "task_id": "task_04",
+              "segments": [
+                {
+                  "start_at": "2026-12-07T15:00:00+00:00",
+                  "end_at": "2026-12-07T16:00:00+00:00"
+                }
+              ]
+            }
+          ],
+          "hard_violations": [
+            "max_daily_minutes"
+          ],
+          "soft_check_pass_rate": 0.5,
+          "soft_checks": [
+            {
+              "code": "precedence",
+              "passed": false
+            },
+            {
+              "code": "precedence",
+              "passed": true
+            },
+            {
+              "code": "precedence",
+              "passed": true
+            },
+            {
+              "code": "min_distinct_days",
+              "passed": false
+            },
+            {
+              "code": "max_daily_minutes",
+              "passed": false
+            },
+            {
+              "code": "max_unplaced",
+              "passed": true
+            }
+          ]
+        }
+      ],
+      "soft_quality": 0.5,
+      "error_categories": []
+    },
+    {
+      "case_id": "case_7738d980f424a24b",
+      "variant": "baseline",
+      "repeat": 1,
+      "passed": false,
+      "duration_seconds": 0.0834,
+      "hard_violations": [
+        "max_daily_minutes"
+      ],
+      "tool_error_count": 0,
+      "unresolved_tool_error_count": 0,
+      "repair_call_count": 0,
+      "accepted": null,
+      "catastrophic": true,
+      "model_call_count": 0,
+      "tool_call_count": 0,
+      "duplicate_read_count": 0,
+      "total_tokens": 0,
+      "model_duration_ms": 0,
+      "prompt_breakdown_tokens": {
+        "system_prompt_tokens": 0,
+        "behavioral_memory_tokens": 0,
+        "semantic_memory_tokens": 0,
+        "memory_context_tokens": 0,
+        "tool_schema_tokens": 0,
+        "conversation_tokens": 0,
+        "tool_observation_tokens": 0,
+        "unattributed_input_tokens": 0
+      },
+      "visible_tool_count_mean": null,
+      "tool_names": [],
+      "tool_calls": [],
+      "final_schedule": [
+        {
+          "candidate_index": 1,
+          "status": "draft",
+          "task_count": 4,
+          "placed_task_count": 4,
+          "unplaced_task_count": 0,
+          "placed_minutes": 330,
+          "placed_segments": 4,
+          "distinct_day_count": 1,
+          "distinct_week_count": 1,
+          "schedule": [
+            {
+              "task_id": "task_01",
+              "segments": [
+                {
+                  "start_at": "2026-12-11T02:00:00+00:00",
+                  "end_at": "2026-12-11T03:30:00+00:00"
+                }
+              ]
+            },
+            {
+              "task_id": "task_02",
+              "segments": [
+                {
+                  "start_at": "2026-12-11T03:30:00+00:00",
+                  "end_at": "2026-12-11T05:00:00+00:00"
+                }
+              ]
+            },
+            {
+              "task_id": "task_03",
+              "segments": [
+                {
+                  "start_at": "2026-12-11T05:00:00+00:00",
+                  "end_at": "2026-12-11T06:00:00+00:00"
+                }
+              ]
+            },
+            {
+              "task_id": "task_04",
+              "segments": [
+                {
+                  "start_at": "2026-12-11T06:00:00+00:00",
+                  "end_at": "2026-12-11T07:30:00+00:00"
+                }
+              ]
+            }
+          ],
+          "hard_violations": [
+            "max_daily_minutes"
+          ],
+          "soft_check_pass_rate": 0.2,
+          "soft_checks": [
+            {
+              "code": "precedence",
+              "passed": false
+            },
+            {
+              "code": "precedence",
+              "passed": false
+            },
+            {
+              "code": "min_distinct_days",
+              "passed": false
+            },
+            {
+              "code": "max_daily_minutes",
+              "passed": false
+            },
+            {
+              "code": "max_unplaced",
+              "passed": true
+            }
+          ]
+        }
+      ],
+      "soft_quality": 0.2,
+      "error_categories": []
+    },
+    {
+      "case_id": "case_6663b5ea444915c2",
+      "variant": "baseline",
+      "repeat": 1,
+      "passed": false,
+      "duration_seconds": 0.0693,
+      "hard_violations": [
+        "max_daily_minutes"
+      ],
+      "tool_error_count": 0,
+      "unresolved_tool_error_count": 0,
+      "repair_call_count": 0,
+      "accepted": null,
+      "catastrophic": true,
+      "model_call_count": 0,
+      "tool_call_count": 0,
+      "duplicate_read_count": 0,
+      "total_tokens": 0,
+      "model_duration_ms": 0,
+      "prompt_breakdown_tokens": {
+        "system_prompt_tokens": 0,
+        "behavioral_memory_tokens": 0,
+        "semantic_memory_tokens": 0,
+        "memory_context_tokens": 0,
+        "tool_schema_tokens": 0,
+        "conversation_tokens": 0,
+        "tool_observation_tokens": 0,
+        "unattributed_input_tokens": 0
+      },
+      "visible_tool_count_mean": null,
+      "tool_names": [],
+      "tool_calls": [],
+      "final_schedule": [
+        {
+          "candidate_index": 1,
+          "status": "draft",
+          "task_count": 3,
+          "placed_task_count": 3,
+          "unplaced_task_count": 0,
+          "placed_minutes": 240,
+          "placed_segments": 3,
+          "distinct_day_count": 1,
+          "distinct_week_count": 1,
+          "schedule": [
+            {
+              "task_id": "task_01",
+              "segments": [
+                {
+                  "start_at": "2026-12-14T15:00:00+00:00",
+                  "end_at": "2026-12-14T17:00:00+00:00"
+                }
+              ]
+            },
+            {
+              "task_id": "task_02",
+              "segments": [
+                {
+                  "start_at": "2026-12-14T13:00:00+00:00",
+                  "end_at": "2026-12-14T14:00:00+00:00"
+                }
+              ]
+            },
+            {
+              "task_id": "task_03",
+              "segments": [
+                {
+                  "start_at": "2026-12-14T14:00:00+00:00",
+                  "end_at": "2026-12-14T15:00:00+00:00"
+                }
+              ]
+            }
+          ],
+          "hard_violations": [
+            "max_daily_minutes"
+          ],
+          "soft_check_pass_rate": 0.4,
+          "soft_checks": [
+            {
+              "code": "precedence",
+              "passed": true
+            },
+            {
+              "code": "precedence",
+              "passed": false
+            },
+            {
+              "code": "min_distinct_days",
+              "passed": false
+            },
+            {
+              "code": "max_daily_minutes",
+              "passed": false
+            },
+            {
+              "code": "max_unplaced",
+              "passed": true
+            }
+          ]
+        }
+      ],
+      "soft_quality": 0.4,
+      "error_categories": []
+    },
+    {
+      "case_id": "case_94b75446815f3f73",
+      "variant": "baseline",
+      "repeat": 1,
+      "passed": true,
+      "duration_seconds": 0.0823,
+      "hard_violations": [],
+      "tool_error_count": 0,
+      "unresolved_tool_error_count": 0,
+      "repair_call_count": 0,
+      "accepted": null,
+      "catastrophic": false,
+      "model_call_count": 0,
+      "tool_call_count": 0,
+      "duplicate_read_count": 0,
+      "total_tokens": 0,
+      "model_duration_ms": 0,
+      "prompt_breakdown_tokens": {
+        "system_prompt_tokens": 0,
+        "behavioral_memory_tokens": 0,
+        "semantic_memory_tokens": 0,
+        "memory_context_tokens": 0,
+        "tool_schema_tokens": 0,
+        "conversation_tokens": 0,
+        "tool_observation_tokens": 0,
+        "unattributed_input_tokens": 0
+      },
+      "visible_tool_count_mean": null,
+      "tool_names": [],
+      "tool_calls": [],
+      "final_schedule": [
+        {
+          "candidate_index": 1,
+          "status": "draft",
+          "task_count": 3,
+          "placed_task_count": 3,
+          "unplaced_task_count": 0,
+          "placed_minutes": 135,
+          "placed_segments": 3,
+          "distinct_day_count": 1,
+          "distinct_week_count": 1,
+          "schedule": [
+            {
+              "task_id": "task_01",
+              "segments": [
+                {
+                  "start_at": "2026-12-17T08:15:00+00:00",
+                  "end_at": "2026-12-17T09:15:00+00:00"
+                }
+              ]
+            },
+            {
+              "task_id": "task_02",
+              "segments": [
+                {
+                  "start_at": "2026-12-17T07:30:00+00:00",
+                  "end_at": "2026-12-17T08:15:00+00:00"
+                }
+              ]
+            },
+            {
+              "task_id": "task_03",
+              "segments": [
+                {
+                  "start_at": "2026-12-17T09:15:00+00:00",
+                  "end_at": "2026-12-17T09:45:00+00:00"
+                }
+              ]
+            }
+          ],
+          "hard_violations": [],
+          "soft_check_pass_rate": 0.8,
+          "soft_checks": [
+            {
+              "code": "precedence",
+              "passed": true
+            },
+            {
+              "code": "precedence",
+              "passed": true
+            },
+            {
+              "code": "min_distinct_days",
+              "passed": false
+            },
+            {
+              "code": "max_daily_minutes",
+              "passed": true
+            },
+            {
+              "code": "max_unplaced",
+              "passed": true
+            }
+          ]
+        }
+      ],
+      "soft_quality": 0.8,
+      "error_categories": []
+    },
+    {
+      "case_id": "case_5412f291d8d4adf3",
+      "variant": "baseline",
+      "repeat": 1,
+      "passed": false,
+      "duration_seconds": 0.0729,
+      "hard_violations": [
+        "max_daily_minutes"
+      ],
+      "tool_error_count": 0,
+      "unresolved_tool_error_count": 0,
+      "repair_call_count": 0,
+      "accepted": null,
+      "catastrophic": true,
+      "model_call_count": 0,
+      "tool_call_count": 0,
+      "duplicate_read_count": 0,
+      "total_tokens": 0,
+      "model_duration_ms": 0,
+      "prompt_breakdown_tokens": {
+        "system_prompt_tokens": 0,
+        "behavioral_memory_tokens": 0,
+        "semantic_memory_tokens": 0,
+        "memory_context_tokens": 0,
+        "tool_schema_tokens": 0,
+        "conversation_tokens": 0,
+        "tool_observation_tokens": 0,
+        "unattributed_input_tokens": 0
+      },
+      "visible_tool_count_mean": null,
+      "tool_names": [],
+      "tool_calls": [],
+      "final_schedule": [
+        {
+          "candidate_index": 1,
+          "status": "draft",
+          "task_count": 3,
+          "placed_task_count": 3,
+          "unplaced_task_count": 0,
+          "placed_minutes": 300,
+          "placed_segments": 3,
+          "distinct_day_count": 1,
+          "distinct_week_count": 1,
+          "schedule": [
+            {
+              "task_id": "task_01",
+              "segments": [
+                {
+                  "start_at": "2026-12-23T16:30:00+00:00",
+                  "end_at": "2026-12-23T18:00:00+00:00"
+                }
+              ]
+            },
+            {
+              "task_id": "task_02",
+              "segments": [
+                {
+                  "start_at": "2026-12-23T18:00:00+00:00",
+                  "end_at": "2026-12-23T20:00:00+00:00"
+                }
+              ]
+            },
+            {
+              "task_id": "task_03",
+              "segments": [
+                {
+                  "start_at": "2026-12-23T15:00:00+00:00",
+                  "end_at": "2026-12-23T16:30:00+00:00"
+                }
+              ]
+            }
+          ],
+          "hard_violations": [
+            "max_daily_minutes"
+          ],
+          "soft_check_pass_rate": 0.4,
+          "soft_checks": [
+            {
+              "code": "precedence",
+              "passed": true
+            },
+            {
+              "code": "precedence",
+              "passed": false
+            },
+            {
+              "code": "min_distinct_days",
+              "passed": false
+            },
+            {
+              "code": "max_daily_minutes",
+              "passed": false
+            },
+            {
+              "code": "max_unplaced",
+              "passed": true
+            }
+          ]
+        }
+      ],
+      "soft_quality": 0.4,
+      "error_categories": []
+    },
+    {
+      "case_id": "case_8e1f53ac07a4f18e",
+      "variant": "baseline",
+      "repeat": 1,
+      "passed": false,
+      "duration_seconds": 0.0943,
+      "hard_violations": [
+        "max_daily_minutes"
+      ],
+      "tool_error_count": 0,
+      "unresolved_tool_error_count": 0,
+      "repair_call_count": 0,
+      "accepted": null,
+      "catastrophic": true,
+      "model_call_count": 0,
+      "tool_call_count": 0,
+      "duplicate_read_count": 0,
+      "total_tokens": 0,
+      "model_duration_ms": 0,
+      "prompt_breakdown_tokens": {
+        "system_prompt_tokens": 0,
+        "behavioral_memory_tokens": 0,
+        "semantic_memory_tokens": 0,
+        "memory_context_tokens": 0,
+        "tool_schema_tokens": 0,
+        "conversation_tokens": 0,
+        "tool_observation_tokens": 0,
+        "unattributed_input_tokens": 0
+      },
+      "visible_tool_count_mean": null,
+      "tool_names": [],
+      "tool_calls": [],
+      "final_schedule": [
+        {
+          "candidate_index": 1,
+          "status": "draft",
+          "task_count": 4,
+          "placed_task_count": 4,
+          "unplaced_task_count": 0,
+          "placed_minutes": 285,
+          "placed_segments": 4,
+          "distinct_day_count": 1,
+          "distinct_week_count": 1,
+          "schedule": [
+            {
+              "task_id": "task_01",
+              "segments": [
+                {
+                  "start_at": "2026-12-28T08:45:00+00:00",
+                  "end_at": "2026-12-28T10:15:00+00:00"
+                }
+              ]
+            },
+            {
+              "task_id": "task_02",
+              "segments": [
+                {
+                  "start_at": "2026-12-28T10:15:00+00:00",
+                  "end_at": "2026-12-28T11:15:00+00:00"
+                }
+              ]
+            },
+            {
+              "task_id": "task_03",
+              "segments": [
+                {
+                  "start_at": "2026-12-28T11:15:00+00:00",
+                  "end_at": "2026-12-28T12:45:00+00:00"
+                }
+              ]
+            },
+            {
+              "task_id": "task_04",
+              "segments": [
+                {
+                  "start_at": "2026-12-28T08:00:00+00:00",
+                  "end_at": "2026-12-28T08:45:00+00:00"
+                }
+              ]
+            }
+          ],
+          "hard_violations": [
+            "max_daily_minutes"
+          ],
+          "soft_check_pass_rate": 0.5,
+          "soft_checks": [
+            {
+              "code": "precedence",
+              "passed": true
+            },
+            {
+              "code": "precedence",
+              "passed": false
+            },
+            {
+              "code": "precedence",
+              "passed": true
+            },
+            {
+              "code": "min_distinct_days",
+              "passed": false
+            },
+            {
+              "code": "max_daily_minutes",
+              "passed": false
+            },
+            {
+              "code": "max_unplaced",
+              "passed": true
+            }
+          ]
+        }
+      ],
+      "soft_quality": 0.5,
+      "error_categories": []
+    },
+    {
+      "case_id": "case_094fa91ca0068f76",
+      "variant": "baseline",
+      "repeat": 1,
+      "passed": false,
+      "duration_seconds": 0.0696,
+      "hard_violations": [
+        "max_daily_minutes"
+      ],
+      "tool_error_count": 0,
+      "unresolved_tool_error_count": 0,
+      "repair_call_count": 0,
+      "accepted": null,
+      "catastrophic": true,
+      "model_call_count": 0,
+      "tool_call_count": 0,
+      "duplicate_read_count": 0,
+      "total_tokens": 0,
+      "model_duration_ms": 0,
+      "prompt_breakdown_tokens": {
+        "system_prompt_tokens": 0,
+        "behavioral_memory_tokens": 0,
+        "semantic_memory_tokens": 0,
+        "memory_context_tokens": 0,
+        "tool_schema_tokens": 0,
+        "conversation_tokens": 0,
+        "tool_observation_tokens": 0,
+        "unattributed_input_tokens": 0
+      },
+      "visible_tool_count_mean": null,
+      "tool_names": [],
+      "tool_calls": [],
+      "final_schedule": [
+        {
+          "candidate_index": 1,
+          "status": "draft",
+          "task_count": 3,
+          "placed_task_count": 3,
+          "unplaced_task_count": 0,
+          "placed_minutes": 300,
+          "placed_segments": 3,
+          "distinct_day_count": 1,
+          "distinct_week_count": 1,
+          "schedule": [
+            {
+              "task_id": "task_01",
+              "segments": [
+                {
+                  "start_at": "2026-12-29T15:00:00+00:00",
+                  "end_at": "2026-12-29T17:30:00+00:00"
+                }
+              ]
+            },
+            {
+              "task_id": "task_02",
+              "segments": [
+                {
+                  "start_at": "2026-12-29T14:00:00+00:00",
+                  "end_at": "2026-12-29T15:00:00+00:00"
+                }
+              ]
+            },
+            {
+              "task_id": "task_03",
+              "segments": [
+                {
+                  "start_at": "2026-12-29T17:30:00+00:00",
+                  "end_at": "2026-12-29T19:00:00+00:00"
+                }
+              ]
+            }
+          ],
+          "hard_violations": [
+            "max_daily_minutes"
+          ],
+          "soft_check_pass_rate": 0.25,
+          "soft_checks": [
+            {
+              "code": "precedence",
+              "passed": false
+            },
+            {
+              "code": "min_distinct_days",
+              "passed": false
+            },
+            {
+              "code": "max_daily_minutes",
+              "passed": false
+            },
+            {
+              "code": "max_unplaced",
+              "passed": true
+            }
+          ]
+        }
+      ],
+      "soft_quality": 0.25,
+      "error_categories": []
+    },
+    {
+      "case_id": "case_e50e8ef0cf2fba66",
+      "variant": "baseline",
+      "repeat": 1,
+      "passed": false,
+      "duration_seconds": 0.103,
+      "hard_violations": [
+        "max_daily_minutes"
+      ],
+      "tool_error_count": 0,
+      "unresolved_tool_error_count": 0,
+      "repair_call_count": 0,
+      "accepted": null,
+      "catastrophic": true,
+      "model_call_count": 0,
+      "tool_call_count": 0,
+      "duplicate_read_count": 0,
+      "total_tokens": 0,
+      "model_duration_ms": 0,
+      "prompt_breakdown_tokens": {
+        "system_prompt_tokens": 0,
+        "behavioral_memory_tokens": 0,
+        "semantic_memory_tokens": 0,
+        "memory_context_tokens": 0,
+        "tool_schema_tokens": 0,
+        "conversation_tokens": 0,
+        "tool_observation_tokens": 0,
+        "unattributed_input_tokens": 0
+      },
+      "visible_tool_count_mean": null,
+      "tool_names": [],
+      "tool_calls": [],
+      "final_schedule": [
+        {
+          "candidate_index": 1,
+          "status": "draft",
+          "task_count": 4,
+          "placed_task_count": 4,
+          "unplaced_task_count": 0,
+          "placed_minutes": 315,
+          "placed_segments": 4,
+          "distinct_day_count": 1,
+          "distinct_week_count": 1,
+          "schedule": [
+            {
+              "task_id": "task_01",
+              "segments": [
+                {
+                  "start_at": "2027-01-04T10:15:00+00:00",
+                  "end_at": "2027-01-04T11:15:00+00:00"
+                }
+              ]
+            },
+            {
+              "task_id": "task_02",
+              "segments": [
+                {
+                  "start_at": "2027-01-04T08:45:00+00:00",
+                  "end_at": "2027-01-04T10:15:00+00:00"
+                }
+              ]
+            },
+            {
+              "task_id": "task_03",
+              "segments": [
+                {
+                  "start_at": "2027-01-04T06:00:00+00:00",
+                  "end_at": "2027-01-04T07:15:00+00:00"
+                }
+              ]
+            },
+            {
+              "task_id": "task_04",
+              "segments": [
+                {
+                  "start_at": "2027-01-04T07:15:00+00:00",
+                  "end_at": "2027-01-04T08:45:00+00:00"
+                }
+              ]
+            }
+          ],
+          "hard_violations": [
+            "max_daily_minutes"
+          ],
+          "soft_check_pass_rate": 0.5,
+          "soft_checks": [
+            {
+              "code": "precedence",
+              "passed": true
+            },
+            {
+              "code": "precedence",
+              "passed": true
+            },
+            {
+              "code": "precedence",
+              "passed": false
+            },
+            {
+              "code": "min_distinct_days",
+              "passed": false
+            },
+            {
+              "code": "max_daily_minutes",
+              "passed": false
+            },
+            {
+              "code": "max_unplaced",
+              "passed": true
+            }
+          ]
+        }
+      ],
+      "soft_quality": 0.5,
+      "error_categories": []
+    }
+  ]
+}

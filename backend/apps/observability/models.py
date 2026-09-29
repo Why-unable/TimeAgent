@@ -16,6 +16,7 @@ class LLMCallAudit(models.Model):
     total_tokens = models.PositiveIntegerField(null=True, blank=True)
     memory_prompt_tokens = models.PositiveIntegerField(default=0)
     memory_prompt_ratio = models.FloatField(null=True, blank=True)
+    prompt_breakdown = models.JSONField(default=dict, blank=True)
     duration_ms = models.PositiveIntegerField()
     error_type = models.CharField(max_length=128, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)

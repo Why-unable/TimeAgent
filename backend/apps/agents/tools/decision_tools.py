@@ -1,9 +1,9 @@
-from datetime import datetime
 from typing import Literal
 from uuid import UUID
 
 from langchain.tools import ToolRuntime, tool
 from langgraph.store.base import BaseStore
+from pydantic import AwareDatetime
 
 from apps.agents.context import RuntimeContext
 from apps.agents.tools.common import require_actor, require_writable, tool_idempotency_key
@@ -39,8 +39,8 @@ def recommend_task_duration(
 
 @tool
 def get_capacity_forecast(
-    range_start: datetime,
-    range_end: datetime,
+    range_start: AwareDatetime,
+    range_end: AwareDatetime,
     runtime: ToolRuntime[RuntimeContext],
     slot_minutes: int = 30,
     allowed_weekdays: list[int] | None = None,
@@ -57,6 +57,8 @@ def get_capacity_forecast(
     return {
         "range_start": forecast.range_start.isoformat(),
         "range_end": forecast.range_end.isoformat(),
+        "total_schedulable_capacity_minutes": forecast.total_schedulable_capacity_minutes,
+        "remaining_free_minutes": forecast.remaining_free_minutes,
         "available_minutes": forecast.available_minutes,
         "committed_minutes": forecast.committed_minutes,
         "unplanned_minutes": forecast.unplanned_minutes,

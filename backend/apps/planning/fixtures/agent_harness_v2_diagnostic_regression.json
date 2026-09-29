@@ -1,0 +1,4222 @@
+{
+  "schema_version": "agent-harness-scenarios-v1",
+  "scenarios": [
+    {
+      "id": "sealed_final_01_dental_ce",
+      "split": "regression",
+      "name": "Holdout 01",
+      "prompt": "牙科协会三周后举办继续教育日，请安排课程资料、讲者沟通和现场教学演示。 请在11月2日至11月8日安排：确认讲者简介和课程目标、整理病例教学幻灯片、复核继续教育签到要求、测试演示模型和投影、准备课后反馈表。保留已约事项，按工作日 09:00–18:00 规划，不排周末，单日投入不超过五小时，并遵循事项之间的先后关系。",
+      "anchor_at": "2026-11-01T08:00:00+01:00",
+      "timezone": "Europe/Amsterdam",
+      "range_start": "2026-11-02T00:00:00+01:00",
+      "range_end": "2026-11-08T23:59:00+01:00",
+      "workday_start": "09:00",
+      "workday_end": "18:00",
+      "tasks": [
+        {
+          "key": "work_1",
+          "title": "确认讲者简介和课程目标",
+          "description": "完成事项并核对相关要求：确认讲者简介和课程目标。",
+          "estimated_minutes": 45,
+          "priority": "medium",
+          "due_at": "2026-11-03T17:00:00+01:00",
+          "minimum_chunk_minutes": 30,
+          "flags": {
+            "splittable": false
+          }
+        },
+        {
+          "key": "work_2",
+          "title": "整理病例教学幻灯片",
+          "description": "完成事项并核对相关要求：整理病例教学幻灯片。",
+          "estimated_minutes": 60,
+          "priority": "high",
+          "due_at": "2026-11-04T17:00:00+01:00",
+          "minimum_chunk_minutes": 30,
+          "flags": {
+            "splittable": false
+          }
+        },
+        {
+          "key": "work_3",
+          "title": "复核继续教育签到要求",
+          "description": "完成事项并核对相关要求：复核继续教育签到要求。",
+          "estimated_minutes": 120,
+          "priority": "urgent",
+          "due_at": "2026-11-06T17:00:00+01:00",
+          "minimum_chunk_minutes": 30,
+          "flags": {
+            "splittable": false
+          }
+        },
+        {
+          "key": "work_4",
+          "title": "测试演示模型和投影",
+          "description": "完成事项并核对相关要求：测试演示模型和投影。",
+          "estimated_minutes": 75,
+          "priority": "high",
+          "due_at": "2026-11-06T17:00:00+01:00",
+          "minimum_chunk_minutes": 30,
+          "flags": {
+            "splittable": false
+          }
+        },
+        {
+          "key": "work_5",
+          "title": "准备课后反馈表",
+          "description": "完成事项并核对相关要求：准备课后反馈表。",
+          "estimated_minutes": 90,
+          "priority": "low",
+          "due_at": "2026-11-06T17:00:00+01:00",
+          "minimum_chunk_minutes": 30,
+          "flags": {
+            "splittable": false
+          }
+        }
+      ],
+      "events": [
+        {
+          "title": "协会理事会短会",
+          "start_at": "2026-11-03T09:00:00+01:00",
+          "end_at": "2026-11-03T10:00:00+01:00",
+          "immutable": true
+        },
+        {
+          "title": "讲者视频沟通",
+          "start_at": "2026-11-05T11:00:00+01:00",
+          "end_at": "2026-11-05T12:00:00+01:00",
+          "immutable": true
+        }
+      ],
+      "expectations": {
+        "hard": [
+          "within_range",
+          "respect_deadlines",
+          "no_overlap_with_immutable_events",
+          "within_work_hours",
+          "no_weekend",
+          "max_daily_minutes"
+        ],
+        "soft": [
+          "precedence",
+          "min_distinct_days",
+          "max_daily_minutes",
+          "max_unplaced"
+        ],
+        "no_weekend": true,
+        "max_daily_minutes": 300,
+        "max_unplaced": 0,
+        "min_distinct_days": 3,
+        "precedence": [
+          {
+            "before": "work_1",
+            "after": "work_2",
+            "min_gap_days": 0
+          },
+          {
+            "before": "work_2",
+            "after": "work_3",
+            "min_gap_days": 0
+          },
+          {
+            "before": "work_3",
+            "after": "work_4",
+            "min_gap_days": 0
+          },
+          {
+            "before": "work_4",
+            "after": "work_5",
+            "min_gap_days": 0
+          }
+        ],
+        "ask_planning_clarification": false
+      },
+      "request_contract": {
+        "intent": "schedule_plan",
+        "write_policy": "allow_schedule_draft",
+        "intent_quote": "安排"
+      }
+    },
+    {
+      "id": "sealed_final_02_cycling_event",
+      "split": "regression",
+      "name": "Holdout 02",
+      "prompt": "城市骑行活动两周后出发，筹备路线标记、补水站、志愿者指引和雨天预案。 请在11月2日至11月22日安排：确认道路许可和路线图、规划补水站物资数量、安排路口志愿者岗位、测试领骑和收尾联络方式、整理雨天改期通知。保留已约事项，按工作日 09:00–18:00 规划，不排周末，单日投入不超过五小时，并遵循事项之间的先后关系。",
+      "anchor_at": "2026-11-01T08:00:00+08:00",
+      "timezone": "Asia/Singapore",
+      "range_start": "2026-11-02T00:00:00+08:00",
+      "range_end": "2026-11-22T23:59:00+08:00",
+      "workday_start": "09:00",
+      "workday_end": "18:00",
+      "tasks": [
+        {
+          "key": "work_1",
+          "title": "确认道路许可和路线图",
+          "description": "完成事项并核对相关要求：确认道路许可和路线图。",
+          "estimated_minutes": 75,
+          "priority": "high",
+          "due_at": "2026-11-06T17:00:00+08:00",
+          "minimum_chunk_minutes": 30,
+          "flags": {
+            "splittable": false
+          }
+        },
+        {
+          "key": "work_2",
+          "title": "规划补水站物资数量",
+          "description": "完成事项并核对相关要求：规划补水站物资数量。",
+          "estimated_minutes": 90,
+          "priority": "urgent",
+          "due_at": "2026-11-10T17:00:00+08:00",
+          "minimum_chunk_minutes": 30,
+          "flags": {
+            "splittable": true
+          }
+        },
+        {
+          "key": "work_3",
+          "title": "安排路口志愿者岗位",
+          "description": "完成事项并核对相关要求：安排路口志愿者岗位。",
+          "estimated_minutes": 45,
+          "priority": "high",
+          "due_at": "2026-11-13T17:00:00+08:00",
+          "minimum_chunk_minutes": 30,
+          "flags": {
+            "splittable": false
+          }
+        },
+        {
+          "key": "work_4",
+          "title": "测试领骑和收尾联络方式",
+          "description": "完成事项并核对相关要求：测试领骑和收尾联络方式。",
+          "estimated_minutes": 60,
+          "priority": "low",
+          "due_at": "2026-11-18T17:00:00+08:00",
+          "minimum_chunk_minutes": 30,
+          "flags": {
+            "splittable": false
+          }
+        },
+        {
+          "key": "work_5",
+          "title": "整理雨天改期通知",
+          "description": "完成事项并核对相关要求：整理雨天改期通知。",
+          "estimated_minutes": 120,
+          "priority": "medium",
+          "due_at": "2026-11-20T17:00:00+08:00",
+          "minimum_chunk_minutes": 30,
+          "flags": {
+            "splittable": false
+          }
+        }
+      ],
+      "events": [
+        {
+          "title": "道路管理方对接",
+          "start_at": "2026-11-05T11:00:00+08:00",
+          "end_at": "2026-11-05T12:00:00+08:00",
+          "immutable": true
+        },
+        {
+          "title": "志愿者说明会",
+          "start_at": "2026-11-09T14:00:00+08:00",
+          "end_at": "2026-11-09T15:00:00+08:00",
+          "immutable": true
+        },
+        {
+          "title": "装备检查时段",
+          "start_at": "2026-11-12T16:00:00+08:00",
+          "end_at": "2026-11-12T17:00:00+08:00",
+          "immutable": true
+        }
+      ],
+      "expectations": {
+        "hard": [
+          "within_range",
+          "respect_deadlines",
+          "no_overlap_with_immutable_events",
+          "within_work_hours",
+          "no_weekend",
+          "max_daily_minutes"
+        ],
+        "soft": [
+          "precedence",
+          "min_distinct_days",
+          "max_daily_minutes",
+          "max_unplaced"
+        ],
+        "no_weekend": true,
+        "max_daily_minutes": 300,
+        "max_unplaced": 0,
+        "min_distinct_days": 3,
+        "precedence": [
+          {
+            "before": "work_1",
+            "after": "work_2",
+            "min_gap_days": 0
+          },
+          {
+            "before": "work_2",
+            "after": "work_3",
+            "min_gap_days": 0
+          },
+          {
+            "before": "work_3",
+            "after": "work_4",
+            "min_gap_days": 0
+          },
+          {
+            "before": "work_4",
+            "after": "work_5",
+            "min_gap_days": 0
+          }
+        ],
+        "ask_planning_clarification": false
+      },
+      "request_contract": {
+        "intent": "replan_proposal",
+        "write_policy": "allow_schedule_draft",
+        "intent_quote": "改期"
+      }
+    },
+    {
+      "id": "sealed_final_03_museum_install",
+      "split": "regression",
+      "name": "Holdout 03",
+      "prompt": "小型博物馆月底换展，协调借展文件、展签、展柜摆放和开门前巡检。 请在11月2日至11月11日安排：核对借展物品清单和归还日期、撰写展签并复核人名年代、绘制展柜布局和观展动线、确认照明温湿度记录、完成开门前逐件巡检。保留已约事项，按工作日 09:00–18:00 规划，不排周末，单日投入不超过五小时，并遵循事项之间的先后关系。",
+      "anchor_at": "2026-11-01T08:00:00-07:00",
+      "timezone": "America/Denver",
+      "range_start": "2026-11-02T00:00:00-07:00",
+      "range_end": "2026-11-11T23:59:00-07:00",
+      "workday_start": "09:00",
+      "workday_end": "18:00",
+      "tasks": [
+        {
+          "key": "work_1",
+          "title": "核对借展物品清单和归还日期",
+          "description": "完成事项并核对相关要求：核对借展物品清单和归还日期。",
+          "estimated_minutes": 60,
+          "priority": "urgent",
+          "due_at": "2026-11-04T17:00:00-07:00",
+          "minimum_chunk_minutes": 30,
+          "flags": {
+            "splittable": false
+          }
+        },
+        {
+          "key": "work_2",
+          "title": "撰写展签并复核人名年代",
+          "description": "完成事项并核对相关要求：撰写展签并复核人名年代。",
+          "estimated_minutes": 120,
+          "priority": "high",
+          "due_at": "2026-11-06T17:00:00-07:00",
+          "minimum_chunk_minutes": 30,
+          "flags": {
+            "splittable": true
+          }
+        },
+        {
+          "key": "work_3",
+          "title": "绘制展柜布局和观展动线",
+          "description": "完成事项并核对相关要求：绘制展柜布局和观展动线。",
+          "estimated_minutes": 75,
+          "priority": "low",
+          "due_at": "2026-11-06T17:00:00-07:00",
+          "minimum_chunk_minutes": 30,
+          "flags": {
+            "splittable": false
+          }
+        },
+        {
+          "key": "work_4",
+          "title": "确认照明温湿度记录",
+          "description": "完成事项并核对相关要求：确认照明温湿度记录。",
+          "estimated_minutes": 90,
+          "priority": "medium",
+          "due_at": "2026-11-09T17:00:00-07:00",
+          "minimum_chunk_minutes": 30,
+          "flags": {
+            "splittable": true
+          }
+        },
+        {
+          "key": "work_5",
+          "title": "完成开门前逐件巡检",
+          "description": "完成事项并核对相关要求：完成开门前逐件巡检。",
+          "estimated_minutes": 45,
+          "priority": "high",
+          "due_at": "2026-11-10T17:00:00-07:00",
+          "minimum_chunk_minutes": 30,
+          "flags": {
+            "splittable": false
+          }
+        }
+      ],
+      "events": [
+        {
+          "title": "馆藏交接预约",
+          "start_at": "2026-11-09T14:00:00-07:00",
+          "end_at": "2026-11-09T15:00:00-07:00",
+          "immutable": true
+        },
+        {
+          "title": "已确认的固定安排",
+          "start_at": "2026-11-03T09:00:00-07:00",
+          "end_at": "2026-11-03T09:30:00-07:00",
+          "immutable": true
+        }
+      ],
+      "expectations": {
+        "hard": [
+          "within_range",
+          "respect_deadlines",
+          "no_overlap_with_immutable_events",
+          "within_work_hours",
+          "no_weekend",
+          "max_daily_minutes"
+        ],
+        "soft": [
+          "precedence",
+          "min_distinct_days",
+          "max_daily_minutes",
+          "max_unplaced"
+        ],
+        "no_weekend": true,
+        "max_daily_minutes": 300,
+        "max_unplaced": 0,
+        "min_distinct_days": 3,
+        "precedence": [
+          {
+            "before": "work_1",
+            "after": "work_2",
+            "min_gap_days": 0
+          },
+          {
+            "before": "work_2",
+            "after": "work_3",
+            "min_gap_days": 0
+          },
+          {
+            "before": "work_3",
+            "after": "work_4",
+            "min_gap_days": 0
+          },
+          {
+            "before": "work_4",
+            "after": "work_5",
+            "min_gap_days": 0
+          }
+        ],
+        "ask_planning_clarification": false
+      },
+      "request_contract": {
+        "intent": "schedule_plan",
+        "write_policy": "allow_schedule_draft",
+        "intent_quote": "安排"
+      }
+    },
+    {
+      "id": "sealed_final_04_cabin_winter",
+      "split": "regression",
+      "name": "Holdout 04",
+      "prompt": "郊外木屋入冬前需要安排烟囱清理、管线排空、应急物资和钥匙交接。 请在11月2日至11月29日安排：预约烟囱检查与清理、检查室外水管和排水阀、补充停电照明及急救用品、记录暖炉使用和报警器测试、和看护人交接钥匙及电话。保留已约事项，按工作日 09:00–18:00 规划，不排周末，单日投入不超过五小时，并遵循事项之间的先后关系。请参考我之前确认的工作时段偏好。",
+      "anchor_at": "2026-11-01T08:00:00+08:00",
+      "timezone": "Asia/Singapore",
+      "range_start": "2026-11-02T00:00:00+08:00",
+      "range_end": "2026-11-29T23:59:00+08:00",
+      "workday_start": "09:00",
+      "workday_end": "18:00",
+      "tasks": [
+        {
+          "key": "work_1",
+          "title": "预约烟囱检查与清理",
+          "description": "完成事项并核对相关要求：预约烟囱检查与清理。",
+          "estimated_minutes": 90,
+          "priority": "high",
+          "due_at": "2026-11-06T17:00:00+08:00",
+          "minimum_chunk_minutes": 30,
+          "flags": {
+            "splittable": false
+          }
+        },
+        {
+          "key": "work_2",
+          "title": "检查室外水管和排水阀",
+          "description": "完成事项并核对相关要求：检查室外水管和排水阀。",
+          "estimated_minutes": 45,
+          "priority": "low",
+          "due_at": "2026-11-13T17:00:00+08:00",
+          "minimum_chunk_minutes": 30,
+          "flags": {
+            "splittable": false
+          }
+        },
+        {
+          "key": "work_3",
+          "title": "补充停电照明及急救用品",
+          "description": "完成事项并核对相关要求：补充停电照明及急救用品。",
+          "estimated_minutes": 60,
+          "priority": "medium",
+          "due_at": "2026-11-18T17:00:00+08:00",
+          "minimum_chunk_minutes": 30,
+          "flags": {
+            "splittable": false
+          }
+        },
+        {
+          "key": "work_4",
+          "title": "记录暖炉使用和报警器测试",
+          "description": "完成事项并核对相关要求：记录暖炉使用和报警器测试。",
+          "estimated_minutes": 120,
+          "priority": "high",
+          "due_at": "2026-11-23T17:00:00+08:00",
+          "minimum_chunk_minutes": 30,
+          "flags": {
+            "splittable": true
+          }
+        },
+        {
+          "key": "work_5",
+          "title": "和看护人交接钥匙及电话",
+          "description": "完成事项并核对相关要求：和看护人交接钥匙及电话。",
+          "estimated_minutes": 75,
+          "priority": "urgent",
+          "due_at": "2026-11-27T17:00:00+08:00",
+          "minimum_chunk_minutes": 30,
+          "flags": {
+            "splittable": false
+          }
+        }
+      ],
+      "events": [
+        {
+          "title": "维修师傅上门",
+          "start_at": "2026-11-12T16:00:00+08:00",
+          "end_at": "2026-11-12T17:00:00+08:00",
+          "immutable": true
+        },
+        {
+          "title": "邻居钥匙交接",
+          "start_at": "2026-11-17T09:00:00+08:00",
+          "end_at": "2026-11-17T10:00:00+08:00",
+          "immutable": true
+        }
+      ],
+      "expectations": {
+        "hard": [
+          "within_range",
+          "respect_deadlines",
+          "no_overlap_with_immutable_events",
+          "within_work_hours",
+          "no_weekend",
+          "max_daily_minutes"
+        ],
+        "soft": [
+          "precedence",
+          "min_distinct_days",
+          "max_daily_minutes",
+          "max_unplaced"
+        ],
+        "no_weekend": true,
+        "max_daily_minutes": 300,
+        "max_unplaced": 0,
+        "min_distinct_days": 3,
+        "precedence": [
+          {
+            "before": "work_1",
+            "after": "work_2",
+            "min_gap_days": 0
+          },
+          {
+            "before": "work_2",
+            "after": "work_3",
+            "min_gap_days": 0
+          },
+          {
+            "before": "work_3",
+            "after": "work_4",
+            "min_gap_days": 0
+          },
+          {
+            "before": "work_4",
+            "after": "work_5",
+            "min_gap_days": 0
+          }
+        ],
+        "ask_planning_clarification": false
+      },
+      "memory_context": [
+        {
+          "text": "我通常会把需要仔细核对的工作安排在上午，下午尽量保留给现场协调。",
+          "confidence": 0.94
+        }
+      ],
+      "request_contract": {
+        "intent": "schedule_plan",
+        "write_policy": "allow_schedule_draft",
+        "intent_quote": "安排"
+      }
+    },
+    {
+      "id": "sealed_final_05_coop_meeting",
+      "split": "regression",
+      "name": "Holdout 05",
+      "prompt": "合作公寓月中召开业主会，准备议程、预算摘要、代理票和会议纪要模板。 请在11月2日至11月15日安排：汇总住户提交的议题、整理公共区域预算摘要、确认代理投票收集方式、预订会议室和音响设备、准备决议记录表。保留已约事项，按工作日 09:00–18:00 规划，不排周末，单日投入不超过五小时，并遵循事项之间的先后关系。",
+      "anchor_at": "2026-11-01T08:00:00-07:00",
+      "timezone": "America/Denver",
+      "range_start": "2026-11-02T00:00:00-07:00",
+      "range_end": "2026-11-15T23:59:00-07:00",
+      "workday_start": "09:00",
+      "workday_end": "18:00",
+      "tasks": [
+        {
+          "key": "work_1",
+          "title": "汇总住户提交的议题",
+          "description": "完成事项并核对相关要求：汇总住户提交的议题。",
+          "estimated_minutes": 120,
+          "priority": "low",
+          "due_at": "2026-11-05T17:00:00-07:00",
+          "minimum_chunk_minutes": 30,
+          "flags": {
+            "splittable": false
+          }
+        },
+        {
+          "key": "work_2",
+          "title": "整理公共区域预算摘要",
+          "description": "完成事项并核对相关要求：整理公共区域预算摘要。",
+          "estimated_minutes": 75,
+          "priority": "medium",
+          "due_at": "2026-11-06T17:00:00-07:00",
+          "minimum_chunk_minutes": 30,
+          "flags": {
+            "splittable": false
+          }
+        },
+        {
+          "key": "work_3",
+          "title": "确认代理投票收集方式",
+          "description": "完成事项并核对相关要求：确认代理投票收集方式。",
+          "estimated_minutes": 90,
+          "priority": "high",
+          "due_at": "2026-11-10T17:00:00-07:00",
+          "minimum_chunk_minutes": 30,
+          "flags": {
+            "splittable": false
+          }
+        },
+        {
+          "key": "work_4",
+          "title": "预订会议室和音响设备",
+          "description": "完成事项并核对相关要求：预订会议室和音响设备。",
+          "estimated_minutes": 45,
+          "priority": "urgent",
+          "due_at": "2026-11-12T17:00:00-07:00",
+          "minimum_chunk_minutes": 30,
+          "flags": {
+            "splittable": false
+          }
+        },
+        {
+          "key": "work_5",
+          "title": "准备决议记录表",
+          "description": "完成事项并核对相关要求：准备决议记录表。",
+          "estimated_minutes": 60,
+          "priority": "high",
+          "due_at": "2026-11-13T17:00:00-07:00",
+          "minimum_chunk_minutes": 30,
+          "flags": {
+            "splittable": false
+          }
+        }
+      ],
+      "events": [
+        {
+          "title": "财务委员会碰头",
+          "start_at": "2026-11-03T11:00:00-07:00",
+          "end_at": "2026-11-03T12:00:00-07:00",
+          "immutable": true
+        },
+        {
+          "title": "业主会场地确认",
+          "start_at": "2026-11-05T14:00:00-07:00",
+          "end_at": "2026-11-05T15:00:00-07:00",
+          "immutable": true
+        }
+      ],
+      "expectations": {
+        "hard": [
+          "within_range",
+          "respect_deadlines",
+          "no_overlap_with_immutable_events",
+          "within_work_hours",
+          "no_weekend",
+          "max_daily_minutes"
+        ],
+        "soft": [
+          "precedence",
+          "min_distinct_days",
+          "max_daily_minutes",
+          "max_unplaced"
+        ],
+        "no_weekend": true,
+        "max_daily_minutes": 300,
+        "max_unplaced": 0,
+        "min_distinct_days": 3,
+        "precedence": [
+          {
+            "before": "work_1",
+            "after": "work_2",
+            "min_gap_days": 0
+          },
+          {
+            "before": "work_2",
+            "after": "work_3",
+            "min_gap_days": 0
+          },
+          {
+            "before": "work_3",
+            "after": "work_4",
+            "min_gap_days": 0
+          },
+          {
+            "before": "work_4",
+            "after": "work_5",
+            "min_gap_days": 0
+          }
+        ],
+        "ask_planning_clarification": false
+      },
+      "request_contract": {
+        "intent": "schedule_plan",
+        "write_policy": "allow_schedule_draft",
+        "intent_quote": "安排"
+      }
+    },
+    {
+      "id": "sealed_final_06_video_edit",
+      "split": "regression",
+      "name": "Holdout 06",
+      "prompt": "接下来的三周要交付一组客户宣传片，安排素材筛选、粗剪、字幕校对和多格式导出。 请在11月9日至11月15日安排：按拍摄场次整理原始素材、完成首支宣传片粗剪、汇总客户修改意见并确认版本、校对字幕时间码和专有名词、导出横竖屏文件并验证播放。保留已约事项，按工作日 09:00–18:00 规划，不排周末，单日投入不超过五小时，并遵循事项之间的先后关系。",
+      "anchor_at": "2026-11-08T08:00:00-05:00",
+      "timezone": "America/Toronto",
+      "range_start": "2026-11-09T00:00:00-05:00",
+      "range_end": "2026-11-15T23:59:00-05:00",
+      "workday_start": "09:00",
+      "workday_end": "18:00",
+      "tasks": [
+        {
+          "key": "work_1",
+          "title": "按拍摄场次整理原始素材",
+          "description": "完成事项并核对相关要求：按拍摄场次整理原始素材。",
+          "estimated_minutes": 45,
+          "priority": "medium",
+          "due_at": "2026-11-10T17:00:00-05:00",
+          "minimum_chunk_minutes": 30,
+          "flags": {
+            "splittable": false
+          }
+        },
+        {
+          "key": "work_2",
+          "title": "完成首支宣传片粗剪",
+          "description": "完成事项并核对相关要求：完成首支宣传片粗剪。",
+          "estimated_minutes": 60,
+          "priority": "high",
+          "due_at": "2026-11-11T17:00:00-05:00",
+          "minimum_chunk_minutes": 30,
+          "flags": {
+            "splittable": false
+          }
+        },
+        {
+          "key": "work_3",
+          "title": "汇总客户修改意见并确认版本",
+          "description": "完成事项并核对相关要求：汇总客户修改意见并确认版本。",
+          "estimated_minutes": 120,
+          "priority": "urgent",
+          "due_at": "2026-11-13T17:00:00-05:00",
+          "minimum_chunk_minutes": 30,
+          "flags": {
+            "splittable": false
+          }
+        },
+        {
+          "key": "work_4",
+          "title": "校对字幕时间码和专有名词",
+          "description": "完成事项并核对相关要求：校对字幕时间码和专有名词。",
+          "estimated_minutes": 75,
+          "priority": "high",
+          "due_at": "2026-11-13T17:00:00-05:00",
+          "minimum_chunk_minutes": 30,
+          "flags": {
+            "splittable": false
+          }
+        },
+        {
+          "key": "work_5",
+          "title": "导出横竖屏文件并验证播放",
+          "description": "完成事项并核对相关要求：导出横竖屏文件并验证播放。",
+          "estimated_minutes": 90,
+          "priority": "low",
+          "due_at": "2026-11-13T17:00:00-05:00",
+          "minimum_chunk_minutes": 30,
+          "flags": {
+            "splittable": false
+          }
+        }
+      ],
+      "events": [
+        {
+          "title": "客户创意评审",
+          "start_at": "2026-11-10T11:00:00-05:00",
+          "end_at": "2026-11-10T12:00:00-05:00",
+          "immutable": true
+        },
+        {
+          "title": "配音演员录制",
+          "start_at": "2026-11-12T14:00:00-05:00",
+          "end_at": "2026-11-12T15:00:00-05:00",
+          "immutable": true
+        }
+      ],
+      "expectations": {
+        "hard": [
+          "within_range",
+          "respect_deadlines",
+          "no_overlap_with_immutable_events",
+          "within_work_hours",
+          "no_weekend",
+          "max_daily_minutes"
+        ],
+        "soft": [
+          "precedence",
+          "min_distinct_days",
+          "max_daily_minutes",
+          "max_unplaced"
+        ],
+        "no_weekend": true,
+        "max_daily_minutes": 300,
+        "max_unplaced": 0,
+        "min_distinct_days": 3,
+        "precedence": [
+          {
+            "before": "work_1",
+            "after": "work_2",
+            "min_gap_days": 0
+          },
+          {
+            "before": "work_2",
+            "after": "work_3",
+            "min_gap_days": 0
+          },
+          {
+            "before": "work_3",
+            "after": "work_4",
+            "min_gap_days": 0
+          },
+          {
+            "before": "work_4",
+            "after": "work_5",
+            "min_gap_days": 0
+          }
+        ],
+        "ask_planning_clarification": false
+      },
+      "request_contract": {
+        "intent": "schedule_plan",
+        "write_policy": "allow_schedule_draft",
+        "intent_quote": "安排",
+        "user_requested_range": {
+          "source_quote": "接下来的三周",
+          "start_at": "2026-11-08T00:00:00-05:00",
+          "end_at": "2026-11-29T00:00:00-05:00"
+        }
+      }
+    },
+    {
+      "id": "sealed_final_07_eclipse_outing",
+      "split": "regression",
+      "name": "Holdout 07",
+      "prompt": "两周后社区组织日食观测，准备安全滤镜、观测点、接驳和云量备选方案。 请在11月9日至12月6日安排：核对观测眼镜认证和数量、勘察开阔观测点和遮挡、安排集合接驳和步行指引、写好观测安全说明、制定阴天替代讲解活动。保留已约事项，按工作日 09:00–18:00 规划，不排周末，单日投入不超过五小时，并遵循事项之间的先后关系。11月11日只可在 10:00–15:00 安排其他工作。",
+      "anchor_at": "2026-11-08T08:00:00-07:00",
+      "timezone": "America/Denver",
+      "range_start": "2026-11-09T00:00:00-07:00",
+      "range_end": "2026-12-06T23:59:00-07:00",
+      "workday_start": "09:00",
+      "workday_end": "18:00",
+      "tasks": [
+        {
+          "key": "work_1",
+          "title": "核对观测眼镜认证和数量",
+          "description": "完成事项并核对相关要求：核对观测眼镜认证和数量。",
+          "estimated_minutes": 75,
+          "priority": "high",
+          "due_at": "2026-11-13T17:00:00-07:00",
+          "minimum_chunk_minutes": 30,
+          "flags": {
+            "splittable": false
+          }
+        },
+        {
+          "key": "work_2",
+          "title": "勘察开阔观测点和遮挡",
+          "description": "完成事项并核对相关要求：勘察开阔观测点和遮挡。",
+          "estimated_minutes": 90,
+          "priority": "urgent",
+          "due_at": "2026-11-20T17:00:00-07:00",
+          "minimum_chunk_minutes": 30,
+          "flags": {
+            "splittable": true
+          }
+        },
+        {
+          "key": "work_3",
+          "title": "安排集合接驳和步行指引",
+          "description": "完成事项并核对相关要求：安排集合接驳和步行指引。",
+          "estimated_minutes": 45,
+          "priority": "high",
+          "due_at": "2026-11-25T17:00:00-07:00",
+          "minimum_chunk_minutes": 30,
+          "flags": {
+            "splittable": false
+          }
+        },
+        {
+          "key": "work_4",
+          "title": "写好观测安全说明",
+          "description": "完成事项并核对相关要求：写好观测安全说明。",
+          "estimated_minutes": 60,
+          "priority": "low",
+          "due_at": "2026-11-30T17:00:00-07:00",
+          "minimum_chunk_minutes": 30,
+          "flags": {
+            "splittable": false
+          }
+        },
+        {
+          "key": "work_5",
+          "title": "制定阴天替代讲解活动",
+          "description": "完成事项并核对相关要求：制定阴天替代讲解活动。",
+          "estimated_minutes": 120,
+          "priority": "medium",
+          "due_at": "2026-12-04T17:00:00-07:00",
+          "minimum_chunk_minutes": 30,
+          "flags": {
+            "splittable": false
+          }
+        }
+      ],
+      "events": [
+        {
+          "title": "公园管理处现场查看",
+          "start_at": "2026-11-12T14:00:00-07:00",
+          "end_at": "2026-11-12T15:00:00-07:00",
+          "immutable": true
+        },
+        {
+          "title": "天文社装备借用",
+          "start_at": "2026-11-16T16:00:00-07:00",
+          "end_at": "2026-11-16T17:00:00-07:00",
+          "immutable": true
+        }
+      ],
+      "expectations": {
+        "hard": [
+          "within_range",
+          "respect_deadlines",
+          "no_overlap_with_immutable_events",
+          "within_work_hours",
+          "no_weekend",
+          "max_daily_minutes"
+        ],
+        "soft": [
+          "precedence",
+          "min_distinct_days",
+          "max_daily_minutes",
+          "max_unplaced"
+        ],
+        "no_weekend": true,
+        "max_daily_minutes": 300,
+        "max_unplaced": 0,
+        "min_distinct_days": 3,
+        "precedence": [
+          {
+            "before": "work_1",
+            "after": "work_2",
+            "min_gap_days": 0
+          },
+          {
+            "before": "work_2",
+            "after": "work_3",
+            "min_gap_days": 0
+          },
+          {
+            "before": "work_3",
+            "after": "work_4",
+            "min_gap_days": 0
+          },
+          {
+            "before": "work_4",
+            "after": "work_5",
+            "min_gap_days": 0
+          }
+        ],
+        "ask_planning_clarification": false,
+        "daily_availability_windows": [
+          {
+            "start_date": "2026-11-11",
+            "end_date": "2026-11-11",
+            "daily_start": "10:00",
+            "daily_end": "15:00"
+          }
+        ]
+      },
+      "request_contract": {
+        "intent": "schedule_plan",
+        "write_policy": "allow_schedule_draft",
+        "intent_quote": "安排"
+      }
+    },
+    {
+      "id": "sealed_final_08_winter_market",
+      "split": "regression",
+      "name": "Holdout 08",
+      "prompt": "手工艺合作社参加冬季集市，分配样品、摊位陈列、现金找零和销售交班。 请在11月9日至11月22日安排：整理参展手作与价格清单、检查桌布灯具和展示架、准备零钱及电子收款备用、写销售交班和库存记录表、安排撤场包装和物品归还。保留已约事项，按工作日 09:00–18:00 规划，不排周末，单日投入不超过五小时，并遵循事项之间的先后关系。",
+      "anchor_at": "2026-11-08T08:00:00-05:00",
+      "timezone": "America/Toronto",
+      "range_start": "2026-11-09T00:00:00-05:00",
+      "range_end": "2026-11-22T23:59:00-05:00",
+      "workday_start": "09:00",
+      "workday_end": "18:00",
+      "tasks": [
+        {
+          "key": "work_1",
+          "title": "整理参展手作与价格清单",
+          "description": "完成事项并核对相关要求：整理参展手作与价格清单。",
+          "estimated_minutes": 60,
+          "priority": "urgent",
+          "due_at": "2026-11-12T17:00:00-05:00",
+          "minimum_chunk_minutes": 30,
+          "flags": {
+            "splittable": false
+          }
+        },
+        {
+          "key": "work_2",
+          "title": "检查桌布灯具和展示架",
+          "description": "完成事项并核对相关要求：检查桌布灯具和展示架。",
+          "estimated_minutes": 120,
+          "priority": "high",
+          "due_at": "2026-11-13T17:00:00-05:00",
+          "minimum_chunk_minutes": 30,
+          "flags": {
+            "splittable": true
+          }
+        },
+        {
+          "key": "work_3",
+          "title": "准备零钱及电子收款备用",
+          "description": "完成事项并核对相关要求：准备零钱及电子收款备用。",
+          "estimated_minutes": 75,
+          "priority": "low",
+          "due_at": "2026-11-17T17:00:00-05:00",
+          "minimum_chunk_minutes": 30,
+          "flags": {
+            "splittable": false
+          }
+        },
+        {
+          "key": "work_4",
+          "title": "写销售交班和库存记录表",
+          "description": "完成事项并核对相关要求：写销售交班和库存记录表。",
+          "estimated_minutes": 90,
+          "priority": "medium",
+          "due_at": "2026-11-19T17:00:00-05:00",
+          "minimum_chunk_minutes": 30,
+          "flags": {
+            "splittable": true
+          }
+        },
+        {
+          "key": "work_5",
+          "title": "安排撤场包装和物品归还",
+          "description": "完成事项并核对相关要求：安排撤场包装和物品归还。",
+          "estimated_minutes": 45,
+          "priority": "high",
+          "due_at": "2026-11-20T17:00:00-05:00",
+          "minimum_chunk_minutes": 30,
+          "flags": {
+            "splittable": false
+          }
+        }
+      ],
+      "events": [
+        {
+          "title": "合作社成员碰头",
+          "start_at": "2026-11-16T16:00:00-05:00",
+          "end_at": "2026-11-16T17:00:00-05:00",
+          "immutable": true
+        },
+        {
+          "title": "集市主办方摊位确认",
+          "start_at": "2026-11-19T09:00:00-05:00",
+          "end_at": "2026-11-19T10:00:00-05:00",
+          "immutable": true
+        }
+      ],
+      "expectations": {
+        "hard": [
+          "within_range",
+          "respect_deadlines",
+          "no_overlap_with_immutable_events",
+          "within_work_hours",
+          "no_weekend",
+          "max_daily_minutes"
+        ],
+        "soft": [
+          "precedence",
+          "min_distinct_days",
+          "max_daily_minutes",
+          "max_unplaced"
+        ],
+        "no_weekend": true,
+        "max_daily_minutes": 300,
+        "max_unplaced": 0,
+        "min_distinct_days": 3,
+        "precedence": [
+          {
+            "before": "work_1",
+            "after": "work_2",
+            "min_gap_days": 0
+          },
+          {
+            "before": "work_2",
+            "after": "work_3",
+            "min_gap_days": 0
+          },
+          {
+            "before": "work_3",
+            "after": "work_4",
+            "min_gap_days": 0
+          },
+          {
+            "before": "work_4",
+            "after": "work_5",
+            "min_gap_days": 0
+          }
+        ],
+        "ask_planning_clarification": false
+      },
+      "request_contract": {
+        "intent": "schedule_plan",
+        "write_policy": "allow_schedule_draft",
+        "intent_quote": "安排"
+      }
+    },
+    {
+      "id": "sealed_final_09_solar_install",
+      "split": "regression",
+      "name": "Holdout 09",
+      "prompt": "屋顶太阳能安装前要整理用电记录、协调电工、清空阁楼通道并核对验收资料。 请在11月9日至11月15日安排：整理最近十二个月用电读数、预约电工检查配电箱、清理阁楼检修通道、核对安装合同和质保文件、准备并网验收所需照片。保留已约事项，按工作日 09:00–18:00 规划，不排周末，单日投入不超过五小时，并遵循事项之间的先后关系。",
+      "anchor_at": "2026-11-08T08:00:00+13:00",
+      "timezone": "Pacific/Auckland",
+      "range_start": "2026-11-09T00:00:00+13:00",
+      "range_end": "2026-11-15T23:59:00+13:00",
+      "workday_start": "09:00",
+      "workday_end": "18:00",
+      "tasks": [
+        {
+          "key": "work_1",
+          "title": "整理最近十二个月用电读数",
+          "description": "完成事项并核对相关要求：整理最近十二个月用电读数。",
+          "estimated_minutes": 90,
+          "priority": "high",
+          "due_at": "2026-11-10T17:00:00+13:00",
+          "minimum_chunk_minutes": 30,
+          "flags": {
+            "splittable": false,
+            "status": "completed"
+          }
+        },
+        {
+          "key": "work_2",
+          "title": "预约电工检查配电箱",
+          "description": "完成事项并核对相关要求：预约电工检查配电箱。",
+          "estimated_minutes": 45,
+          "priority": "low",
+          "due_at": "2026-11-11T17:00:00+13:00",
+          "minimum_chunk_minutes": 30,
+          "flags": {
+            "splittable": false
+          }
+        },
+        {
+          "key": "work_3",
+          "title": "清理阁楼检修通道",
+          "description": "完成事项并核对相关要求：清理阁楼检修通道。",
+          "estimated_minutes": 60,
+          "priority": "medium",
+          "due_at": "2026-11-13T17:00:00+13:00",
+          "minimum_chunk_minutes": 30,
+          "flags": {
+            "splittable": false
+          }
+        },
+        {
+          "key": "work_4",
+          "title": "核对安装合同和质保文件",
+          "description": "完成事项并核对相关要求：核对安装合同和质保文件。",
+          "estimated_minutes": 120,
+          "priority": "high",
+          "due_at": "2026-11-13T17:00:00+13:00",
+          "minimum_chunk_minutes": 30,
+          "flags": {
+            "splittable": true
+          }
+        },
+        {
+          "key": "work_5",
+          "title": "准备并网验收所需照片",
+          "description": "完成事项并核对相关要求：准备并网验收所需照片。",
+          "estimated_minutes": 75,
+          "priority": "urgent",
+          "due_at": "2026-11-13T17:00:00+13:00",
+          "minimum_chunk_minutes": 30,
+          "flags": {
+            "splittable": false
+          }
+        }
+      ],
+      "events": [
+        {
+          "title": "物业屋顶许可确认",
+          "start_at": "2026-11-10T14:00:00+13:00",
+          "end_at": "2026-11-10T15:00:00+13:00",
+          "immutable": true
+        },
+        {
+          "title": "已确认的固定安排",
+          "start_at": "2026-11-10T09:00:00+13:00",
+          "end_at": "2026-11-10T09:30:00+13:00",
+          "immutable": true
+        }
+      ],
+      "expectations": {
+        "hard": [
+          "within_range",
+          "respect_deadlines",
+          "no_overlap_with_immutable_events",
+          "within_work_hours",
+          "no_weekend",
+          "max_daily_minutes"
+        ],
+        "soft": [
+          "precedence",
+          "min_distinct_days",
+          "max_daily_minutes",
+          "max_unplaced"
+        ],
+        "no_weekend": true,
+        "max_daily_minutes": 300,
+        "max_unplaced": 0,
+        "min_distinct_days": 3,
+        "precedence": [
+          {
+            "before": "work_1",
+            "after": "work_2",
+            "min_gap_days": 0
+          },
+          {
+            "before": "work_2",
+            "after": "work_3",
+            "min_gap_days": 0
+          },
+          {
+            "before": "work_3",
+            "after": "work_4",
+            "min_gap_days": 0
+          },
+          {
+            "before": "work_4",
+            "after": "work_5",
+            "min_gap_days": 0
+          }
+        ],
+        "ask_planning_clarification": false,
+        "preserve_completed_task_keys": [
+          "work_1"
+        ]
+      },
+      "request_contract": {
+        "intent": "schedule_plan",
+        "write_policy": "allow_schedule_draft",
+        "intent_quote": "安排"
+      }
+    },
+    {
+      "id": "sealed_final_10_podcast_series",
+      "split": "regression",
+      "name": "Holdout 10",
+      "prompt": "五集播客下月上线，安排嘉宾录音、片头授权、剪辑排期和节目说明审核。 请在11月9日至11月29日安排：确认嘉宾录音时间与提纲、录制第一期并备份双轨音频、核对片头音乐授权范围、完成节目简介和章节标记、检查发布平台音频响度。保留已约事项，按工作日 09:00–18:00 规划，不排周末，单日投入不超过五小时，并遵循事项之间的先后关系。",
+      "anchor_at": "2026-11-08T08:00:00-05:00",
+      "timezone": "America/Toronto",
+      "range_start": "2026-11-09T00:00:00-05:00",
+      "range_end": "2026-11-29T23:59:00-05:00",
+      "workday_start": "09:00",
+      "workday_end": "18:00",
+      "tasks": [
+        {
+          "key": "work_1",
+          "title": "确认嘉宾录音时间与提纲",
+          "description": "完成事项并核对相关要求：确认嘉宾录音时间与提纲。",
+          "estimated_minutes": 120,
+          "priority": "low",
+          "due_at": "2026-11-13T17:00:00-05:00",
+          "minimum_chunk_minutes": 30,
+          "flags": {
+            "splittable": false
+          }
+        },
+        {
+          "key": "work_2",
+          "title": "录制第一期并备份双轨音频",
+          "description": "完成事项并核对相关要求：录制第一期并备份双轨音频。",
+          "estimated_minutes": 75,
+          "priority": "medium",
+          "due_at": "2026-11-17T17:00:00-05:00",
+          "minimum_chunk_minutes": 30,
+          "flags": {
+            "splittable": false
+          }
+        },
+        {
+          "key": "work_3",
+          "title": "核对片头音乐授权范围",
+          "description": "完成事项并核对相关要求：核对片头音乐授权范围。",
+          "estimated_minutes": 90,
+          "priority": "high",
+          "due_at": "2026-11-20T17:00:00-05:00",
+          "minimum_chunk_minutes": 30,
+          "flags": {
+            "splittable": false
+          }
+        },
+        {
+          "key": "work_4",
+          "title": "完成节目简介和章节标记",
+          "description": "完成事项并核对相关要求：完成节目简介和章节标记。",
+          "estimated_minutes": 45,
+          "priority": "urgent",
+          "due_at": "2026-11-25T17:00:00-05:00",
+          "minimum_chunk_minutes": 30,
+          "flags": {
+            "splittable": false
+          }
+        },
+        {
+          "key": "work_5",
+          "title": "检查发布平台音频响度",
+          "description": "完成事项并核对相关要求：检查发布平台音频响度。",
+          "estimated_minutes": 60,
+          "priority": "high",
+          "due_at": "2026-11-27T17:00:00-05:00",
+          "minimum_chunk_minutes": 30,
+          "flags": {
+            "splittable": false
+          }
+        }
+      ],
+      "events": [
+        {
+          "title": "嘉宾远程连线测试",
+          "start_at": "2026-11-24T11:00:00-05:00",
+          "end_at": "2026-11-24T12:00:00-05:00",
+          "immutable": true
+        },
+        {
+          "title": "制作人选题会",
+          "start_at": "2026-11-10T14:00:00-05:00",
+          "end_at": "2026-11-10T15:00:00-05:00",
+          "immutable": true
+        }
+      ],
+      "expectations": {
+        "hard": [
+          "within_range",
+          "respect_deadlines",
+          "no_overlap_with_immutable_events",
+          "within_work_hours",
+          "no_weekend",
+          "max_daily_minutes"
+        ],
+        "soft": [
+          "precedence",
+          "min_distinct_days",
+          "max_daily_minutes",
+          "max_unplaced"
+        ],
+        "no_weekend": true,
+        "max_daily_minutes": 300,
+        "max_unplaced": 0,
+        "min_distinct_days": 3,
+        "precedence": [
+          {
+            "before": "work_1",
+            "after": "work_2",
+            "min_gap_days": 0
+          },
+          {
+            "before": "work_2",
+            "after": "work_3",
+            "min_gap_days": 0
+          },
+          {
+            "before": "work_3",
+            "after": "work_4",
+            "min_gap_days": 0
+          },
+          {
+            "before": "work_4",
+            "after": "work_5",
+            "min_gap_days": 0
+          }
+        ],
+        "ask_planning_clarification": false
+      },
+      "request_contract": {
+        "intent": "schedule_plan",
+        "write_policy": "allow_schedule_draft",
+        "intent_quote": "安排"
+      }
+    },
+    {
+      "id": "sealed_final_11_photo_archive",
+      "split": "regression",
+      "name": "Holdout 11",
+      "prompt": "家庭老照片数字化计划持续四周，先整理年代，再扫描、命名和备份。 请在11月16日至11月25日安排：按家庭成员和年代分拣照片、清洁扫描仪玻璃并测试色彩、扫描第一批纸质照片、建立统一文件命名索引、做两份离线备份并抽查。保留已约事项，按工作日 09:00–18:00 规划，不排周末，单日投入不超过五小时，并遵循事项之间的先后关系。",
+      "anchor_at": "2026-11-15T08:00:00+13:00",
+      "timezone": "Pacific/Auckland",
+      "range_start": "2026-11-16T00:00:00+13:00",
+      "range_end": "2026-11-25T23:59:00+13:00",
+      "workday_start": "09:00",
+      "workday_end": "18:00",
+      "tasks": [
+        {
+          "key": "work_1",
+          "title": "按家庭成员和年代分拣照片",
+          "description": "完成事项并核对相关要求：按家庭成员和年代分拣照片。",
+          "estimated_minutes": 45,
+          "priority": "medium",
+          "due_at": "2026-11-18T17:00:00+13:00",
+          "minimum_chunk_minutes": 30,
+          "flags": {
+            "splittable": false,
+            "planned_start_at": "2026-11-18T10:00:00+13:00",
+            "planned_end_at": "2026-11-18T11:00:00+13:00"
+          }
+        },
+        {
+          "key": "work_2",
+          "title": "清洁扫描仪玻璃并测试色彩",
+          "description": "完成事项并核对相关要求：清洁扫描仪玻璃并测试色彩。",
+          "estimated_minutes": 60,
+          "priority": "high",
+          "due_at": "2026-11-20T17:00:00+13:00",
+          "minimum_chunk_minutes": 30,
+          "flags": {
+            "splittable": false
+          }
+        },
+        {
+          "key": "work_3",
+          "title": "扫描第一批纸质照片",
+          "description": "完成事项并核对相关要求：扫描第一批纸质照片。",
+          "estimated_minutes": 120,
+          "priority": "urgent",
+          "due_at": "2026-11-20T17:00:00+13:00",
+          "minimum_chunk_minutes": 30,
+          "flags": {
+            "splittable": false
+          }
+        },
+        {
+          "key": "work_4",
+          "title": "建立统一文件命名索引",
+          "description": "完成事项并核对相关要求：建立统一文件命名索引。",
+          "estimated_minutes": 75,
+          "priority": "high",
+          "due_at": "2026-11-23T17:00:00+13:00",
+          "minimum_chunk_minutes": 30,
+          "flags": {
+            "splittable": false
+          }
+        },
+        {
+          "key": "work_5",
+          "title": "做两份离线备份并抽查",
+          "description": "完成事项并核对相关要求：做两份离线备份并抽查。",
+          "estimated_minutes": 90,
+          "priority": "low",
+          "due_at": "2026-11-24T17:00:00+13:00",
+          "minimum_chunk_minutes": 30,
+          "flags": {
+            "splittable": false
+          }
+        }
+      ],
+      "events": [
+        {
+          "title": "亲属照片辨认通话",
+          "start_at": "2026-11-17T14:00:00+13:00",
+          "end_at": "2026-11-17T15:00:00+13:00",
+          "immutable": true
+        },
+        {
+          "title": "扫描设备保养",
+          "start_at": "2026-11-19T16:00:00+13:00",
+          "end_at": "2026-11-19T17:00:00+13:00",
+          "immutable": true
+        },
+        {
+          "title": "云盘空间续费提醒",
+          "start_at": "2026-11-23T09:00:00+13:00",
+          "end_at": "2026-11-23T10:00:00+13:00",
+          "immutable": true
+        }
+      ],
+      "expectations": {
+        "hard": [
+          "within_range",
+          "respect_deadlines",
+          "no_overlap_with_immutable_events",
+          "within_work_hours",
+          "no_weekend",
+          "max_daily_minutes"
+        ],
+        "soft": [
+          "precedence",
+          "min_distinct_days",
+          "max_daily_minutes",
+          "max_unplaced"
+        ],
+        "no_weekend": true,
+        "max_daily_minutes": 300,
+        "max_unplaced": 0,
+        "min_distinct_days": 3,
+        "precedence": [
+          {
+            "before": "work_1",
+            "after": "work_2",
+            "min_gap_days": 0
+          },
+          {
+            "before": "work_2",
+            "after": "work_3",
+            "min_gap_days": 0
+          },
+          {
+            "before": "work_3",
+            "after": "work_4",
+            "min_gap_days": 0
+          },
+          {
+            "before": "work_4",
+            "after": "work_5",
+            "min_gap_days": 0
+          }
+        ],
+        "ask_planning_clarification": false
+      },
+      "request_contract": {
+        "intent": "schedule_plan",
+        "write_policy": "allow_schedule_draft",
+        "intent_quote": "计划"
+      }
+    },
+    {
+      "id": "sealed_final_12_field_trip",
+      "split": "regression",
+      "name": "Holdout 12",
+      "prompt": "学校自然观察课程两周后外出，安排家长通知、交通清单、分组卡和雨天教案。 请在11月16日至12月13日安排：确认场地入园规则和限制、完成家长通知及同意回执、按带队成人划分学生小组、准备观察记录卡和铅笔、编写室内雨天替代活动。保留已约事项，按工作日 09:00–18:00 规划，不排周末，单日投入不超过五小时，并遵循事项之间的先后关系。",
+      "anchor_at": "2026-11-15T08:00:00+01:00",
+      "timezone": "Europe/Amsterdam",
+      "range_start": "2026-11-16T00:00:00+01:00",
+      "range_end": "2026-12-13T23:59:00+01:00",
+      "workday_start": "09:00",
+      "workday_end": "18:00",
+      "tasks": [
+        {
+          "key": "work_1",
+          "title": "确认场地入园规则和限制",
+          "description": "完成事项并核对相关要求：确认场地入园规则和限制。",
+          "estimated_minutes": 75,
+          "priority": "high",
+          "due_at": "2026-11-20T17:00:00+01:00",
+          "minimum_chunk_minutes": 30,
+          "flags": {
+            "splittable": false
+          }
+        },
+        {
+          "key": "work_2",
+          "title": "完成家长通知及同意回执",
+          "description": "完成事项并核对相关要求：完成家长通知及同意回执。",
+          "estimated_minutes": 90,
+          "priority": "urgent",
+          "due_at": "2026-11-27T17:00:00+01:00",
+          "minimum_chunk_minutes": 30,
+          "flags": {
+            "splittable": true
+          }
+        },
+        {
+          "key": "work_3",
+          "title": "按带队成人划分学生小组",
+          "description": "完成事项并核对相关要求：按带队成人划分学生小组。",
+          "estimated_minutes": 45,
+          "priority": "high",
+          "due_at": "2026-12-02T17:00:00+01:00",
+          "minimum_chunk_minutes": 30,
+          "flags": {
+            "splittable": false
+          }
+        },
+        {
+          "key": "work_4",
+          "title": "准备观察记录卡和铅笔",
+          "description": "完成事项并核对相关要求：准备观察记录卡和铅笔。",
+          "estimated_minutes": 60,
+          "priority": "low",
+          "due_at": "2026-12-07T17:00:00+01:00",
+          "minimum_chunk_minutes": 30,
+          "flags": {
+            "splittable": false
+          }
+        },
+        {
+          "key": "work_5",
+          "title": "编写室内雨天替代活动",
+          "description": "完成事项并核对相关要求：编写室内雨天替代活动。",
+          "estimated_minutes": 120,
+          "priority": "medium",
+          "due_at": "2026-12-11T17:00:00+01:00",
+          "minimum_chunk_minutes": 30,
+          "flags": {
+            "splittable": false
+          }
+        }
+      ],
+      "events": [
+        {
+          "title": "年级组出行评审",
+          "start_at": "2026-11-19T16:00:00+01:00",
+          "end_at": "2026-11-19T17:00:00+01:00",
+          "immutable": true
+        },
+        {
+          "title": "校车公司确认电话",
+          "start_at": "2026-11-23T09:00:00+01:00",
+          "end_at": "2026-11-23T10:00:00+01:00",
+          "immutable": true
+        },
+        {
+          "title": "家长志愿者说明会",
+          "start_at": "2026-11-26T11:00:00+01:00",
+          "end_at": "2026-11-26T12:00:00+01:00",
+          "immutable": true
+        }
+      ],
+      "expectations": {
+        "hard": [
+          "within_range",
+          "respect_deadlines",
+          "no_overlap_with_immutable_events",
+          "within_work_hours",
+          "no_weekend",
+          "max_daily_minutes"
+        ],
+        "soft": [
+          "precedence",
+          "min_distinct_days",
+          "max_daily_minutes",
+          "max_unplaced"
+        ],
+        "no_weekend": true,
+        "max_daily_minutes": 300,
+        "max_unplaced": 0,
+        "min_distinct_days": 3,
+        "precedence": [
+          {
+            "before": "work_1",
+            "after": "work_2",
+            "min_gap_days": 0
+          },
+          {
+            "before": "work_2",
+            "after": "work_3",
+            "min_gap_days": 0
+          },
+          {
+            "before": "work_3",
+            "after": "work_4",
+            "min_gap_days": 0
+          },
+          {
+            "before": "work_4",
+            "after": "work_5",
+            "min_gap_days": 0
+          }
+        ],
+        "ask_planning_clarification": false
+      },
+      "request_contract": {
+        "intent": "schedule_plan",
+        "write_policy": "allow_schedule_draft",
+        "intent_quote": "安排"
+      }
+    },
+    {
+      "id": "sealed_final_13_election_volunteers",
+      "split": "regression",
+      "name": "Holdout 13",
+      "prompt": "地方选举志愿团队月底开始值班，准备培训材料、签到轮班和无障碍路线指引。 请在11月16日至12月6日安排：整理志愿者联络与可用时段、更新中立服务培训材料、安排签到台轮班表、检查场地无障碍路线、准备现场问题升级联系人卡。保留已约事项，按工作日 09:00–18:00 规划，不排周末，单日投入不超过五小时，并遵循事项之间的先后关系。11月18日只可在 10:00–15:00 安排其他工作。",
+      "anchor_at": "2026-11-15T08:00:00+13:00",
+      "timezone": "Pacific/Auckland",
+      "range_start": "2026-11-16T00:00:00+13:00",
+      "range_end": "2026-12-06T23:59:00+13:00",
+      "workday_start": "09:00",
+      "workday_end": "18:00",
+      "tasks": [
+        {
+          "key": "work_1",
+          "title": "整理志愿者联络与可用时段",
+          "description": "完成事项并核对相关要求：整理志愿者联络与可用时段。",
+          "estimated_minutes": 60,
+          "priority": "urgent",
+          "due_at": "2026-11-20T17:00:00+13:00",
+          "minimum_chunk_minutes": 30,
+          "flags": {
+            "splittable": false
+          }
+        },
+        {
+          "key": "work_2",
+          "title": "更新中立服务培训材料",
+          "description": "完成事项并核对相关要求：更新中立服务培训材料。",
+          "estimated_minutes": 120,
+          "priority": "high",
+          "due_at": "2026-11-24T17:00:00+13:00",
+          "minimum_chunk_minutes": 30,
+          "flags": {
+            "splittable": true
+          }
+        },
+        {
+          "key": "work_3",
+          "title": "安排签到台轮班表",
+          "description": "完成事项并核对相关要求：安排签到台轮班表。",
+          "estimated_minutes": 75,
+          "priority": "low",
+          "due_at": "2026-11-27T17:00:00+13:00",
+          "minimum_chunk_minutes": 30,
+          "flags": {
+            "splittable": false
+          }
+        },
+        {
+          "key": "work_4",
+          "title": "检查场地无障碍路线",
+          "description": "完成事项并核对相关要求：检查场地无障碍路线。",
+          "estimated_minutes": 90,
+          "priority": "medium",
+          "due_at": "2026-12-02T17:00:00+13:00",
+          "minimum_chunk_minutes": 30,
+          "flags": {
+            "splittable": true
+          }
+        },
+        {
+          "key": "work_5",
+          "title": "准备现场问题升级联系人卡",
+          "description": "完成事项并核对相关要求：准备现场问题升级联系人卡。",
+          "estimated_minutes": 45,
+          "priority": "high",
+          "due_at": "2026-12-04T17:00:00+13:00",
+          "minimum_chunk_minutes": 30,
+          "flags": {
+            "splittable": false
+          }
+        }
+      ],
+      "events": [
+        {
+          "title": "场地管理员巡查",
+          "start_at": "2026-11-23T09:00:00+13:00",
+          "end_at": "2026-11-23T10:00:00+13:00",
+          "immutable": true
+        },
+        {
+          "title": "志愿者队长例会",
+          "start_at": "2026-11-26T11:00:00+13:00",
+          "end_at": "2026-11-26T12:00:00+13:00",
+          "immutable": true
+        }
+      ],
+      "expectations": {
+        "hard": [
+          "within_range",
+          "respect_deadlines",
+          "no_overlap_with_immutable_events",
+          "within_work_hours",
+          "no_weekend",
+          "max_daily_minutes"
+        ],
+        "soft": [
+          "precedence",
+          "min_distinct_days",
+          "max_daily_minutes",
+          "max_unplaced"
+        ],
+        "no_weekend": true,
+        "max_daily_minutes": 300,
+        "max_unplaced": 0,
+        "min_distinct_days": 3,
+        "precedence": [
+          {
+            "before": "work_1",
+            "after": "work_2",
+            "min_gap_days": 0
+          },
+          {
+            "before": "work_2",
+            "after": "work_3",
+            "min_gap_days": 0
+          },
+          {
+            "before": "work_3",
+            "after": "work_4",
+            "min_gap_days": 0
+          },
+          {
+            "before": "work_4",
+            "after": "work_5",
+            "min_gap_days": 0
+          }
+        ],
+        "ask_planning_clarification": false,
+        "daily_availability_windows": [
+          {
+            "start_date": "2026-11-18",
+            "end_date": "2026-11-18",
+            "daily_start": "10:00",
+            "daily_end": "15:00"
+          }
+        ]
+      },
+      "request_contract": {
+        "intent": "schedule_plan",
+        "write_policy": "allow_schedule_draft",
+        "intent_quote": "安排"
+      }
+    },
+    {
+      "id": "sealed_final_14_museum_school_visit",
+      "split": "regression",
+      "name": "Holdout 14",
+      "prompt": "博物馆接待多所学校参观，安排预约核对、分组轮转、讲解员和午餐区。 请在11月16日至11月25日安排：核对各校到馆人数与时刻、设计展厅轮转和集合点、为讲解员准备年龄适配提示、安排午餐区和失物联系人、给带队教师发送入馆指南。保留已约事项，按工作日 09:00–18:00 规划，不排周末，单日投入不超过五小时，并遵循事项之间的先后关系。",
+      "anchor_at": "2026-11-15T08:00:00+01:00",
+      "timezone": "Europe/Amsterdam",
+      "range_start": "2026-11-16T00:00:00+01:00",
+      "range_end": "2026-11-25T23:59:00+01:00",
+      "workday_start": "09:00",
+      "workday_end": "18:00",
+      "tasks": [
+        {
+          "key": "work_1",
+          "title": "核对各校到馆人数与时刻",
+          "description": "完成事项并核对相关要求：核对各校到馆人数与时刻。",
+          "estimated_minutes": 90,
+          "priority": "high",
+          "due_at": "2026-11-18T17:00:00+01:00",
+          "minimum_chunk_minutes": 30,
+          "flags": {
+            "splittable": false
+          }
+        },
+        {
+          "key": "work_2",
+          "title": "设计展厅轮转和集合点",
+          "description": "完成事项并核对相关要求：设计展厅轮转和集合点。",
+          "estimated_minutes": 45,
+          "priority": "low",
+          "due_at": "2026-11-20T17:00:00+01:00",
+          "minimum_chunk_minutes": 30,
+          "flags": {
+            "splittable": false
+          }
+        },
+        {
+          "key": "work_3",
+          "title": "为讲解员准备年龄适配提示",
+          "description": "完成事项并核对相关要求：为讲解员准备年龄适配提示。",
+          "estimated_minutes": 60,
+          "priority": "medium",
+          "due_at": "2026-11-20T17:00:00+01:00",
+          "minimum_chunk_minutes": 30,
+          "flags": {
+            "splittable": false
+          }
+        },
+        {
+          "key": "work_4",
+          "title": "安排午餐区和失物联系人",
+          "description": "完成事项并核对相关要求：安排午餐区和失物联系人。",
+          "estimated_minutes": 120,
+          "priority": "high",
+          "due_at": "2026-11-23T17:00:00+01:00",
+          "minimum_chunk_minutes": 30,
+          "flags": {
+            "splittable": true
+          }
+        },
+        {
+          "key": "work_5",
+          "title": "给带队教师发送入馆指南",
+          "description": "完成事项并核对相关要求：给带队教师发送入馆指南。",
+          "estimated_minutes": 75,
+          "priority": "urgent",
+          "due_at": "2026-11-24T17:00:00+01:00",
+          "minimum_chunk_minutes": 30,
+          "flags": {
+            "splittable": false
+          }
+        }
+      ],
+      "events": [
+        {
+          "title": "讲解员排班沟通",
+          "start_at": "2026-11-17T16:00:00+01:00",
+          "end_at": "2026-11-17T17:00:00+01:00",
+          "immutable": true
+        },
+        {
+          "title": "已确认的固定安排",
+          "start_at": "2026-11-17T09:00:00+01:00",
+          "end_at": "2026-11-17T09:30:00+01:00",
+          "immutable": true
+        }
+      ],
+      "expectations": {
+        "hard": [
+          "within_range",
+          "respect_deadlines",
+          "no_overlap_with_immutable_events",
+          "within_work_hours",
+          "no_weekend",
+          "max_daily_minutes"
+        ],
+        "soft": [
+          "precedence",
+          "min_distinct_days",
+          "max_daily_minutes",
+          "max_unplaced"
+        ],
+        "no_weekend": true,
+        "max_daily_minutes": 300,
+        "max_unplaced": 0,
+        "min_distinct_days": 3,
+        "precedence": [
+          {
+            "before": "work_1",
+            "after": "work_2",
+            "min_gap_days": 0
+          },
+          {
+            "before": "work_2",
+            "after": "work_3",
+            "min_gap_days": 0
+          },
+          {
+            "before": "work_3",
+            "after": "work_4",
+            "min_gap_days": 0
+          },
+          {
+            "before": "work_4",
+            "after": "work_5",
+            "min_gap_days": 0
+          }
+        ],
+        "ask_planning_clarification": false
+      },
+      "request_contract": {
+        "intent": "schedule_plan",
+        "write_policy": "allow_schedule_draft",
+        "intent_quote": "安排"
+      }
+    },
+    {
+      "id": "sealed_final_15_brewery_launch",
+      "split": "regression",
+      "name": "Holdout 15",
+      "prompt": "独立饮品厂准备新款上市，安排批次质检、零售资料、经销沟通和退货处理流程。 请在11月16日至12月13日安排：确认首批灌装日期与批号、复核配料标签和营养信息、准备经销商产品资料页、确认首批门店送货窗口、建立破损和退货跟进表。保留已约事项，按工作日 09:00–18:00 规划，不排周末，单日投入不超过五小时，并遵循事项之间的先后关系。请参考我之前确认的工作时段偏好。",
+      "anchor_at": "2026-11-15T08:00:00+08:00",
+      "timezone": "Asia/Singapore",
+      "range_start": "2026-11-16T00:00:00+08:00",
+      "range_end": "2026-12-13T23:59:00+08:00",
+      "workday_start": "09:00",
+      "workday_end": "18:00",
+      "tasks": [
+        {
+          "key": "work_1",
+          "title": "确认首批灌装日期与批号",
+          "description": "完成事项并核对相关要求：确认首批灌装日期与批号。",
+          "estimated_minutes": 120,
+          "priority": "low",
+          "due_at": "2026-11-20T17:00:00+08:00",
+          "minimum_chunk_minutes": 30,
+          "flags": {
+            "splittable": false
+          }
+        },
+        {
+          "key": "work_2",
+          "title": "复核配料标签和营养信息",
+          "description": "完成事项并核对相关要求：复核配料标签和营养信息。",
+          "estimated_minutes": 75,
+          "priority": "medium",
+          "due_at": "2026-11-27T17:00:00+08:00",
+          "minimum_chunk_minutes": 30,
+          "flags": {
+            "splittable": false
+          }
+        },
+        {
+          "key": "work_3",
+          "title": "准备经销商产品资料页",
+          "description": "完成事项并核对相关要求：准备经销商产品资料页。",
+          "estimated_minutes": 90,
+          "priority": "high",
+          "due_at": "2026-12-02T17:00:00+08:00",
+          "minimum_chunk_minutes": 30,
+          "flags": {
+            "splittable": false
+          }
+        },
+        {
+          "key": "work_4",
+          "title": "确认首批门店送货窗口",
+          "description": "完成事项并核对相关要求：确认首批门店送货窗口。",
+          "estimated_minutes": 45,
+          "priority": "urgent",
+          "due_at": "2026-12-07T17:00:00+08:00",
+          "minimum_chunk_minutes": 30,
+          "flags": {
+            "splittable": false
+          }
+        },
+        {
+          "key": "work_5",
+          "title": "建立破损和退货跟进表",
+          "description": "完成事项并核对相关要求：建立破损和退货跟进表。",
+          "estimated_minutes": 60,
+          "priority": "high",
+          "due_at": "2026-12-11T17:00:00+08:00",
+          "minimum_chunk_minutes": 30,
+          "flags": {
+            "splittable": false
+          }
+        }
+      ],
+      "events": [
+        {
+          "title": "生产线清洁检查",
+          "start_at": "2026-12-01T14:00:00+08:00",
+          "end_at": "2026-12-01T15:00:00+08:00",
+          "immutable": true
+        },
+        {
+          "title": "经销商视频会议",
+          "start_at": "2026-11-17T16:00:00+08:00",
+          "end_at": "2026-11-17T17:00:00+08:00",
+          "immutable": true
+        },
+        {
+          "title": "包装设计校样确认",
+          "start_at": "2026-11-19T09:00:00+08:00",
+          "end_at": "2026-11-19T10:00:00+08:00",
+          "immutable": true
+        }
+      ],
+      "expectations": {
+        "hard": [
+          "within_range",
+          "respect_deadlines",
+          "no_overlap_with_immutable_events",
+          "within_work_hours",
+          "no_weekend",
+          "max_daily_minutes"
+        ],
+        "soft": [
+          "precedence",
+          "min_distinct_days",
+          "max_daily_minutes",
+          "max_unplaced"
+        ],
+        "no_weekend": true,
+        "max_daily_minutes": 300,
+        "max_unplaced": 0,
+        "min_distinct_days": 3,
+        "precedence": [
+          {
+            "before": "work_1",
+            "after": "work_2",
+            "min_gap_days": 0
+          },
+          {
+            "before": "work_2",
+            "after": "work_3",
+            "min_gap_days": 0
+          },
+          {
+            "before": "work_3",
+            "after": "work_4",
+            "min_gap_days": 0
+          },
+          {
+            "before": "work_4",
+            "after": "work_5",
+            "min_gap_days": 0
+          }
+        ],
+        "ask_planning_clarification": false
+      },
+      "memory_context": [
+        {
+          "text": "我通常会把需要仔细核对的工作安排在上午，下午尽量保留给现场协调。",
+          "confidence": 0.94
+        }
+      ],
+      "request_contract": {
+        "intent": "schedule_plan",
+        "write_policy": "allow_schedule_draft",
+        "intent_quote": "安排"
+      }
+    },
+    {
+      "id": "sealed_final_16_coastal_cleanup",
+      "split": "regression",
+      "name": "Holdout 16",
+      "prompt": "海岸清洁小组下月活动前，协调潮汐窗口、分类物资、废弃物称重和参与者说明。 请在11月23日至12月6日安排：查询低潮时间和集合点、估算手套夹钳和分类袋、确认废弃物回收交接方式、准备参与者安全须知、设计称重和分类记录表。保留已约事项，按工作日 09:00–18:00 规划，不排周末，单日投入不超过五小时，并遵循事项之间的先后关系。",
+      "anchor_at": "2026-11-22T08:00:00+01:00",
+      "timezone": "Europe/Amsterdam",
+      "range_start": "2026-11-23T00:00:00+01:00",
+      "range_end": "2026-12-06T23:59:00+01:00",
+      "workday_start": "09:00",
+      "workday_end": "18:00",
+      "tasks": [
+        {
+          "key": "work_1",
+          "title": "查询低潮时间和集合点",
+          "description": "完成事项并核对相关要求：查询低潮时间和集合点。",
+          "estimated_minutes": 45,
+          "priority": "medium",
+          "due_at": "2026-11-26T17:00:00+01:00",
+          "minimum_chunk_minutes": 30,
+          "flags": {
+            "splittable": false
+          }
+        },
+        {
+          "key": "work_2",
+          "title": "估算手套夹钳和分类袋",
+          "description": "完成事项并核对相关要求：估算手套夹钳和分类袋。",
+          "estimated_minutes": 60,
+          "priority": "high",
+          "due_at": "2026-11-27T17:00:00+01:00",
+          "minimum_chunk_minutes": 30,
+          "flags": {
+            "splittable": false
+          }
+        },
+        {
+          "key": "work_3",
+          "title": "确认废弃物回收交接方式",
+          "description": "完成事项并核对相关要求：确认废弃物回收交接方式。",
+          "estimated_minutes": 120,
+          "priority": "urgent",
+          "due_at": "2026-12-01T17:00:00+01:00",
+          "minimum_chunk_minutes": 30,
+          "flags": {
+            "splittable": false
+          }
+        },
+        {
+          "key": "work_4",
+          "title": "准备参与者安全须知",
+          "description": "完成事项并核对相关要求：准备参与者安全须知。",
+          "estimated_minutes": 75,
+          "priority": "high",
+          "due_at": "2026-12-03T17:00:00+01:00",
+          "minimum_chunk_minutes": 30,
+          "flags": {
+            "splittable": false
+          }
+        },
+        {
+          "key": "work_5",
+          "title": "设计称重和分类记录表",
+          "description": "完成事项并核对相关要求：设计称重和分类记录表。",
+          "estimated_minutes": 90,
+          "priority": "low",
+          "due_at": "2026-12-04T17:00:00+01:00",
+          "minimum_chunk_minutes": 30,
+          "flags": {
+            "splittable": false
+          }
+        }
+      ],
+      "events": [
+        {
+          "title": "海滩管理方电话",
+          "start_at": "2026-11-24T16:00:00+01:00",
+          "end_at": "2026-11-24T17:00:00+01:00",
+          "immutable": true
+        },
+        {
+          "title": "回收站接收确认",
+          "start_at": "2026-11-26T09:00:00+01:00",
+          "end_at": "2026-11-26T10:00:00+01:00",
+          "immutable": true
+        }
+      ],
+      "expectations": {
+        "hard": [
+          "within_range",
+          "respect_deadlines",
+          "no_overlap_with_immutable_events",
+          "within_work_hours",
+          "no_weekend",
+          "max_daily_minutes"
+        ],
+        "soft": [
+          "precedence",
+          "min_distinct_days",
+          "max_daily_minutes",
+          "max_unplaced"
+        ],
+        "no_weekend": true,
+        "max_daily_minutes": 300,
+        "max_unplaced": 0,
+        "min_distinct_days": 3,
+        "precedence": [
+          {
+            "before": "work_1",
+            "after": "work_2",
+            "min_gap_days": 0
+          },
+          {
+            "before": "work_2",
+            "after": "work_3",
+            "min_gap_days": 0
+          },
+          {
+            "before": "work_3",
+            "after": "work_4",
+            "min_gap_days": 0
+          },
+          {
+            "before": "work_4",
+            "after": "work_5",
+            "min_gap_days": 0
+          }
+        ],
+        "ask_planning_clarification": false
+      },
+      "request_contract": {
+        "intent": "schedule_plan",
+        "write_policy": "allow_schedule_draft",
+        "intent_quote": "安排"
+      }
+    },
+    {
+      "id": "sealed_final_17_clinic_inventory",
+      "split": "regression",
+      "name": "Holdout 17",
+      "prompt": "社区诊所季度盘点期间，安排器械编号、耗材批号、冷藏记录和缺货上报。 请在11月23日至11月29日安排：核对诊疗器械编号和校准日、清点耗材批号及有效期、抽查冷藏温度记录完整性、汇总常用耗材缺货数量、提交补货清单并复核到货。保留已约事项，按工作日 09:00–18:00 规划，不排周末，单日投入不超过五小时，并遵循事项之间的先后关系。",
+      "anchor_at": "2026-11-22T08:00:00+08:00",
+      "timezone": "Asia/Singapore",
+      "range_start": "2026-11-23T00:00:00+08:00",
+      "range_end": "2026-11-29T23:59:00+08:00",
+      "workday_start": "09:00",
+      "workday_end": "18:00",
+      "tasks": [
+        {
+          "key": "work_1",
+          "title": "核对诊疗器械编号和校准日",
+          "description": "完成事项并核对相关要求：核对诊疗器械编号和校准日。",
+          "estimated_minutes": 75,
+          "priority": "high",
+          "due_at": "2026-11-24T17:00:00+08:00",
+          "minimum_chunk_minutes": 30,
+          "flags": {
+            "splittable": false
+          }
+        },
+        {
+          "key": "work_2",
+          "title": "清点耗材批号及有效期",
+          "description": "完成事项并核对相关要求：清点耗材批号及有效期。",
+          "estimated_minutes": 90,
+          "priority": "urgent",
+          "due_at": "2026-11-25T17:00:00+08:00",
+          "minimum_chunk_minutes": 30,
+          "flags": {
+            "splittable": true
+          }
+        },
+        {
+          "key": "work_3",
+          "title": "抽查冷藏温度记录完整性",
+          "description": "完成事项并核对相关要求：抽查冷藏温度记录完整性。",
+          "estimated_minutes": 45,
+          "priority": "high",
+          "due_at": "2026-11-27T17:00:00+08:00",
+          "minimum_chunk_minutes": 30,
+          "flags": {
+            "splittable": false
+          }
+        },
+        {
+          "key": "work_4",
+          "title": "汇总常用耗材缺货数量",
+          "description": "完成事项并核对相关要求：汇总常用耗材缺货数量。",
+          "estimated_minutes": 60,
+          "priority": "low",
+          "due_at": "2026-11-27T17:00:00+08:00",
+          "minimum_chunk_minutes": 30,
+          "flags": {
+            "splittable": false
+          }
+        },
+        {
+          "key": "work_5",
+          "title": "提交补货清单并复核到货",
+          "description": "完成事项并核对相关要求：提交补货清单并复核到货。",
+          "estimated_minutes": 120,
+          "priority": "medium",
+          "due_at": "2026-11-27T17:00:00+08:00",
+          "minimum_chunk_minutes": 30,
+          "flags": {
+            "splittable": false
+          }
+        }
+      ],
+      "events": [
+        {
+          "title": "器械校准服务",
+          "start_at": "2026-11-26T09:00:00+08:00",
+          "end_at": "2026-11-26T10:00:00+08:00",
+          "immutable": true
+        },
+        {
+          "title": "已确认的固定安排",
+          "start_at": "2026-11-24T09:00:00+08:00",
+          "end_at": "2026-11-24T09:30:00+08:00",
+          "immutable": true
+        }
+      ],
+      "expectations": {
+        "hard": [
+          "within_range",
+          "respect_deadlines",
+          "no_overlap_with_immutable_events",
+          "within_work_hours",
+          "no_weekend",
+          "max_daily_minutes"
+        ],
+        "soft": [
+          "precedence",
+          "min_distinct_days",
+          "max_daily_minutes",
+          "max_unplaced"
+        ],
+        "no_weekend": true,
+        "max_daily_minutes": 300,
+        "max_unplaced": 0,
+        "min_distinct_days": 3,
+        "precedence": [
+          {
+            "before": "work_1",
+            "after": "work_2",
+            "min_gap_days": 0
+          },
+          {
+            "before": "work_2",
+            "after": "work_3",
+            "min_gap_days": 0
+          },
+          {
+            "before": "work_3",
+            "after": "work_4",
+            "min_gap_days": 0
+          },
+          {
+            "before": "work_4",
+            "after": "work_5",
+            "min_gap_days": 0
+          }
+        ],
+        "ask_planning_clarification": false
+      },
+      "request_contract": {
+        "intent": "schedule_plan",
+        "write_policy": "allow_schedule_draft",
+        "intent_quote": "安排"
+      }
+    },
+    {
+      "id": "sealed_final_18_quilt_donation",
+      "split": "regression",
+      "name": "Holdout 18",
+      "prompt": "志愿缝纫小组月底交付捐赠被褥，安排布料裁切、拼接检查、洗护标签和打包。 请在11月23日至12月13日安排：清点已到布料及配色、完成一组布片裁切、检查拼接尺寸和线头、缝制洗护说明与捐赠标签、清洗折叠并按收件方分装。保留已约事项，按工作日 09:00–18:00 规划，不排周末，单日投入不超过五小时，并遵循事项之间的先后关系。",
+      "anchor_at": "2026-11-22T08:00:00-07:00",
+      "timezone": "America/Denver",
+      "range_start": "2026-11-23T00:00:00-07:00",
+      "range_end": "2026-12-13T23:59:00-07:00",
+      "workday_start": "09:00",
+      "workday_end": "18:00",
+      "tasks": [
+        {
+          "key": "work_1",
+          "title": "清点已到布料及配色",
+          "description": "完成事项并核对相关要求：清点已到布料及配色。",
+          "estimated_minutes": 60,
+          "priority": "urgent",
+          "due_at": "2026-11-27T17:00:00-07:00",
+          "minimum_chunk_minutes": 30,
+          "flags": {
+            "splittable": false
+          }
+        },
+        {
+          "key": "work_2",
+          "title": "完成一组布片裁切",
+          "description": "完成事项并核对相关要求：完成一组布片裁切。",
+          "estimated_minutes": 120,
+          "priority": "high",
+          "due_at": "2026-12-01T17:00:00-07:00",
+          "minimum_chunk_minutes": 30,
+          "flags": {
+            "splittable": true
+          }
+        },
+        {
+          "key": "work_3",
+          "title": "检查拼接尺寸和线头",
+          "description": "完成事项并核对相关要求：检查拼接尺寸和线头。",
+          "estimated_minutes": 75,
+          "priority": "low",
+          "due_at": "2026-12-04T17:00:00-07:00",
+          "minimum_chunk_minutes": 30,
+          "flags": {
+            "splittable": false
+          }
+        },
+        {
+          "key": "work_4",
+          "title": "缝制洗护说明与捐赠标签",
+          "description": "完成事项并核对相关要求：缝制洗护说明与捐赠标签。",
+          "estimated_minutes": 90,
+          "priority": "medium",
+          "due_at": "2026-12-09T17:00:00-07:00",
+          "minimum_chunk_minutes": 30,
+          "flags": {
+            "splittable": true
+          }
+        },
+        {
+          "key": "work_5",
+          "title": "清洗折叠并按收件方分装",
+          "description": "完成事项并核对相关要求：清洗折叠并按收件方分装。",
+          "estimated_minutes": 45,
+          "priority": "high",
+          "due_at": "2026-12-11T17:00:00-07:00",
+          "minimum_chunk_minutes": 30,
+          "flags": {
+            "splittable": false
+          }
+        }
+      ],
+      "events": [
+        {
+          "title": "小组开放工作室",
+          "start_at": "2026-11-30T11:00:00-07:00",
+          "end_at": "2026-11-30T12:00:00-07:00",
+          "immutable": true
+        },
+        {
+          "title": "捐赠机构尺寸确认",
+          "start_at": "2026-12-03T14:00:00-07:00",
+          "end_at": "2026-12-03T15:00:00-07:00",
+          "immutable": true
+        },
+        {
+          "title": "缝纫机维修预约",
+          "start_at": "2026-12-08T16:00:00-07:00",
+          "end_at": "2026-12-08T17:00:00-07:00",
+          "immutable": true
+        }
+      ],
+      "expectations": {
+        "hard": [
+          "within_range",
+          "respect_deadlines",
+          "no_overlap_with_immutable_events",
+          "within_work_hours",
+          "no_weekend",
+          "max_daily_minutes"
+        ],
+        "soft": [
+          "precedence",
+          "min_distinct_days",
+          "max_daily_minutes",
+          "max_unplaced"
+        ],
+        "no_weekend": true,
+        "max_daily_minutes": 300,
+        "max_unplaced": 0,
+        "min_distinct_days": 3,
+        "precedence": [
+          {
+            "before": "work_1",
+            "after": "work_2",
+            "min_gap_days": 0
+          },
+          {
+            "before": "work_2",
+            "after": "work_3",
+            "min_gap_days": 0
+          },
+          {
+            "before": "work_3",
+            "after": "work_4",
+            "min_gap_days": 0
+          },
+          {
+            "before": "work_4",
+            "after": "work_5",
+            "min_gap_days": 0
+          }
+        ],
+        "ask_planning_clarification": false
+      },
+      "request_contract": {
+        "intent": "schedule_plan",
+        "write_policy": "allow_schedule_draft",
+        "intent_quote": "安排"
+      }
+    },
+    {
+      "id": "sealed_final_19_menu_translation",
+      "split": "regression",
+      "name": "Holdout 19",
+      "prompt": "家庭餐馆准备双语季节菜单，协调菜名翻译、过敏原审核、版面校样和服务员培训。 请在11月23日至12月6日安排：收集厨师提供的菜品说明、翻译菜名和主要食材、复核过敏原与交叉接触提示、检查菜单排版和价格、给前台做新菜单说明。保留已约事项，按工作日 09:00–18:00 规划，不排周末，单日投入不超过五小时，并遵循事项之间的先后关系。",
+      "anchor_at": "2026-11-22T08:00:00+08:00",
+      "timezone": "Asia/Singapore",
+      "range_start": "2026-11-23T00:00:00+08:00",
+      "range_end": "2026-12-06T23:59:00+08:00",
+      "workday_start": "09:00",
+      "workday_end": "18:00",
+      "tasks": [
+        {
+          "key": "work_1",
+          "title": "收集厨师提供的菜品说明",
+          "description": "完成事项并核对相关要求：收集厨师提供的菜品说明。",
+          "estimated_minutes": 90,
+          "priority": "high",
+          "due_at": "2026-11-26T17:00:00+08:00",
+          "minimum_chunk_minutes": 30,
+          "flags": {
+            "splittable": false
+          }
+        },
+        {
+          "key": "work_2",
+          "title": "翻译菜名和主要食材",
+          "description": "完成事项并核对相关要求：翻译菜名和主要食材。",
+          "estimated_minutes": 45,
+          "priority": "low",
+          "due_at": "2026-11-27T17:00:00+08:00",
+          "minimum_chunk_minutes": 30,
+          "flags": {
+            "splittable": false
+          }
+        },
+        {
+          "key": "work_3",
+          "title": "复核过敏原与交叉接触提示",
+          "description": "完成事项并核对相关要求：复核过敏原与交叉接触提示。",
+          "estimated_minutes": 60,
+          "priority": "medium",
+          "due_at": "2026-12-01T17:00:00+08:00",
+          "minimum_chunk_minutes": 30,
+          "flags": {
+            "splittable": false
+          }
+        },
+        {
+          "key": "work_4",
+          "title": "检查菜单排版和价格",
+          "description": "完成事项并核对相关要求：检查菜单排版和价格。",
+          "estimated_minutes": 120,
+          "priority": "high",
+          "due_at": "2026-12-03T17:00:00+08:00",
+          "minimum_chunk_minutes": 30,
+          "flags": {
+            "splittable": true
+          }
+        },
+        {
+          "key": "work_5",
+          "title": "给前台做新菜单说明",
+          "description": "完成事项并核对相关要求：给前台做新菜单说明。",
+          "estimated_minutes": 75,
+          "priority": "urgent",
+          "due_at": "2026-12-04T17:00:00+08:00",
+          "minimum_chunk_minutes": 30,
+          "flags": {
+            "splittable": false
+          }
+        }
+      ],
+      "events": [
+        {
+          "title": "主厨品鉴沟通",
+          "start_at": "2026-12-03T14:00:00+08:00",
+          "end_at": "2026-12-03T15:00:00+08:00",
+          "immutable": true
+        },
+        {
+          "title": "已确认的固定安排",
+          "start_at": "2026-11-24T09:00:00+08:00",
+          "end_at": "2026-11-24T09:30:00+08:00",
+          "immutable": true
+        }
+      ],
+      "expectations": {
+        "hard": [
+          "within_range",
+          "respect_deadlines",
+          "no_overlap_with_immutable_events",
+          "within_work_hours",
+          "no_weekend",
+          "max_daily_minutes"
+        ],
+        "soft": [
+          "precedence",
+          "min_distinct_days",
+          "max_daily_minutes",
+          "max_unplaced"
+        ],
+        "no_weekend": true,
+        "max_daily_minutes": 300,
+        "max_unplaced": 0,
+        "min_distinct_days": 3,
+        "precedence": [
+          {
+            "before": "work_1",
+            "after": "work_2",
+            "min_gap_days": 0
+          },
+          {
+            "before": "work_2",
+            "after": "work_3",
+            "min_gap_days": 0
+          },
+          {
+            "before": "work_3",
+            "after": "work_4",
+            "min_gap_days": 0
+          },
+          {
+            "before": "work_4",
+            "after": "work_5",
+            "min_gap_days": 0
+          }
+        ],
+        "ask_planning_clarification": false
+      },
+      "request_contract": {
+        "intent": "schedule_plan",
+        "write_policy": "allow_schedule_draft",
+        "intent_quote": "安排"
+      }
+    },
+    {
+      "id": "sealed_final_20_grant_application",
+      "split": "regression",
+      "name": "Holdout 20",
+      "prompt": "大学实验室四周后提交设备补助申请，安排预算论证、供应商报价、支持信和附件检查。 请在11月23日至11月29日安排：梳理设备使用需求和研究目标、收集供应商正式报价、完成预算说明和匹配资金表、向合作单位征求支持信、逐项核对申请附件格式。保留已约事项，按工作日 09:00–18:00 规划，不排周末，单日投入不超过五小时，并遵循事项之间的先后关系。11月25日只可在 10:00–15:00 安排其他工作。",
+      "anchor_at": "2026-11-22T08:00:00-07:00",
+      "timezone": "America/Denver",
+      "range_start": "2026-11-23T00:00:00-07:00",
+      "range_end": "2026-11-29T23:59:00-07:00",
+      "workday_start": "09:00",
+      "workday_end": "18:00",
+      "tasks": [
+        {
+          "key": "work_1",
+          "title": "梳理设备使用需求和研究目标",
+          "description": "完成事项并核对相关要求：梳理设备使用需求和研究目标。",
+          "estimated_minutes": 120,
+          "priority": "low",
+          "due_at": "2026-11-24T17:00:00-07:00",
+          "minimum_chunk_minutes": 30,
+          "flags": {
+            "splittable": false
+          }
+        },
+        {
+          "key": "work_2",
+          "title": "收集供应商正式报价",
+          "description": "完成事项并核对相关要求：收集供应商正式报价。",
+          "estimated_minutes": 75,
+          "priority": "medium",
+          "due_at": "2026-11-25T17:00:00-07:00",
+          "minimum_chunk_minutes": 30,
+          "flags": {
+            "splittable": false
+          }
+        },
+        {
+          "key": "work_3",
+          "title": "完成预算说明和匹配资金表",
+          "description": "完成事项并核对相关要求：完成预算说明和匹配资金表。",
+          "estimated_minutes": 90,
+          "priority": "high",
+          "due_at": "2026-11-27T17:00:00-07:00",
+          "minimum_chunk_minutes": 30,
+          "flags": {
+            "splittable": false
+          }
+        },
+        {
+          "key": "work_4",
+          "title": "向合作单位征求支持信",
+          "description": "完成事项并核对相关要求：向合作单位征求支持信。",
+          "estimated_minutes": 45,
+          "priority": "urgent",
+          "due_at": "2026-11-27T17:00:00-07:00",
+          "minimum_chunk_minutes": 30,
+          "flags": {
+            "splittable": false
+          }
+        },
+        {
+          "key": "work_5",
+          "title": "逐项核对申请附件格式",
+          "description": "完成事项并核对相关要求：逐项核对申请附件格式。",
+          "estimated_minutes": 60,
+          "priority": "high",
+          "due_at": "2026-11-27T17:00:00-07:00",
+          "minimum_chunk_minutes": 30,
+          "flags": {
+            "splittable": false
+          }
+        }
+      ],
+      "events": [
+        {
+          "title": "供应商报价讨论",
+          "start_at": "2026-11-24T09:00:00-07:00",
+          "end_at": "2026-11-24T10:00:00-07:00",
+          "immutable": true
+        },
+        {
+          "title": "项目合作者周会",
+          "start_at": "2026-11-26T11:00:00-07:00",
+          "end_at": "2026-11-26T12:00:00-07:00",
+          "immutable": true
+        }
+      ],
+      "expectations": {
+        "hard": [
+          "within_range",
+          "respect_deadlines",
+          "no_overlap_with_immutable_events",
+          "within_work_hours",
+          "no_weekend",
+          "max_daily_minutes"
+        ],
+        "soft": [
+          "precedence",
+          "min_distinct_days",
+          "max_daily_minutes",
+          "max_unplaced"
+        ],
+        "no_weekend": true,
+        "max_daily_minutes": 300,
+        "max_unplaced": 0,
+        "min_distinct_days": 3,
+        "precedence": [
+          {
+            "before": "work_1",
+            "after": "work_2",
+            "min_gap_days": 0
+          },
+          {
+            "before": "work_2",
+            "after": "work_3",
+            "min_gap_days": 0
+          },
+          {
+            "before": "work_3",
+            "after": "work_4",
+            "min_gap_days": 0
+          },
+          {
+            "before": "work_4",
+            "after": "work_5",
+            "min_gap_days": 0
+          }
+        ],
+        "ask_planning_clarification": false,
+        "daily_availability_windows": [
+          {
+            "start_date": "2026-11-25",
+            "end_date": "2026-11-25",
+            "daily_start": "10:00",
+            "daily_end": "15:00"
+          }
+        ]
+      },
+      "request_contract": {
+        "intent": "schedule_plan",
+        "write_policy": "allow_schedule_draft",
+        "intent_quote": "安排"
+      }
+    },
+    {
+      "id": "sealed_final_21_emergency_drill",
+      "split": "regression",
+      "name": "Holdout 21",
+      "prompt": "社区应急演练三周后举行，准备联络树、集合点地图、广播内容和复盘表。 请在11月30日至12月20日安排：更新楼栋联系人树、绘制两个集合点的步行图、撰写广播提示和行动步骤、安排观察员和计时岗位、制作演练后反馈表。保留已约事项，按工作日 09:00–18:00 规划，不排周末，单日投入不超过五小时，并遵循事项之间的先后关系。",
+      "anchor_at": "2026-11-29T08:00:00-05:00",
+      "timezone": "America/Toronto",
+      "range_start": "2026-11-30T00:00:00-05:00",
+      "range_end": "2026-12-20T23:59:00-05:00",
+      "workday_start": "09:00",
+      "workday_end": "18:00",
+      "tasks": [
+        {
+          "key": "work_1",
+          "title": "更新楼栋联系人树",
+          "description": "完成事项并核对相关要求：更新楼栋联系人树。",
+          "estimated_minutes": 45,
+          "priority": "medium",
+          "due_at": "2026-12-04T17:00:00-05:00",
+          "minimum_chunk_minutes": 30,
+          "flags": {
+            "splittable": false
+          }
+        },
+        {
+          "key": "work_2",
+          "title": "绘制两个集合点的步行图",
+          "description": "完成事项并核对相关要求：绘制两个集合点的步行图。",
+          "estimated_minutes": 60,
+          "priority": "high",
+          "due_at": "2026-12-08T17:00:00-05:00",
+          "minimum_chunk_minutes": 30,
+          "flags": {
+            "splittable": false
+          }
+        },
+        {
+          "key": "work_3",
+          "title": "撰写广播提示和行动步骤",
+          "description": "完成事项并核对相关要求：撰写广播提示和行动步骤。",
+          "estimated_minutes": 120,
+          "priority": "urgent",
+          "due_at": "2026-12-11T17:00:00-05:00",
+          "minimum_chunk_minutes": 30,
+          "flags": {
+            "splittable": false
+          }
+        },
+        {
+          "key": "work_4",
+          "title": "安排观察员和计时岗位",
+          "description": "完成事项并核对相关要求：安排观察员和计时岗位。",
+          "estimated_minutes": 75,
+          "priority": "high",
+          "due_at": "2026-12-16T17:00:00-05:00",
+          "minimum_chunk_minutes": 30,
+          "flags": {
+            "splittable": false
+          }
+        },
+        {
+          "key": "work_5",
+          "title": "制作演练后反馈表",
+          "description": "完成事项并核对相关要求：制作演练后反馈表。",
+          "estimated_minutes": 90,
+          "priority": "low",
+          "due_at": "2026-12-18T17:00:00-05:00",
+          "minimum_chunk_minutes": 30,
+          "flags": {
+            "splittable": false
+          }
+        }
+      ],
+      "events": [
+        {
+          "title": "消防顾问现场咨询",
+          "start_at": "2026-12-01T09:00:00-05:00",
+          "end_at": "2026-12-01T10:00:00-05:00",
+          "immutable": true
+        },
+        {
+          "title": "居民代表议事会",
+          "start_at": "2026-12-03T11:00:00-05:00",
+          "end_at": "2026-12-03T12:00:00-05:00",
+          "immutable": true
+        },
+        {
+          "title": "广播设备测试",
+          "start_at": "2026-12-07T14:00:00-05:00",
+          "end_at": "2026-12-07T15:00:00-05:00",
+          "immutable": true
+        }
+      ],
+      "expectations": {
+        "hard": [
+          "within_range",
+          "respect_deadlines",
+          "no_overlap_with_immutable_events",
+          "within_work_hours",
+          "no_weekend",
+          "max_daily_minutes"
+        ],
+        "soft": [
+          "precedence",
+          "min_distinct_days",
+          "max_daily_minutes",
+          "max_unplaced"
+        ],
+        "no_weekend": true,
+        "max_daily_minutes": 300,
+        "max_unplaced": 0,
+        "min_distinct_days": 3,
+        "precedence": [
+          {
+            "before": "work_1",
+            "after": "work_2",
+            "min_gap_days": 0
+          },
+          {
+            "before": "work_2",
+            "after": "work_3",
+            "min_gap_days": 0
+          },
+          {
+            "before": "work_3",
+            "after": "work_4",
+            "min_gap_days": 0
+          },
+          {
+            "before": "work_4",
+            "after": "work_5",
+            "min_gap_days": 0
+          }
+        ],
+        "ask_planning_clarification": false
+      },
+      "request_contract": {
+        "intent": "schedule_plan",
+        "write_policy": "allow_schedule_draft",
+        "intent_quote": "安排"
+      }
+    },
+    {
+      "id": "sealed_final_22_accessibility_audit",
+      "split": "regression",
+      "name": "Holdout 22",
+      "prompt": "公共图书馆月底前做无障碍自查，安排入口坡道、指示牌、服务台和卫生间巡查。 请在11月30日至12月9日安排：记录入口门宽与坡道坡度、检查楼层指示牌可读性、测量服务台轮椅使用空间、逐间查看无障碍卫生间设施、整理照片和改进优先级。保留已约事项，按工作日 09:00–18:00 规划，不排周末，单日投入不超过五小时，并遵循事项之间的先后关系。",
+      "anchor_at": "2026-11-29T08:00:00-07:00",
+      "timezone": "America/Denver",
+      "range_start": "2026-11-30T00:00:00-07:00",
+      "range_end": "2026-12-09T23:59:00-07:00",
+      "workday_start": "09:00",
+      "workday_end": "18:00",
+      "tasks": [
+        {
+          "key": "work_1",
+          "title": "记录入口门宽与坡道坡度",
+          "description": "完成事项并核对相关要求：记录入口门宽与坡道坡度。",
+          "estimated_minutes": 75,
+          "priority": "high",
+          "due_at": "2026-12-02T17:00:00-07:00",
+          "minimum_chunk_minutes": 30,
+          "flags": {
+            "splittable": false,
+            "status": "completed"
+          }
+        },
+        {
+          "key": "work_2",
+          "title": "检查楼层指示牌可读性",
+          "description": "完成事项并核对相关要求：检查楼层指示牌可读性。",
+          "estimated_minutes": 90,
+          "priority": "urgent",
+          "due_at": "2026-12-04T17:00:00-07:00",
+          "minimum_chunk_minutes": 30,
+          "flags": {
+            "splittable": true
+          }
+        },
+        {
+          "key": "work_3",
+          "title": "测量服务台轮椅使用空间",
+          "description": "完成事项并核对相关要求：测量服务台轮椅使用空间。",
+          "estimated_minutes": 45,
+          "priority": "high",
+          "due_at": "2026-12-04T17:00:00-07:00",
+          "minimum_chunk_minutes": 30,
+          "flags": {
+            "splittable": false
+          }
+        },
+        {
+          "key": "work_4",
+          "title": "逐间查看无障碍卫生间设施",
+          "description": "完成事项并核对相关要求：逐间查看无障碍卫生间设施。",
+          "estimated_minutes": 60,
+          "priority": "low",
+          "due_at": "2026-12-07T17:00:00-07:00",
+          "minimum_chunk_minutes": 30,
+          "flags": {
+            "splittable": false
+          }
+        },
+        {
+          "key": "work_5",
+          "title": "整理照片和改进优先级",
+          "description": "完成事项并核对相关要求：整理照片和改进优先级。",
+          "estimated_minutes": 120,
+          "priority": "medium",
+          "due_at": "2026-12-08T17:00:00-07:00",
+          "minimum_chunk_minutes": 30,
+          "flags": {
+            "splittable": false
+          }
+        }
+      ],
+      "events": [
+        {
+          "title": "设施管理方现场陪同",
+          "start_at": "2026-12-03T11:00:00-07:00",
+          "end_at": "2026-12-03T12:00:00-07:00",
+          "immutable": true
+        },
+        {
+          "title": "用户体验访谈",
+          "start_at": "2026-12-07T14:00:00-07:00",
+          "end_at": "2026-12-07T15:00:00-07:00",
+          "immutable": true
+        }
+      ],
+      "expectations": {
+        "hard": [
+          "within_range",
+          "respect_deadlines",
+          "no_overlap_with_immutable_events",
+          "within_work_hours",
+          "no_weekend",
+          "max_daily_minutes"
+        ],
+        "soft": [
+          "precedence",
+          "min_distinct_days",
+          "max_daily_minutes",
+          "max_unplaced"
+        ],
+        "no_weekend": true,
+        "max_daily_minutes": 300,
+        "max_unplaced": 0,
+        "min_distinct_days": 3,
+        "precedence": [
+          {
+            "before": "work_1",
+            "after": "work_2",
+            "min_gap_days": 0
+          },
+          {
+            "before": "work_2",
+            "after": "work_3",
+            "min_gap_days": 0
+          },
+          {
+            "before": "work_3",
+            "after": "work_4",
+            "min_gap_days": 0
+          },
+          {
+            "before": "work_4",
+            "after": "work_5",
+            "min_gap_days": 0
+          }
+        ],
+        "ask_planning_clarification": false,
+        "preserve_completed_task_keys": [
+          "work_1"
+        ]
+      },
+      "request_contract": {
+        "intent": "schedule_plan",
+        "write_policy": "allow_schedule_draft",
+        "intent_quote": "安排",
+        "user_requested_range": {
+          "source_quote": "11月30日至12月9日",
+          "start_at": "2026-11-30T00:00:00-07:00",
+          "end_at": "2026-12-10T00:00:00-07:00"
+        }
+      }
+    },
+    {
+      "id": "sealed_final_23_retirement_event",
+      "split": "regression",
+      "name": "Holdout 23",
+      "prompt": "同事退休聚会三周后举行，协调口述回忆、照片墙、纪念册和场地设备。 请在11月30日至12月27日安排：收集同事短篇回忆文字、筛选可公开展示的老照片、整理纪念册页面顺序、确认场地座位和麦克风、准备播放文件和致谢词。保留已约事项，按工作日 09:00–18:00 规划，不排周末，单日投入不超过五小时，并遵循事项之间的先后关系。",
+      "anchor_at": "2026-11-29T08:00:00-05:00",
+      "timezone": "America/Toronto",
+      "range_start": "2026-11-30T00:00:00-05:00",
+      "range_end": "2026-12-27T23:59:00-05:00",
+      "workday_start": "09:00",
+      "workday_end": "18:00",
+      "tasks": [
+        {
+          "key": "work_1",
+          "title": "收集同事短篇回忆文字",
+          "description": "完成事项并核对相关要求：收集同事短篇回忆文字。",
+          "estimated_minutes": 60,
+          "priority": "urgent",
+          "due_at": "2026-12-04T17:00:00-05:00",
+          "minimum_chunk_minutes": 30,
+          "flags": {
+            "splittable": false
+          }
+        },
+        {
+          "key": "work_2",
+          "title": "筛选可公开展示的老照片",
+          "description": "完成事项并核对相关要求：筛选可公开展示的老照片。",
+          "estimated_minutes": 120,
+          "priority": "high",
+          "due_at": "2026-12-11T17:00:00-05:00",
+          "minimum_chunk_minutes": 30,
+          "flags": {
+            "splittable": true
+          }
+        },
+        {
+          "key": "work_3",
+          "title": "整理纪念册页面顺序",
+          "description": "完成事项并核对相关要求：整理纪念册页面顺序。",
+          "estimated_minutes": 75,
+          "priority": "low",
+          "due_at": "2026-12-16T17:00:00-05:00",
+          "minimum_chunk_minutes": 30,
+          "flags": {
+            "splittable": false
+          }
+        },
+        {
+          "key": "work_4",
+          "title": "确认场地座位和麦克风",
+          "description": "完成事项并核对相关要求：确认场地座位和麦克风。",
+          "estimated_minutes": 90,
+          "priority": "medium",
+          "due_at": "2026-12-21T17:00:00-05:00",
+          "minimum_chunk_minutes": 30,
+          "flags": {
+            "splittable": true
+          }
+        },
+        {
+          "key": "work_5",
+          "title": "准备播放文件和致谢词",
+          "description": "完成事项并核对相关要求：准备播放文件和致谢词。",
+          "estimated_minutes": 45,
+          "priority": "high",
+          "due_at": "2026-12-25T17:00:00-05:00",
+          "minimum_chunk_minutes": 30,
+          "flags": {
+            "splittable": false
+          }
+        }
+      ],
+      "events": [
+        {
+          "title": "退休同事午餐约谈",
+          "start_at": "2026-12-07T14:00:00-05:00",
+          "end_at": "2026-12-07T15:00:00-05:00",
+          "immutable": true
+        },
+        {
+          "title": "场地设备测试",
+          "start_at": "2026-12-10T16:00:00-05:00",
+          "end_at": "2026-12-10T17:00:00-05:00",
+          "immutable": true
+        },
+        {
+          "title": "编辑小组校样会",
+          "start_at": "2026-12-15T09:00:00-05:00",
+          "end_at": "2026-12-15T10:00:00-05:00",
+          "immutable": true
+        }
+      ],
+      "expectations": {
+        "hard": [
+          "within_range",
+          "respect_deadlines",
+          "no_overlap_with_immutable_events",
+          "within_work_hours",
+          "no_weekend",
+          "max_daily_minutes"
+        ],
+        "soft": [
+          "precedence",
+          "min_distinct_days",
+          "max_daily_minutes",
+          "max_unplaced"
+        ],
+        "no_weekend": true,
+        "max_daily_minutes": 300,
+        "max_unplaced": 0,
+        "min_distinct_days": 3,
+        "precedence": [
+          {
+            "before": "work_1",
+            "after": "work_2",
+            "min_gap_days": 0
+          },
+          {
+            "before": "work_2",
+            "after": "work_3",
+            "min_gap_days": 0
+          },
+          {
+            "before": "work_3",
+            "after": "work_4",
+            "min_gap_days": 0
+          },
+          {
+            "before": "work_4",
+            "after": "work_5",
+            "min_gap_days": 0
+          }
+        ],
+        "ask_planning_clarification": false
+      },
+      "request_contract": {
+        "intent": "schedule_plan",
+        "write_policy": "allow_schedule_draft",
+        "intent_quote": "安排"
+      }
+    },
+    {
+      "id": "sealed_final_24_service_dog",
+      "split": "regression",
+      "name": "Holdout 24",
+      "prompt": "服务犬训练计划进入新阶段，安排公共交通适应、指令复习、装备检查和训导员回顾。 请在11月30日至12月13日安排：复习安静等待与召回指令、规划短程公共交通练习、检查工作背心和身份牌、记录不同环境的注意力表现、与训导员复盘并设下一阶段目标。保留已约事项，按工作日 09:00–18:00 规划，不排周末，单日投入不超过五小时，并遵循事项之间的先后关系。",
+      "anchor_at": "2026-11-29T08:00:00+13:00",
+      "timezone": "Pacific/Auckland",
+      "range_start": "2026-11-30T00:00:00+13:00",
+      "range_end": "2026-12-13T23:59:00+13:00",
+      "workday_start": "09:00",
+      "workday_end": "18:00",
+      "tasks": [
+        {
+          "key": "work_1",
+          "title": "复习安静等待与召回指令",
+          "description": "完成事项并核对相关要求：复习安静等待与召回指令。",
+          "estimated_minutes": 90,
+          "priority": "high",
+          "due_at": "2026-12-03T17:00:00+13:00",
+          "minimum_chunk_minutes": 30,
+          "flags": {
+            "splittable": false
+          }
+        },
+        {
+          "key": "work_2",
+          "title": "规划短程公共交通练习",
+          "description": "完成事项并核对相关要求：规划短程公共交通练习。",
+          "estimated_minutes": 45,
+          "priority": "low",
+          "due_at": "2026-12-04T17:00:00+13:00",
+          "minimum_chunk_minutes": 30,
+          "flags": {
+            "splittable": false
+          }
+        },
+        {
+          "key": "work_3",
+          "title": "检查工作背心和身份牌",
+          "description": "完成事项并核对相关要求：检查工作背心和身份牌。",
+          "estimated_minutes": 60,
+          "priority": "medium",
+          "due_at": "2026-12-08T17:00:00+13:00",
+          "minimum_chunk_minutes": 30,
+          "flags": {
+            "splittable": false
+          }
+        },
+        {
+          "key": "work_4",
+          "title": "记录不同环境的注意力表现",
+          "description": "完成事项并核对相关要求：记录不同环境的注意力表现。",
+          "estimated_minutes": 120,
+          "priority": "high",
+          "due_at": "2026-12-10T17:00:00+13:00",
+          "minimum_chunk_minutes": 30,
+          "flags": {
+            "splittable": true
+          }
+        },
+        {
+          "key": "work_5",
+          "title": "与训导员复盘并设下一阶段目标",
+          "description": "完成事项并核对相关要求：与训导员复盘并设下一阶段目标。",
+          "estimated_minutes": 75,
+          "priority": "urgent",
+          "due_at": "2026-12-11T17:00:00+13:00",
+          "minimum_chunk_minutes": 30,
+          "flags": {
+            "splittable": false
+          }
+        }
+      ],
+      "events": [
+        {
+          "title": "训导员阶段回顾",
+          "start_at": "2026-12-10T16:00:00+13:00",
+          "end_at": "2026-12-10T17:00:00+13:00",
+          "immutable": true
+        },
+        {
+          "title": "装备清洗日",
+          "start_at": "2026-12-01T11:00:00+13:00",
+          "end_at": "2026-12-01T12:00:00+13:00",
+          "immutable": true
+        }
+      ],
+      "expectations": {
+        "hard": [
+          "within_range",
+          "respect_deadlines",
+          "no_overlap_with_immutable_events",
+          "within_work_hours",
+          "no_weekend",
+          "max_daily_minutes"
+        ],
+        "soft": [
+          "precedence",
+          "min_distinct_days",
+          "max_daily_minutes",
+          "max_unplaced"
+        ],
+        "no_weekend": true,
+        "max_daily_minutes": 300,
+        "max_unplaced": 0,
+        "min_distinct_days": 3,
+        "precedence": [
+          {
+            "before": "work_1",
+            "after": "work_2",
+            "min_gap_days": 0
+          },
+          {
+            "before": "work_2",
+            "after": "work_3",
+            "min_gap_days": 0
+          },
+          {
+            "before": "work_3",
+            "after": "work_4",
+            "min_gap_days": 0
+          },
+          {
+            "before": "work_4",
+            "after": "work_5",
+            "min_gap_days": 0
+          }
+        ],
+        "ask_planning_clarification": false
+      },
+      "request_contract": {
+        "intent": "schedule_plan",
+        "write_policy": "allow_schedule_draft",
+        "intent_quote": "计划"
+      }
+    },
+    {
+      "id": "sealed_final_25_ceramics_studio",
+      "split": "regression",
+      "name": "Holdout 25",
+      "prompt": "社区陶艺工作室月底开放日，安排作品登记、窑炉排程、展台标签和安全示范。 请在11月30日至12月9日安排：登记参加展出的陶作品、协调两轮窑炉烧制时间、制作作者和釉色标签、安排展台摆放和防碰保护、准备窑炉安全演示说明。保留已约事项，按工作日 09:00–18:00 规划，不排周末，单日投入不超过五小时，并遵循事项之间的先后关系。",
+      "anchor_at": "2026-11-29T08:00:00-05:00",
+      "timezone": "America/Toronto",
+      "range_start": "2026-11-30T00:00:00-05:00",
+      "range_end": "2026-12-09T23:59:00-05:00",
+      "workday_start": "09:00",
+      "workday_end": "18:00",
+      "tasks": [
+        {
+          "key": "work_1",
+          "title": "登记参加展出的陶作品",
+          "description": "完成事项并核对相关要求：登记参加展出的陶作品。",
+          "estimated_minutes": 120,
+          "priority": "low",
+          "due_at": "2026-12-02T17:00:00-05:00",
+          "minimum_chunk_minutes": 30,
+          "flags": {
+            "splittable": false
+          }
+        },
+        {
+          "key": "work_2",
+          "title": "协调两轮窑炉烧制时间",
+          "description": "完成事项并核对相关要求：协调两轮窑炉烧制时间。",
+          "estimated_minutes": 75,
+          "priority": "medium",
+          "due_at": "2026-12-04T17:00:00-05:00",
+          "minimum_chunk_minutes": 30,
+          "flags": {
+            "splittable": false
+          }
+        },
+        {
+          "key": "work_3",
+          "title": "制作作者和釉色标签",
+          "description": "完成事项并核对相关要求：制作作者和釉色标签。",
+          "estimated_minutes": 90,
+          "priority": "high",
+          "due_at": "2026-12-04T17:00:00-05:00",
+          "minimum_chunk_minutes": 30,
+          "flags": {
+            "splittable": false
+          }
+        },
+        {
+          "key": "work_4",
+          "title": "安排展台摆放和防碰保护",
+          "description": "完成事项并核对相关要求：安排展台摆放和防碰保护。",
+          "estimated_minutes": 45,
+          "priority": "urgent",
+          "due_at": "2026-12-07T17:00:00-05:00",
+          "minimum_chunk_minutes": 30,
+          "flags": {
+            "splittable": false
+          }
+        },
+        {
+          "key": "work_5",
+          "title": "准备窑炉安全演示说明",
+          "description": "完成事项并核对相关要求：准备窑炉安全演示说明。",
+          "estimated_minutes": 60,
+          "priority": "high",
+          "due_at": "2026-12-08T17:00:00-05:00",
+          "minimum_chunk_minutes": 30,
+          "flags": {
+            "splittable": false
+          }
+        }
+      ],
+      "events": [
+        {
+          "title": "会员作品评选",
+          "start_at": "2026-12-01T11:00:00-05:00",
+          "end_at": "2026-12-01T12:00:00-05:00",
+          "immutable": true
+        },
+        {
+          "title": "已确认的固定安排",
+          "start_at": "2026-12-01T09:00:00-05:00",
+          "end_at": "2026-12-01T09:30:00-05:00",
+          "immutable": true
+        }
+      ],
+      "expectations": {
+        "hard": [
+          "within_range",
+          "respect_deadlines",
+          "no_overlap_with_immutable_events",
+          "within_work_hours",
+          "no_weekend",
+          "max_daily_minutes"
+        ],
+        "soft": [
+          "precedence",
+          "min_distinct_days",
+          "max_daily_minutes",
+          "max_unplaced"
+        ],
+        "no_weekend": true,
+        "max_daily_minutes": 300,
+        "max_unplaced": 0,
+        "min_distinct_days": 3,
+        "precedence": [
+          {
+            "before": "work_1",
+            "after": "work_2",
+            "min_gap_days": 0
+          },
+          {
+            "before": "work_2",
+            "after": "work_3",
+            "min_gap_days": 0
+          },
+          {
+            "before": "work_3",
+            "after": "work_4",
+            "min_gap_days": 0
+          },
+          {
+            "before": "work_4",
+            "after": "work_5",
+            "min_gap_days": 0
+          }
+        ],
+        "ask_planning_clarification": false
+      },
+      "request_contract": {
+        "intent": "schedule_plan",
+        "write_policy": "allow_schedule_draft",
+        "intent_quote": "安排"
+      }
+    },
+    {
+      "id": "sealed_final_26_harbor_boat",
+      "split": "regression",
+      "name": "Holdout 26",
+      "prompt": "帆船俱乐部下月组织会员试航，安排船况检查、泊位、天气联络和救生设备。 请在12月7日至1月3日安排：检查船体清单和必备证件、确认临时泊位和登船时段、核对救生衣与信号设备数量、整理风况取消阈值和通知链、向船员发送集合与安全说明。保留已约事项，按工作日 09:00–18:00 规划，不排周末，单日投入不超过五小时，并遵循事项之间的先后关系。",
+      "anchor_at": "2026-12-06T08:00:00+13:00",
+      "timezone": "Pacific/Auckland",
+      "range_start": "2026-12-07T00:00:00+13:00",
+      "range_end": "2027-01-03T23:59:00+13:00",
+      "workday_start": "09:00",
+      "workday_end": "18:00",
+      "tasks": [
+        {
+          "key": "work_1",
+          "title": "检查船体清单和必备证件",
+          "description": "完成事项并核对相关要求：检查船体清单和必备证件。",
+          "estimated_minutes": 45,
+          "priority": "medium",
+          "due_at": "2026-12-11T17:00:00+13:00",
+          "minimum_chunk_minutes": 30,
+          "flags": {
+            "splittable": false,
+            "planned_start_at": "2026-12-09T10:00:00+13:00",
+            "planned_end_at": "2026-12-09T11:00:00+13:00"
+          }
+        },
+        {
+          "key": "work_2",
+          "title": "确认临时泊位和登船时段",
+          "description": "完成事项并核对相关要求：确认临时泊位和登船时段。",
+          "estimated_minutes": 60,
+          "priority": "high",
+          "due_at": "2026-12-18T17:00:00+13:00",
+          "minimum_chunk_minutes": 30,
+          "flags": {
+            "splittable": false
+          }
+        },
+        {
+          "key": "work_3",
+          "title": "核对救生衣与信号设备数量",
+          "description": "完成事项并核对相关要求：核对救生衣与信号设备数量。",
+          "estimated_minutes": 120,
+          "priority": "urgent",
+          "due_at": "2026-12-23T17:00:00+13:00",
+          "minimum_chunk_minutes": 30,
+          "flags": {
+            "splittable": false
+          }
+        },
+        {
+          "key": "work_4",
+          "title": "整理风况取消阈值和通知链",
+          "description": "完成事项并核对相关要求：整理风况取消阈值和通知链。",
+          "estimated_minutes": 75,
+          "priority": "high",
+          "due_at": "2026-12-28T17:00:00+13:00",
+          "minimum_chunk_minutes": 30,
+          "flags": {
+            "splittable": false
+          }
+        },
+        {
+          "key": "work_5",
+          "title": "向船员发送集合与安全说明",
+          "description": "完成事项并核对相关要求：向船员发送集合与安全说明。",
+          "estimated_minutes": 90,
+          "priority": "low",
+          "due_at": "2027-01-01T17:00:00+13:00",
+          "minimum_chunk_minutes": 30,
+          "flags": {
+            "splittable": false
+          }
+        }
+      ],
+      "events": [
+        {
+          "title": "码头管理员巡检",
+          "start_at": "2026-12-08T11:00:00+13:00",
+          "end_at": "2026-12-08T12:00:00+13:00",
+          "immutable": true
+        },
+        {
+          "title": "船体技师预约",
+          "start_at": "2026-12-10T14:00:00+13:00",
+          "end_at": "2026-12-10T15:00:00+13:00",
+          "immutable": true
+        },
+        {
+          "title": "船长气象简报",
+          "start_at": "2026-12-14T16:00:00+13:00",
+          "end_at": "2026-12-14T17:00:00+13:00",
+          "immutable": true
+        }
+      ],
+      "expectations": {
+        "hard": [
+          "within_range",
+          "respect_deadlines",
+          "no_overlap_with_immutable_events",
+          "within_work_hours",
+          "no_weekend",
+          "max_daily_minutes"
+        ],
+        "soft": [
+          "precedence",
+          "min_distinct_days",
+          "max_daily_minutes",
+          "max_unplaced"
+        ],
+        "no_weekend": true,
+        "max_daily_minutes": 300,
+        "max_unplaced": 0,
+        "min_distinct_days": 3,
+        "precedence": [
+          {
+            "before": "work_1",
+            "after": "work_2",
+            "min_gap_days": 0
+          },
+          {
+            "before": "work_2",
+            "after": "work_3",
+            "min_gap_days": 0
+          },
+          {
+            "before": "work_3",
+            "after": "work_4",
+            "min_gap_days": 0
+          },
+          {
+            "before": "work_4",
+            "after": "work_5",
+            "min_gap_days": 0
+          }
+        ],
+        "ask_planning_clarification": false
+      },
+      "request_contract": {
+        "intent": "schedule_plan",
+        "write_policy": "allow_schedule_draft",
+        "intent_quote": "安排"
+      }
+    },
+    {
+      "id": "sealed_final_27_language_exchange",
+      "split": "regression",
+      "name": "Holdout 27",
+      "prompt": "社区语言交换项目三周后新一期开课，安排分组配对、材料打印、教室座位和签到流程。 请在12月7日至12月20日安排：整理报名者语言级别和目标、按人数安排交流搭档、制作首节活动任务卡、确认教室桌椅和白板、准备签到与缺席跟进规则。保留已约事项，按工作日 09:00–18:00 规划，不排周末，单日投入不超过五小时，并遵循事项之间的先后关系。",
+      "anchor_at": "2026-12-06T08:00:00+01:00",
+      "timezone": "Europe/Amsterdam",
+      "range_start": "2026-12-07T00:00:00+01:00",
+      "range_end": "2026-12-20T23:59:00+01:00",
+      "workday_start": "09:00",
+      "workday_end": "18:00",
+      "tasks": [
+        {
+          "key": "work_1",
+          "title": "整理报名者语言级别和目标",
+          "description": "完成事项并核对相关要求：整理报名者语言级别和目标。",
+          "estimated_minutes": 75,
+          "priority": "high",
+          "due_at": "2026-12-10T17:00:00+01:00",
+          "minimum_chunk_minutes": 30,
+          "flags": {
+            "splittable": false
+          }
+        },
+        {
+          "key": "work_2",
+          "title": "按人数安排交流搭档",
+          "description": "完成事项并核对相关要求：按人数安排交流搭档。",
+          "estimated_minutes": 90,
+          "priority": "urgent",
+          "due_at": "2026-12-11T17:00:00+01:00",
+          "minimum_chunk_minutes": 30,
+          "flags": {
+            "splittable": true
+          }
+        },
+        {
+          "key": "work_3",
+          "title": "制作首节活动任务卡",
+          "description": "完成事项并核对相关要求：制作首节活动任务卡。",
+          "estimated_minutes": 45,
+          "priority": "high",
+          "due_at": "2026-12-15T17:00:00+01:00",
+          "minimum_chunk_minutes": 30,
+          "flags": {
+            "splittable": false
+          }
+        },
+        {
+          "key": "work_4",
+          "title": "确认教室桌椅和白板",
+          "description": "完成事项并核对相关要求：确认教室桌椅和白板。",
+          "estimated_minutes": 60,
+          "priority": "low",
+          "due_at": "2026-12-17T17:00:00+01:00",
+          "minimum_chunk_minutes": 30,
+          "flags": {
+            "splittable": false
+          }
+        },
+        {
+          "key": "work_5",
+          "title": "准备签到与缺席跟进规则",
+          "description": "完成事项并核对相关要求：准备签到与缺席跟进规则。",
+          "estimated_minutes": 120,
+          "priority": "medium",
+          "due_at": "2026-12-18T17:00:00+01:00",
+          "minimum_chunk_minutes": 30,
+          "flags": {
+            "splittable": false
+          }
+        }
+      ],
+      "events": [
+        {
+          "title": "志愿教师例会",
+          "start_at": "2026-12-10T14:00:00+01:00",
+          "end_at": "2026-12-10T15:00:00+01:00",
+          "immutable": true
+        },
+        {
+          "title": "教室钥匙领取",
+          "start_at": "2026-12-14T16:00:00+01:00",
+          "end_at": "2026-12-14T17:00:00+01:00",
+          "immutable": true
+        },
+        {
+          "title": "学员分组核对",
+          "start_at": "2026-12-17T09:00:00+01:00",
+          "end_at": "2026-12-17T10:00:00+01:00",
+          "immutable": true
+        }
+      ],
+      "expectations": {
+        "hard": [
+          "within_range",
+          "respect_deadlines",
+          "no_overlap_with_immutable_events",
+          "within_work_hours",
+          "no_weekend",
+          "max_daily_minutes"
+        ],
+        "soft": [
+          "precedence",
+          "min_distinct_days",
+          "max_daily_minutes",
+          "max_unplaced"
+        ],
+        "no_weekend": true,
+        "max_daily_minutes": 300,
+        "max_unplaced": 0,
+        "min_distinct_days": 3,
+        "precedence": [
+          {
+            "before": "work_1",
+            "after": "work_2",
+            "min_gap_days": 0
+          },
+          {
+            "before": "work_2",
+            "after": "work_3",
+            "min_gap_days": 0
+          },
+          {
+            "before": "work_3",
+            "after": "work_4",
+            "min_gap_days": 0
+          },
+          {
+            "before": "work_4",
+            "after": "work_5",
+            "min_gap_days": 0
+          }
+        ],
+        "ask_planning_clarification": false
+      },
+      "request_contract": {
+        "intent": "schedule_plan",
+        "write_policy": "allow_schedule_draft",
+        "intent_quote": "安排"
+      }
+    },
+    {
+      "id": "sealed_final_28_railway_model",
+      "split": "regression",
+      "name": "Holdout 28",
+      "prompt": "模型铁路社团准备月底展览，安排模块连接测试、运输保护、路线牌和现场轮班。 请在12月7日至12月13日安排：测量模块接口和供电标准、完成闭环运行与故障测试、为模型制作路线与比例说明牌、准备搬运泡棉和零件盒、分配展览期间值守时段。保留已约事项，按工作日 09:00–18:00 规划，不排周末，单日投入不超过五小时，并遵循事项之间的先后关系。请参考我之前确认的工作时段偏好。",
+      "anchor_at": "2026-12-06T08:00:00+13:00",
+      "timezone": "Pacific/Auckland",
+      "range_start": "2026-12-07T00:00:00+13:00",
+      "range_end": "2026-12-13T23:59:00+13:00",
+      "workday_start": "09:00",
+      "workday_end": "18:00",
+      "tasks": [
+        {
+          "key": "work_1",
+          "title": "测量模块接口和供电标准",
+          "description": "完成事项并核对相关要求：测量模块接口和供电标准。",
+          "estimated_minutes": 60,
+          "priority": "urgent",
+          "due_at": "2026-12-08T17:00:00+13:00",
+          "minimum_chunk_minutes": 30,
+          "flags": {
+            "splittable": false
+          }
+        },
+        {
+          "key": "work_2",
+          "title": "完成闭环运行与故障测试",
+          "description": "完成事项并核对相关要求：完成闭环运行与故障测试。",
+          "estimated_minutes": 120,
+          "priority": "high",
+          "due_at": "2026-12-09T17:00:00+13:00",
+          "minimum_chunk_minutes": 30,
+          "flags": {
+            "splittable": true
+          }
+        },
+        {
+          "key": "work_3",
+          "title": "为模型制作路线与比例说明牌",
+          "description": "完成事项并核对相关要求：为模型制作路线与比例说明牌。",
+          "estimated_minutes": 75,
+          "priority": "low",
+          "due_at": "2026-12-11T17:00:00+13:00",
+          "minimum_chunk_minutes": 30,
+          "flags": {
+            "splittable": false
+          }
+        },
+        {
+          "key": "work_4",
+          "title": "准备搬运泡棉和零件盒",
+          "description": "完成事项并核对相关要求：准备搬运泡棉和零件盒。",
+          "estimated_minutes": 90,
+          "priority": "medium",
+          "due_at": "2026-12-11T17:00:00+13:00",
+          "minimum_chunk_minutes": 30,
+          "flags": {
+            "splittable": true
+          }
+        },
+        {
+          "key": "work_5",
+          "title": "分配展览期间值守时段",
+          "description": "完成事项并核对相关要求：分配展览期间值守时段。",
+          "estimated_minutes": 45,
+          "priority": "high",
+          "due_at": "2026-12-11T17:00:00+13:00",
+          "minimum_chunk_minutes": 30,
+          "flags": {
+            "splittable": false
+          }
+        }
+      ],
+      "events": [
+        {
+          "title": "已确认的固定安排",
+          "start_at": "2026-12-08T09:00:00+13:00",
+          "end_at": "2026-12-08T09:30:00+13:00",
+          "immutable": true
+        },
+        {
+          "title": "已确认的固定安排",
+          "start_at": "2026-12-09T09:00:00+13:00",
+          "end_at": "2026-12-09T09:30:00+13:00",
+          "immutable": true
+        }
+      ],
+      "expectations": {
+        "hard": [
+          "within_range",
+          "respect_deadlines",
+          "no_overlap_with_immutable_events",
+          "within_work_hours",
+          "no_weekend",
+          "max_daily_minutes"
+        ],
+        "soft": [
+          "precedence",
+          "min_distinct_days",
+          "max_daily_minutes",
+          "max_unplaced"
+        ],
+        "no_weekend": true,
+        "max_daily_minutes": 300,
+        "max_unplaced": 0,
+        "min_distinct_days": 3,
+        "precedence": [
+          {
+            "before": "work_1",
+            "after": "work_2",
+            "min_gap_days": 0
+          },
+          {
+            "before": "work_2",
+            "after": "work_3",
+            "min_gap_days": 0
+          },
+          {
+            "before": "work_3",
+            "after": "work_4",
+            "min_gap_days": 0
+          },
+          {
+            "before": "work_4",
+            "after": "work_5",
+            "min_gap_days": 0
+          }
+        ],
+        "ask_planning_clarification": false
+      },
+      "memory_context": [
+        {
+          "text": "我通常会把需要仔细核对的工作安排在上午，下午尽量保留给现场协调。",
+          "confidence": 0.94
+        }
+      ],
+      "request_contract": {
+        "intent": "schedule_plan",
+        "write_policy": "allow_schedule_draft",
+        "intent_quote": "安排"
+      }
+    },
+    {
+      "id": "sealed_final_29_civic_survey",
+      "split": "regression",
+      "name": "Holdout 29",
+      "prompt": "城市规划团队两周内完成居民问卷试发，安排问题审阅、翻译、试填和数据录入规则。 请在12月7日至12月27日安排：检查问卷问题顺序和用词、完成两种常用语言翻译、邀请小组试填并收集困惑、确定空白和多选答案编码、整理正式发放联络表。保留已约事项，按工作日 09:00–18:00 规划，不排周末，单日投入不超过五小时，并遵循事项之间的先后关系。12月9日只可在 10:00–15:00 安排其他工作。",
+      "anchor_at": "2026-12-06T08:00:00+01:00",
+      "timezone": "Europe/Amsterdam",
+      "range_start": "2026-12-07T00:00:00+01:00",
+      "range_end": "2026-12-27T23:59:00+01:00",
+      "workday_start": "09:00",
+      "workday_end": "18:00",
+      "tasks": [
+        {
+          "key": "work_1",
+          "title": "检查问卷问题顺序和用词",
+          "description": "完成事项并核对相关要求：检查问卷问题顺序和用词。",
+          "estimated_minutes": 90,
+          "priority": "high",
+          "due_at": "2026-12-11T17:00:00+01:00",
+          "minimum_chunk_minutes": 30,
+          "flags": {
+            "splittable": false
+          }
+        },
+        {
+          "key": "work_2",
+          "title": "完成两种常用语言翻译",
+          "description": "完成事项并核对相关要求：完成两种常用语言翻译。",
+          "estimated_minutes": 45,
+          "priority": "low",
+          "due_at": "2026-12-15T17:00:00+01:00",
+          "minimum_chunk_minutes": 30,
+          "flags": {
+            "splittable": false
+          }
+        },
+        {
+          "key": "work_3",
+          "title": "邀请小组试填并收集困惑",
+          "description": "完成事项并核对相关要求：邀请小组试填并收集困惑。",
+          "estimated_minutes": 60,
+          "priority": "medium",
+          "due_at": "2026-12-18T17:00:00+01:00",
+          "minimum_chunk_minutes": 30,
+          "flags": {
+            "splittable": false
+          }
+        },
+        {
+          "key": "work_4",
+          "title": "确定空白和多选答案编码",
+          "description": "完成事项并核对相关要求：确定空白和多选答案编码。",
+          "estimated_minutes": 120,
+          "priority": "high",
+          "due_at": "2026-12-19T17:00:00+01:00",
+          "minimum_chunk_minutes": 30,
+          "flags": {
+            "splittable": true
+          }
+        },
+        {
+          "key": "work_5",
+          "title": "整理正式发放联络表",
+          "description": "完成事项并核对相关要求：整理正式发放联络表。",
+          "estimated_minutes": 75,
+          "priority": "urgent",
+          "due_at": "2026-12-20T17:00:00+01:00",
+          "minimum_chunk_minutes": 30,
+          "flags": {
+            "splittable": false
+          }
+        }
+      ],
+      "events": [
+        {
+          "title": "规划师问卷评审",
+          "start_at": "2026-12-17T09:00:00+01:00",
+          "end_at": "2026-12-17T10:00:00+01:00",
+          "immutable": true
+        },
+        {
+          "title": "社区翻译校对",
+          "start_at": "2026-12-22T11:00:00+01:00",
+          "end_at": "2026-12-22T12:00:00+01:00",
+          "immutable": true
+        },
+        {
+          "title": "数据录入流程讨论",
+          "start_at": "2026-12-08T14:00:00+01:00",
+          "end_at": "2026-12-08T15:00:00+01:00",
+          "immutable": true
+        }
+      ],
+      "expectations": {
+        "hard": [
+          "within_range",
+          "respect_deadlines",
+          "no_overlap_with_immutable_events",
+          "within_work_hours",
+          "no_weekend",
+          "max_daily_minutes"
+        ],
+        "soft": [
+          "precedence",
+          "min_distinct_days",
+          "max_daily_minutes",
+          "max_unplaced"
+        ],
+        "no_weekend": true,
+        "max_daily_minutes": 300,
+        "max_unplaced": 0,
+        "min_distinct_days": 3,
+        "precedence": [
+          {
+            "before": "work_1",
+            "after": "work_2",
+            "min_gap_days": 0
+          },
+          {
+            "before": "work_2",
+            "after": "work_3",
+            "min_gap_days": 0
+          },
+          {
+            "before": "work_3",
+            "after": "work_4",
+            "min_gap_days": 0
+          },
+          {
+            "before": "work_4",
+            "after": "work_5",
+            "min_gap_days": 0
+          }
+        ],
+        "ask_planning_clarification": false,
+        "daily_availability_windows": [
+          {
+            "start_date": "2026-12-09",
+            "end_date": "2026-12-09",
+            "daily_start": "10:00",
+            "daily_end": "15:00"
+          }
+        ]
+      },
+      "request_contract": {
+        "intent": "schedule_plan",
+        "write_policy": "allow_schedule_draft",
+        "intent_quote": "规划",
+        "user_requested_range": {
+          "source_quote": "12月7日至12月27日",
+          "start_at": "2026-12-07T00:00:00+01:00",
+          "end_at": "2026-12-28T00:00:00+01:00"
+        }
+      }
+    },
+    {
+      "id": "sealed_final_30_robotics_show",
+      "split": "regression",
+      "name": "Holdout 30",
+      "prompt": "青少年机器人队四周后公开演示，安排电池测试、演示脚本、备用零件和学生轮换。 请在12月7日至12月16日安排：完成底盘和传感器状态检查、编写观众版演示解说、测试电池续航和备用电源、整理易损零件及现场工具、安排学生讲解和操作轮换。保留已约事项，按工作日 09:00–18:00 规划，不排周末，单日投入不超过五小时，并遵循事项之间的先后关系。",
+      "anchor_at": "2026-12-06T08:00:00+08:00",
+      "timezone": "Asia/Singapore",
+      "range_start": "2026-12-07T00:00:00+08:00",
+      "range_end": "2026-12-16T23:59:00+08:00",
+      "workday_start": "09:00",
+      "workday_end": "18:00",
+      "tasks": [
+        {
+          "key": "work_1",
+          "title": "完成底盘和传感器状态检查",
+          "description": "完成事项并核对相关要求：完成底盘和传感器状态检查。",
+          "estimated_minutes": 120,
+          "priority": "low",
+          "due_at": "2026-12-09T17:00:00+08:00",
+          "minimum_chunk_minutes": 30,
+          "flags": {
+            "splittable": false
+          }
+        },
+        {
+          "key": "work_2",
+          "title": "编写观众版演示解说",
+          "description": "完成事项并核对相关要求：编写观众版演示解说。",
+          "estimated_minutes": 75,
+          "priority": "medium",
+          "due_at": "2026-12-11T17:00:00+08:00",
+          "minimum_chunk_minutes": 30,
+          "flags": {
+            "splittable": false
+          }
+        },
+        {
+          "key": "work_3",
+          "title": "测试电池续航和备用电源",
+          "description": "完成事项并核对相关要求：测试电池续航和备用电源。",
+          "estimated_minutes": 90,
+          "priority": "high",
+          "due_at": "2026-12-11T17:00:00+08:00",
+          "minimum_chunk_minutes": 30,
+          "flags": {
+            "splittable": false
+          }
+        },
+        {
+          "key": "work_4",
+          "title": "整理易损零件及现场工具",
+          "description": "完成事项并核对相关要求：整理易损零件及现场工具。",
+          "estimated_minutes": 45,
+          "priority": "urgent",
+          "due_at": "2026-12-14T17:00:00+08:00",
+          "minimum_chunk_minutes": 30,
+          "flags": {
+            "splittable": false
+          }
+        },
+        {
+          "key": "work_5",
+          "title": "安排学生讲解和操作轮换",
+          "description": "完成事项并核对相关要求：安排学生讲解和操作轮换。",
+          "estimated_minutes": 60,
+          "priority": "high",
+          "due_at": "2026-12-15T17:00:00+08:00",
+          "minimum_chunk_minutes": 30,
+          "flags": {
+            "splittable": false
+          }
+        }
+      ],
+      "events": [
+        {
+          "title": "活动场地网络测试",
+          "start_at": "2026-12-08T14:00:00+08:00",
+          "end_at": "2026-12-08T15:00:00+08:00",
+          "immutable": true
+        },
+        {
+          "title": "家长志愿者协调",
+          "start_at": "2026-12-10T16:00:00+08:00",
+          "end_at": "2026-12-10T17:00:00+08:00",
+          "immutable": true
+        }
+      ],
+      "expectations": {
+        "hard": [
+          "within_range",
+          "respect_deadlines",
+          "no_overlap_with_immutable_events",
+          "within_work_hours",
+          "no_weekend",
+          "max_daily_minutes"
+        ],
+        "soft": [
+          "precedence",
+          "min_distinct_days",
+          "max_daily_minutes",
+          "max_unplaced"
+        ],
+        "no_weekend": true,
+        "max_daily_minutes": 300,
+        "max_unplaced": 0,
+        "min_distinct_days": 3,
+        "precedence": [
+          {
+            "before": "work_1",
+            "after": "work_2",
+            "min_gap_days": 0
+          },
+          {
+            "before": "work_2",
+            "after": "work_3",
+            "min_gap_days": 0
+          },
+          {
+            "before": "work_3",
+            "after": "work_4",
+            "min_gap_days": 0
+          },
+          {
+            "before": "work_4",
+            "after": "work_5",
+            "min_gap_days": 0
+          }
+        ],
+        "ask_planning_clarification": false
+      },
+      "request_contract": {
+        "intent": "schedule_plan",
+        "write_policy": "allow_schedule_draft",
+        "intent_quote": "安排"
+      }
+    }
+  ]
+}

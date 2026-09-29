@@ -1,3 +1,4 @@
+import json
 import logging
 import re
 import time
@@ -12,13 +13,15 @@ from langchain.agents.middleware import (
     ModelRequest,
     ModelResponse,
 )
-from langchain_core.messages import AIMessage, BaseMessage
+from langchain_core.messages import AIMessage, BaseMessage, ToolMessage
+from langchain_core.tools import BaseTool
 
 from apps.agents.context import RuntimeContext
 from apps.observability.services import LLMCallAuditService, RecordLLMCallCommand
 
 logger = logging.getLogger(__name__)
-MEMORY_BLOCK = re.compile(r"<time_behavior_memory>.*?</time_behavior_memory>", re.DOTALL)
+BEHAVIOR_MEMORY_BLOCK = re.compile(r"<time_behavior_memory>.*?</time_behavior_memory>", re.DOTALL)
+SEMANTIC_MEMORY_BLOCK = re.compile(r"<time_semantic_memory>.*?</time_semantic_memory>", re.DOTALL)
 
 
 def _model_name(request: ModelRequest[RuntimeContext]) -> str:
@@ -72,8 +75,12 @@ def _provider_usage(response: Any) -> tuple[int, int, int] | None:
 def _memory_prompt(request: ModelRequest[RuntimeContext]) -> str:
     if request.system_message is None:
         return ""
-    match = MEMORY_BLOCK.search(request.system_message.text)
-    return match.group(0) if match else ""
+    content = request.system_message.text
+    blocks = [
+        *BEHAVIOR_MEMORY_BLOCK.findall(content),
+        *SEMANTIC_MEMORY_BLOCK.findall(content),
+    ]
+    return "\n".join(blocks)
 
 
 def _count_text_tokens(request: ModelRequest[RuntimeContext], text: str) -> int:
@@ -85,6 +92,97 @@ def _count_text_tokens(request: ModelRequest[RuntimeContext], text: str) -> int:
         return max(1, round(len(text) / 1.5))
 
 
+def _tool_schema_payload(tool: Any) -> tuple[str, str] | None:
+    """Return tool name and schema text for token estimates; never persist the text."""
+
+    if isinstance(tool, BaseTool):
+        name = str(tool.name)
+        schema = getattr(tool, "tool_call_schema", None)
+        if schema is not None and hasattr(schema, "model_json_schema"):
+            schema_value: Any = schema.model_json_schema()
+        elif hasattr(tool, "args_schema") and hasattr(tool.args_schema, "model_json_schema"):
+            schema_value = tool.args_schema.model_json_schema()
+        else:
+            schema_value = getattr(tool, "args", {})
+        description = str(getattr(tool, "description", ""))
+        schema_text = json.dumps(
+            schema_value,
+            ensure_ascii=False,
+            sort_keys=True,
+            default=str,
+        )
+        return name, f"{description}\n{schema_text}"
+    if isinstance(tool, dict):
+        function = tool.get("function", tool)
+        if not isinstance(function, dict):
+            return None
+        name = function.get("name")
+        if not isinstance(name, str):
+            return None
+        return name, json.dumps(tool, ensure_ascii=False, sort_keys=True, default=str)
+    return None
+
+
+def _tool_schema_stats(request: ModelRequest[RuntimeContext]) -> tuple[int, list[str]]:
+    names: list[str] = []
+    schema_texts: list[str] = []
+    for raw_tool in request.tools or []:
+        payload = _tool_schema_payload(raw_tool)
+        if payload is None:
+            continue
+        name, schema_text = payload
+        names.append(name)
+        schema_texts.append(schema_text)
+    schema_tokens = _count_text_tokens(request, "\n".join(schema_texts))
+    return schema_tokens, sorted(set(names))
+
+
+def _prompt_breakdown(
+    request: ModelRequest[RuntimeContext],
+    *,
+    input_tokens: int | None,
+    usage_source: str,
+) -> dict[str, Any]:
+    system_text = request.system_message.text if request.system_message is not None else ""
+    behavior_blocks = BEHAVIOR_MEMORY_BLOCK.findall(system_text)
+    semantic_blocks = SEMANTIC_MEMORY_BLOCK.findall(system_text)
+    memory_text = "\n".join([*behavior_blocks, *semantic_blocks])
+    base_system_text = BEHAVIOR_MEMORY_BLOCK.sub("", system_text)
+    base_system_text = SEMANTIC_MEMORY_BLOCK.sub("", base_system_text)
+    tool_schema_tokens, tool_names = _tool_schema_stats(request)
+    conversation_tokens = 0
+    observation_tokens = 0
+    for message in request.messages:
+        if isinstance(message, ToolMessage):
+            observation_tokens += _count_text_tokens(request, message.text)
+        else:
+            conversation_tokens += _count_text_tokens(request, message.text)
+    components = {
+        "system_prompt_tokens": _count_text_tokens(request, base_system_text),
+        "behavioral_memory_tokens": _count_text_tokens(request, "\n".join(behavior_blocks)),
+        "semantic_memory_tokens": _count_text_tokens(request, "\n".join(semantic_blocks)),
+        "tool_schema_tokens": tool_schema_tokens,
+        "conversation_tokens": conversation_tokens,
+        "tool_observation_tokens": observation_tokens,
+    }
+    accounted = sum(components.values())
+    return {
+        "method": "model_tokenizer_component_estimate",
+        "usage_source": usage_source,
+        **components,
+        "memory_context_tokens": _count_text_tokens(request, memory_text),
+        "provider_or_estimated_input_tokens": input_tokens,
+        "unattributed_input_tokens": (
+            max(0, input_tokens - accounted) if input_tokens is not None else None
+        ),
+        "components_exceed_input_tokens": (
+            accounted > input_tokens if input_tokens is not None else None
+        ),
+        "visible_tool_count": len(tool_names),
+        "visible_tool_names": tool_names,
+    }
+
+
 def _estimated_usage(
     request: ModelRequest[RuntimeContext], response: Any
 ) -> tuple[int, int, int] | None:
@@ -92,9 +190,9 @@ def _estimated_usage(
     if request.system_message is not None:
         messages.insert(0, request.system_message)
     try:
-        input_tokens = int(
-            request.model.get_num_tokens_from_messages(messages, tools=request.tools)
-        )
+        input_tokens = int(request.model.get_num_tokens_from_messages(messages))
+        schema_tokens, _ = _tool_schema_stats(request)
+        input_tokens += schema_tokens
         output_tokens = sum(
             _count_text_tokens(request, message.text)
             for message in _response_messages(response)
@@ -131,6 +229,11 @@ class LLMUsageMiddleware(AgentMiddleware[Any, RuntimeContext, Any]):
             if memory_tokens and input_tokens and input_tokens > 0
             else (0.0 if input_tokens is not None else None)
         )
+        breakdown = _prompt_breakdown(
+            request,
+            input_tokens=input_tokens,
+            usage_source=usage_source,
+        )
         context = request.runtime.context
         return RecordLLMCallCommand(
             request_id=getattr(context, "request_id", "-"),
@@ -144,6 +247,7 @@ class LLMUsageMiddleware(AgentMiddleware[Any, RuntimeContext, Any]):
             total_tokens=total_tokens,
             memory_prompt_tokens=memory_tokens,
             memory_prompt_ratio=memory_ratio,
+            prompt_breakdown=breakdown,
             duration_ms=max(0, round((time.monotonic() - started_at) * 1000)),
             error_type=type(error).__name__ if error is not None else "",
         )

@@ -1,0 +1,194 @@
+{
+  "schema_version": "timeagent.candidate-manifest.v1",
+  "base_commit": "de85034f5a74bb38ade4b01e4fcf5bdaf037a09c",
+  "candidate_label": "agent-harness-v2-tool-architecture-final-2026-09-29",
+  "file_count": 46,
+  "digest_algorithm": "sha256 over sorted UTF-8 records: relative_path, NUL, file_sha256_hex, LF",
+  "candidate_sha256": "265d62374fe6655f2d1a4d44075e2c3f4343863afb87d0cc8552d4e03d3db3d4",
+  "files": [
+    {
+      "path": "backend/apps/agents/agents/time_steward.py",
+      "sha256": "da9c07125e8fc7f0bdd286e7dcb4db801971687ded76d6dc677c0137e163e93d"
+    },
+    {
+      "path": "backend/apps/agents/management/commands/evaluate_day_trajectory.py",
+      "sha256": "6e4099ccc7ff41c38ea47bd659baeafdbf72ade70c20c8f9215a66984bcb174a"
+    },
+    {
+      "path": "backend/apps/agents/management/commands/evaluate_planning_harness.py",
+      "sha256": "1c1c86bc90b86b31e1b853cb3ba195def1b18113d79d9ba720f462d992ebc8e5"
+    },
+    {
+      "path": "backend/apps/agents/management/commands/rebuild_experiment_summary.py",
+      "sha256": "c2e5f2278e041d255c52d3d9afd8d5d8fddf1aca3e2dfc204b32bfc9d9bd2b60"
+    },
+    {
+      "path": "backend/apps/agents/management/commands/sanitize_planning_evaluation.py",
+      "sha256": "2506ebc25fd7fdf5c269273007ef5c162e4f4f8368fd6747b9b7a14630695c16"
+    },
+    {
+      "path": "backend/apps/agents/middleware.py",
+      "sha256": "d0604cd21181911b78bb925c305cfed380b89db885b19379da7aec325fb391e7"
+    },
+    {
+      "path": "backend/apps/agents/prompts/time_steward.md",
+      "sha256": "dea65ee122737a6dcac1d926ccd2ff77b00247a483b0bba6a99960f32429e4ca"
+    },
+    {
+      "path": "backend/apps/agents/tool_metadata.py",
+      "sha256": "2833c0c848bcc9dfd8e088c54a0b109569b5d04e8c39fe9ac7235d93c0882334"
+    },
+    {
+      "path": "backend/apps/agents/tool_routing.py",
+      "sha256": "72cba86d9bd8a32dbe10a38e807a32d027d336d81ffdca1ea491d6d19ea5330a"
+    },
+    {
+      "path": "backend/apps/agents/tools/decision_tools.py",
+      "sha256": "078e98ae16d5c63e0303f0c41f0afedc32bd1db5e736c388eb37d82fa2bbdca0"
+    },
+    {
+      "path": "backend/apps/agents/tools/event_tools.py",
+      "sha256": "7f2429a773b43169c0e4150e140f48f98cf8f1f247a428929527b215245ac261"
+    },
+    {
+      "path": "backend/apps/agents/tools/insight_tools.py",
+      "sha256": "dfca6d39416ad66ca90540d6685d0cef1c8749b7d7d4410d95416daab47acc12"
+    },
+    {
+      "path": "backend/apps/agents/tools/planning_tools.py",
+      "sha256": "f27395818c353c705d956815cc682a46efbdd2c531da8cda202b4f48b5807ba0"
+    },
+    {
+      "path": "backend/apps/agents/tools/reminder_tools.py",
+      "sha256": "75f1ce55f3944c8fdf4194b59633cda1b0917c91b4b54ea35afdb172dd030487"
+    },
+    {
+      "path": "backend/apps/agents/tools/task_tools.py",
+      "sha256": "72a3e84ce814a3d5c756a8a0c4745483c9137e8de0a79d0bf51fb32e01145572"
+    },
+    {
+      "path": "backend/apps/agents/tools/time_tools.py",
+      "sha256": "e1a6ad299c53c7de98369145dc6925aa4349cda6648d38123d9e98f503c11249"
+    },
+    {
+      "path": "backend/apps/events/temporal_services.py",
+      "sha256": "70bd7cf4fc89a4dfe9c4141528c75c659dbadff69caac3ccbebd42058d69d722"
+    },
+    {
+      "path": "backend/apps/insights/services.py",
+      "sha256": "3a2ca5c04cc80422a53b757835fa4e7d305f265d806dfc01f6f030c4e3a8474e"
+    },
+    {
+      "path": "backend/apps/observability/llm_middleware.py",
+      "sha256": "ebb4dfbddc76aa38851abfc975b19a09852cbf42e270588976f8b590e499a372"
+    },
+    {
+      "path": "backend/apps/observability/migrations/0002_llmcallaudit_prompt_breakdown.py",
+      "sha256": "c41918951b93c1ffef0c77e10267af9a06ca85943050354e2d477f0efe8391d3"
+    },
+    {
+      "path": "backend/apps/observability/models.py",
+      "sha256": "51e2336391480f513ce5fa2d494ef3ef25b3a9dc06bb303905b5a1794ac53385"
+    },
+    {
+      "path": "backend/apps/observability/services.py",
+      "sha256": "d4a33e04769dc23bf410f035040546bd9d2ea4705eada5b4cebbb9c08edaf06d"
+    },
+    {
+      "path": "backend/apps/planning/fixtures/agent_harness_scenarios_v1.json",
+      "sha256": "06a876f4e405923ead0ef03a597066d8f2e6f19e5e121179c5c4d3bf480f1175"
+    },
+    {
+      "path": "backend/apps/planning/fixtures/agent_harness_v2_diagnostic_regression.json",
+      "sha256": "729517febe1d2f78dcc6f2c5ff315348475d81f3e2eeb222bc66105af140672f"
+    },
+    {
+      "path": "backend/apps/planning/fixtures/agent_harness_v3_diagnostic_regression.json",
+      "sha256": "40dcd37c423415adb10955f1ee2b98c1b69253eb8f252b5f87a3dd5ca5ec4eb4"
+    },
+    {
+      "path": "backend/apps/planning/schemas.py",
+      "sha256": "d9e62e3d25c2e0e8363957e5b099c651fe15e6424ed8fff178717a32277f0775"
+    },
+    {
+      "path": "backend/apps/planning/services.py",
+      "sha256": "2740eaa19600c825b4c8f9cc9b73b03f8e31bc8cdd9f2b13e3f188b52e83d4fe"
+    },
+    {
+      "path": "backend/apps/planning/views.py",
+      "sha256": "53372c4769f0cb91375497403ccc4af556f3085de1861998f48d39859f6c51a8"
+    },
+    {
+      "path": "backend/apps/time_memory/capacity.py",
+      "sha256": "7039af3a27879f97721e897dcec71b68215f6f48e981c31d03be9bfab7b8b2f3"
+    },
+    {
+      "path": "backend/apps/time_memory/capacity_serializers.py",
+      "sha256": "14c6214c093942335fb153207ecef661aeb063c346d44e17f816661bf9306ed6"
+    },
+    {
+      "path": "backend/openapi.json",
+      "sha256": "95ae41cdcb872679f57c3cf5e77e46ba3a1ef004395e4eaf8eaf76132a0a921d"
+    },
+    {
+      "path": "backend/tests/test_capacity_forecast.py",
+      "sha256": "7ce59865a9bfee7a32204b287725238f41621cd74009e44081e1e7613a165ce8"
+    },
+    {
+      "path": "backend/tests/test_day_trajectory_evaluation.py",
+      "sha256": "61b3960a937d55d30644d4d4f091bf11678c858553eccd4adb988ed309590210"
+    },
+    {
+      "path": "backend/tests/test_llm_guided_schedule.py",
+      "sha256": "395f5eaf6551bba67a8bdf585cd0eed290b7b33fa951e9c23909da78ce888315"
+    },
+    {
+      "path": "backend/tests/test_llm_observability.py",
+      "sha256": "dc466dad9ebac787f193ff414466355a945c449d86acc8457021635c149b8a56"
+    },
+    {
+      "path": "backend/tests/test_plan_tool_local_times.py",
+      "sha256": "ac4cb6d68e79f4ad68375535f3896a7ff239c7f919ec1932e7029d7b3f86fb04"
+    },
+    {
+      "path": "backend/tests/test_planning_harness_evaluation.py",
+      "sha256": "8ea24df8bf7d77b2a91d871fc5a9d89e1341a03ab034fbfd196c52ca385ed235"
+    },
+    {
+      "path": "backend/tests/test_rebuild_experiment_summary.py",
+      "sha256": "cfb39c9cc72401aaf6e5a853e0b42659be324720be5bb2b5a6f4a1de92acf82c"
+    },
+    {
+      "path": "backend/tests/test_sanitize_planning_evaluation.py",
+      "sha256": "220cb2b3edcd076e3cb4c42d8c1e95e191abb93e8c02448c12bd85fa0a6f775b"
+    },
+    {
+      "path": "backend/tests/test_schedule_plan_services.py",
+      "sha256": "6b90e1b172863333d7345c158280714e6d65dcd0278a91f9d9a37b9462b722ce"
+    },
+    {
+      "path": "backend/tests/test_time_memory_benchmark.py",
+      "sha256": "d10337a2b292506c5966fd8fffc13ef52610ba95e7d6e05983cb9c9d323775e6"
+    },
+    {
+      "path": "backend/tests/test_time_steward_agent.py",
+      "sha256": "3352cdd897ea1d651db7f03a7fa219e324d50bf7a0d13625a287d1ede8099c9b"
+    },
+    {
+      "path": "backend/tests/test_time_steward_tool_routing.py",
+      "sha256": "c3bb162025c083b474a8bd5e18cf12e0914b03f70f0b773146bea2a3c3ee8d7c"
+    },
+    {
+      "path": "frontend/src/api/generated/schema.d.ts",
+      "sha256": "d6e3886d389dd80aacd2ed4f0c9f528c53e610b0c16d4ee86e7a369614750428"
+    },
+    {
+      "path": "frontend/src/pages/insights-page.tsx",
+      "sha256": "5b608feefe8a94e44eac4b9a5b794dd41941e31b980977c7b89aee181146a1ce"
+    },
+    {
+      "path": "frontend/src/pages/planning-page.tsx",
+      "sha256": "9fa51a71064359c0fb22221f3b920fa41e71e4efc632c5a4718e60e1ff79f4d7"
+    }
+  ]
+}

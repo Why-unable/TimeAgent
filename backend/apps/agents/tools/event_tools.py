@@ -1,9 +1,8 @@
-from datetime import datetime
 from typing import Literal
 from uuid import UUID
 
 from langchain.tools import ToolRuntime, tool
-from pydantic import BaseModel, ConfigDict
+from pydantic import AwareDatetime, BaseModel, ConfigDict
 
 from apps.agents.context import RuntimeContext
 from apps.agents.tools.common import model_dict, require_actor, require_writable
@@ -37,8 +36,8 @@ class EventDraftInput(BaseModel):
     """Schema for one finite batch member, parsed before the tool reaches services."""
 
     title: str
-    start_at: datetime
-    end_at: datetime
+    start_at: AwareDatetime
+    end_at: AwareDatetime
     timezone: str
     description: str = ""
     location: str = ""
@@ -91,8 +90,8 @@ def _resolve_event_time(
 
 @tool
 def list_events(
-    starts_before: datetime | None = None,
-    ends_after: datetime | None = None,
+    starts_before: AwareDatetime | None = None,
+    ends_after: AwareDatetime | None = None,
     statuses: list[str] | None = None,
     runtime: ToolRuntime[RuntimeContext] = None,  # type: ignore[assignment]
 ) -> list[dict[str, object]]:
@@ -124,8 +123,8 @@ def get_event(event_id: UUID, runtime: ToolRuntime[RuntimeContext]) -> dict[str,
 @tool
 def create_event(
     title: str,
-    start_at: datetime,
-    end_at: datetime,
+    start_at: AwareDatetime,
+    end_at: AwareDatetime,
     timezone: str,
     runtime: ToolRuntime[RuntimeContext],
     description: str = "",
@@ -162,8 +161,8 @@ def update_event(
     runtime: ToolRuntime[RuntimeContext],
     title: str | None = None,
     description: str | None = None,
-    start_at: datetime | None = None,
-    end_at: datetime | None = None,
+    start_at: AwareDatetime | None = None,
+    end_at: AwareDatetime | None = None,
     timezone: str | None = None,
     location: str | None = None,
 ) -> dict[str, object]:

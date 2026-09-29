@@ -5,7 +5,7 @@ from io import StringIO
 from pathlib import Path
 from types import SimpleNamespace
 from typing import Any, cast, get_args
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 from uuid import uuid4
 
 import pytest
@@ -20,7 +20,7 @@ from langchain_core.outputs import ChatGeneration, ChatResult
 from langchain_core.runnables import Runnable
 from langchain_core.tools import BaseTool
 from langgraph.store.memory import InMemoryStore
-from pydantic import BaseModel
+from pydantic import BaseModel, ValidationError
 
 from apps.action_proposals.risk_policy import HIGH_RISK_TOOL_POLICIES
 from apps.agents.agents.time_steward import build_time_steward_agent
@@ -31,7 +31,10 @@ from apps.agents.middleware import (
     ToolAuditMiddleware,
     ToolPolicyMiddleware,
     _hitl_when,
+    _planning_review_phase_active,
+    _policy_recovery_requested,
     build_time_steward_middleware,
+    resolve_tool_policy,
 )
 from apps.agents.tools import (
     READ_ONLY_TOOLS,
@@ -61,6 +64,7 @@ class ScriptedChatModel(BaseChatModel):
     responses: list[AIMessage]
     response_index: int = 0
     bound_tool_names: list[str] = []
+    bound_tool_surfaces: list[list[str]] = []
     received_messages: list[BaseMessage] = []
 
     @property
@@ -76,6 +80,7 @@ class ScriptedChatModel(BaseChatModel):
     ) -> Runnable[Any, AIMessage]:
         del tool_choice, kwargs
         self.bound_tool_names = [tool.name for tool in tools if isinstance(tool, BaseTool)]
+        self.bound_tool_surfaces.append(self.bound_tool_names.copy())
         return self
 
     def _generate(
@@ -171,7 +176,11 @@ def test_calendar_hitl_preferences_allow_safe_create_and_cancellation_only() -> 
         require_event_creation_approval=False,
         require_event_cancellation_approval=False,
     )
-    runtime_context = context(user, planning_preferences=preferences)
+    runtime_context = context(
+        user,
+        planning_preferences=preferences,
+        input_message="创建会议 Focus time",
+    )
     requires_review = _hitl_when("mutate_events")
 
     def request_for(operation: Mapping[str, object]) -> ToolCallRequest:
@@ -221,6 +230,7 @@ def test_calendar_hitl_preferences_allow_safe_create_and_cancellation_only() -> 
 
     protected_context = context(
         user,
+        input_message="创建会议 Focus time",
         planning_preferences=PlanningPreferencesSnapshot(
             require_event_creation_approval=True,
             require_event_cancellation_approval=True,
@@ -265,6 +275,7 @@ def test_time_tool_returns_fixed_run_anchor_and_realtime_clock() -> None:
     )
     payload = json.loads(str(tool_message.content))
     assert payload["run_anchor_datetime_utc"] == "2026-07-17T08:00:00+00:00"
+    assert payload["run_anchor_datetime_local"] == "2026-07-17T16:00:00+08:00"
     assert payload["observed_datetime_utc"] == "2026-07-17T08:05:00+00:00"
     assert payload["observed_datetime_local"] == "2026-07-17T16:05:00+08:00"
 
@@ -304,6 +315,26 @@ def test_agent_injects_runtime_preferences_and_nickname_without_preference_tool(
     assert '偏好称呼 JSON="小林"' in str(prompt.content)
     assert "get_user_preferences" not in model.bound_tool_names
     assert all(not isinstance(message, SystemMessage) for message in result["messages"])
+
+
+@pytest.mark.django_db(transaction=True)
+def test_runtime_prompt_matches_request_level_read_only_tool_policy() -> None:
+    user = User.objects.create_user(username="request-level-read-only-prompt")
+    model = ScriptedChatModel(responses=[AIMessage(content="我会只根据可用时段给出建议。")])
+    agent = build_time_steward_agent(model=model)
+    message = "这周找两个适合健身的晚上，只给建议，不要修改日程"
+
+    agent.invoke(
+        {"messages": [HumanMessage(content=message)]},
+        context=context(user, input_message=message),
+    )
+
+    prompt = next(item for item in model.received_messages if isinstance(item, SystemMessage))
+    prompt_text = str(prompt.content)
+    assert "模式=只读" in prompt_text
+    assert "不要尝试创建、比较或编辑已保存的排程草案" in prompt_text
+    assert "propose_schedule_plan" not in model.bound_tool_names
+    assert "apply_schedule_plan" not in model.bound_tool_names
 
 
 @pytest.mark.django_db(transaction=True)
@@ -397,7 +428,7 @@ def test_agent_uses_free_slot_mode_and_runtime_default_duration() -> None:
     assert payload["free_slots"]
     assert "tasks" not in payload
     assert "events" not in payload
-    assert set(model.bound_tool_names) == {"get_current_datetime", "get_planning_context"}
+    assert set(model.bound_tool_names) == {"get_planning_context"}
 
 
 @pytest.mark.django_db(transaction=True)
@@ -478,7 +509,7 @@ def test_memory_tools_are_model_visible_only_when_enabled() -> None:
 
     agent.invoke(
         {"messages": [HumanMessage(content="记住我喜欢上午专注工作")]},
-        context=context(user),
+        context=context(user, input_message="记住我喜欢上午专注工作"),
     )
 
     assert {
@@ -522,7 +553,11 @@ def test_low_risk_write_is_audited_and_bound_to_current_user() -> None:
 
     result = agent.invoke(
         {"messages": [HumanMessage(content="创建提交报告任务")]},
-        context=context(user, agent_run_id=str(run.pk)),
+        context=context(
+            user,
+            agent_run_id=str(run.pk),
+            input_message="创建提交报告任务",
+        ),
     )
 
     assert result["messages"][-1].content == "任务已创建。"
@@ -668,6 +703,7 @@ def test_tool_manifest_is_complete_and_pack_filter_is_conservative() -> None:
         HIGH_RISK_TOOL_POLICIES
     )
     assert all(TOOL_SPECS[tool.name].effect == "read" for tool in RETRY_SAFE_TOOLS)
+    assert TOOL_SPECS["cancel_task"].requires_approval
     assert TOOL_SPECS["propose_schedule_plan"].effect == "draft"
     assert TOOL_SPECS["propose_schedule_plan"].run_modes == frozenset({"write"})
     assert TOOL_SPECS["edit_schedule_plan"].effect == "draft"
@@ -716,15 +752,21 @@ def test_tool_manifest_is_complete_and_pack_filter_is_conservative() -> None:
     assert {"list_events", "list_tasks", "list_reminders"}.issubset(agenda_names)
     assert not {"mutate_events", "create_task", "propose_schedule_plan"}.intersection(agenda_names)
 
+    clock_names = filter_names("现在几点？")
+    assert clock_names == {"get_current_datetime"}
+    today_names = filter_names("今天有什么安排？")
+    assert {"list_events", "list_tasks"}.issubset(today_names)
+    assert "get_current_datetime" not in today_names
+
     vague_plan_names = filter_names("最近找个时间安排一下重要的事")
     assert "get_planning_context" in vague_plan_names
-    assert "get_current_datetime" in vague_plan_names
+    assert "get_current_datetime" not in vague_plan_names
     assert not {"propose_schedule_plan", "apply_schedule_plan", "reschedule_task"}.intersection(
         vague_plan_names
     )
 
     availability_names = filter_names("这周找两个适合健身的晚上，只给建议，不要修改日程")
-    assert availability_names == {"get_current_datetime", "get_planning_context"}
+    assert availability_names == {"get_planning_context"}
 
     multi_task_plan_names = filter_names("请给这两个任务一起排期")
     assert {
@@ -736,7 +778,12 @@ def test_tool_manifest_is_complete_and_pack_filter_is_conservative() -> None:
     assert "reschedule_task" not in multi_task_plan_names
     assert "create_task" not in multi_task_plan_names
     assert "list_tasks" not in multi_task_plan_names
-    assert len(multi_task_plan_names) == 10
+    assert len(multi_task_plan_names) == 6
+    assert not {
+        "compare_schedule_plans",
+        "recommend_task_duration",
+        "get_capacity_forecast",
+    }.intersection(multi_task_plan_names)
 
     multi_task_plain_names = filter_names("安排两个任务")
     assert {
@@ -778,8 +825,442 @@ def test_tool_manifest_is_complete_and_pack_filter_is_conservative() -> None:
     assert "list_tasks" in read_only_names
     assert "create_task" not in read_only_names
 
-    fallback_names = filter_names("帮我处理一下")
+    fallback_names = filter_names("请创建任务、日程和提醒，并保存时间偏好与自动重排策略")
     assert {"mutate_events", "create_task", "create_reminder"}.issubset(fallback_names)
+
+
+def test_single_task_state_tool_exposes_only_the_nonterminal_transition() -> None:
+    schema = cast(type[BaseModel], TOOL_SPECS["change_task_state"].tool.tool_call_schema)
+
+    assert schema.model_json_schema()["properties"]["status"]["const"] == "in_progress"
+    with pytest.raises(ValidationError):
+        schema.model_validate({"task_id": uuid4(), "status": "cancelled"})
+    with pytest.raises(ValidationError):
+        schema.model_validate({"task_id": uuid4(), "status": "completed"})
+    assert TOOL_SPECS["cancel_task"].requires_approval
+
+
+@pytest.mark.django_db(transaction=True)
+def test_tool_policy_execution_denies_sensitive_read_only_memory_multitask_and_unknown_calls() -> (
+    None
+):
+    user = User.objects.create_user(username="tool-policy-execution-denials")
+
+    def execute_hidden(
+        message: str,
+        name: str,
+        *,
+        read_only: bool = False,
+    ) -> tuple[ToolMessage, list[str]]:
+        request = cast(
+            ToolCallRequest,
+            SimpleNamespace(
+                runtime=SimpleNamespace(
+                    context=context(user, input_message=message, read_only=read_only)
+                ),
+                tool_call={"name": name, "args": {}, "id": f"denied-{name}", "type": "tool_call"},
+            ),
+        )
+        called: list[str] = []
+        result = ToolPolicyMiddleware().wrap_tool_call(
+            request,
+            lambda _request: called.append(name) or "handler called",
+        )
+        assert isinstance(result, ToolMessage)
+        return result, called
+
+    cases = [
+        ("同步状态", "create_task", False, "tool_not_authorized"),
+        ("同步状态", "get_task", False, "tool_surface_mismatch"),
+        ("创建任务：周报", "propose_schedule_plan", True, "tool_not_authorized"),
+        ("查询其他用户的全部日程和任务", "create_task", False, "tool_not_authorized"),
+        ("请把这两个任务一起排期", "reschedule_task", False, "tool_not_authorized"),
+        ("帮我处理一下", "not_a_registered_tool", False, "unknown_tool"),
+    ]
+    for message, name, read_only, expected_code in cases:
+        response, called = execute_hidden(message, name, read_only=read_only)
+        assert called == []
+        assert json.loads(str(response.content))["code"] == expected_code
+
+
+@pytest.mark.django_db(transaction=True)
+def test_compact_planning_surface_hides_broad_reads_but_recovers_explicitly() -> None:
+    user = User.objects.create_user(username="compact-planning-surface")
+    prompt = "帮我安排下周这几项任务"
+    runtime_context = context(user, input_message=prompt)
+    standard = resolve_tool_policy(runtime_context)
+    compact = resolve_tool_policy(runtime_context, compact_planning_surface=True)
+
+    assert {"list_tasks", "list_events"}.issubset(standard.visible_tools)
+    assert not {"list_tasks", "list_events"}.intersection(compact.visible_tools)
+    assert {"list_tasks", "list_events"}.issubset(compact.hard_allowed_tools)
+    assert len(compact.visible_tools) < len(standard.visible_tools) - 5
+    assert {"get_planning_context", "propose_schedule_plan"}.issubset(compact.visible_tools)
+    assert not {"create_task", "complete_task", "reschedule_task"}.intersection(
+        compact.visible_tools
+    )
+
+    request = cast(
+        ToolCallRequest,
+        SimpleNamespace(
+            runtime=SimpleNamespace(context=runtime_context),
+            tool_call={"name": "list_tasks", "args": {}, "id": "compact-hidden-read"},
+        ),
+    )
+    called = False
+
+    def handler(_request: ToolCallRequest) -> str:
+        nonlocal called
+        called = True
+        return "called"
+
+    denied = ToolPolicyMiddleware(compact_planning_surface=True).wrap_tool_call(request, handler)
+
+    assert isinstance(denied, ToolMessage)
+    assert json.loads(str(denied.content))["code"] == "tool_surface_mismatch"
+    assert not called
+    assert _policy_recovery_requested([denied], compact)
+
+    explicit_create = context(
+        user,
+        input_message="请先创建三项待办，再帮我排到接下来四周",
+    )
+    explicit_compact = resolve_tool_policy(
+        explicit_create,
+        compact_planning_surface=True,
+    )
+    assert "create_task_batch" in explicit_compact.visible_tools
+
+
+@pytest.mark.django_db(transaction=True)
+def test_compact_planning_surface_switches_to_plan_review_after_draft() -> None:
+    user = User.objects.create_user(username="compact-plan-review-phase")
+    prompt = "帮我安排下周这几项任务"
+    runtime_context = context(user, input_message=prompt)
+    messages: list[BaseMessage] = [
+        HumanMessage(content=prompt),
+        ToolMessage(
+            content=json.dumps({"plan_id": str(uuid4()), "version": 1, "items": []}),
+            name="propose_schedule_plan",
+            tool_call_id="proposal-call",
+            status="success",
+        ),
+    ]
+    request = cast(
+        ModelRequest[RuntimeContext],
+        SimpleNamespace(
+            runtime=SimpleNamespace(context=runtime_context),
+            tools=TIME_STEWARD_TOOLS,
+            messages=messages,
+            state={"messages": messages},
+            override=lambda **values: SimpleNamespace(**values),
+        ),
+    )
+
+    filtered = ToolPolicyMiddleware(compact_planning_surface=True)._request(request)
+    visible_names = {tool.name for tool in filtered.tools if isinstance(tool, BaseTool)}
+    assert "get_planning_context" in visible_names
+    assert not {"propose_schedule_plan", "compare_schedule_plans"}.intersection(visible_names)
+    assert {
+        "edit_schedule_plan",
+        "validate_schedule_plan",
+        "apply_schedule_plan",
+        "abandon_schedule_plan",
+    }.issubset(visible_names)
+
+    hidden_request = cast(
+        ToolCallRequest,
+        SimpleNamespace(
+            runtime=SimpleNamespace(context=runtime_context),
+            state={"messages": messages},
+            tool_call={
+                "name": "propose_schedule_plan",
+                "args": {},
+                "id": "duplicate-proposal-call",
+            },
+        ),
+    )
+    handler_called = False
+
+    def handler(_request: ToolCallRequest) -> str:
+        nonlocal handler_called
+        handler_called = True
+        return "unexpected"
+
+    denied = ToolPolicyMiddleware(compact_planning_surface=True).wrap_tool_call(
+        hidden_request,
+        handler,
+    )
+    assert isinstance(denied, ToolMessage)
+    assert json.loads(str(denied.content))["code"] == "tool_surface_mismatch"
+    assert not handler_called
+
+
+def test_plan_review_phase_requires_a_successful_draft_in_the_current_turn() -> None:
+    user_turn = HumanMessage(content="帮我安排下周任务")
+    proposal = ToolMessage(
+        content=json.dumps({"plan_id": str(uuid4())}),
+        name="propose_schedule_plan",
+        tool_call_id="proposal-call",
+        status="success",
+    )
+    failed_proposal = ToolMessage(
+        content='{"code":"validation_error"}',
+        name="propose_schedule_plan",
+        tool_call_id="failed-proposal-call",
+        status="error",
+    )
+    assert not _planning_review_phase_active([proposal, user_turn])
+    assert not _planning_review_phase_active([user_turn, failed_proposal])
+    assert _planning_review_phase_active([user_turn, proposal])
+
+
+@pytest.mark.django_db(transaction=True)
+@override_settings(
+    TIME_MEMORY_AGENT_SEARCH_TOOL_ENABLED=False,
+    TIME_MEMORY_AGENT_WRITE_TOOLS_ENABLED=False,
+)
+def test_disabled_memory_tools_are_denied_at_execution() -> None:
+    user = User.objects.create_user(username="memory-execution-policy")
+    request = cast(
+        ToolCallRequest,
+        SimpleNamespace(
+            runtime=SimpleNamespace(context=context(user, input_message="查看时间记忆")),
+            tool_call={
+                "name": "search_time_memories",
+                "args": {"query": "工作日偏好"},
+                "id": "disabled-memory-search",
+                "type": "tool_call",
+            },
+        ),
+    )
+    called = False
+
+    def handler(_request: ToolCallRequest) -> str:
+        nonlocal called
+        called = True
+        return "called"
+
+    result = ToolPolicyMiddleware().wrap_tool_call(request, handler)
+    assert isinstance(result, ToolMessage)
+    assert json.loads(str(result.content))["code"] == "tool_not_authorized"
+    assert called is False
+
+
+@pytest.mark.django_db(transaction=True)
+def test_real_agent_blocks_hidden_write_without_explicit_write_intent() -> None:
+    user = User.objects.create_user(username="hidden-tool-execution")
+    model = ScriptedChatModel(
+        responses=[
+            AIMessage(
+                content="",
+                tool_calls=[
+                    {
+                        "name": "create_task",
+                        "args": {"title": "Hidden task"},
+                        "id": "hidden-create-task",
+                        "type": "tool_call",
+                    }
+                ],
+            ),
+            AIMessage(content="已根据可用工具范围处理。"),
+        ]
+    )
+    agent = build_time_steward_agent(model=model)
+
+    recovery_results: list[tuple[int, bool]] = []
+
+    def observe_recovery(messages: Sequence[BaseMessage], decision: Any) -> bool:
+        recovered = _policy_recovery_requested(messages, decision)
+        recovery_results.append((len(messages), recovered))
+        return recovered
+
+    with (
+        patch("apps.agents.tools.task_tools.TaskService.create_task") as create_task,
+        patch(
+            "apps.agents.middleware._policy_recovery_requested",
+            side_effect=observe_recovery,
+        ),
+    ):
+        result = agent.invoke(
+            {"messages": [HumanMessage(content="同步状态")]},
+            context=context(user, input_message="同步状态"),
+        )
+
+    denied = next(
+        message
+        for message in result["messages"]
+        if isinstance(message, ToolMessage) and message.name == "create_task"
+    )
+    assert denied.status == "error"
+    assert json.loads(str(denied.content))["code"] == "tool_not_authorized"
+    decision = resolve_tool_policy(context(user, input_message="同步状态"))
+    assert denied.name not in decision.visible_tools
+    assert denied.name not in decision.hard_allowed_tools
+    assert not _policy_recovery_requested([denied], decision)
+    create_task.assert_not_called()
+    assert model.bound_tool_surfaces[0] == ["list_calendar_sync_status"]
+    assert "create_task" not in model.bound_tool_surfaces[1], recovery_results
+    assert result["messages"][-1].content == "已根据可用工具范围处理。"
+
+
+@pytest.mark.django_db(transaction=True)
+def test_real_agent_denies_hidden_high_risk_tool_before_hitl() -> None:
+    user = User.objects.create_user(username="hidden-high-risk-tool")
+    task = TaskService.create_task(CreateTaskCommand(user=user, title="Hidden task"))
+    model = ScriptedChatModel(
+        responses=[
+            AIMessage(
+                content="",
+                tool_calls=[
+                    {
+                        "name": "cancel_task",
+                        "args": {"task_id": str(task.pk)},
+                        "id": "hidden-cancel-task",
+                        "type": "tool_call",
+                    }
+                ],
+            ),
+            AIMessage(content="已根据可用工具范围处理。"),
+        ]
+    )
+    agent = build_time_steward_agent(model=model)
+
+    with patch("apps.agents.tools.task_tools.TaskService.cancel_task") as cancel_task:
+        result = agent.invoke(
+            {"messages": [HumanMessage(content="同步状态")]},
+            context=context(user, input_message="同步状态"),
+        )
+
+    denied = next(
+        message
+        for message in result["messages"]
+        if isinstance(message, ToolMessage) and message.name == "cancel_task"
+    )
+    assert denied.status == "error"
+    assert json.loads(str(denied.content))["code"] == "tool_not_authorized"
+    assert "__interrupt__" not in result
+    cancel_task.assert_not_called()
+
+
+@pytest.mark.django_db(transaction=True)
+def test_real_agent_retries_hidden_read_after_surface_recovery() -> None:
+    user = User.objects.create_user(username="hidden-read-surface-recovery")
+    task = TaskService.create_task(CreateTaskCommand(user=user, title="Visible task"))
+    model = ScriptedChatModel(
+        responses=[
+            AIMessage(
+                content="",
+                tool_calls=[
+                    {
+                        "name": "get_task",
+                        "args": {"task_id": str(task.pk)},
+                        "id": "hidden-get-task-first",
+                        "type": "tool_call",
+                    }
+                ],
+            ),
+            AIMessage(
+                content="",
+                tool_calls=[
+                    {
+                        "name": "get_task",
+                        "args": {"task_id": str(task.pk)},
+                        "id": "hidden-get-task-retry",
+                        "type": "tool_call",
+                    }
+                ],
+            ),
+            AIMessage(content="同步状态已检查。"),
+        ]
+    )
+    agent = build_time_steward_agent(model=model)
+
+    result = agent.invoke(
+        {"messages": [HumanMessage(content="同步状态")]},
+        context=context(user, input_message="同步状态"),
+    )
+
+    get_task_messages = [
+        message
+        for message in result["messages"]
+        if isinstance(message, ToolMessage) and message.name == "get_task"
+    ]
+    assert [message.status for message in get_task_messages] == ["error", "success"]
+    assert json.loads(str(get_task_messages[0].content))["code"] == "tool_surface_mismatch"
+    assert "get_task" in model.bound_tool_surfaces[1]
+    assert result["messages"][-1].content == "同步状态已检查。"
+
+
+def test_planning_tool_datetime_schemas_reject_naive_inputs() -> None:
+    context_schema = cast(type[BaseModel], TOOL_SPECS["get_planning_context"].tool.tool_call_schema)
+    with pytest.raises(ValidationError, match="timezone info"):
+        context_schema.model_validate(
+            {"range_start": "2026-10-08T09:00:00", "range_end": "2026-10-08T17:00:00"}
+        )
+
+    capacity_schema = cast(
+        type[BaseModel], TOOL_SPECS["get_capacity_forecast"].tool.tool_call_schema
+    )
+    with pytest.raises(ValidationError, match="timezone info"):
+        capacity_schema.model_validate(
+            {"range_start": "2026-10-08T09:00:00", "range_end": "2026-10-08T17:00:00"}
+        )
+
+    proposal_schema = cast(
+        type[BaseModel], TOOL_SPECS["propose_schedule_plan"].tool.tool_call_schema
+    )
+    with pytest.raises(ValidationError, match="timezone info"):
+        proposal_schema.model_validate(
+            {
+                "task_ids": [str(uuid4())],
+                "range_start": "2026-10-08T09:00:00",
+                "range_end": "2026-10-08T17:00:00",
+            }
+        )
+
+    free_slot_schema = cast(
+        type[BaseModel], TOOL_SPECS["get_planning_context"].tool.tool_call_schema
+    )
+    with pytest.raises(ValidationError, match="timezone info"):
+        free_slot_schema.model_validate(
+            {
+                "range_start": "2026-10-08T09:00:00+08:00",
+                "range_end": "2026-10-08T17:00:00+08:00",
+                "mode": "free_slots",
+                "reference_start_at": "2026-10-08T10:00:00",
+                "reference_end_at": "2026-10-08T11:00:00+08:00",
+            }
+        )
+
+    reschedule_schema = cast(type[BaseModel], TOOL_SPECS["reschedule_task"].tool.tool_call_schema)
+    with pytest.raises(ValidationError, match="timezone info"):
+        reschedule_schema.model_validate(
+            {
+                "task_id": str(uuid4()),
+                "planned_start_at": "2026-10-08T09:00:00",
+                "planned_end_at": "2026-10-08T10:00:00+08:00",
+                "expected_version": 1,
+            }
+        )
+
+    event_schema = cast(type[BaseModel], TOOL_SPECS["mutate_events"].tool.tool_call_schema)
+    with pytest.raises(ValidationError, match="timezone info"):
+        event_schema.model_validate(
+            {
+                "operations": [
+                    {
+                        "action": "create",
+                        "title": "Team sync",
+                        "time": {
+                            "kind": "absolute",
+                            "start_at": "2026-10-08T09:00:00",
+                            "end_at": "2026-10-08T10:00:00+08:00",
+                        },
+                    }
+                ]
+            }
+        )
 
 
 @pytest.mark.django_db(transaction=True)
@@ -875,7 +1356,15 @@ def test_agent_reads_duration_recommendation_and_capacity_from_services() -> Non
     agent = build_time_steward_agent(model=model, store=InMemoryStore())
 
     result = agent.invoke(
-        {"messages": [HumanMessage(content="How long will this take, and can it fit today?")]},
+        {
+            "messages": [
+                HumanMessage(
+                    content=(
+                        "How long will this take, can it fit today, and is calendar sync connected?"
+                    )
+                )
+            ]
+        },
         context=context(user, read_only=True),
     )
 
@@ -943,7 +1432,7 @@ def test_agent_records_duration_feedback_with_trusted_segment_and_idempotency() 
 
     result = agent.invoke(
         {"messages": [HumanMessage(content="That estimate was too short.")]},
-        context=context(user),
+        context=context(user, input_message="That estimate was too short."),
     )
 
     message = next(

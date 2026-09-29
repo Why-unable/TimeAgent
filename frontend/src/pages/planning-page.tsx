@@ -65,7 +65,7 @@ const capacityRiskPresentation: Record<string, { label: string; className: strin
 
 const capacityReasonLabels: Record<string, string> = {
   unplanned_exceeds_free_capacity: "未安排任务所需时间超过可用容量",
-  commitments_and_unplanned_near_capacity: "已承诺与未安排工作接近可用容量",
+  unplanned_uses_most_free_capacity: "未安排工作将占用大部分剩余容量",
   no_due_tasks_in_range: "所选范围内没有到期任务",
 };
 
@@ -268,8 +268,9 @@ export function PlanningPage() {
         {capacity.isError && <p role="alert" className="mt-3 text-sm text-amber-200">容量预测暂时不可用，仍可手动生成计划。</p>}
         {capacity.data && (
           <div className="mt-3">
-            <dl className="grid grid-cols-3 gap-3 text-sm">
-              <CapacityValue label="可用时间" minutes={capacity.data.available_minutes} />
+            <dl className="grid grid-cols-2 gap-3 text-sm sm:grid-cols-4">
+              <CapacityValue label="总可排容量" minutes={capacity.data.total_schedulable_capacity_minutes} />
+              <CapacityValue label="剩余可用时间" minutes={capacity.data.remaining_free_minutes} />
               <CapacityValue label="已计划任务" minutes={capacity.data.committed_minutes} />
               <CapacityValue label="未安排任务" minutes={capacity.data.unplanned_minutes} />
             </dl>
@@ -345,7 +346,7 @@ export function PlanningPage() {
                   const metric = comparePlans.data.comparison[index] as Record<string, unknown>;
                   return <button key={plan.id} type="button" onClick={() => { setSelectedPlan(plan); setRegenerateTaskIds([]); }} className={`min-h-14 rounded-lg border px-3 text-left text-xs ${selectedPlan?.id === plan.id ? "border-cyan-300 text-cyan-100" : "border-white/10 text-slate-400"}`}>
                     <span className="block font-medium">{metric.ordering === "longest_first" ? "长任务优先" : "优先级与截止时间"}</span>
-                    <span>{String(metric.placed_count)} 已安排 · {String(metric.unplaced_count)} 未安排</span>
+                    <span>{String(metric.placed_count)} 个任务已安排 · {String(metric.unplaced_count)} 个任务未安排 · {String(metric.placed_segment_count)} 个时间段</span>
                   </button>;
                 })}
               </div>

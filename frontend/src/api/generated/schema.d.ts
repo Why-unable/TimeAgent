@@ -1778,6 +1778,8 @@ export interface components {
             range_start: string;
             /** Format: date-time */
             range_end: string;
+            total_schedulable_capacity_minutes: number;
+            remaining_free_minutes: number;
             available_minutes: number;
             committed_minutes: number;
             unplanned_minutes: number;

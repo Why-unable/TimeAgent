@@ -2,6 +2,7 @@ from uuid import UUID
 
 from django.contrib.auth.models import User
 from django.http import Http404
+from django.utils import timezone
 from drf_spectacular.utils import extend_schema
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
@@ -44,6 +45,7 @@ class SchedulePlanListView(APIView):
                 strategy=data["strategy"],
                 ordering=data["ordering"],
                 decision_profile_snapshot=_decision_profile_snapshot(user),
+                now=timezone.now(),
             )
         except ValueError as exc:
             return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)

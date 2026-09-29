@@ -27,7 +27,7 @@ function evidenceSummary(insight: TemporalInsight): string {
   const evidence = insight.evidence as Record<string, unknown>;
   if (typeof evidence.due_at === "string") return `截止 ${new Date(evidence.due_at).toLocaleString("zh-CN")}`;
   if (typeof evidence.unplanned_minutes === "number") {
-    return `未安排 ${evidence.unplanned_minutes} 分钟，可用 ${String(evidence.available_minutes ?? "-")} 分钟`;
+    return `未安排 ${evidence.unplanned_minutes} 分钟，剩余可用 ${String(evidence.remaining_free_minutes ?? evidence.available_minutes ?? "-")} 分钟`;
   }
   return "由当前任务、日程与容量事实计算";
 }

@@ -11,7 +11,6 @@ ToolEffect = Literal["read", "derive", "draft", "business_write", "handoff"]
 PACK_TOOL_NAMES: dict[str, frozenset[str]] = {
     "overview": frozenset(
         {
-            "get_current_datetime",
             "list_events",
             "list_tasks",
             "list_reminders",
@@ -19,7 +18,6 @@ PACK_TOOL_NAMES: dict[str, frozenset[str]] = {
     ),
     "calendar": frozenset(
         {
-            "get_current_datetime",
             "list_events",
             "get_event",
             "mutate_events",
@@ -29,7 +27,6 @@ PACK_TOOL_NAMES: dict[str, frozenset[str]] = {
     "tasks": frozenset(
         {
             "list_tasks",
-            "get_current_datetime",
             "get_task",
             "get_task_execution_summary",
             "create_task",
@@ -45,7 +42,6 @@ PACK_TOOL_NAMES: dict[str, frozenset[str]] = {
     "reminders": frozenset(
         {
             "list_reminders",
-            "get_current_datetime",
             "get_reminder",
             "create_reminder",
             "update_reminder",
@@ -53,22 +49,20 @@ PACK_TOOL_NAMES: dict[str, frozenset[str]] = {
             "cancel_reminder",
         }
     ),
-    "availability": frozenset({"get_current_datetime", "get_planning_context"}),
+    "availability": frozenset({"get_planning_context"}),
+    "clock": frozenset({"get_current_datetime"}),
     "planning_preview": frozenset(
         {
             "get_planning_context",
-            "get_current_datetime",
             "propose_schedule_plan",
-            "compare_schedule_plans",
-            "recommend_task_duration",
-            "get_capacity_forecast",
         }
     ),
+    "plan_comparison": frozenset({"compare_schedule_plans"}),
+    "duration_guidance": frozenset({"recommend_task_duration"}),
     "plan_review": frozenset(
         {
             "get_planning_context",
             "validate_schedule_plan",
-            "get_current_datetime",
             "edit_schedule_plan",
             "abandon_schedule_plan",
             "apply_schedule_plan",
@@ -78,14 +72,12 @@ PACK_TOOL_NAMES: dict[str, frozenset[str]] = {
         {
             "detect_schedule_disruptions",
             "get_planning_context",
-            "get_current_datetime",
             "get_task",
             "reschedule_task",
         }
     ),
     "automation_replan": frozenset(
         {
-            "get_current_datetime",
             "list_automation_policies",
             "apply_local_replan",
             "detect_schedule_disruptions",
@@ -152,7 +144,8 @@ HITL_POLICY_METADATA: dict[str, tuple[tuple[str, ...], str]] = {
     ),
     "reschedule_task": (
         ("approve", "reject"),
-        "Changing a task's planned time affects the user's schedule and requires confirmation.",
+        "Submit an explicitly requested move for approval; "
+        "the task stays unchanged until approved.",
     ),
     "update_reminder": (
         ("approve", "edit", "reject"),

@@ -1,7 +1,7 @@
-from datetime import datetime
 from uuid import UUID
 
 from langchain.tools import ToolRuntime, tool
+from pydantic import AwareDatetime
 
 from apps.agents.context import RuntimeContext
 from apps.agents.tools.common import require_actor, require_writable
@@ -58,7 +58,7 @@ def act_on_temporal_insight(
     insight_id: UUID,
     action: str,
     runtime: ToolRuntime[RuntimeContext],
-    until: datetime | None = None,
+    until: AwareDatetime | None = None,
     disable_kind: bool = False,
 ) -> dict[str, object]:
     """Snooze, dismiss, action or correct one owned time insight."""

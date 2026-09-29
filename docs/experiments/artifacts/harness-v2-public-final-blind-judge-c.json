@@ -1,0 +1,1897 @@
+{
+  "schema_version": "timeagent.blind-schedule-review.v1",
+  "cases": [
+    {
+      "case_id": "case_1463a1ce7b732f24",
+      "request": "请在 10 月 8 日到 10 月 23 日的工作日内安排这些发布任务，按截止日期推进，保留所有已定会议。不要把两周任务都塞进第一天；每天最多安排 6 小时，并为上线前留出缓冲。不要安排周末或 18:00 以后。",
+      "runtime": {
+        "now_local": "2026-10-05T08:00+08:00",
+        "timezone": "Asia/Shanghai",
+        "workday_start": "09:00",
+        "workday_end": "18:00"
+      },
+      "tasks": [
+        {
+          "task_id": "task_01",
+          "title": "冻结版本范围并确认负责人",
+          "description": "确认本次发布边界和每项工作的负责人。",
+          "estimate_minutes": 90,
+          "priority": "high",
+          "due_at_local": "2026-10-09T18:00+08:00",
+          "splittable": null
+        },
+        {
+          "task_id": "task_02",
+          "title": "整理验收标准与边界用例",
+          "description": "为核心用户流程补充可验证的验收条件。",
+          "estimate_minutes": 120,
+          "priority": "high",
+          "due_at_local": "2026-10-12T18:00+08:00",
+          "splittable": null
+        },
+        {
+          "task_id": "task_03",
+          "title": "核对跨团队依赖和风险清单",
+          "description": "确认依赖负责人、阻塞项和应急措施。",
+          "estimate_minutes": 90,
+          "priority": "high",
+          "due_at_local": "2026-10-14T18:00+08:00",
+          "splittable": null
+        },
+        {
+          "task_id": "task_04",
+          "title": "执行核心流程回归验收",
+          "description": "验证发布范围内的核心业务流程。",
+          "estimate_minutes": 150,
+          "priority": "urgent",
+          "due_at_local": "2026-10-20T18:00+08:00",
+          "splittable": null
+        },
+        {
+          "task_id": "task_05",
+          "title": "撰写用户可见的版本说明",
+          "description": "写清新增能力、限制和升级提示。",
+          "estimate_minutes": 60,
+          "priority": "medium",
+          "due_at_local": "2026-10-21T18:00+08:00",
+          "splittable": null
+        },
+        {
+          "task_id": "task_06",
+          "title": "准备发布检查表和回滚步骤",
+          "description": "确保上线前检查和回退动作可执行。",
+          "estimate_minutes": 90,
+          "priority": "high",
+          "due_at_local": "2026-10-22T18:00+08:00",
+          "splittable": null
+        }
+      ],
+      "events": [
+        {
+          "title": "版本启动会",
+          "start": "2026-10-08T10:00+08:00",
+          "end": "2026-10-08T11:00+08:00",
+          "immutable": true
+        },
+        {
+          "title": "跨团队依赖评审",
+          "start": "2026-10-12T14:00+08:00",
+          "end": "2026-10-12T15:00+08:00",
+          "immutable": true
+        },
+        {
+          "title": "回归验收门禁会",
+          "start": "2026-10-14T10:00+08:00",
+          "end": "2026-10-14T11:00+08:00",
+          "immutable": true
+        },
+        {
+          "title": "发布准备会",
+          "start": "2026-10-20T10:00+08:00",
+          "end": "2026-10-20T11:00+08:00",
+          "immutable": true
+        },
+        {
+          "title": "上线 Go/No-Go",
+          "start": "2026-10-22T14:00+08:00",
+          "end": "2026-10-22T15:00+08:00",
+          "immutable": true
+        }
+      ],
+      "A": {
+        "placements": [
+          {
+            "task_id": "task_01",
+            "segments": [
+              {
+                "start": "2026-10-08T13:30+08:00",
+                "end": "2026-10-08T15:00+08:00"
+              }
+            ]
+          },
+          {
+            "task_id": "task_02",
+            "segments": [
+              {
+                "start": "2026-10-08T15:00+08:00",
+                "end": "2026-10-08T17:00+08:00"
+              }
+            ]
+          },
+          {
+            "task_id": "task_03",
+            "segments": [
+              {
+                "start": "2026-10-09T09:00+08:00",
+                "end": "2026-10-09T10:30+08:00"
+              }
+            ]
+          },
+          {
+            "task_id": "task_04",
+            "segments": [
+              {
+                "start": "2026-10-08T11:00+08:00",
+                "end": "2026-10-08T13:30+08:00"
+              }
+            ]
+          },
+          {
+            "task_id": "task_05",
+            "segments": [
+              {
+                "start": "2026-10-08T09:00+08:00",
+                "end": "2026-10-08T10:00+08:00"
+              }
+            ]
+          },
+          {
+            "task_id": "task_06",
+            "segments": [
+              {
+                "start": "2026-10-09T10:30+08:00",
+                "end": "2026-10-09T12:00+08:00"
+              }
+            ]
+          }
+        ],
+        "unplaced_task_ids": []
+      },
+      "B": {
+        "placements": [
+          {
+            "task_id": "task_01",
+            "segments": [
+              {
+                "start": "2026-10-08T11:00+08:00",
+                "end": "2026-10-08T12:30+08:00"
+              }
+            ]
+          },
+          {
+            "task_id": "task_02",
+            "segments": [
+              {
+                "start": "2026-10-09T09:00+08:00",
+                "end": "2026-10-09T11:00+08:00"
+              }
+            ]
+          },
+          {
+            "task_id": "task_03",
+            "segments": [
+              {
+                "start": "2026-10-13T09:00+08:00",
+                "end": "2026-10-13T10:30+08:00"
+              }
+            ]
+          },
+          {
+            "task_id": "task_04",
+            "segments": [
+              {
+                "start": "2026-10-15T09:00+08:00",
+                "end": "2026-10-15T11:30+08:00"
+              }
+            ]
+          },
+          {
+            "task_id": "task_05",
+            "segments": [
+              {
+                "start": "2026-10-16T09:00+08:00",
+                "end": "2026-10-16T10:00+08:00"
+              }
+            ]
+          },
+          {
+            "task_id": "task_06",
+            "segments": [
+              {
+                "start": "2026-10-21T09:00+08:00",
+                "end": "2026-10-21T10:30+08:00"
+              }
+            ]
+          }
+        ],
+        "unplaced_task_ids": []
+      }
+    },
+    {
+      "case_id": "case_bba10ea045bd92b6",
+      "request": "请从 10 月 8 日起把备考任务安排到 10 月 30 日考试前。先梳理考试范围，再学完两个模块，然后做第一套模拟卷、根据错题补强，最后做第二套模拟卷和考前准备。请把复习分散在四周，不要连续几天排满，也不要让第二套模拟卷早于第一套。保留课程和工作会议，不排周末。",
+      "runtime": {
+        "now_local": "2026-10-05T08:00+08:00",
+        "timezone": "Asia/Shanghai",
+        "workday_start": "09:00",
+        "workday_end": "17:00"
+      },
+      "tasks": [
+        {
+          "task_id": "task_01",
+          "title": "梳理认证考试范围和知识点",
+          "description": "列出考试主题并形成复习清单。",
+          "estimate_minutes": 60,
+          "priority": "high",
+          "due_at_local": "2026-10-12T17:00+08:00",
+          "splittable": null
+        },
+        {
+          "task_id": "task_02",
+          "title": "复习法规模块并完成章节练习",
+          "description": "完成法规主题学习和对应练习。",
+          "estimate_minutes": 150,
+          "priority": "high",
+          "due_at_local": "2026-10-16T17:00+08:00",
+          "splittable": null
+        },
+        {
+          "task_id": "task_03",
+          "title": "复习流程模块并整理易错点",
+          "description": "完成流程主题学习，标记不确定知识点。",
+          "estimate_minutes": 150,
+          "priority": "high",
+          "due_at_local": "2026-10-21T17:00+08:00",
+          "splittable": null
+        },
+        {
+          "task_id": "task_04",
+          "title": "完成第一套限时模拟卷",
+          "description": "完整计时作答并记录各模块得分。",
+          "estimate_minutes": 180,
+          "priority": "high",
+          "due_at_local": "2026-10-23T17:00+08:00",
+          "splittable": null
+        },
+        {
+          "task_id": "task_05",
+          "title": "复盘第一套模拟卷错题",
+          "description": "归因错题并确定需要补强的主题。",
+          "estimate_minutes": 120,
+          "priority": "high",
+          "due_at_local": "2026-10-27T17:00+08:00",
+          "splittable": null
+        },
+        {
+          "task_id": "task_06",
+          "title": "补强模拟卷暴露的薄弱章节",
+          "description": "针对错题复习知识点并完成短练习。",
+          "estimate_minutes": 150,
+          "priority": "medium",
+          "due_at_local": "2026-10-28T17:00+08:00",
+          "splittable": null
+        },
+        {
+          "task_id": "task_07",
+          "title": "完成第二套模拟卷并复盘",
+          "description": "在补强之后进行第二次完整模拟。",
+          "estimate_minutes": 180,
+          "priority": "high",
+          "due_at_local": "2026-10-29T17:00+08:00",
+          "splittable": null
+        },
+        {
+          "task_id": "task_08",
+          "title": "准备考试材料并确认考场交通",
+          "description": "核对证件、考试用品和出行安排。",
+          "estimate_minutes": 60,
+          "priority": "medium",
+          "due_at_local": "2026-10-30T17:00+08:00",
+          "splittable": null
+        }
+      ],
+      "events": [
+        {
+          "title": "课程讲座",
+          "start": "2026-10-08T13:00+08:00",
+          "end": "2026-10-08T14:00+08:00",
+          "immutable": true
+        },
+        {
+          "title": "导师答疑",
+          "start": "2026-10-12T15:00+08:00",
+          "end": "2026-10-12T16:00+08:00",
+          "immutable": true
+        },
+        {
+          "title": "实验课",
+          "start": "2026-10-16T13:00+08:00",
+          "end": "2026-10-16T15:00+08:00",
+          "immutable": true
+        },
+        {
+          "title": "项目小组讨论",
+          "start": "2026-10-20T14:00+08:00",
+          "end": "2026-10-20T16:00+08:00",
+          "immutable": true
+        },
+        {
+          "title": "复习答疑",
+          "start": "2026-10-23T10:00+08:00",
+          "end": "2026-10-23T11:00+08:00",
+          "immutable": true
+        },
+        {
+          "title": "考试冲刺课",
+          "start": "2026-10-28T13:00+08:00",
+          "end": "2026-10-28T15:00+08:00",
+          "immutable": true
+        }
+      ],
+      "A": {
+        "placements": [
+          {
+            "task_id": "task_01",
+            "segments": [
+              {
+                "start": "2026-10-08T09:00+08:00",
+                "end": "2026-10-08T10:00+08:00"
+              }
+            ]
+          },
+          {
+            "task_id": "task_02",
+            "segments": [
+              {
+                "start": "2026-10-08T10:00+08:00",
+                "end": "2026-10-08T12:30+08:00"
+              }
+            ]
+          },
+          {
+            "task_id": "task_03",
+            "segments": [
+              {
+                "start": "2026-10-08T14:00+08:00",
+                "end": "2026-10-08T16:30+08:00"
+              }
+            ]
+          },
+          {
+            "task_id": "task_04",
+            "segments": [
+              {
+                "start": "2026-10-09T09:00+08:00",
+                "end": "2026-10-09T12:00+08:00"
+              }
+            ]
+          },
+          {
+            "task_id": "task_05",
+            "segments": [
+              {
+                "start": "2026-10-09T12:00+08:00",
+                "end": "2026-10-09T14:00+08:00"
+              }
+            ]
+          },
+          {
+            "task_id": "task_06",
+            "segments": [
+              {
+                "start": "2026-10-12T09:00+08:00",
+                "end": "2026-10-12T11:30+08:00"
+              }
+            ]
+          },
+          {
+            "task_id": "task_07",
+            "segments": [
+              {
+                "start": "2026-10-09T14:00+08:00",
+                "end": "2026-10-09T17:00+08:00"
+              }
+            ]
+          },
+          {
+            "task_id": "task_08",
+            "segments": [
+              {
+                "start": "2026-10-12T11:30+08:00",
+                "end": "2026-10-12T12:30+08:00"
+              }
+            ]
+          }
+        ],
+        "unplaced_task_ids": []
+      },
+      "B": {
+        "placements": [
+          {
+            "task_id": "task_01",
+            "segments": [
+              {
+                "start": "2026-10-08T09:00+08:00",
+                "end": "2026-10-08T10:00+08:00"
+              }
+            ]
+          },
+          {
+            "task_id": "task_02",
+            "segments": [
+              {
+                "start": "2026-10-09T09:00+08:00",
+                "end": "2026-10-09T11:30+08:00"
+              }
+            ]
+          },
+          {
+            "task_id": "task_03",
+            "segments": [
+              {
+                "start": "2026-10-13T09:00+08:00",
+                "end": "2026-10-13T11:30+08:00"
+              }
+            ]
+          },
+          {
+            "task_id": "task_04",
+            "segments": [
+              {
+                "start": "2026-10-19T09:00+08:00",
+                "end": "2026-10-19T12:00+08:00"
+              }
+            ]
+          },
+          {
+            "task_id": "task_05",
+            "segments": [
+              {
+                "start": "2026-10-21T09:00+08:00",
+                "end": "2026-10-21T11:00+08:00"
+              }
+            ]
+          },
+          {
+            "task_id": "task_06",
+            "segments": [
+              {
+                "start": "2026-10-22T09:00+08:00",
+                "end": "2026-10-22T11:30+08:00"
+              }
+            ]
+          },
+          {
+            "task_id": "task_07",
+            "segments": [
+              {
+                "start": "2026-10-26T09:00+08:00",
+                "end": "2026-10-26T12:00+08:00"
+              }
+            ]
+          },
+          {
+            "task_id": "task_08",
+            "segments": [
+              {
+                "start": "2026-10-29T09:00+08:00",
+                "end": "2026-10-29T10:00+08:00"
+              }
+            ]
+          }
+        ],
+        "unplaced_task_ids": []
+      }
+    },
+    {
+      "case_id": "case_0b94b261d56825e9",
+      "request": "10 月 12 日到 16 日每天 9:00–15:00 都被不可移动会议占用，只能在 15:00–18:00 工作。请按优先级和截止日期先排 urgent/high 任务；容量不够时把较低优先级任务留为未安排并解释，不要拆分 3 小时任务、加班或占用周末。我的优先级已经明确，不需要再问我。",
+      "runtime": {
+        "now_local": "2026-10-05T08:00+08:00",
+        "timezone": "Asia/Shanghai",
+        "workday_start": "09:00",
+        "workday_end": "18:00"
+      },
+      "tasks": [
+        {
+          "task_id": "task_01",
+          "title": "整理三个月销售数据",
+          "description": "整理并核对销售数据，任务需一次连续完成。",
+          "estimate_minutes": 180,
+          "priority": "high",
+          "due_at_local": "2026-10-14T18:00+08:00",
+          "splittable": false
+        },
+        {
+          "task_id": "task_02",
+          "title": "完成季度预算复核",
+          "description": "复核预算差异并标记超支项，任务需一次连续完成。",
+          "estimate_minutes": 180,
+          "priority": "urgent",
+          "due_at_local": "2026-10-14T18:00+08:00",
+          "splittable": false
+        },
+        {
+          "task_id": "task_03",
+          "title": "准备董事会汇报初稿",
+          "description": "形成董事会汇报的首版材料，任务需一次连续完成。",
+          "estimate_minutes": 180,
+          "priority": "urgent",
+          "due_at_local": "2026-10-15T18:00+08:00",
+          "splittable": false
+        },
+        {
+          "task_id": "task_04",
+          "title": "复核重点合同条款",
+          "description": "核对重点商务条款并记录风险，任务需一次连续完成。",
+          "estimate_minutes": 180,
+          "priority": "high",
+          "due_at_local": "2026-10-16T18:00+08:00",
+          "splittable": false
+        },
+        {
+          "task_id": "task_05",
+          "title": "完成客户问题汇总回复",
+          "description": "整理并回复主要客户问题，任务需一次连续完成。",
+          "estimate_minutes": 180,
+          "priority": "high",
+          "due_at_local": "2026-10-16T18:00+08:00",
+          "splittable": false
+        },
+        {
+          "task_id": "task_06",
+          "title": "编写产品上线应急流程",
+          "description": "补充上线应急步骤和升级联系人。",
+          "estimate_minutes": 180,
+          "priority": "medium",
+          "due_at_local": "2026-10-16T18:00+08:00",
+          "splittable": false
+        },
+        {
+          "task_id": "task_07",
+          "title": "准备供应商谈判材料",
+          "description": "整理谈判底线和备选方案。",
+          "estimate_minutes": 180,
+          "priority": "medium",
+          "due_at_local": "2026-10-16T18:00+08:00",
+          "splittable": false
+        },
+        {
+          "task_id": "task_08",
+          "title": "整理团队招聘面试反馈",
+          "description": "汇总本周候选人面试意见。",
+          "estimate_minutes": 180,
+          "priority": "low",
+          "due_at_local": "2026-10-16T18:00+08:00",
+          "splittable": false
+        }
+      ],
+      "events": [
+        {
+          "title": "周一连续会议",
+          "start": "2026-10-12T09:00+08:00",
+          "end": "2026-10-12T15:00+08:00",
+          "immutable": true
+        },
+        {
+          "title": "周二连续会议",
+          "start": "2026-10-13T09:00+08:00",
+          "end": "2026-10-13T15:00+08:00",
+          "immutable": true
+        },
+        {
+          "title": "周三连续会议",
+          "start": "2026-10-14T09:00+08:00",
+          "end": "2026-10-14T15:00+08:00",
+          "immutable": true
+        },
+        {
+          "title": "周四连续会议",
+          "start": "2026-10-15T09:00+08:00",
+          "end": "2026-10-15T15:00+08:00",
+          "immutable": true
+        },
+        {
+          "title": "周五连续会议",
+          "start": "2026-10-16T09:00+08:00",
+          "end": "2026-10-16T15:00+08:00",
+          "immutable": true
+        }
+      ],
+      "A": {
+        "placements": [
+          {
+            "task_id": "task_01",
+            "segments": [
+              {
+                "start": "2026-10-14T15:00+08:00",
+                "end": "2026-10-14T18:00+08:00"
+              }
+            ]
+          },
+          {
+            "task_id": "task_02",
+            "segments": [
+              {
+                "start": "2026-10-12T15:00+08:00",
+                "end": "2026-10-12T18:00+08:00"
+              }
+            ]
+          },
+          {
+            "task_id": "task_03",
+            "segments": [
+              {
+                "start": "2026-10-13T15:00+08:00",
+                "end": "2026-10-13T18:00+08:00"
+              }
+            ]
+          },
+          {
+            "task_id": "task_04",
+            "segments": [
+              {
+                "start": "2026-10-15T15:00+08:00",
+                "end": "2026-10-15T18:00+08:00"
+              }
+            ]
+          },
+          {
+            "task_id": "task_05",
+            "segments": [
+              {
+                "start": "2026-10-16T15:00+08:00",
+                "end": "2026-10-16T18:00+08:00"
+              }
+            ]
+          }
+        ],
+        "unplaced_task_ids": [
+          "task_06",
+          "task_07",
+          "task_08"
+        ]
+      },
+      "B": {
+        "placements": [
+          {
+            "task_id": "task_01",
+            "segments": [
+              {
+                "start": "2026-10-14T15:00+08:00",
+                "end": "2026-10-14T18:00+08:00"
+              }
+            ]
+          },
+          {
+            "task_id": "task_02",
+            "segments": [
+              {
+                "start": "2026-10-12T15:00+08:00",
+                "end": "2026-10-12T18:00+08:00"
+              }
+            ]
+          },
+          {
+            "task_id": "task_03",
+            "segments": [
+              {
+                "start": "2026-10-13T15:00+08:00",
+                "end": "2026-10-13T18:00+08:00"
+              }
+            ]
+          },
+          {
+            "task_id": "task_04",
+            "segments": [
+              {
+                "start": "2026-10-15T15:00+08:00",
+                "end": "2026-10-15T18:00+08:00"
+              }
+            ]
+          },
+          {
+            "task_id": "task_05",
+            "segments": [
+              {
+                "start": "2026-10-16T15:00+08:00",
+                "end": "2026-10-16T18:00+08:00"
+              }
+            ]
+          }
+        ],
+        "unplaced_task_ids": [
+          "task_06",
+          "task_07",
+          "task_08"
+        ]
+      }
+    },
+    {
+      "case_id": "case_3e2aff0947665a0a",
+      "request": "请在 10 月 8 日到 16 日的工作日安排报告和零散行政任务。报告分析和报告撰写各需要一个完整、不被切开的 90 分钟专注块，并安排在不同工作日；不要把它们塞进多个短空档。邮件、电话等短任务可放在碎片时间。不要排周末，保留会议。",
+      "runtime": {
+        "now_local": "2026-10-05T08:00+08:00",
+        "timezone": "Asia/Shanghai",
+        "workday_start": "09:00",
+        "workday_end": "17:00"
+      },
+      "tasks": [
+        {
+          "task_id": "task_01",
+          "title": "季度报告：分析数据并形成结论",
+          "description": "需要连续专注完成的数据分析阶段。",
+          "estimate_minutes": 90,
+          "priority": "urgent",
+          "due_at_local": "2026-10-13T17:00+08:00",
+          "splittable": false
+        },
+        {
+          "task_id": "task_02",
+          "title": "季度报告：撰写结论和建议",
+          "description": "在分析完成后形成报告结论和建议。",
+          "estimate_minutes": 90,
+          "priority": "high",
+          "due_at_local": "2026-10-15T17:00+08:00",
+          "splittable": false
+        },
+        {
+          "task_id": "task_03",
+          "title": "起草下季度项目提案",
+          "description": "整理方案范围、资源和风险。",
+          "estimate_minutes": 120,
+          "priority": "high",
+          "due_at_local": "2026-10-16T17:00+08:00",
+          "splittable": false
+        },
+        {
+          "task_id": "task_04",
+          "title": "回复待处理客户邮件",
+          "description": "批量回复不需要长时间专注的客户问题。",
+          "estimate_minutes": 45,
+          "priority": "medium",
+          "due_at_local": "2026-10-12T17:00+08:00",
+          "splittable": null
+        },
+        {
+          "task_id": "task_05",
+          "title": "核对本周发票",
+          "description": "检查发票信息并标记缺项。",
+          "estimate_minutes": 30,
+          "priority": "low",
+          "due_at_local": "2026-10-13T17:00+08:00",
+          "splittable": null
+        },
+        {
+          "task_id": "task_06",
+          "title": "回电确认供应商交付时间",
+          "description": "在工作日开放时段完成一次简短电话。",
+          "estimate_minutes": 30,
+          "priority": "medium",
+          "due_at_local": "2026-10-14T17:00+08:00",
+          "splittable": null
+        },
+        {
+          "task_id": "task_07",
+          "title": "整理评审会行动项",
+          "description": "把会议结论转换为责任人和下一步。",
+          "estimate_minutes": 45,
+          "priority": "medium",
+          "due_at_local": "2026-10-16T17:00+08:00",
+          "splittable": null
+        }
+      ],
+      "events": [
+        {
+          "title": "设计同步",
+          "start": "2026-10-08T09:30+08:00",
+          "end": "2026-10-08T10:15+08:00",
+          "immutable": true
+        },
+        {
+          "title": "团队站会",
+          "start": "2026-10-08T13:00+08:00",
+          "end": "2026-10-08T14:00+08:00",
+          "immutable": true
+        },
+        {
+          "title": "客户状态电话",
+          "start": "2026-10-09T11:00+08:00",
+          "end": "2026-10-09T12:00+08:00",
+          "immutable": true
+        },
+        {
+          "title": "供应商评审",
+          "start": "2026-10-12T14:00+08:00",
+          "end": "2026-10-12T15:00+08:00",
+          "immutable": true
+        },
+        {
+          "title": "项目决策会",
+          "start": "2026-10-14T10:00+08:00",
+          "end": "2026-10-14T11:00+08:00",
+          "immutable": true
+        }
+      ],
+      "A": {
+        "placements": [
+          {
+            "task_id": "task_01",
+            "segments": [
+              {
+                "start": "2026-10-08T10:15+08:00",
+                "end": "2026-10-08T11:45+08:00"
+              }
+            ]
+          },
+          {
+            "task_id": "task_02",
+            "segments": [
+              {
+                "start": "2026-10-09T09:00+08:00",
+                "end": "2026-10-09T10:30+08:00"
+              }
+            ]
+          },
+          {
+            "task_id": "task_03",
+            "segments": [
+              {
+                "start": "2026-10-13T09:00+08:00",
+                "end": "2026-10-13T11:00+08:00"
+              }
+            ]
+          },
+          {
+            "task_id": "task_04",
+            "segments": [
+              {
+                "start": "2026-10-08T11:45+08:00",
+                "end": "2026-10-08T12:30+08:00"
+              }
+            ]
+          },
+          {
+            "task_id": "task_05",
+            "segments": [
+              {
+                "start": "2026-10-09T14:00+08:00",
+                "end": "2026-10-09T14:30+08:00"
+              }
+            ]
+          },
+          {
+            "task_id": "task_06",
+            "segments": [
+              {
+                "start": "2026-10-12T09:00+08:00",
+                "end": "2026-10-12T09:30+08:00"
+              }
+            ]
+          },
+          {
+            "task_id": "task_07",
+            "segments": [
+              {
+                "start": "2026-10-15T09:00+08:00",
+                "end": "2026-10-15T09:45+08:00"
+              }
+            ]
+          }
+        ],
+        "unplaced_task_ids": []
+      },
+      "B": {
+        "placements": [
+          {
+            "task_id": "task_01",
+            "segments": [
+              {
+                "start": "2026-10-08T10:15+08:00",
+                "end": "2026-10-08T11:45+08:00"
+              }
+            ]
+          },
+          {
+            "task_id": "task_02",
+            "segments": [
+              {
+                "start": "2026-10-08T14:00+08:00",
+                "end": "2026-10-08T15:30+08:00"
+              }
+            ]
+          },
+          {
+            "task_id": "task_03",
+            "segments": [
+              {
+                "start": "2026-10-09T09:00+08:00",
+                "end": "2026-10-09T11:00+08:00"
+              }
+            ]
+          },
+          {
+            "task_id": "task_04",
+            "segments": [
+              {
+                "start": "2026-10-08T11:45+08:00",
+                "end": "2026-10-08T12:30+08:00"
+              }
+            ]
+          },
+          {
+            "task_id": "task_05",
+            "segments": [
+              {
+                "start": "2026-10-08T12:30+08:00",
+                "end": "2026-10-08T13:00+08:00"
+              }
+            ]
+          },
+          {
+            "task_id": "task_06",
+            "segments": [
+              {
+                "start": "2026-10-08T09:00+08:00",
+                "end": "2026-10-08T09:30+08:00"
+              }
+            ]
+          },
+          {
+            "task_id": "task_07",
+            "segments": [
+              {
+                "start": "2026-10-08T15:30+08:00",
+                "end": "2026-10-08T16:15+08:00"
+              }
+            ]
+          }
+        ],
+        "unplaced_task_ids": []
+      }
+    },
+    {
+      "case_id": "case_73b5d67053b0c41f",
+      "request": "请安排 10 月 8 日到 23 日的任务。你记得我通常喜欢上午做分析，不过到 10 月 16 日我需要照顾家人，任何任务都不要安排在 10:30 之前；10 月 17 日起上午可以恢复。每天 17:00 后都不安排工作。请把这个新情况优先于旧习惯，并保留已有会议。",
+      "runtime": {
+        "now_local": "2026-10-05T08:00+08:00",
+        "timezone": "Asia/Shanghai",
+        "workday_start": "09:00",
+        "workday_end": "17:00"
+      },
+      "tasks": [
+        {
+          "task_id": "task_01",
+          "title": "完成季度经营预测",
+          "description": "核对预测假设并更新关键指标。",
+          "estimate_minutes": 90,
+          "priority": "high",
+          "due_at_local": "2026-10-14T17:00+08:00",
+          "splittable": null
+        },
+        {
+          "task_id": "task_02",
+          "title": "完成团队季度反馈初稿",
+          "description": "为团队成员准备季度反馈要点。",
+          "estimate_minutes": 120,
+          "priority": "high",
+          "due_at_local": "2026-10-16T17:00+08:00",
+          "splittable": null
+        },
+        {
+          "task_id": "task_03",
+          "title": "提交孩子学校活动报名表",
+          "description": "检查信息后在线提交报名表。",
+          "estimate_minutes": 45,
+          "priority": "urgent",
+          "due_at_local": "2026-10-12T17:00+08:00",
+          "splittable": null
+        },
+        {
+          "task_id": "task_04",
+          "title": "比较家庭网络续约方案",
+          "description": "查看续约报价并确认是否切换套餐。",
+          "estimate_minutes": 60,
+          "priority": "medium",
+          "due_at_local": "2026-10-19T17:00+08:00",
+          "splittable": null
+        },
+        {
+          "task_id": "task_05",
+          "title": "整理季度报销凭证",
+          "description": "核对票据并补齐缺少的凭证。",
+          "estimate_minutes": 75,
+          "priority": "medium",
+          "due_at_local": "2026-10-21T17:00+08:00",
+          "splittable": null
+        },
+        {
+          "task_id": "task_06",
+          "title": "整理月底家庭预算",
+          "description": "核对账单并整理月底家庭支出。",
+          "estimate_minutes": 90,
+          "priority": "low",
+          "due_at_local": "2026-10-23T17:00+08:00",
+          "splittable": null
+        }
+      ],
+      "events": [
+        {
+          "title": "家庭照护安排",
+          "start": "2026-10-08T09:00+08:00",
+          "end": "2026-10-08T10:30+08:00",
+          "immutable": true
+        },
+        {
+          "title": "家庭照护安排",
+          "start": "2026-10-12T09:00+08:00",
+          "end": "2026-10-12T10:30+08:00",
+          "immutable": true
+        },
+        {
+          "title": "季度项目评审",
+          "start": "2026-10-15T14:00+08:00",
+          "end": "2026-10-15T15:00+08:00",
+          "immutable": true
+        },
+        {
+          "title": "家庭照护安排",
+          "start": "2026-10-16T09:00+08:00",
+          "end": "2026-10-16T10:30+08:00",
+          "immutable": true
+        }
+      ],
+      "A": {
+        "placements": [
+          {
+            "task_id": "task_01",
+            "segments": [
+              {
+                "start": "2026-10-08T11:15+08:00",
+                "end": "2026-10-08T12:45+08:00"
+              }
+            ]
+          },
+          {
+            "task_id": "task_02",
+            "segments": [
+              {
+                "start": "2026-10-08T12:45+08:00",
+                "end": "2026-10-08T14:45+08:00"
+              }
+            ]
+          },
+          {
+            "task_id": "task_03",
+            "segments": [
+              {
+                "start": "2026-10-08T10:30+08:00",
+                "end": "2026-10-08T11:15+08:00"
+              }
+            ]
+          },
+          {
+            "task_id": "task_04",
+            "segments": [
+              {
+                "start": "2026-10-08T14:45+08:00",
+                "end": "2026-10-08T15:45+08:00"
+              }
+            ]
+          },
+          {
+            "task_id": "task_05",
+            "segments": [
+              {
+                "start": "2026-10-08T15:45+08:00",
+                "end": "2026-10-08T17:00+08:00"
+              }
+            ]
+          },
+          {
+            "task_id": "task_06",
+            "segments": [
+              {
+                "start": "2026-10-09T09:00+08:00",
+                "end": "2026-10-09T10:30+08:00"
+              }
+            ]
+          }
+        ],
+        "unplaced_task_ids": []
+      },
+      "B": {
+        "placements": [
+          {
+            "task_id": "task_01",
+            "segments": [
+              {
+                "start": "2026-10-13T10:30+08:00",
+                "end": "2026-10-13T12:00+08:00"
+              }
+            ]
+          },
+          {
+            "task_id": "task_02",
+            "segments": [
+              {
+                "start": "2026-10-14T10:30+08:00",
+                "end": "2026-10-14T12:30+08:00"
+              }
+            ]
+          },
+          {
+            "task_id": "task_03",
+            "segments": [
+              {
+                "start": "2026-10-09T10:30+08:00",
+                "end": "2026-10-09T11:15+08:00"
+              }
+            ]
+          },
+          {
+            "task_id": "task_04",
+            "segments": [
+              {
+                "start": "2026-10-19T09:00+08:00",
+                "end": "2026-10-19T10:00+08:00"
+              }
+            ]
+          },
+          {
+            "task_id": "task_05",
+            "segments": [
+              {
+                "start": "2026-10-20T09:00+08:00",
+                "end": "2026-10-20T10:15+08:00"
+              }
+            ]
+          },
+          {
+            "task_id": "task_06",
+            "segments": [
+              {
+                "start": "2026-10-22T09:00+08:00",
+                "end": "2026-10-22T10:30+08:00"
+              }
+            ]
+          }
+        ],
+        "unplaced_task_ids": []
+      }
+    },
+    {
+      "case_id": "case_cc271eed97c2c86c",
+      "request": "我在东京，请按东京当地工作时间把 10 月 8 日到 16 日的上海差旅准备分散到多个工作日，每天最多安排 5 小时。两场按上海时间登记的会议请正确换算并避开；证件、审批、客户材料和演示准备按截止日期安排在出发前，返程后的跟进放在 10 月 15 日或 16 日。10 月 14 日是往返行程日，不要把任务安排在当天；不要移动会议或安排周末。",
+      "runtime": {
+        "now_local": "2026-10-05T08:00+09:00",
+        "timezone": "Asia/Tokyo",
+        "workday_start": "09:00",
+        "workday_end": "18:00"
+      },
+      "tasks": [
+        {
+          "task_id": "task_01",
+          "title": "确认东京至上海差旅证件和保险",
+          "description": "核对证件有效期、差旅保险和预订信息。",
+          "estimate_minutes": 60,
+          "priority": "urgent",
+          "due_at_local": "2026-10-09T18:00+09:00",
+          "splittable": null
+        },
+        {
+          "task_id": "task_02",
+          "title": "准备上海客户方案双语摘要",
+          "description": "形成现场沟通用的中日文摘要。",
+          "estimate_minutes": 120,
+          "priority": "high",
+          "due_at_local": "2026-10-12T18:00+09:00",
+          "splittable": null
+        },
+        {
+          "task_id": "task_03",
+          "title": "完成差旅预算和报销预估",
+          "description": "核算交通、住宿和差旅报销项目。",
+          "estimate_minutes": 60,
+          "priority": "medium",
+          "due_at_local": "2026-10-13T18:00+09:00",
+          "splittable": null
+        },
+        {
+          "task_id": "task_04",
+          "title": "整理客户演示的备用流程",
+          "description": "检查网络不可用时可用的演示材料。",
+          "estimate_minutes": 90,
+          "priority": "high",
+          "due_at_local": "2026-10-13T18:00+09:00",
+          "splittable": null
+        },
+        {
+          "task_id": "task_05",
+          "title": "提交差旅审批和行程信息",
+          "description": "提交审批并向相关同事同步行程。",
+          "estimate_minutes": 45,
+          "priority": "high",
+          "due_at_local": "2026-10-12T18:00+09:00",
+          "splittable": null
+        },
+        {
+          "task_id": "task_06",
+          "title": "准备上海会议纪要模板",
+          "description": "为现场会议准备议题和记录模板。",
+          "estimate_minutes": 45,
+          "priority": "medium",
+          "due_at_local": "2026-10-13T18:00+09:00",
+          "splittable": null
+        },
+        {
+          "task_id": "task_07",
+          "title": "整理返程后的客户跟进清单",
+          "description": "列出返程后需要确认的客户事项。",
+          "estimate_minutes": 60,
+          "priority": "medium",
+          "due_at_local": "2026-10-16T18:00+09:00",
+          "splittable": null
+        }
+      ],
+      "events": [
+        {
+          "title": "东京团队周会",
+          "start": "2026-10-08T10:00+09:00",
+          "end": "2026-10-08T11:00+09:00",
+          "immutable": true
+        },
+        {
+          "title": "上海客户远程确认（上海时间 10 月 9 日 09:00）",
+          "start": "2026-10-09T10:00+09:00",
+          "end": "2026-10-09T11:00+09:00",
+          "immutable": true
+        },
+        {
+          "title": "东京差旅审批同步",
+          "start": "2026-10-12T10:00+09:00",
+          "end": "2026-10-12T11:00+09:00",
+          "immutable": true
+        },
+        {
+          "title": "往返上海行程日",
+          "start": "2026-10-14T00:00+09:00",
+          "end": "2026-10-15T00:00+09:00",
+          "immutable": true
+        },
+        {
+          "title": "上海项目同步（上海时间 10 月 15 日 15:00）",
+          "start": "2026-10-15T16:00+09:00",
+          "end": "2026-10-15T17:00+09:00",
+          "immutable": true
+        }
+      ],
+      "A": {
+        "placements": [
+          {
+            "task_id": "task_01",
+            "segments": [
+              {
+                "start": "2026-10-08T09:00+09:00",
+                "end": "2026-10-08T10:00+09:00"
+              }
+            ]
+          },
+          {
+            "task_id": "task_02",
+            "segments": [
+              {
+                "start": "2026-10-08T11:00+09:00",
+                "end": "2026-10-08T13:00+09:00"
+              }
+            ]
+          },
+          {
+            "task_id": "task_03",
+            "segments": [
+              {
+                "start": "2026-10-08T15:15+09:00",
+                "end": "2026-10-08T16:15+09:00"
+              }
+            ]
+          },
+          {
+            "task_id": "task_04",
+            "segments": [
+              {
+                "start": "2026-10-08T13:45+09:00",
+                "end": "2026-10-08T15:15+09:00"
+              }
+            ]
+          },
+          {
+            "task_id": "task_05",
+            "segments": [
+              {
+                "start": "2026-10-08T13:00+09:00",
+                "end": "2026-10-08T13:45+09:00"
+              }
+            ]
+          },
+          {
+            "task_id": "task_06",
+            "segments": [
+              {
+                "start": "2026-10-08T16:15+09:00",
+                "end": "2026-10-08T17:00+09:00"
+              }
+            ]
+          },
+          {
+            "task_id": "task_07",
+            "segments": [
+              {
+                "start": "2026-10-08T17:00+09:00",
+                "end": "2026-10-08T18:00+09:00"
+              }
+            ]
+          }
+        ],
+        "unplaced_task_ids": []
+      },
+      "B": {
+        "placements": [
+          {
+            "task_id": "task_01",
+            "segments": [
+              {
+                "start": "2026-10-08T09:00+09:00",
+                "end": "2026-10-08T10:00+09:00"
+              }
+            ]
+          },
+          {
+            "task_id": "task_02",
+            "segments": [
+              {
+                "start": "2026-10-09T13:00+09:00",
+                "end": "2026-10-09T15:00+09:00"
+              }
+            ]
+          },
+          {
+            "task_id": "task_03",
+            "segments": [
+              {
+                "start": "2026-10-13T13:00+09:00",
+                "end": "2026-10-13T14:00+09:00"
+              }
+            ]
+          },
+          {
+            "task_id": "task_04",
+            "segments": [
+              {
+                "start": "2026-10-12T13:00+09:00",
+                "end": "2026-10-12T14:30+09:00"
+              }
+            ]
+          },
+          {
+            "task_id": "task_05",
+            "segments": [
+              {
+                "start": "2026-10-09T09:00+09:00",
+                "end": "2026-10-09T09:45+09:00"
+              }
+            ]
+          },
+          {
+            "task_id": "task_06",
+            "segments": [
+              {
+                "start": "2026-10-13T09:00+09:00",
+                "end": "2026-10-13T09:45+09:00"
+              }
+            ]
+          },
+          {
+            "task_id": "task_07",
+            "segments": [
+              {
+                "start": "2026-10-15T09:00+09:00",
+                "end": "2026-10-15T10:00+09:00"
+              }
+            ]
+          }
+        ],
+        "unplaced_task_ids": []
+      }
+    },
+    {
+      "case_id": "case_7a7378d51f097019",
+      "request": "请安排 10 月 5 日到 25 日这三周的工作和家庭待办，保留学校沟通、接送和工作会议。16:00 后不要放需要专注的任务；需要打电话的事情安排在工作日 09:00–16:00。不要安排晚上或周末，每天最多 5 小时，尽量让计划留有余地。",
+      "runtime": {
+        "now_local": "2026-10-05T08:00+08:00",
+        "timezone": "Asia/Shanghai",
+        "workday_start": "09:00",
+        "workday_end": "17:00"
+      },
+      "tasks": [
+        {
+          "task_id": "task_01",
+          "title": "提交孩子学校活动报名表",
+          "description": "检查活动信息并在截止前提交。",
+          "estimate_minutes": 60,
+          "priority": "urgent",
+          "due_at_local": "2026-10-09T17:00+08:00",
+          "splittable": null
+        },
+        {
+          "task_id": "task_02",
+          "title": "准备季度业务汇报数据和图表",
+          "description": "汇总指标并制作管理层可读的图表。",
+          "estimate_minutes": 150,
+          "priority": "high",
+          "due_at_local": "2026-10-16T17:00+08:00",
+          "splittable": null
+        },
+        {
+          "task_id": "task_03",
+          "title": "整理孩子体检资料和预约信息",
+          "description": "核对资料并确认预约所需文件。",
+          "estimate_minutes": 60,
+          "priority": "high",
+          "due_at_local": "2026-10-19T17:00+08:00",
+          "splittable": null
+        },
+        {
+          "task_id": "task_04",
+          "title": "工作时间致电办理家庭网络续约",
+          "description": "需在服务商工作时段内完成电话确认。",
+          "estimate_minutes": 45,
+          "priority": "medium",
+          "due_at_local": "2026-10-20T17:00+08:00",
+          "splittable": null
+        },
+        {
+          "task_id": "task_05",
+          "title": "提交季度报销凭证",
+          "description": "核对票据并完成报销提交。",
+          "estimate_minutes": 90,
+          "priority": "medium",
+          "due_at_local": "2026-10-21T17:00+08:00",
+          "splittable": null
+        },
+        {
+          "task_id": "task_06",
+          "title": "整理月底家庭预算和账单",
+          "description": "核对账单并更新家庭预算。",
+          "estimate_minutes": 90,
+          "priority": "low",
+          "due_at_local": "2026-10-23T17:00+08:00",
+          "splittable": null
+        }
+      ],
+      "events": [
+        {
+          "title": "孩子放学接送",
+          "start": "2026-10-08T16:30+08:00",
+          "end": "2026-10-08T17:30+08:00",
+          "immutable": true
+        },
+        {
+          "title": "幼儿园家长沟通",
+          "start": "2026-10-12T15:30+08:00",
+          "end": "2026-10-12T16:30+08:00",
+          "immutable": true
+        },
+        {
+          "title": "孩子看牙接送",
+          "start": "2026-10-19T16:00+08:00",
+          "end": "2026-10-19T17:00+08:00",
+          "immutable": true
+        },
+        {
+          "title": "季度部门业务评审",
+          "start": "2026-10-15T09:30+08:00",
+          "end": "2026-10-15T11:00+08:00",
+          "immutable": true
+        },
+        {
+          "title": "家庭午餐安排",
+          "start": "2026-10-22T12:00+08:00",
+          "end": "2026-10-22T13:00+08:00",
+          "immutable": true
+        }
+      ],
+      "A": {
+        "placements": [
+          {
+            "task_id": "task_01",
+            "segments": [
+              {
+                "start": "2026-10-06T09:00+08:00",
+                "end": "2026-10-06T10:00+08:00"
+              }
+            ]
+          },
+          {
+            "task_id": "task_02",
+            "segments": [
+              {
+                "start": "2026-10-13T09:00+08:00",
+                "end": "2026-10-13T11:30+08:00"
+              }
+            ]
+          },
+          {
+            "task_id": "task_03",
+            "segments": [
+              {
+                "start": "2026-10-14T09:00+08:00",
+                "end": "2026-10-14T10:00+08:00"
+              }
+            ]
+          },
+          {
+            "task_id": "task_04",
+            "segments": [
+              {
+                "start": "2026-10-15T13:00+08:00",
+                "end": "2026-10-15T13:45+08:00"
+              }
+            ]
+          },
+          {
+            "task_id": "task_05",
+            "segments": [
+              {
+                "start": "2026-10-16T09:00+08:00",
+                "end": "2026-10-16T10:30+08:00"
+              }
+            ]
+          },
+          {
+            "task_id": "task_06",
+            "segments": [
+              {
+                "start": "2026-10-20T09:00+08:00",
+                "end": "2026-10-20T10:30+08:00"
+              }
+            ]
+          }
+        ],
+        "unplaced_task_ids": []
+      },
+      "B": {
+        "placements": [
+          {
+            "task_id": "task_01",
+            "segments": [
+              {
+                "start": "2026-10-05T09:00+08:00",
+                "end": "2026-10-05T10:00+08:00"
+              }
+            ]
+          },
+          {
+            "task_id": "task_02",
+            "segments": [
+              {
+                "start": "2026-10-05T10:00+08:00",
+                "end": "2026-10-05T12:30+08:00"
+              }
+            ]
+          },
+          {
+            "task_id": "task_03",
+            "segments": [
+              {
+                "start": "2026-10-05T12:30+08:00",
+                "end": "2026-10-05T13:30+08:00"
+              }
+            ]
+          },
+          {
+            "task_id": "task_04",
+            "segments": [
+              {
+                "start": "2026-10-05T13:30+08:00",
+                "end": "2026-10-05T14:15+08:00"
+              }
+            ]
+          },
+          {
+            "task_id": "task_05",
+            "segments": [
+              {
+                "start": "2026-10-05T14:15+08:00",
+                "end": "2026-10-05T15:45+08:00"
+              }
+            ]
+          },
+          {
+            "task_id": "task_06",
+            "segments": [
+              {
+                "start": "2026-10-06T09:00+08:00",
+                "end": "2026-10-06T10:30+08:00"
+              }
+            ]
+          }
+        ],
+        "unplaced_task_ids": []
+      }
+    },
+    {
+      "case_id": "case_28d8c6c5998651f7",
+      "request": "请从 10 月 8 日到 11 月 1 日安排四周 10 公里训练计划：前 3 周每周两次训练，由轻松跑和基础力量逐步进阶到节奏跑/长距离；最后一周减量并确认比赛交通。每周的两次训练至少间隔一天；周末早上可以跑，工作日可以安排在下班后但不要晚于 20:00。不要把整个月训练都排在第一周，也给恢复留空间。",
+      "runtime": {
+        "now_local": "2026-10-05T08:00+08:00",
+        "timezone": "Asia/Shanghai",
+        "workday_start": "09:00",
+        "workday_end": "20:00"
+      },
+      "tasks": [
+        {
+          "task_id": "task_01",
+          "title": "第 1 周：轻松跑并记录体感",
+          "description": "低强度入门跑，记录体感和配速。",
+          "estimate_minutes": 45,
+          "priority": "medium",
+          "due_at_local": "2026-10-11T20:00+08:00",
+          "splittable": false
+        },
+        {
+          "task_id": "task_02",
+          "title": "第 1 周：基础力量和拉伸",
+          "description": "完成基础力量训练和跑后拉伸。",
+          "estimate_minutes": 30,
+          "priority": "medium",
+          "due_at_local": "2026-10-11T20:00+08:00",
+          "splittable": false
+        },
+        {
+          "task_id": "task_03",
+          "title": "第 2 周：节奏跑训练",
+          "description": "较轻的节奏训练，不追求比赛强度。",
+          "estimate_minutes": 60,
+          "priority": "medium",
+          "due_at_local": "2026-10-18T20:00+08:00",
+          "splittable": false
+        },
+        {
+          "task_id": "task_04",
+          "title": "第 2 周：灵活性和恢复训练",
+          "description": "安排低强度活动促进恢复。",
+          "estimate_minutes": 30,
+          "priority": "low",
+          "due_at_local": "2026-10-18T20:00+08:00",
+          "splittable": false
+        },
+        {
+          "task_id": "task_05",
+          "title": "第 3 周：渐进长距离跑",
+          "description": "本周期最长训练，之后留出恢复时间。",
+          "estimate_minutes": 75,
+          "priority": "high",
+          "due_at_local": "2026-10-25T20:00+08:00",
+          "splittable": false
+        },
+        {
+          "task_id": "task_06",
+          "title": "第 3 周：核心力量训练",
+          "description": "补足核心力量和稳定性练习。",
+          "estimate_minutes": 30,
+          "priority": "medium",
+          "due_at_local": "2026-10-25T20:00+08:00",
+          "splittable": false
+        },
+        {
+          "task_id": "task_07",
+          "title": "第 4 周：赛前减量轻松跑",
+          "description": "降低训练量，保持轻松状态。",
+          "estimate_minutes": 45,
+          "priority": "high",
+          "due_at_local": "2026-11-01T20:00+08:00",
+          "splittable": false
+        },
+        {
+          "task_id": "task_08",
+          "title": "第 4 周：确认比赛路线和交通",
+          "description": "确认比赛出发时间、路线和交通方案。",
+          "estimate_minutes": 45,
+          "priority": "high",
+          "due_at_local": "2026-11-01T20:00+08:00",
+          "splittable": null
+        }
+      ],
+      "events": [
+        {
+          "title": "团队例会",
+          "start": "2026-10-12T09:00+08:00",
+          "end": "2026-10-12T10:00+08:00",
+          "immutable": true
+        },
+        {
+          "title": "项目评审",
+          "start": "2026-10-20T09:30+08:00",
+          "end": "2026-10-20T10:30+08:00",
+          "immutable": true
+        },
+        {
+          "title": "团队月度回顾",
+          "start": "2026-10-27T09:30+08:00",
+          "end": "2026-10-27T10:30+08:00",
+          "immutable": true
+        },
+        {
+          "title": "发布同步会",
+          "start": "2026-10-30T09:30+08:00",
+          "end": "2026-10-30T10:30+08:00",
+          "immutable": true
+        }
+      ],
+      "A": {
+        "placements": [
+          {
+            "task_id": "task_01",
+            "segments": [
+              {
+                "start": "2026-10-08T11:45+08:00",
+                "end": "2026-10-08T12:30+08:00"
+              }
+            ]
+          },
+          {
+            "task_id": "task_02",
+            "segments": [
+              {
+                "start": "2026-10-08T12:30+08:00",
+                "end": "2026-10-08T13:00+08:00"
+              }
+            ]
+          },
+          {
+            "task_id": "task_03",
+            "segments": [
+              {
+                "start": "2026-10-08T13:00+08:00",
+                "end": "2026-10-08T14:00+08:00"
+              }
+            ]
+          },
+          {
+            "task_id": "task_04",
+            "segments": [
+              {
+                "start": "2026-10-08T14:30+08:00",
+                "end": "2026-10-08T15:00+08:00"
+              }
+            ]
+          },
+          {
+            "task_id": "task_05",
+            "segments": [
+              {
+                "start": "2026-10-08T09:00+08:00",
+                "end": "2026-10-08T10:15+08:00"
+              }
+            ]
+          },
+          {
+            "task_id": "task_06",
+            "segments": [
+              {
+                "start": "2026-10-08T14:00+08:00",
+                "end": "2026-10-08T14:30+08:00"
+              }
+            ]
+          },
+          {
+            "task_id": "task_07",
+            "segments": [
+              {
+                "start": "2026-10-08T10:15+08:00",
+                "end": "2026-10-08T11:00+08:00"
+              }
+            ]
+          },
+          {
+            "task_id": "task_08",
+            "segments": [
+              {
+                "start": "2026-10-08T11:00+08:00",
+                "end": "2026-10-08T11:45+08:00"
+              }
+            ]
+          }
+        ],
+        "unplaced_task_ids": []
+      },
+      "B": {
+        "placements": [
+          {
+            "task_id": "task_01",
+            "segments": [
+              {
+                "start": "2026-10-10T09:00+08:00",
+                "end": "2026-10-10T09:45+08:00"
+              }
+            ]
+          },
+          {
+            "task_id": "task_02",
+            "segments": [
+              {
+                "start": "2026-10-08T19:00+08:00",
+                "end": "2026-10-08T19:30+08:00"
+              }
+            ]
+          },
+          {
+            "task_id": "task_03",
+            "segments": [
+              {
+                "start": "2026-10-17T09:00+08:00",
+                "end": "2026-10-17T10:00+08:00"
+              }
+            ]
+          },
+          {
+            "task_id": "task_04",
+            "segments": [
+              {
+                "start": "2026-10-14T19:00+08:00",
+                "end": "2026-10-14T19:30+08:00"
+              }
+            ]
+          },
+          {
+            "task_id": "task_05",
+            "segments": [
+              {
+                "start": "2026-10-24T09:00+08:00",
+                "end": "2026-10-24T10:15+08:00"
+              }
+            ]
+          },
+          {
+            "task_id": "task_06",
+            "segments": [
+              {
+                "start": "2026-10-21T19:00+08:00",
+                "end": "2026-10-21T19:30+08:00"
+              }
+            ]
+          },
+          {
+            "task_id": "task_07",
+            "segments": [
+              {
+                "start": "2026-10-28T19:00+08:00",
+                "end": "2026-10-28T19:45+08:00"
+              }
+            ]
+          },
+          {
+            "task_id": "task_08",
+            "segments": [
+              {
+                "start": "2026-10-31T09:00+08:00",
+                "end": "2026-10-31T09:45+08:00"
+              }
+            ]
+          }
+        ],
+        "unplaced_task_ids": []
+      }
+    }
+  ]
+}

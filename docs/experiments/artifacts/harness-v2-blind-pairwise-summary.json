@@ -1,0 +1,561 @@
+{
+  "schema_version": "timeagent.blind-pairwise-summary.v1",
+  "case_count": 30,
+  "runs_per_variant_for_judging": 1,
+  "sampling_rule": "repeat 1 from each scenario was fixed before inspecting holdout outcomes",
+  "judge_roles": {
+    "user": {
+      "case_count": 30,
+      "wins": {
+        "agent": 29,
+        "tie": 1
+      },
+      "candidates": {
+        "agent": {
+          "mean_satisfaction": 4.8,
+          "median_satisfaction": 5.0,
+          "acceptance_rate": 0.9333,
+          "needs_change_rate": 0.0667,
+          "issue_tag_counts": {
+            "unplaced_task": 2,
+            "clarification": 2
+          }
+        },
+        "baseline": {
+          "mean_satisfaction": 2.0333,
+          "median_satisfaction": 2.0,
+          "acceptance_rate": 0.0333,
+          "needs_change_rate": 0.9667,
+          "issue_tag_counts": {
+            "sequence": 29,
+            "unclear_response": 29,
+            "unplaced_task": 2,
+            "concentration": 1
+          }
+        }
+      }
+    },
+    "adversarial": {
+      "case_count": 30,
+      "wins": {
+        "agent": 29,
+        "tie": 1
+      },
+      "candidates": {
+        "agent": {
+          "mean_satisfaction": 4.8333,
+          "median_satisfaction": 5.0,
+          "acceptance_rate": 0.9,
+          "needs_change_rate": 0.1,
+          "issue_tag_counts": {
+            "task_omission": 2,
+            "preference_unverified": 1
+          }
+        },
+        "baseline": {
+          "mean_satisfaction": 2.3333,
+          "median_satisfaction": 2.0,
+          "acceptance_rate": 0.0,
+          "needs_change_rate": 1.0,
+          "issue_tag_counts": {
+            "precedence_violation": 29,
+            "task_omission": 2,
+            "preference_unresolved": 1
+          }
+        }
+      }
+    }
+  },
+  "pairwise_preference_agreement": {
+    "agreements": 28,
+    "case_count": 30,
+    "rate": 0.9333
+  },
+  "per_case": {
+    "case_07770abbcf29": {
+      "user": {
+        "winner": "agent",
+        "agent_score": 5.0,
+        "baseline_score": 2.0,
+        "agent_accept": true,
+        "baseline_accept": false
+      },
+      "adversarial": {
+        "winner": "agent",
+        "agent_score": 5.0,
+        "baseline_score": 2.0,
+        "agent_accept": true,
+        "baseline_accept": false
+      }
+    },
+    "case_0a2d019e3aed": {
+      "user": {
+        "winner": "agent",
+        "agent_score": 5.0,
+        "baseline_score": 2.0,
+        "agent_accept": true,
+        "baseline_accept": false
+      },
+      "adversarial": {
+        "winner": "agent",
+        "agent_score": 5.0,
+        "baseline_score": 2.0,
+        "agent_accept": true,
+        "baseline_accept": false
+      }
+    },
+    "case_0de608b6145b": {
+      "user": {
+        "winner": "agent",
+        "agent_score": 5.0,
+        "baseline_score": 2.0,
+        "agent_accept": true,
+        "baseline_accept": false
+      },
+      "adversarial": {
+        "winner": "agent",
+        "agent_score": 5.0,
+        "baseline_score": 2.0,
+        "agent_accept": true,
+        "baseline_accept": false
+      }
+    },
+    "case_0eff1c8d25ca": {
+      "user": {
+        "winner": "agent",
+        "agent_score": 5.0,
+        "baseline_score": 2.0,
+        "agent_accept": true,
+        "baseline_accept": false
+      },
+      "adversarial": {
+        "winner": "agent",
+        "agent_score": 5.0,
+        "baseline_score": 2.0,
+        "agent_accept": true,
+        "baseline_accept": false
+      }
+    },
+    "case_0fee9f87f941": {
+      "user": {
+        "winner": "tie",
+        "agent_score": 2.0,
+        "baseline_score": 2.0,
+        "agent_accept": false,
+        "baseline_accept": false
+      },
+      "adversarial": {
+        "winner": "agent",
+        "agent_score": 3.0,
+        "baseline_score": 2.0,
+        "agent_accept": false,
+        "baseline_accept": false
+      }
+    },
+    "case_1238e10d4d8f": {
+      "user": {
+        "winner": "agent",
+        "agent_score": 5.0,
+        "baseline_score": 2.0,
+        "agent_accept": true,
+        "baseline_accept": false
+      },
+      "adversarial": {
+        "winner": "agent",
+        "agent_score": 5.0,
+        "baseline_score": 2.0,
+        "agent_accept": true,
+        "baseline_accept": false
+      }
+    },
+    "case_222a53f9528c": {
+      "user": {
+        "winner": "agent",
+        "agent_score": 5.0,
+        "baseline_score": 4.0,
+        "agent_accept": true,
+        "baseline_accept": true
+      },
+      "adversarial": {
+        "winner": "tie",
+        "agent_score": 4.0,
+        "baseline_score": 4.0,
+        "agent_accept": false,
+        "baseline_accept": false
+      }
+    },
+    "case_2ad8365c9510": {
+      "user": {
+        "winner": "agent",
+        "agent_score": 5.0,
+        "baseline_score": 2.0,
+        "agent_accept": true,
+        "baseline_accept": false
+      },
+      "adversarial": {
+        "winner": "agent",
+        "agent_score": 5.0,
+        "baseline_score": 2.0,
+        "agent_accept": true,
+        "baseline_accept": false
+      }
+    },
+    "case_2e3692b5b0ec": {
+      "user": {
+        "winner": "agent",
+        "agent_score": 5.0,
+        "baseline_score": 1.0,
+        "agent_accept": true,
+        "baseline_accept": false
+      },
+      "adversarial": {
+        "winner": "agent",
+        "agent_score": 5.0,
+        "baseline_score": 2.0,
+        "agent_accept": true,
+        "baseline_accept": false
+      }
+    },
+    "case_30b8f1711999": {
+      "user": {
+        "winner": "agent",
+        "agent_score": 5.0,
+        "baseline_score": 2.0,
+        "agent_accept": true,
+        "baseline_accept": false
+      },
+      "adversarial": {
+        "winner": "agent",
+        "agent_score": 5.0,
+        "baseline_score": 2.0,
+        "agent_accept": true,
+        "baseline_accept": false
+      }
+    },
+    "case_4fbc36a08cbc": {
+      "user": {
+        "winner": "agent",
+        "agent_score": 5.0,
+        "baseline_score": 2.0,
+        "agent_accept": true,
+        "baseline_accept": false
+      },
+      "adversarial": {
+        "winner": "agent",
+        "agent_score": 5.0,
+        "baseline_score": 3.0,
+        "agent_accept": true,
+        "baseline_accept": false
+      }
+    },
+    "case_56711430978a": {
+      "user": {
+        "winner": "agent",
+        "agent_score": 2.0,
+        "baseline_score": 1.0,
+        "agent_accept": false,
+        "baseline_accept": false
+      },
+      "adversarial": {
+        "winner": "agent",
+        "agent_score": 3.0,
+        "baseline_score": 2.0,
+        "agent_accept": false,
+        "baseline_accept": false
+      }
+    },
+    "case_5808e602fd5d": {
+      "user": {
+        "winner": "agent",
+        "agent_score": 5.0,
+        "baseline_score": 2.0,
+        "agent_accept": true,
+        "baseline_accept": false
+      },
+      "adversarial": {
+        "winner": "agent",
+        "agent_score": 5.0,
+        "baseline_score": 2.0,
+        "agent_accept": true,
+        "baseline_accept": false
+      }
+    },
+    "case_62b560a15e37": {
+      "user": {
+        "winner": "agent",
+        "agent_score": 5.0,
+        "baseline_score": 2.0,
+        "agent_accept": true,
+        "baseline_accept": false
+      },
+      "adversarial": {
+        "winner": "agent",
+        "agent_score": 5.0,
+        "baseline_score": 2.0,
+        "agent_accept": true,
+        "baseline_accept": false
+      }
+    },
+    "case_6ec57d5d4bf1": {
+      "user": {
+        "winner": "agent",
+        "agent_score": 5.0,
+        "baseline_score": 2.0,
+        "agent_accept": true,
+        "baseline_accept": false
+      },
+      "adversarial": {
+        "winner": "agent",
+        "agent_score": 5.0,
+        "baseline_score": 2.0,
+        "agent_accept": true,
+        "baseline_accept": false
+      }
+    },
+    "case_8fcf62c04a7b": {
+      "user": {
+        "winner": "agent",
+        "agent_score": 5.0,
+        "baseline_score": 2.0,
+        "agent_accept": true,
+        "baseline_accept": false
+      },
+      "adversarial": {
+        "winner": "agent",
+        "agent_score": 5.0,
+        "baseline_score": 3.0,
+        "agent_accept": true,
+        "baseline_accept": false
+      }
+    },
+    "case_91e4751af8e9": {
+      "user": {
+        "winner": "agent",
+        "agent_score": 5.0,
+        "baseline_score": 3.0,
+        "agent_accept": true,
+        "baseline_accept": false
+      },
+      "adversarial": {
+        "winner": "agent",
+        "agent_score": 5.0,
+        "baseline_score": 3.0,
+        "agent_accept": true,
+        "baseline_accept": false
+      }
+    },
+    "case_9ead459a941a": {
+      "user": {
+        "winner": "agent",
+        "agent_score": 5.0,
+        "baseline_score": 2.0,
+        "agent_accept": true,
+        "baseline_accept": false
+      },
+      "adversarial": {
+        "winner": "agent",
+        "agent_score": 5.0,
+        "baseline_score": 2.0,
+        "agent_accept": true,
+        "baseline_accept": false
+      }
+    },
+    "case_a590e30a5a18": {
+      "user": {
+        "winner": "agent",
+        "agent_score": 5.0,
+        "baseline_score": 2.0,
+        "agent_accept": true,
+        "baseline_accept": false
+      },
+      "adversarial": {
+        "winner": "agent",
+        "agent_score": 5.0,
+        "baseline_score": 3.0,
+        "agent_accept": true,
+        "baseline_accept": false
+      }
+    },
+    "case_ac604b72f65b": {
+      "user": {
+        "winner": "agent",
+        "agent_score": 5.0,
+        "baseline_score": 2.0,
+        "agent_accept": true,
+        "baseline_accept": false
+      },
+      "adversarial": {
+        "winner": "agent",
+        "agent_score": 5.0,
+        "baseline_score": 2.0,
+        "agent_accept": true,
+        "baseline_accept": false
+      }
+    },
+    "case_c02bf16318ed": {
+      "user": {
+        "winner": "agent",
+        "agent_score": 5.0,
+        "baseline_score": 2.0,
+        "agent_accept": true,
+        "baseline_accept": false
+      },
+      "adversarial": {
+        "winner": "agent",
+        "agent_score": 5.0,
+        "baseline_score": 2.0,
+        "agent_accept": true,
+        "baseline_accept": false
+      }
+    },
+    "case_ca4c11763e46": {
+      "user": {
+        "winner": "agent",
+        "agent_score": 5.0,
+        "baseline_score": 2.0,
+        "agent_accept": true,
+        "baseline_accept": false
+      },
+      "adversarial": {
+        "winner": "agent",
+        "agent_score": 5.0,
+        "baseline_score": 3.0,
+        "agent_accept": true,
+        "baseline_accept": false
+      }
+    },
+    "case_cab15bb57ba0": {
+      "user": {
+        "winner": "agent",
+        "agent_score": 5.0,
+        "baseline_score": 2.0,
+        "agent_accept": true,
+        "baseline_accept": false
+      },
+      "adversarial": {
+        "winner": "agent",
+        "agent_score": 5.0,
+        "baseline_score": 3.0,
+        "agent_accept": true,
+        "baseline_accept": false
+      }
+    },
+    "case_ce27c5957e2c": {
+      "user": {
+        "winner": "agent",
+        "agent_score": 5.0,
+        "baseline_score": 2.0,
+        "agent_accept": true,
+        "baseline_accept": false
+      },
+      "adversarial": {
+        "winner": "agent",
+        "agent_score": 5.0,
+        "baseline_score": 3.0,
+        "agent_accept": true,
+        "baseline_accept": false
+      }
+    },
+    "case_d1fc74e92535": {
+      "user": {
+        "winner": "agent",
+        "agent_score": 5.0,
+        "baseline_score": 2.0,
+        "agent_accept": true,
+        "baseline_accept": false
+      },
+      "adversarial": {
+        "winner": "agent",
+        "agent_score": 5.0,
+        "baseline_score": 2.0,
+        "agent_accept": true,
+        "baseline_accept": false
+      }
+    },
+    "case_d20458d021a7": {
+      "user": {
+        "winner": "agent",
+        "agent_score": 5.0,
+        "baseline_score": 2.0,
+        "agent_accept": true,
+        "baseline_accept": false
+      },
+      "adversarial": {
+        "winner": "agent",
+        "agent_score": 5.0,
+        "baseline_score": 2.0,
+        "agent_accept": true,
+        "baseline_accept": false
+      }
+    },
+    "case_ddaab468c5f7": {
+      "user": {
+        "winner": "agent",
+        "agent_score": 5.0,
+        "baseline_score": 2.0,
+        "agent_accept": true,
+        "baseline_accept": false
+      },
+      "adversarial": {
+        "winner": "agent",
+        "agent_score": 5.0,
+        "baseline_score": 2.0,
+        "agent_accept": true,
+        "baseline_accept": false
+      }
+    },
+    "case_ee5464c551ad": {
+      "user": {
+        "winner": "agent",
+        "agent_score": 5.0,
+        "baseline_score": 2.0,
+        "agent_accept": true,
+        "baseline_accept": false
+      },
+      "adversarial": {
+        "winner": "agent",
+        "agent_score": 5.0,
+        "baseline_score": 2.0,
+        "agent_accept": true,
+        "baseline_accept": false
+      }
+    },
+    "case_fa4420b5ba60": {
+      "user": {
+        "winner": "agent",
+        "agent_score": 5.0,
+        "baseline_score": 2.0,
+        "agent_accept": true,
+        "baseline_accept": false
+      },
+      "adversarial": {
+        "winner": "agent",
+        "agent_score": 5.0,
+        "baseline_score": 3.0,
+        "agent_accept": true,
+        "baseline_accept": false
+      }
+    },
+    "case_ff8a0c8a51c8": {
+      "user": {
+        "winner": "agent",
+        "agent_score": 5.0,
+        "baseline_score": 2.0,
+        "agent_accept": true,
+        "baseline_accept": false
+      },
+      "adversarial": {
+        "winner": "agent",
+        "agent_score": 5.0,
+        "baseline_score": 2.0,
+        "agent_accept": true,
+        "baseline_accept": false
+      }
+    }
+  },
+  "limitations": [
+    "Two model-agent judges are not substitutes for human users.",
+    "Blindness covers candidate source and evaluator expectations; the visible schedule and final response can still reveal style differences.",
+    "Each scenario is judged once; multi-run stability is measured separately."
+  ]
+}

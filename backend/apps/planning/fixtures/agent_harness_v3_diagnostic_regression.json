@@ -1,0 +1,2791 @@
+{
+  "schema_version": "agent-harness-scenarios-v1",
+  "scenarios": [
+    {
+      "id": "h03_01",
+      "split": "regression",
+      "name": "Synthetic planning scenario 01",
+      "anchor_at": "2026-10-04T17:00:00+08:00",
+      "timezone": "Europe/London",
+      "range_start": "2026-10-06T07:00:00+08:00",
+      "range_end": "2026-10-20T06:59:00+08:00",
+      "workday_start": "09:00",
+      "workday_end": "17:00",
+      "prompt": "请安排这两周的客户访谈分析工作。先整理访谈笔记，再归纳主要主题，最后写一页给团队看的结论；结论要等主题整理完再开始。每天最多 3.5 小时，只在工作日安排，分散到至少 3 个不同工作日。保留日历里的预约。",
+      "tasks": [
+        {
+          "key": "h03_01_notes",
+          "title": "整理客户访谈笔记",
+          "description": "标注 6 场访谈中的重复问题",
+          "estimated_minutes": 90,
+          "priority": "high",
+          "due_at": "2026-10-10T00:00:00+08:00"
+        },
+        {
+          "key": "h03_01_themes",
+          "title": "归纳访谈主题",
+          "description": "按用户目标和阻碍整理发现",
+          "estimated_minutes": 120,
+          "priority": "high",
+          "due_at": "2026-10-14T00:00:00+08:00"
+        },
+        {
+          "key": "h03_01_summary",
+          "title": "写团队研究摘要",
+          "description": "用一页总结主要发现和建议",
+          "estimated_minutes": 90,
+          "priority": "medium",
+          "due_at": "2026-10-18T00:00:00+08:00"
+        }
+      ],
+      "events": [
+        {
+          "title": "研究团队碰头",
+          "start_at": "2026-10-08T17:30:00+08:00",
+          "end_at": "2026-10-08T18:15:00+08:00",
+          "immutable": true
+        },
+        {
+          "title": "产品例会",
+          "start_at": "2026-10-14T21:00:00+08:00",
+          "end_at": "2026-10-14T22:00:00+08:00",
+          "immutable": true
+        }
+      ],
+      "expectations": {
+        "hard": [
+          "within_range",
+          "respect_deadlines",
+          "no_overlap_with_immutable_events",
+          "within_work_hours",
+          "max_daily_minutes",
+          "no_weekend"
+        ],
+        "soft": [
+          "precedence",
+          "min_distinct_days",
+          "max_daily_minutes",
+          "max_unplaced"
+        ],
+        "no_weekend": true,
+        "max_daily_minutes": 210,
+        "min_distinct_days": 3,
+        "max_unplaced": 0,
+        "precedence": [
+          {
+            "before": "h03_01_notes",
+            "after": "h03_01_themes",
+            "min_gap_days": 0
+          },
+          {
+            "before": "h03_01_themes",
+            "after": "h03_01_summary",
+            "min_gap_days": 0
+          }
+        ]
+      },
+      "request_contract": {
+        "intent": "schedule_plan",
+        "intent_quote": "请安排",
+        "write_policy": "allow_schedule_draft"
+      }
+    },
+    {
+      "id": "h03_02",
+      "split": "regression",
+      "name": "Synthetic planning scenario 02",
+      "anchor_at": "2026-10-08T01:00:00+08:00",
+      "timezone": "America/Los_Angeles",
+      "range_start": "2026-10-09T15:00:00+08:00",
+      "range_end": "2026-10-30T14:59:00+08:00",
+      "workday_start": "08:30",
+      "workday_end": "16:30",
+      "prompt": "我得在月底前处理搬家杂事：先确定货车和搬运时段，再打包书房，最后更新地址和水电账户。每天不超过 4 小时，尽量工作日完成，至少分 3 天做。周二上午已经约了房东，周五下午有电话。",
+      "tasks": [
+        {
+          "key": "h03_02_truck",
+          "title": "确认搬家车辆和时段",
+          "description": "比较两家报价并预订合适时段",
+          "estimated_minutes": 60,
+          "priority": "urgent",
+          "due_at": "2026-10-15T07:30:00+08:00"
+        },
+        {
+          "key": "h03_02_study",
+          "title": "打包书房物品",
+          "description": "给箱子贴标签并单独放好常用物品",
+          "estimated_minutes": 150,
+          "priority": "high",
+          "due_at": "2026-10-22T07:30:00+08:00"
+        },
+        {
+          "key": "h03_02_accounts",
+          "title": "更新邮寄地址和水电账户",
+          "description": "提交地址变更并确认新住址的服务日期",
+          "estimated_minutes": 90,
+          "priority": "medium",
+          "due_at": "2026-10-28T07:30:00+08:00"
+        }
+      ],
+      "events": [
+        {
+          "title": "和房东交接沟通",
+          "start_at": "2026-10-14T01:00:00+08:00",
+          "end_at": "2026-10-14T02:00:00+08:00",
+          "immutable": true
+        },
+        {
+          "title": "搬家服务电话",
+          "start_at": "2026-10-18T05:30:00+08:00",
+          "end_at": "2026-10-18T06:15:00+08:00",
+          "immutable": true
+        }
+      ],
+      "expectations": {
+        "hard": [
+          "within_range",
+          "respect_deadlines",
+          "no_overlap_with_immutable_events",
+          "within_work_hours",
+          "max_daily_minutes",
+          "no_weekend"
+        ],
+        "soft": [
+          "precedence",
+          "min_distinct_days",
+          "max_daily_minutes",
+          "max_unplaced"
+        ],
+        "no_weekend": true,
+        "max_daily_minutes": 240,
+        "min_distinct_days": 3,
+        "max_unplaced": 0,
+        "precedence": [
+          {
+            "before": "h03_02_truck",
+            "after": "h03_02_study",
+            "min_gap_days": 0
+          },
+          {
+            "before": "h03_02_study",
+            "after": "h03_02_accounts",
+            "min_gap_days": 0
+          }
+        ]
+      },
+      "request_contract": {
+        "intent": "read_only_answer",
+        "intent_quote": "确定",
+        "write_policy": "read_only"
+      }
+    },
+    {
+      "id": "h03_03",
+      "split": "regression",
+      "name": "Synthetic planning scenario 03",
+      "anchor_at": "2026-10-10T12:30:00+08:00",
+      "timezone": "Asia/Kolkata",
+      "range_start": "2026-10-12T02:30:00+08:00",
+      "range_end": "2026-10-22T02:29:00+08:00",
+      "workday_start": "10:00",
+      "workday_end": "18:00",
+      "prompt": "帮我把课程作业排一下：先读完指定材料并做笔记，再写初稿，最后校对引用。初稿必须在周末前有一版；每天最多 3 小时，只排工作日，至少用 3 天，保留导师讨论时间。",
+      "tasks": [
+        {
+          "key": "h03_03_reading",
+          "title": "阅读课程材料并记笔记",
+          "description": "完成指定章节并列出关键论点",
+          "estimated_minutes": 120,
+          "priority": "high",
+          "due_at": "2026-10-15T20:30:00+08:00"
+        },
+        {
+          "key": "h03_03_draft",
+          "title": "撰写课程论文初稿",
+          "description": "按课程题目搭建论证并完成初稿",
+          "estimated_minutes": 180,
+          "priority": "high",
+          "due_at": "2026-10-19T20:30:00+08:00"
+        },
+        {
+          "key": "h03_03_citations",
+          "title": "校对引用格式",
+          "description": "核对引用和参考文献格式",
+          "estimated_minutes": 60,
+          "priority": "medium",
+          "due_at": "2026-10-21T20:30:00+08:00"
+        }
+      ],
+      "events": [
+        {
+          "title": "导师讨论",
+          "start_at": "2026-10-16T17:30:00+08:00",
+          "end_at": "2026-10-16T18:30:00+08:00",
+          "immutable": true
+        }
+      ],
+      "expectations": {
+        "hard": [
+          "within_range",
+          "respect_deadlines",
+          "no_overlap_with_immutable_events",
+          "within_work_hours",
+          "max_daily_minutes",
+          "no_weekend"
+        ],
+        "soft": [
+          "precedence",
+          "min_distinct_days",
+          "max_daily_minutes",
+          "max_unplaced"
+        ],
+        "no_weekend": true,
+        "max_daily_minutes": 180,
+        "min_distinct_days": 3,
+        "max_unplaced": 0,
+        "precedence": [
+          {
+            "before": "h03_03_reading",
+            "after": "h03_03_draft",
+            "min_gap_days": 0
+          },
+          {
+            "before": "h03_03_draft",
+            "after": "h03_03_citations",
+            "min_gap_days": 0
+          }
+        ]
+      },
+      "request_contract": {
+        "intent": "schedule_plan",
+        "intent_quote": "帮我把课程作业排一下",
+        "write_policy": "allow_schedule_draft"
+      }
+    },
+    {
+      "id": "h03_04",
+      "split": "regression",
+      "name": "Synthetic planning scenario 04",
+      "anchor_at": "2026-10-13T07:00:00+08:00",
+      "timezone": "Australia/Sydney",
+      "range_start": "2026-10-14T21:00:00+08:00",
+      "range_end": "2026-11-11T20:59:00+08:00",
+      "workday_start": "09:00",
+      "workday_end": "17:30",
+      "prompt": "我们要准备社区义卖。请先确认场地和桌椅，再联系摊主，之后做宣传单，最后整理活动当天的物资清单。前两件本周先落实；宣传单等摊位名单确认后再做。每天最多 4 小时，至少安排在 4 个工作日，周末留给家人。",
+      "tasks": [
+        {
+          "key": "h03_04_venue",
+          "title": "确认义卖场地和桌椅",
+          "description": "与社区中心确认可用日期和桌椅数量",
+          "estimated_minutes": 60,
+          "priority": "urgent",
+          "due_at": "2026-10-20T14:30:00+08:00"
+        },
+        {
+          "key": "h03_04_vendors",
+          "title": "联系并确认摊主",
+          "description": "收集摊主的商品和用电需求",
+          "estimated_minutes": 120,
+          "priority": "high",
+          "due_at": "2026-10-26T14:30:00+08:00"
+        },
+        {
+          "key": "h03_04_flyer",
+          "title": "制作义卖宣传单",
+          "description": "整理时间地点和参与方式",
+          "estimated_minutes": 120,
+          "priority": "medium",
+          "due_at": "2026-11-04T14:30:00+08:00"
+        },
+        {
+          "key": "h03_04_supplies",
+          "title": "准备活动物资清单",
+          "description": "核对桌布、标牌和零钱等物品",
+          "estimated_minutes": 90,
+          "priority": "medium",
+          "due_at": "2026-11-09T14:30:00+08:00"
+        }
+      ],
+      "events": [
+        {
+          "title": "社区中心电话",
+          "start_at": "2026-10-17T08:00:00+08:00",
+          "end_at": "2026-10-17T08:30:00+08:00",
+          "immutable": true
+        },
+        {
+          "title": "志愿者协调会",
+          "start_at": "2026-10-24T13:00:00+08:00",
+          "end_at": "2026-10-24T14:00:00+08:00",
+          "immutable": true
+        },
+        {
+          "title": "场地复核",
+          "start_at": "2026-11-05T07:00:00+08:00",
+          "end_at": "2026-11-05T07:45:00+08:00",
+          "immutable": true
+        }
+      ],
+      "expectations": {
+        "hard": [
+          "within_range",
+          "respect_deadlines",
+          "no_overlap_with_immutable_events",
+          "within_work_hours",
+          "max_daily_minutes",
+          "no_weekend"
+        ],
+        "soft": [
+          "precedence",
+          "min_distinct_days",
+          "max_daily_minutes",
+          "max_unplaced"
+        ],
+        "no_weekend": true,
+        "max_daily_minutes": 240,
+        "min_distinct_days": 4,
+        "max_unplaced": 0,
+        "precedence": [
+          {
+            "before": "h03_04_venue",
+            "after": "h03_04_vendors",
+            "min_gap_days": 0
+          },
+          {
+            "before": "h03_04_vendors",
+            "after": "h03_04_flyer",
+            "min_gap_days": 0
+          },
+          {
+            "before": "h03_04_flyer",
+            "after": "h03_04_supplies",
+            "min_gap_days": 0
+          }
+        ]
+      },
+      "request_contract": {
+        "intent": "schedule_plan",
+        "intent_quote": "安排",
+        "write_policy": "allow_schedule_draft"
+      }
+    },
+    {
+      "id": "h03_05",
+      "split": "regression",
+      "name": "Synthetic planning scenario 05",
+      "anchor_at": "2026-10-16T22:00:00+08:00",
+      "timezone": "America/New_York",
+      "range_start": "2026-10-18T12:00:00+08:00",
+      "range_end": "2026-11-01T11:59:00+08:00",
+      "workday_start": "09:00",
+      "workday_end": "17:00",
+      "prompt": "我想在两周内把家庭保险续约材料准备好：找出房屋维修收据、核对保单信息，再填写续约表。资料核对完成后再填表。每天最多 3 小时，不排周末，至少分 3 天完成；保留周一的保险经纪人电话。",
+      "tasks": [
+        {
+          "key": "h03_05_receipts",
+          "title": "整理维修收据",
+          "description": "找齐本年度维修及设备收据",
+          "estimated_minutes": 90,
+          "priority": "high",
+          "due_at": "2026-10-23T05:00:00+08:00"
+        },
+        {
+          "key": "h03_05_policy",
+          "title": "核对保单信息",
+          "description": "核实房屋地址、联系人和保障项目",
+          "estimated_minutes": 60,
+          "priority": "high",
+          "due_at": "2026-10-25T05:00:00+08:00"
+        },
+        {
+          "key": "h03_05_renewal",
+          "title": "填写保险续约表",
+          "description": "按核实的信息提交续约表",
+          "estimated_minutes": 90,
+          "priority": "urgent",
+          "due_at": "2026-10-31T05:00:00+08:00"
+        }
+      ],
+      "events": [
+        {
+          "title": "保险经纪人电话",
+          "start_at": "2026-10-22T01:00:00+08:00",
+          "end_at": "2026-10-22T01:45:00+08:00",
+          "immutable": true
+        }
+      ],
+      "expectations": {
+        "hard": [
+          "within_range",
+          "respect_deadlines",
+          "no_overlap_with_immutable_events",
+          "within_work_hours",
+          "max_daily_minutes",
+          "no_weekend"
+        ],
+        "soft": [
+          "precedence",
+          "min_distinct_days",
+          "max_daily_minutes",
+          "max_unplaced"
+        ],
+        "no_weekend": true,
+        "max_daily_minutes": 180,
+        "min_distinct_days": 3,
+        "max_unplaced": 0,
+        "precedence": [
+          {
+            "before": "h03_05_receipts",
+            "after": "h03_05_policy",
+            "min_gap_days": 0
+          },
+          {
+            "before": "h03_05_policy",
+            "after": "h03_05_renewal",
+            "min_gap_days": 0
+          }
+        ]
+      },
+      "request_contract": {
+        "intent": "schedule_plan",
+        "intent_quote": "两周内把家庭保险续约材料准备好",
+        "write_policy": "allow_schedule_draft"
+      }
+    },
+    {
+      "id": "h03_06",
+      "split": "regression",
+      "name": "Synthetic planning scenario 06",
+      "anchor_at": "2026-10-19T09:00:00+08:00",
+      "timezone": "Asia/Tokyo",
+      "range_start": "2026-10-20T23:00:00+08:00",
+      "range_end": "2026-10-27T22:59:00+08:00",
+      "workday_start": "09:00",
+      "workday_end": "18:00",
+      "prompt": "下周有学校艺术展，请排好准备事项：先整理孩子的作品照片，再选出要展示的作品，最后打印标签和作品说明。每天最多 4 小时，不安排周末，至少用 3 个工作日。周三下午有家长会。",
+      "tasks": [
+        {
+          "key": "h03_06_photos",
+          "title": "整理作品照片",
+          "description": "把本学期作品拍照并按日期归档",
+          "estimated_minutes": 90,
+          "priority": "medium",
+          "due_at": "2026-10-23T17:00:00+08:00"
+        },
+        {
+          "key": "h03_06_selection",
+          "title": "挑选展出作品",
+          "description": "和孩子一起选出 5 件作品",
+          "estimated_minutes": 60,
+          "priority": "high",
+          "due_at": "2026-10-25T17:00:00+08:00"
+        },
+        {
+          "key": "h03_06_labels",
+          "title": "打印作品标签和说明",
+          "description": "为每件作品准备姓名和简短说明",
+          "estimated_minutes": 90,
+          "priority": "high",
+          "due_at": "2026-10-27T17:00:00+08:00"
+        }
+      ],
+      "events": [
+        {
+          "title": "家长会",
+          "start_at": "2026-10-23T13:00:00+08:00",
+          "end_at": "2026-10-23T14:00:00+08:00",
+          "immutable": true
+        }
+      ],
+      "expectations": {
+        "hard": [
+          "within_range",
+          "respect_deadlines",
+          "no_overlap_with_immutable_events",
+          "within_work_hours",
+          "max_daily_minutes",
+          "no_weekend"
+        ],
+        "soft": [
+          "precedence",
+          "min_distinct_days",
+          "max_daily_minutes",
+          "max_unplaced"
+        ],
+        "no_weekend": true,
+        "max_daily_minutes": 240,
+        "min_distinct_days": 3,
+        "max_unplaced": 0,
+        "precedence": [
+          {
+            "before": "h03_06_photos",
+            "after": "h03_06_selection",
+            "min_gap_days": 0
+          },
+          {
+            "before": "h03_06_selection",
+            "after": "h03_06_labels",
+            "min_gap_days": 0
+          }
+        ]
+      },
+      "request_contract": {
+        "intent": "schedule_plan",
+        "intent_quote": "安排",
+        "write_policy": "allow_schedule_draft"
+      }
+    },
+    {
+      "id": "h03_07",
+      "split": "regression",
+      "name": "Synthetic planning scenario 07",
+      "anchor_at": "2026-10-22T16:00:00+08:00",
+      "timezone": "Europe/Berlin",
+      "range_start": "2026-10-24T06:00:00+08:00",
+      "range_end": "2026-11-13T06:59:00+08:00",
+      "workday_start": "08:00",
+      "workday_end": "16:00",
+      "prompt": "请帮我准备一个岗位申请：先更新简历里的最近项目，再针对岗位写求职信，最后请朋友帮忙检查。求职信等简历更新后再写。每天最多 3 小时，尽量工作日安排、分散到至少 3 天；周四上午有复诊。",
+      "tasks": [
+        {
+          "key": "h03_07_resume",
+          "title": "更新项目经历简历",
+          "description": "补上最近完成的数据分析项目",
+          "estimated_minutes": 120,
+          "priority": "high",
+          "due_at": "2026-10-31T23:00:00+08:00"
+        },
+        {
+          "key": "h03_07_letter",
+          "title": "撰写岗位求职信",
+          "description": "结合职位描述说明相关经验",
+          "estimated_minutes": 90,
+          "priority": "urgent",
+          "due_at": "2026-11-06T23:00:00+08:00"
+        },
+        {
+          "key": "h03_07_review",
+          "title": "请朋友检查申请材料",
+          "description": "收集修改意见并完成最后校对",
+          "estimated_minutes": 60,
+          "priority": "medium",
+          "due_at": "2026-11-11T23:00:00+08:00"
+        }
+      ],
+      "events": [
+        {
+          "title": "复诊",
+          "start_at": "2026-10-29T16:00:00+08:00",
+          "end_at": "2026-10-29T17:00:00+08:00",
+          "immutable": true
+        }
+      ],
+      "expectations": {
+        "hard": [
+          "within_range",
+          "respect_deadlines",
+          "no_overlap_with_immutable_events",
+          "within_work_hours",
+          "max_daily_minutes",
+          "no_weekend"
+        ],
+        "soft": [
+          "precedence",
+          "min_distinct_days",
+          "max_daily_minutes",
+          "max_unplaced"
+        ],
+        "no_weekend": true,
+        "max_daily_minutes": 180,
+        "min_distinct_days": 3,
+        "max_unplaced": 0,
+        "precedence": [
+          {
+            "before": "h03_07_resume",
+            "after": "h03_07_letter",
+            "min_gap_days": 0
+          },
+          {
+            "before": "h03_07_letter",
+            "after": "h03_07_review",
+            "min_gap_days": 0
+          }
+        ]
+      },
+      "request_contract": {
+        "intent": "schedule_plan",
+        "intent_quote": "安排",
+        "write_policy": "allow_schedule_draft"
+      }
+    },
+    {
+      "id": "h03_08",
+      "split": "regression",
+      "name": "Synthetic planning scenario 08",
+      "anchor_at": "2026-10-25T23:00:00+08:00",
+      "timezone": "America/Chicago",
+      "range_start": "2026-10-27T13:00:00+08:00",
+      "range_end": "2026-11-14T13:59:00+08:00",
+      "workday_start": "09:00",
+      "workday_end": "17:00",
+      "prompt": "需要完成季度部门预算的准备：收集各组数据，核对差异，再整理成一页摘要。数据收齐后才能核对。10 月 30 日到 11 月 2 日我每天只能在 11:00–15:00 做计划任务。每天总计不超过 3 小时，不排周末，至少分 3 天。保留现有预算会。",
+      "tasks": [
+        {
+          "key": "h03_08_collect",
+          "title": "收集小组预算数据",
+          "description": "请三个小组确认下月支出预测",
+          "estimated_minutes": 90,
+          "priority": "high",
+          "due_at": "2026-11-03T07:00:00+08:00"
+        },
+        {
+          "key": "h03_08_check",
+          "title": "核对预算差异",
+          "description": "标出与上季度相比变化较大的项目",
+          "estimated_minutes": 90,
+          "priority": "high",
+          "due_at": "2026-11-09T07:00:00+08:00"
+        },
+        {
+          "key": "h03_08_brief",
+          "title": "整理预算摘要",
+          "description": "向经理说明主要变化和待确认事项",
+          "estimated_minutes": 60,
+          "priority": "medium",
+          "due_at": "2026-11-14T07:00:00+08:00"
+        }
+      ],
+      "events": [
+        {
+          "title": "预算会",
+          "start_at": "2026-11-01T03:00:00+08:00",
+          "end_at": "2026-11-01T04:00:00+08:00",
+          "immutable": true
+        },
+        {
+          "title": "经理一对一",
+          "start_at": "2026-11-09T00:00:00+08:00",
+          "end_at": "2026-11-09T00:30:00+08:00",
+          "immutable": true
+        }
+      ],
+      "expectations": {
+        "hard": [
+          "within_range",
+          "respect_deadlines",
+          "no_overlap_with_immutable_events",
+          "within_work_hours",
+          "max_daily_minutes",
+          "no_weekend",
+          "daily_availability_windows"
+        ],
+        "soft": [
+          "precedence",
+          "min_distinct_days",
+          "max_daily_minutes",
+          "max_unplaced"
+        ],
+        "no_weekend": true,
+        "max_daily_minutes": 180,
+        "min_distinct_days": 3,
+        "max_unplaced": 0,
+        "precedence": [
+          {
+            "before": "h03_08_collect",
+            "after": "h03_08_check",
+            "min_gap_days": 0
+          },
+          {
+            "before": "h03_08_check",
+            "after": "h03_08_brief",
+            "min_gap_days": 0
+          }
+        ],
+        "daily_availability_windows": [
+          {
+            "start_date": "2026-10-30",
+            "end_date": "2026-11-02",
+            "daily_start": "11:00",
+            "daily_end": "15:00"
+          }
+        ]
+      },
+      "request_contract": {
+        "intent": "schedule_plan",
+        "intent_quote": "至少分 3 天",
+        "write_policy": "allow_schedule_draft"
+      }
+    },
+    {
+      "id": "h03_09",
+      "split": "regression",
+      "name": "Synthetic planning scenario 09",
+      "anchor_at": "2026-10-29T01:00:00+08:00",
+      "timezone": "America/Vancouver",
+      "range_start": "2026-10-30T15:00:00+08:00",
+      "range_end": "2026-11-13T14:59:00+08:00",
+      "workday_start": "08:30",
+      "workday_end": "16:30",
+      "prompt": "月底前要帮父母准备医疗预约：先列出目前用药和过敏情况，再整理历次检查报告，最后给诊所打电话确认要带的资料。清单和报告准备好后再打电话。每天最多 3.5 小时，只排工作日，至少分 3 天；保留已经约好的家庭医生回访。",
+      "tasks": [
+        {
+          "key": "h03_09_medlist",
+          "title": "整理用药和过敏清单",
+          "description": "核对药瓶标签并记录过敏信息",
+          "estimated_minutes": 60,
+          "priority": "high",
+          "due_at": "2026-11-05T07:30:00+08:00"
+        },
+        {
+          "key": "h03_09_records",
+          "title": "整理历次检查报告",
+          "description": "按年份收好化验和影像报告",
+          "estimated_minutes": 120,
+          "priority": "high",
+          "due_at": "2026-11-09T07:30:00+08:00"
+        },
+        {
+          "key": "h03_09_clinic",
+          "title": "致电诊所确认材料",
+          "description": "问清预约当天需要携带哪些文件",
+          "estimated_minutes": 45,
+          "priority": "urgent",
+          "due_at": "2026-11-13T07:30:00+08:00"
+        }
+      ],
+      "events": [
+        {
+          "title": "家庭医生回访",
+          "start_at": "2026-11-08T02:00:00+08:00",
+          "end_at": "2026-11-08T02:30:00+08:00",
+          "immutable": true
+        }
+      ],
+      "expectations": {
+        "hard": [
+          "within_range",
+          "respect_deadlines",
+          "no_overlap_with_immutable_events",
+          "within_work_hours",
+          "max_daily_minutes",
+          "no_weekend"
+        ],
+        "soft": [
+          "precedence",
+          "min_distinct_days",
+          "max_daily_minutes",
+          "max_unplaced"
+        ],
+        "no_weekend": true,
+        "max_daily_minutes": 210,
+        "min_distinct_days": 3,
+        "max_unplaced": 0,
+        "precedence": [
+          {
+            "before": "h03_09_medlist",
+            "after": "h03_09_clinic",
+            "min_gap_days": 0
+          },
+          {
+            "before": "h03_09_records",
+            "after": "h03_09_clinic",
+            "min_gap_days": 0
+          }
+        ]
+      },
+      "request_contract": {
+        "intent": "read_only_answer",
+        "intent_quote": "列出",
+        "write_policy": "read_only"
+      }
+    },
+    {
+      "id": "h03_10",
+      "split": "regression",
+      "name": "Synthetic planning scenario 10",
+      "anchor_at": "2026-10-31T17:00:00+08:00",
+      "timezone": "Europe/Paris",
+      "range_start": "2026-11-02T07:00:00+08:00",
+      "range_end": "2026-11-26T06:59:00+08:00",
+      "workday_start": "09:00",
+      "workday_end": "17:00",
+      "prompt": "我们要做一份小型顾客调查。先把问卷问题定稿并征求同事意见，再发问卷，最后汇总回复。发出问卷至少要等问题定稿。每天不超过 4 小时、至少分 4 个工作日，周末不要安排。11 月 9 日到 11 日我只能在 13:00–17:00 工作。",
+      "tasks": [
+        {
+          "key": "h03_10_survey",
+          "title": "定稿顾客问卷",
+          "description": "把退货体验和使用习惯的问题写清楚",
+          "estimated_minutes": 90,
+          "priority": "high",
+          "due_at": "2026-11-09T00:00:00+08:00"
+        },
+        {
+          "key": "h03_10_launch",
+          "title": "发送顾客问卷",
+          "description": "向最近购买过的顾客发送链接",
+          "estimated_minutes": 45,
+          "priority": "high",
+          "due_at": "2026-11-16T00:00:00+08:00"
+        },
+        {
+          "key": "h03_10_results",
+          "title": "汇总调查回复",
+          "description": "统计主要选择并摘录常见意见",
+          "estimated_minutes": 150,
+          "priority": "medium",
+          "due_at": "2026-11-24T00:00:00+08:00"
+        }
+      ],
+      "events": [
+        {
+          "title": "问卷评审",
+          "start_at": "2026-11-05T22:00:00+08:00",
+          "end_at": "2026-11-05T22:45:00+08:00",
+          "immutable": true
+        },
+        {
+          "title": "运营例会",
+          "start_at": "2026-11-14T17:00:00+08:00",
+          "end_at": "2026-11-14T18:00:00+08:00",
+          "immutable": true
+        }
+      ],
+      "expectations": {
+        "hard": [
+          "within_range",
+          "respect_deadlines",
+          "no_overlap_with_immutable_events",
+          "within_work_hours",
+          "max_daily_minutes",
+          "no_weekend",
+          "daily_availability_windows"
+        ],
+        "soft": [
+          "precedence",
+          "min_distinct_days",
+          "max_daily_minutes",
+          "max_unplaced"
+        ],
+        "no_weekend": true,
+        "max_daily_minutes": 240,
+        "min_distinct_days": 4,
+        "max_unplaced": 0,
+        "precedence": [
+          {
+            "before": "h03_10_survey",
+            "after": "h03_10_launch",
+            "min_gap_days": 0
+          },
+          {
+            "before": "h03_10_launch",
+            "after": "h03_10_results",
+            "min_gap_days": 0
+          }
+        ],
+        "daily_availability_windows": [
+          {
+            "start_date": "2026-11-09",
+            "end_date": "2026-11-11",
+            "daily_start": "13:00",
+            "daily_end": "17:00"
+          }
+        ]
+      },
+      "request_contract": {
+        "intent": "read_only_answer",
+        "intent_quote": "意见",
+        "write_policy": "read_only"
+      }
+    },
+    {
+      "id": "h03_11",
+      "split": "regression",
+      "name": "Synthetic planning scenario 11",
+      "anchor_at": "2026-11-03T10:00:00+08:00",
+      "timezone": "Asia/Singapore",
+      "range_start": "2026-11-05T00:00:00+08:00",
+      "range_end": "2026-11-16T23:59:00+08:00",
+      "workday_start": "09:30",
+      "workday_end": "18:00",
+      "prompt": "请安排搬家后恢复日常的几项事：清点厨房箱子，安装路由器，向物业登记门禁卡。门禁登记要等租约信息核对好。每天最多 3.5 小时，至少分 3 天，周末不排。周二有宽带师傅上门，周四有物业交接。",
+      "tasks": [
+        {
+          "key": "h03_11_kitchen",
+          "title": "清点厨房搬家箱",
+          "description": "找出锅具、餐具和常用食材",
+          "estimated_minutes": 90,
+          "priority": "medium",
+          "due_at": "2026-11-10T18:00:00+08:00"
+        },
+        {
+          "key": "h03_11_router",
+          "title": "安装并测试路由器",
+          "description": "连接设备并确认房间网络覆盖",
+          "estimated_minutes": 60,
+          "priority": "high",
+          "due_at": "2026-11-11T18:00:00+08:00"
+        },
+        {
+          "key": "h03_11_access",
+          "title": "登记物业门禁卡",
+          "description": "提交租住信息并领取门禁卡",
+          "estimated_minutes": 45,
+          "priority": "high",
+          "due_at": "2026-11-15T18:00:00+08:00"
+        }
+      ],
+      "events": [
+        {
+          "title": "宽带师傅上门",
+          "start_at": "2026-11-09T10:00:00+08:00",
+          "end_at": "2026-11-09T11:30:00+08:00",
+          "immutable": true
+        },
+        {
+          "title": "物业交接",
+          "start_at": "2026-11-13T15:00:00+08:00",
+          "end_at": "2026-11-13T15:45:00+08:00",
+          "immutable": true
+        }
+      ],
+      "expectations": {
+        "hard": [
+          "within_range",
+          "respect_deadlines",
+          "no_overlap_with_immutable_events",
+          "within_work_hours",
+          "max_daily_minutes",
+          "no_weekend"
+        ],
+        "soft": [
+          "precedence",
+          "min_distinct_days",
+          "max_daily_minutes",
+          "max_unplaced"
+        ],
+        "no_weekend": true,
+        "max_daily_minutes": 210,
+        "min_distinct_days": 3,
+        "max_unplaced": 0,
+        "precedence": [
+          {
+            "before": "h03_11_kitchen",
+            "after": "h03_11_access",
+            "min_gap_days": 0
+          }
+        ]
+      },
+      "request_contract": {
+        "intent": "schedule_plan",
+        "intent_quote": "请安排",
+        "write_policy": "allow_schedule_draft"
+      }
+    },
+    {
+      "id": "h03_12",
+      "split": "regression",
+      "name": "Synthetic planning scenario 12",
+      "anchor_at": "2026-11-07T01:00:00+08:00",
+      "timezone": "America/Denver",
+      "range_start": "2026-11-08T15:00:00+08:00",
+      "range_end": "2026-12-06T14:59:00+08:00",
+      "workday_start": "08:00",
+      "workday_end": "16:00",
+      "prompt": "我打算参加一个 11 月底的资格考试，请按复习顺序安排：先复习基础章节，再做练习题，最后做一次完整模拟并复盘错题。每天最多 4 小时，至少分 4 天，只排工作日。11 月 16 日到 20 日我有培训，那几天只方便 12:00–16:00。",
+      "tasks": [
+        {
+          "key": "h03_12_basics",
+          "title": "复习考试基础章节",
+          "description": "梳理核心定义和常见公式",
+          "estimated_minutes": 150,
+          "priority": "high",
+          "due_at": "2026-11-17T07:00:00+08:00"
+        },
+        {
+          "key": "h03_12_practice",
+          "title": "完成分主题练习题",
+          "description": "先做基础题并标记不确定的题目",
+          "estimated_minutes": 150,
+          "priority": "high",
+          "due_at": "2026-11-26T07:00:00+08:00"
+        },
+        {
+          "key": "h03_12_mock",
+          "title": "完成一次模拟考试",
+          "description": "按正式考试时长完成整套题",
+          "estimated_minutes": 180,
+          "priority": "urgent",
+          "due_at": "2026-12-02T07:00:00+08:00"
+        },
+        {
+          "key": "h03_12_review",
+          "title": "整理模拟错题",
+          "description": "记录错误原因和最后需要复习的知识点",
+          "estimated_minutes": 90,
+          "priority": "high",
+          "due_at": "2026-12-06T07:00:00+08:00"
+        }
+      ],
+      "events": [
+        {
+          "title": "培训签到沟通",
+          "start_at": "2026-11-18T00:00:00+08:00",
+          "end_at": "2026-11-18T00:30:00+08:00",
+          "immutable": true
+        },
+        {
+          "title": "考试辅导课",
+          "start_at": "2026-11-27T05:00:00+08:00",
+          "end_at": "2026-11-27T06:00:00+08:00",
+          "immutable": true
+        }
+      ],
+      "expectations": {
+        "hard": [
+          "within_range",
+          "respect_deadlines",
+          "no_overlap_with_immutable_events",
+          "within_work_hours",
+          "max_daily_minutes",
+          "no_weekend",
+          "daily_availability_windows"
+        ],
+        "soft": [
+          "precedence",
+          "min_distinct_days",
+          "max_daily_minutes",
+          "max_unplaced"
+        ],
+        "no_weekend": true,
+        "max_daily_minutes": 240,
+        "min_distinct_days": 4,
+        "max_unplaced": 0,
+        "precedence": [
+          {
+            "before": "h03_12_basics",
+            "after": "h03_12_practice",
+            "min_gap_days": 0
+          },
+          {
+            "before": "h03_12_practice",
+            "after": "h03_12_mock",
+            "min_gap_days": 0
+          },
+          {
+            "before": "h03_12_mock",
+            "after": "h03_12_review",
+            "min_gap_days": 0
+          }
+        ],
+        "daily_availability_windows": [
+          {
+            "start_date": "2026-11-16",
+            "end_date": "2026-11-20",
+            "daily_start": "12:00",
+            "daily_end": "16:00"
+          }
+        ]
+      },
+      "request_contract": {
+        "intent": "schedule_plan",
+        "intent_quote": "安排",
+        "write_policy": "allow_schedule_draft"
+      }
+    },
+    {
+      "id": "h03_13",
+      "split": "regression",
+      "name": "Synthetic planning scenario 13",
+      "anchor_at": "2026-11-09T05:00:00+08:00",
+      "timezone": "Pacific/Auckland",
+      "range_start": "2026-11-10T19:00:00+08:00",
+      "range_end": "2026-11-24T18:59:00+08:00",
+      "workday_start": "09:00",
+      "workday_end": "17:30",
+      "prompt": "想把后院的小菜圃重新规划好：先量种植箱尺寸，再决定冬季种子和土壤用量，最后下单。请先量尺寸，再做采购清单。每天不超过 3 小时，分 3 个工作日处理，不排周末。周三上午约了园艺顾问。",
+      "tasks": [
+        {
+          "key": "h03_13_measure",
+          "title": "测量种植箱尺寸",
+          "description": "记录每个种植箱的长宽和日照情况",
+          "estimated_minutes": 60,
+          "priority": "medium",
+          "due_at": "2026-11-15T12:30:00+08:00"
+        },
+        {
+          "key": "h03_13_list",
+          "title": "整理种子和土壤采购清单",
+          "description": "按可种植面积计算用量",
+          "estimated_minutes": 90,
+          "priority": "medium",
+          "due_at": "2026-11-19T12:30:00+08:00"
+        },
+        {
+          "key": "h03_13_order",
+          "title": "订购种子和土壤",
+          "description": "按采购清单确认送货日期",
+          "estimated_minutes": 45,
+          "priority": "low",
+          "due_at": "2026-11-23T12:30:00+08:00"
+        }
+      ],
+      "events": [
+        {
+          "title": "园艺顾问电话",
+          "start_at": "2026-11-17T05:00:00+08:00",
+          "end_at": "2026-11-17T05:45:00+08:00",
+          "immutable": true
+        }
+      ],
+      "expectations": {
+        "hard": [
+          "within_range",
+          "respect_deadlines",
+          "no_overlap_with_immutable_events",
+          "within_work_hours",
+          "max_daily_minutes",
+          "no_weekend"
+        ],
+        "soft": [
+          "precedence",
+          "min_distinct_days",
+          "max_daily_minutes",
+          "max_unplaced"
+        ],
+        "no_weekend": true,
+        "max_daily_minutes": 180,
+        "min_distinct_days": 3,
+        "max_unplaced": 0,
+        "precedence": [
+          {
+            "before": "h03_13_measure",
+            "after": "h03_13_list",
+            "min_gap_days": 0
+          },
+          {
+            "before": "h03_13_list",
+            "after": "h03_13_order",
+            "min_gap_days": 0
+          }
+        ]
+      },
+      "request_contract": {
+        "intent": "schedule_plan",
+        "intent_quote": "想把后院的小菜圃重新规划好",
+        "write_policy": "allow_schedule_draft"
+      }
+    },
+    {
+      "id": "h03_14",
+      "split": "regression",
+      "name": "Synthetic planning scenario 14",
+      "anchor_at": "2026-11-12T23:00:00+08:00",
+      "timezone": "America/Toronto",
+      "range_start": "2026-11-14T13:00:00+08:00",
+      "range_end": "2026-12-05T12:59:00+08:00",
+      "workday_start": "09:00",
+      "workday_end": "17:00",
+      "prompt": "我负责安排学校开放日的志愿者。先问清每个时段需要几个人，再发招募信息，之后整理确认名单和签到表。名单要在最后确认前汇总。每天最多 3.5 小时，至少安排 4 个工作日；11 月 18 日到 21 日只可在 10:00–14:00 处理这些事。保留校方协调会。",
+      "tasks": [
+        {
+          "key": "h03_14_coverage",
+          "title": "确认志愿者时段需求",
+          "description": "向学校确认各教室的值守安排",
+          "estimated_minutes": 60,
+          "priority": "high",
+          "due_at": "2026-11-19T06:00:00+08:00"
+        },
+        {
+          "key": "h03_14_invite",
+          "title": "发布志愿者招募信息",
+          "description": "说明日期、时段和报名方式",
+          "estimated_minutes": 90,
+          "priority": "high",
+          "due_at": "2026-11-25T06:00:00+08:00"
+        },
+        {
+          "key": "h03_14_roster",
+          "title": "整理报名确认名单",
+          "description": "联系未确认的人并补足空缺",
+          "estimated_minutes": 120,
+          "priority": "high",
+          "due_at": "2026-12-01T06:00:00+08:00"
+        },
+        {
+          "key": "h03_14_checkin",
+          "title": "制作签到表",
+          "description": "按岗位和时段生成签到表",
+          "estimated_minutes": 60,
+          "priority": "medium",
+          "due_at": "2026-12-05T06:00:00+08:00"
+        }
+      ],
+      "events": [
+        {
+          "title": "校方协调会",
+          "start_at": "2026-11-18T02:00:00+08:00",
+          "end_at": "2026-11-18T03:00:00+08:00",
+          "immutable": true
+        },
+        {
+          "title": "开放日流程讨论",
+          "start_at": "2026-11-29T22:30:00+08:00",
+          "end_at": "2026-11-29T23:15:00+08:00",
+          "immutable": true
+        }
+      ],
+      "expectations": {
+        "hard": [
+          "within_range",
+          "respect_deadlines",
+          "no_overlap_with_immutable_events",
+          "within_work_hours",
+          "max_daily_minutes",
+          "no_weekend",
+          "daily_availability_windows"
+        ],
+        "soft": [
+          "precedence",
+          "min_distinct_days",
+          "max_daily_minutes",
+          "max_unplaced"
+        ],
+        "no_weekend": true,
+        "max_daily_minutes": 210,
+        "min_distinct_days": 4,
+        "max_unplaced": 0,
+        "precedence": [
+          {
+            "before": "h03_14_coverage",
+            "after": "h03_14_invite",
+            "min_gap_days": 0
+          },
+          {
+            "before": "h03_14_invite",
+            "after": "h03_14_roster",
+            "min_gap_days": 0
+          },
+          {
+            "before": "h03_14_roster",
+            "after": "h03_14_checkin",
+            "min_gap_days": 0
+          }
+        ],
+        "daily_availability_windows": [
+          {
+            "start_date": "2026-11-18",
+            "end_date": "2026-11-21",
+            "daily_start": "10:00",
+            "daily_end": "14:00"
+          }
+        ]
+      },
+      "request_contract": {
+        "intent": "schedule_plan",
+        "intent_quote": "安排",
+        "write_policy": "allow_schedule_draft"
+      }
+    },
+    {
+      "id": "h03_15",
+      "split": "regression",
+      "name": "Synthetic planning scenario 15",
+      "anchor_at": "2026-11-15T09:00:00+08:00",
+      "timezone": "Asia/Seoul",
+      "range_start": "2026-11-16T23:00:00+08:00",
+      "range_end": "2026-11-25T22:59:00+08:00",
+      "workday_start": "09:00",
+      "workday_end": "18:00",
+      "prompt": "这周想整理家庭账务：下载本月账单，核对信用卡消费，再把报销票据归档。先有账单才能核对。每天最多 3 小时，只安排工作日，至少用 3 天。周五中午已约了银行顾问。",
+      "tasks": [
+        {
+          "key": "h03_15_statements",
+          "title": "下载本月银行和信用卡账单",
+          "description": "保存电子账单并检查月份是否齐全",
+          "estimated_minutes": 60,
+          "priority": "high",
+          "due_at": "2026-11-20T17:00:00+08:00"
+        },
+        {
+          "key": "h03_15_review",
+          "title": "核对信用卡消费",
+          "description": "标出需要询问的交易",
+          "estimated_minutes": 90,
+          "priority": "medium",
+          "due_at": "2026-11-23T17:00:00+08:00"
+        },
+        {
+          "key": "h03_15_receipts",
+          "title": "归档报销票据",
+          "description": "将电子收据按月份和类别命名",
+          "estimated_minutes": 90,
+          "priority": "low",
+          "due_at": "2026-11-25T17:00:00+08:00"
+        }
+      ],
+      "events": [
+        {
+          "title": "银行顾问电话",
+          "start_at": "2026-11-21T11:00:00+08:00",
+          "end_at": "2026-11-21T11:45:00+08:00",
+          "immutable": true
+        }
+      ],
+      "expectations": {
+        "hard": [
+          "within_range",
+          "respect_deadlines",
+          "no_overlap_with_immutable_events",
+          "within_work_hours",
+          "max_daily_minutes",
+          "no_weekend"
+        ],
+        "soft": [
+          "precedence",
+          "min_distinct_days",
+          "max_daily_minutes",
+          "max_unplaced"
+        ],
+        "no_weekend": true,
+        "max_daily_minutes": 180,
+        "min_distinct_days": 3,
+        "max_unplaced": 0,
+        "precedence": [
+          {
+            "before": "h03_15_statements",
+            "after": "h03_15_review",
+            "min_gap_days": 0
+          }
+        ]
+      },
+      "request_contract": {
+        "intent": "schedule_plan",
+        "intent_quote": "安排",
+        "write_policy": "allow_schedule_draft"
+      }
+    },
+    {
+      "id": "h03_16",
+      "split": "regression",
+      "name": "Synthetic planning scenario 16",
+      "anchor_at": "2026-11-19T01:00:00+08:00",
+      "timezone": "America/Phoenix",
+      "range_start": "2026-11-20T15:00:00+08:00",
+      "range_end": "2026-12-08T14:59:00+08:00",
+      "workday_start": "08:00",
+      "workday_end": "17:00",
+      "prompt": "为下个月的社区音乐会做些准备：核对乐谱版本、整理排练录音、给成员发最终集合时间。乐谱确认后再整理录音；排练周末也可以，优先工作日。每天尽量不超过 4 小时，至少分 3 天。周一有指挥排练，周六下午借用了场地。",
+      "tasks": [
+        {
+          "key": "h03_16_scores",
+          "title": "核对演奏乐谱版本",
+          "description": "确认所有声部使用同一版次",
+          "estimated_minutes": 90,
+          "priority": "high",
+          "due_at": "2026-11-27T08:00:00+08:00"
+        },
+        {
+          "key": "h03_16_recordings",
+          "title": "整理排练录音",
+          "description": "按曲目切分并标注需要复练处",
+          "estimated_minutes": 120,
+          "priority": "medium",
+          "due_at": "2026-12-03T08:00:00+08:00"
+        },
+        {
+          "key": "h03_16_message",
+          "title": "通知成员集合时间",
+          "description": "发送场地入口和到场时间",
+          "estimated_minutes": 45,
+          "priority": "high",
+          "due_at": "2026-12-07T08:00:00+08:00"
+        }
+      ],
+      "events": [
+        {
+          "title": "指挥排练",
+          "start_at": "2026-11-24T09:00:00+08:00",
+          "end_at": "2026-11-24T10:30:00+08:00",
+          "immutable": true
+        },
+        {
+          "title": "场地布置",
+          "start_at": "2026-11-29T04:00:00+08:00",
+          "end_at": "2026-11-29T05:00:00+08:00",
+          "immutable": true
+        }
+      ],
+      "expectations": {
+        "hard": [
+          "within_range",
+          "respect_deadlines",
+          "no_overlap_with_immutable_events",
+          "within_work_hours",
+          "max_daily_minutes"
+        ],
+        "soft": [
+          "precedence",
+          "min_distinct_days",
+          "max_daily_minutes",
+          "max_unplaced"
+        ],
+        "no_weekend": false,
+        "max_daily_minutes": 240,
+        "min_distinct_days": 3,
+        "max_unplaced": 0,
+        "precedence": [
+          {
+            "before": "h03_16_scores",
+            "after": "h03_16_recordings",
+            "min_gap_days": 0
+          }
+        ]
+      },
+      "request_contract": {
+        "intent": "read_only_answer",
+        "intent_quote": "核对",
+        "write_policy": "read_only"
+      }
+    },
+    {
+      "id": "h03_17",
+      "split": "regression",
+      "name": "Synthetic planning scenario 17",
+      "anchor_at": "2026-11-21T17:00:00+08:00",
+      "timezone": "Europe/Amsterdam",
+      "range_start": "2026-11-23T07:00:00+08:00",
+      "range_end": "2026-12-21T06:59:00+08:00",
+      "workday_start": "09:00",
+      "workday_end": "17:00",
+      "prompt": "请帮我整理年底旅行：检查护照有效期、比较两趟火车的时间、最后预订住宿。住宿要等火车日期确定后再订。每天最多 3.5 小时，至少分 4 个工作日，不排周末。12 月 1 日到 3 日我只有 14:00–17:00 可用；保留旅行社咨询电话。",
+      "tasks": [
+        {
+          "key": "h03_17_passport",
+          "title": "检查护照有效期",
+          "description": "核对同行人的证件有效期",
+          "estimated_minutes": 45,
+          "priority": "urgent",
+          "due_at": "2026-11-29T00:00:00+08:00"
+        },
+        {
+          "key": "h03_17_trains",
+          "title": "比较并确定火车班次",
+          "description": "比较出发时间和换乘次数",
+          "estimated_minutes": 90,
+          "priority": "high",
+          "due_at": "2026-12-06T00:00:00+08:00"
+        },
+        {
+          "key": "h03_17_hotel",
+          "title": "预订住宿",
+          "description": "按确定的到达和离开日期选择住宿",
+          "estimated_minutes": 90,
+          "priority": "high",
+          "due_at": "2026-12-14T00:00:00+08:00"
+        },
+        {
+          "key": "h03_17_itinerary",
+          "title": "整理旅行行程单",
+          "description": "保存车票、住宿地址和紧急联系信息",
+          "estimated_minutes": 75,
+          "priority": "medium",
+          "due_at": "2026-12-20T00:00:00+08:00"
+        }
+      ],
+      "events": [
+        {
+          "title": "旅行社咨询",
+          "start_at": "2026-11-29T18:00:00+08:00",
+          "end_at": "2026-11-29T18:45:00+08:00",
+          "immutable": true
+        },
+        {
+          "title": "家人行程确认",
+          "start_at": "2026-12-12T23:00:00+08:00",
+          "end_at": "2026-12-12T23:30:00+08:00",
+          "immutable": true
+        }
+      ],
+      "expectations": {
+        "hard": [
+          "within_range",
+          "respect_deadlines",
+          "no_overlap_with_immutable_events",
+          "within_work_hours",
+          "max_daily_minutes",
+          "no_weekend",
+          "daily_availability_windows"
+        ],
+        "soft": [
+          "precedence",
+          "min_distinct_days",
+          "max_daily_minutes",
+          "max_unplaced"
+        ],
+        "no_weekend": true,
+        "max_daily_minutes": 210,
+        "min_distinct_days": 4,
+        "max_unplaced": 0,
+        "precedence": [
+          {
+            "before": "h03_17_trains",
+            "after": "h03_17_hotel",
+            "min_gap_days": 0
+          },
+          {
+            "before": "h03_17_hotel",
+            "after": "h03_17_itinerary",
+            "min_gap_days": 0
+          }
+        ],
+        "daily_availability_windows": [
+          {
+            "start_date": "2026-12-01",
+            "end_date": "2026-12-03",
+            "daily_start": "14:00",
+            "daily_end": "17:00"
+          }
+        ]
+      },
+      "request_contract": {
+        "intent": "read_only_answer",
+        "intent_quote": "比较",
+        "write_policy": "read_only"
+      }
+    },
+    {
+      "id": "h03_18",
+      "split": "regression",
+      "name": "Synthetic planning scenario 18",
+      "anchor_at": "2026-11-25T03:00:00+08:00",
+      "timezone": "America/Anchorage",
+      "range_start": "2026-11-26T17:00:00+08:00",
+      "range_end": "2026-12-10T16:59:00+08:00",
+      "workday_start": "09:00",
+      "workday_end": "16:00",
+      "prompt": "我需要把小型研究基金的申请资料准备好：先更新项目预算，再请合作人确认分工，最后上传申请附件。分工确认后再上传。每天最多 3 小时，工作日安排、至少分 3 天。周二和周四下午各有一个合作会。",
+      "tasks": [
+        {
+          "key": "h03_18_budget",
+          "title": "更新项目预算表",
+          "description": "核对设备、差旅和学生助研费用",
+          "estimated_minutes": 120,
+          "priority": "high",
+          "due_at": "2026-12-02T09:00:00+08:00"
+        },
+        {
+          "key": "h03_18_roles",
+          "title": "确认合作人分工",
+          "description": "列出每位合作人的工作内容和投入时间",
+          "estimated_minutes": 60,
+          "priority": "high",
+          "due_at": "2026-12-06T09:00:00+08:00"
+        },
+        {
+          "key": "h03_18_upload",
+          "title": "上传申请附件",
+          "description": "检查格式后上传预算和合作人材料",
+          "estimated_minutes": 60,
+          "priority": "urgent",
+          "due_at": "2026-12-10T09:00:00+08:00"
+        }
+      ],
+      "events": [
+        {
+          "title": "合作人讨论一",
+          "start_at": "2026-12-01T06:00:00+08:00",
+          "end_at": "2026-12-01T06:45:00+08:00",
+          "immutable": true
+        },
+        {
+          "title": "合作人讨论二",
+          "start_at": "2026-12-03T06:30:00+08:00",
+          "end_at": "2026-12-03T07:15:00+08:00",
+          "immutable": true
+        }
+      ],
+      "expectations": {
+        "hard": [
+          "within_range",
+          "respect_deadlines",
+          "no_overlap_with_immutable_events",
+          "within_work_hours",
+          "max_daily_minutes",
+          "no_weekend"
+        ],
+        "soft": [
+          "precedence",
+          "min_distinct_days",
+          "max_daily_minutes",
+          "max_unplaced"
+        ],
+        "no_weekend": true,
+        "max_daily_minutes": 180,
+        "min_distinct_days": 3,
+        "max_unplaced": 0,
+        "precedence": [
+          {
+            "before": "h03_18_budget",
+            "after": "h03_18_roles",
+            "min_gap_days": 0
+          },
+          {
+            "before": "h03_18_roles",
+            "after": "h03_18_upload",
+            "min_gap_days": 0
+          }
+        ]
+      },
+      "request_contract": {
+        "intent": "schedule_plan",
+        "intent_quote": "安排",
+        "write_policy": "allow_schedule_draft"
+      }
+    },
+    {
+      "id": "h03_19",
+      "split": "regression",
+      "name": "Synthetic planning scenario 19",
+      "anchor_at": "2026-11-27T23:00:00+08:00",
+      "timezone": "America/Detroit",
+      "range_start": "2026-11-29T13:00:00+08:00",
+      "range_end": "2026-12-11T12:59:00+08:00",
+      "workday_start": "09:00",
+      "workday_end": "17:00",
+      "prompt": "把团队回顾会的材料安排一下：导出本月的支持工单主题，邀请同事匿名提交改进建议，整理成讨论提纲。每项最多三小时一天，至少用三个工作日；周一不要排任务，周四上午有客户电话。",
+      "tasks": [
+        {
+          "key": "h03_19_tickets",
+          "title": "汇总本月支持工单主题",
+          "description": "合并重复问题并计算出现次数",
+          "estimated_minutes": 120,
+          "priority": "medium",
+          "due_at": "2026-12-06T06:00:00+08:00"
+        },
+        {
+          "key": "h03_19_ideas",
+          "title": "收集团队改进建议",
+          "description": "发出匿名收集表并提醒回复期限",
+          "estimated_minutes": 60,
+          "priority": "medium",
+          "due_at": "2026-12-08T06:00:00+08:00"
+        },
+        {
+          "key": "h03_19_agenda",
+          "title": "整理回顾会讨论提纲",
+          "description": "列出问题、影响和可执行的改进项",
+          "estimated_minutes": 90,
+          "priority": "high",
+          "due_at": "2026-12-11T06:00:00+08:00"
+        }
+      ],
+      "events": [
+        {
+          "title": "客户电话",
+          "start_at": "2026-12-03T23:00:00+08:00",
+          "end_at": "2026-12-04T00:00:00+08:00",
+          "immutable": true
+        }
+      ],
+      "expectations": {
+        "hard": [
+          "within_range",
+          "respect_deadlines",
+          "no_overlap_with_immutable_events",
+          "within_work_hours",
+          "max_daily_minutes",
+          "no_weekend"
+        ],
+        "soft": [
+          "precedence",
+          "min_distinct_days",
+          "max_daily_minutes",
+          "max_unplaced"
+        ],
+        "no_weekend": true,
+        "max_daily_minutes": 180,
+        "min_distinct_days": 3,
+        "max_unplaced": 0,
+        "precedence": [
+          {
+            "before": "h03_19_tickets",
+            "after": "h03_19_agenda",
+            "min_gap_days": 0
+          },
+          {
+            "before": "h03_19_ideas",
+            "after": "h03_19_agenda",
+            "min_gap_days": 0
+          }
+        ]
+      },
+      "request_contract": {
+        "intent": "schedule_plan",
+        "intent_quote": "安排一下",
+        "write_policy": "allow_schedule_draft"
+      }
+    },
+    {
+      "id": "h03_20",
+      "split": "regression",
+      "name": "Synthetic planning scenario 20",
+      "anchor_at": "2026-11-30T14:00:00+08:00",
+      "timezone": "Asia/Dubai",
+      "range_start": "2026-12-02T04:00:00+08:00",
+      "range_end": "2026-12-23T03:59:00+08:00",
+      "workday_start": "09:00",
+      "workday_end": "17:00",
+      "prompt": "孩子明年入学前需要办几件事：查看学校要求的证明，预约体检，扫描提交材料，最后确认学校收到申请。先确认材料清单再预约。每天最多 4 小时，至少安排 4 个不同工作日，周末不安排。12 月 8 日到 10 日只可在 10:00–13:00 办这些事。",
+      "tasks": [
+        {
+          "key": "h03_20_requirements",
+          "title": "核对学校入学材料清单",
+          "description": "确认住址证明和疫苗记录要求",
+          "estimated_minutes": 60,
+          "priority": "urgent",
+          "due_at": "2026-12-07T21:00:00+08:00"
+        },
+        {
+          "key": "h03_20_checkup",
+          "title": "预约入学体检",
+          "description": "找一个放学前可到的预约时段",
+          "estimated_minutes": 45,
+          "priority": "high",
+          "due_at": "2026-12-12T21:00:00+08:00"
+        },
+        {
+          "key": "h03_20_scan",
+          "title": "扫描并提交入学材料",
+          "description": "按学校命名要求上传文件",
+          "estimated_minutes": 90,
+          "priority": "high",
+          "due_at": "2026-12-18T21:00:00+08:00"
+        },
+        {
+          "key": "h03_20_receipt",
+          "title": "确认学校收到申请",
+          "description": "检查申请状态并补交缺少材料",
+          "estimated_minutes": 30,
+          "priority": "medium",
+          "due_at": "2026-12-22T21:00:00+08:00"
+        }
+      ],
+      "events": [
+        {
+          "title": "学校办公室咨询",
+          "start_at": "2026-12-05T15:00:00+08:00",
+          "end_at": "2026-12-05T15:30:00+08:00",
+          "immutable": true
+        },
+        {
+          "title": "儿科诊所回电",
+          "start_at": "2026-12-11T19:00:00+08:00",
+          "end_at": "2026-12-11T19:30:00+08:00",
+          "immutable": true
+        }
+      ],
+      "expectations": {
+        "hard": [
+          "within_range",
+          "respect_deadlines",
+          "no_overlap_with_immutable_events",
+          "within_work_hours",
+          "max_daily_minutes",
+          "no_weekend",
+          "daily_availability_windows"
+        ],
+        "soft": [
+          "precedence",
+          "min_distinct_days",
+          "max_daily_minutes",
+          "max_unplaced"
+        ],
+        "no_weekend": true,
+        "max_daily_minutes": 240,
+        "min_distinct_days": 4,
+        "max_unplaced": 0,
+        "precedence": [
+          {
+            "before": "h03_20_requirements",
+            "after": "h03_20_checkup",
+            "min_gap_days": 0
+          },
+          {
+            "before": "h03_20_scan",
+            "after": "h03_20_receipt",
+            "min_gap_days": 0
+          }
+        ],
+        "daily_availability_windows": [
+          {
+            "start_date": "2026-12-08",
+            "end_date": "2026-12-10",
+            "daily_start": "10:00",
+            "daily_end": "13:00"
+          }
+        ]
+      },
+      "request_contract": {
+        "intent": "schedule_plan",
+        "intent_quote": "安排",
+        "write_policy": "allow_schedule_draft"
+      }
+    },
+    {
+      "id": "h03_21",
+      "split": "regression",
+      "name": "Synthetic planning scenario 21",
+      "anchor_at": "2026-12-04T00:00:00+08:00",
+      "timezone": "America/Mexico_City",
+      "range_start": "2026-12-05T14:00:00+08:00",
+      "range_end": "2027-01-02T13:59:00+08:00",
+      "workday_start": "09:00",
+      "workday_end": "17:00",
+      "prompt": "年底前要比较房屋维修报价：拍好漏水处照片，约三位师傅上门报价，再把报价放在一起比较并选一家。先拍照再约人。12 月 10 日到 13 日家里施工，只能在 15:00–17:00 做安排。每天最多 3.5 小时，至少分 4 个工作日，保留上门时间。",
+      "tasks": [
+        {
+          "key": "h03_21_photos",
+          "title": "拍摄并记录漏水位置",
+          "description": "拍下厨房水槽和墙角的情况",
+          "estimated_minutes": 45,
+          "priority": "high",
+          "due_at": "2026-12-11T07:00:00+08:00"
+        },
+        {
+          "key": "h03_21_visits",
+          "title": "预约维修师傅报价",
+          "description": "安排三位师傅分开上门查看",
+          "estimated_minutes": 60,
+          "priority": "urgent",
+          "due_at": "2026-12-18T07:00:00+08:00"
+        },
+        {
+          "key": "h03_21_compare",
+          "title": "比较维修报价",
+          "description": "核对材料、工期和保修范围",
+          "estimated_minutes": 90,
+          "priority": "high",
+          "due_at": "2026-12-26T07:00:00+08:00"
+        },
+        {
+          "key": "h03_21_select",
+          "title": "确认维修师傅和日期",
+          "description": "通知选定的师傅并锁定施工日",
+          "estimated_minutes": 45,
+          "priority": "medium",
+          "due_at": "2027-01-01T07:00:00+08:00"
+        }
+      ],
+      "events": [
+        {
+          "title": "师傅上门一",
+          "start_at": "2026-12-15T00:00:00+08:00",
+          "end_at": "2026-12-15T00:45:00+08:00",
+          "immutable": true
+        },
+        {
+          "title": "师傅上门二",
+          "start_at": "2026-12-17T03:00:00+08:00",
+          "end_at": "2026-12-17T03:45:00+08:00",
+          "immutable": true
+        },
+        {
+          "title": "邻居电话建议",
+          "start_at": "2026-12-24T06:00:00+08:00",
+          "end_at": "2026-12-24T06:30:00+08:00",
+          "immutable": true
+        }
+      ],
+      "expectations": {
+        "hard": [
+          "within_range",
+          "respect_deadlines",
+          "no_overlap_with_immutable_events",
+          "within_work_hours",
+          "max_daily_minutes",
+          "no_weekend",
+          "daily_availability_windows"
+        ],
+        "soft": [
+          "precedence",
+          "min_distinct_days",
+          "max_daily_minutes",
+          "max_unplaced"
+        ],
+        "no_weekend": true,
+        "max_daily_minutes": 210,
+        "min_distinct_days": 4,
+        "max_unplaced": 0,
+        "precedence": [
+          {
+            "before": "h03_21_photos",
+            "after": "h03_21_visits",
+            "min_gap_days": 0
+          },
+          {
+            "before": "h03_21_visits",
+            "after": "h03_21_compare",
+            "min_gap_days": 0
+          },
+          {
+            "before": "h03_21_compare",
+            "after": "h03_21_select",
+            "min_gap_days": 0
+          }
+        ],
+        "daily_availability_windows": [
+          {
+            "start_date": "2026-12-10",
+            "end_date": "2026-12-13",
+            "daily_start": "15:00",
+            "daily_end": "17:00"
+          }
+        ]
+      },
+      "request_contract": {
+        "intent": "schedule_plan",
+        "intent_quote": "安排",
+        "write_policy": "allow_schedule_draft"
+      }
+    },
+    {
+      "id": "h03_22",
+      "split": "regression",
+      "name": "Synthetic planning scenario 22",
+      "anchor_at": "2026-12-06T18:00:00+08:00",
+      "timezone": "Europe/Dublin",
+      "range_start": "2026-12-08T08:00:00+08:00",
+      "range_end": "2026-12-22T07:59:00+08:00",
+      "workday_start": "09:00",
+      "workday_end": "17:00",
+      "prompt": "我报名了语言考试，想分几次准备口语部分：选好练习话题，录两段回答，再听录音写下需要改进的地方。话题确定后再录。每天最多 3 小时，至少分 3 个工作日，不排周末。周三有老师反馈课。",
+      "tasks": [
+        {
+          "key": "h03_22_topics",
+          "title": "挑选口语练习话题",
+          "description": "选出三道常见考试题",
+          "estimated_minutes": 45,
+          "priority": "medium",
+          "due_at": "2026-12-13T01:00:00+08:00"
+        },
+        {
+          "key": "h03_22_record",
+          "title": "录制两段口语回答",
+          "description": "每段按考试时长完成",
+          "estimated_minutes": 60,
+          "priority": "high",
+          "due_at": "2026-12-18T01:00:00+08:00"
+        },
+        {
+          "key": "h03_22_feedback",
+          "title": "复听并记录改进点",
+          "description": "标记语速、结构和发音问题",
+          "estimated_minutes": 60,
+          "priority": "medium",
+          "due_at": "2026-12-22T01:00:00+08:00"
+        }
+      ],
+      "events": [
+        {
+          "title": "老师反馈课",
+          "start_at": "2026-12-14T23:00:00+08:00",
+          "end_at": "2026-12-14T23:45:00+08:00",
+          "immutable": true
+        }
+      ],
+      "expectations": {
+        "hard": [
+          "within_range",
+          "respect_deadlines",
+          "no_overlap_with_immutable_events",
+          "within_work_hours",
+          "max_daily_minutes",
+          "no_weekend"
+        ],
+        "soft": [
+          "precedence",
+          "min_distinct_days",
+          "max_daily_minutes",
+          "max_unplaced"
+        ],
+        "no_weekend": true,
+        "max_daily_minutes": 180,
+        "min_distinct_days": 3,
+        "max_unplaced": 0,
+        "precedence": [
+          {
+            "before": "h03_22_topics",
+            "after": "h03_22_record",
+            "min_gap_days": 0
+          },
+          {
+            "before": "h03_22_record",
+            "after": "h03_22_feedback",
+            "min_gap_days": 0
+          }
+        ]
+      },
+      "request_contract": {
+        "intent": "schedule_plan",
+        "intent_quote": "想分几次准备口语部分",
+        "write_policy": "allow_schedule_draft"
+      }
+    },
+    {
+      "id": "h03_23",
+      "split": "regression",
+      "name": "Synthetic planning scenario 23",
+      "anchor_at": "2026-12-09T11:00:00+08:00",
+      "timezone": "Asia/Bangkok",
+      "range_start": "2026-12-11T01:00:00+08:00",
+      "range_end": "2026-12-31T00:59:00+08:00",
+      "workday_start": "09:00",
+      "workday_end": "18:00",
+      "prompt": "社区菜园要在新年开放前维护一下：盘点现有工具，修好破损的浇水管，更新种植区标牌，再给报名志愿者发工作安排。工具盘点后才能决定要买哪些配件。每天不超过 3.5 小时，至少分 4 个工作日，周末休息。保留志愿者碰头会。",
+      "tasks": [
+        {
+          "key": "h03_23_inventory",
+          "title": "盘点园艺工具和配件",
+          "description": "记录可用工具及损坏情况",
+          "estimated_minutes": 90,
+          "priority": "medium",
+          "due_at": "2026-12-16T19:00:00+08:00"
+        },
+        {
+          "key": "h03_23_hose",
+          "title": "修理浇水管",
+          "description": "更换接头并测试每个种植区",
+          "estimated_minutes": 90,
+          "priority": "high",
+          "due_at": "2026-12-22T19:00:00+08:00"
+        },
+        {
+          "key": "h03_23_signs",
+          "title": "更新种植区标牌",
+          "description": "写上作物名称和浇水提示",
+          "estimated_minutes": 90,
+          "priority": "low",
+          "due_at": "2026-12-27T19:00:00+08:00"
+        },
+        {
+          "key": "h03_23_roster",
+          "title": "发送志愿者工作安排",
+          "description": "按分区列明集合时间和负责人",
+          "estimated_minutes": 60,
+          "priority": "medium",
+          "due_at": "2026-12-30T19:00:00+08:00"
+        }
+      ],
+      "events": [
+        {
+          "title": "志愿者碰头会",
+          "start_at": "2026-12-19T11:00:00+08:00",
+          "end_at": "2026-12-19T12:00:00+08:00",
+          "immutable": true
+        }
+      ],
+      "expectations": {
+        "hard": [
+          "within_range",
+          "respect_deadlines",
+          "no_overlap_with_immutable_events",
+          "within_work_hours",
+          "max_daily_minutes",
+          "no_weekend"
+        ],
+        "soft": [
+          "precedence",
+          "min_distinct_days",
+          "max_daily_minutes",
+          "max_unplaced"
+        ],
+        "no_weekend": true,
+        "max_daily_minutes": 210,
+        "min_distinct_days": 4,
+        "max_unplaced": 0,
+        "precedence": [
+          {
+            "before": "h03_23_inventory",
+            "after": "h03_23_hose",
+            "min_gap_days": 0
+          },
+          {
+            "before": "h03_23_signs",
+            "after": "h03_23_roster",
+            "min_gap_days": 0
+          }
+        ]
+      },
+      "request_contract": {
+        "intent": "schedule_plan",
+        "intent_quote": "安排",
+        "write_policy": "allow_schedule_draft"
+      }
+    },
+    {
+      "id": "h03_24",
+      "split": "regression",
+      "name": "Synthetic planning scenario 24",
+      "anchor_at": "2026-12-12T22:00:00+08:00",
+      "timezone": "America/Halifax",
+      "range_start": "2026-12-14T12:00:00+08:00",
+      "range_end": "2026-12-24T11:59:00+08:00",
+      "workday_start": "09:00",
+      "workday_end": "17:00",
+      "prompt": "下周我需要准备一次行业分享：先确定讲述顺序，再整理三张示例图，最后把讲稿计时练习一遍。例图内容要跟讲述顺序一致。每天最多 3 小时，安排在至少 3 个工作日，不占周末。周二下午要做彩排。",
+      "tasks": [
+        {
+          "key": "h03_24_outline",
+          "title": "确定分享内容顺序",
+          "description": "按问题、方法和结论组织结构",
+          "estimated_minutes": 60,
+          "priority": "high",
+          "due_at": "2026-12-18T05:00:00+08:00"
+        },
+        {
+          "key": "h03_24_charts",
+          "title": "整理三张示例图",
+          "description": "挑选能说明方法的简单案例",
+          "estimated_minutes": 120,
+          "priority": "medium",
+          "due_at": "2026-12-22T05:00:00+08:00"
+        },
+        {
+          "key": "h03_24_rehearse",
+          "title": "计时练习分享讲稿",
+          "description": "练习控制在 15 分钟以内",
+          "estimated_minutes": 60,
+          "priority": "high",
+          "due_at": "2026-12-24T05:00:00+08:00"
+        }
+      ],
+      "events": [
+        {
+          "title": "彩排",
+          "start_at": "2026-12-20T02:00:00+08:00",
+          "end_at": "2026-12-20T03:00:00+08:00",
+          "immutable": true
+        }
+      ],
+      "expectations": {
+        "hard": [
+          "within_range",
+          "respect_deadlines",
+          "no_overlap_with_immutable_events",
+          "within_work_hours",
+          "max_daily_minutes",
+          "no_weekend"
+        ],
+        "soft": [
+          "precedence",
+          "min_distinct_days",
+          "max_daily_minutes",
+          "max_unplaced"
+        ],
+        "no_weekend": true,
+        "max_daily_minutes": 180,
+        "min_distinct_days": 3,
+        "max_unplaced": 0,
+        "precedence": [
+          {
+            "before": "h03_24_outline",
+            "after": "h03_24_charts",
+            "min_gap_days": 0
+          },
+          {
+            "before": "h03_24_charts",
+            "after": "h03_24_rehearse",
+            "min_gap_days": 0
+          }
+        ]
+      },
+      "request_contract": {
+        "intent": "schedule_plan",
+        "intent_quote": "安排",
+        "write_policy": "allow_schedule_draft"
+      }
+    },
+    {
+      "id": "h03_25",
+      "split": "regression",
+      "name": "Synthetic planning scenario 25",
+      "anchor_at": "2026-12-15T17:00:00+08:00",
+      "timezone": "Europe/Zurich",
+      "range_start": "2026-12-17T07:00:00+08:00",
+      "range_end": "2027-01-07T06:59:00+08:00",
+      "workday_start": "08:30",
+      "workday_end": "16:30",
+      "prompt": "请把年度体检相关资料整理好：收集化验单、更新用药清单，再给诊所发消息询问是否还缺材料。先整理化验单和清单再联系诊所。每天最多 3 小时，至少分 3 个工作日，不安排周末。12 月 21 日到 24 日仅能在 09:00–12:00 处理。",
+      "tasks": [
+        {
+          "key": "h03_25_labs",
+          "title": "收集年度化验单",
+          "description": "从患者门户下载今年的检验结果",
+          "estimated_minutes": 60,
+          "priority": "medium",
+          "due_at": "2026-12-23T23:30:00+08:00"
+        },
+        {
+          "key": "h03_25_meds",
+          "title": "更新当前用药清单",
+          "description": "确认剂量及最近调整日期",
+          "estimated_minutes": 45,
+          "priority": "high",
+          "due_at": "2026-12-26T23:30:00+08:00"
+        },
+        {
+          "key": "h03_25_message",
+          "title": "联系诊所确认资料",
+          "description": "询问下次检查前是否需要补交材料",
+          "estimated_minutes": 30,
+          "priority": "medium",
+          "due_at": "2027-01-03T23:30:00+08:00"
+        }
+      ],
+      "events": [
+        {
+          "title": "抽血预约",
+          "start_at": "2026-12-21T15:30:00+08:00",
+          "end_at": "2026-12-21T16:15:00+08:00",
+          "immutable": true
+        },
+        {
+          "title": "诊所回访",
+          "start_at": "2027-01-01T22:00:00+08:00",
+          "end_at": "2027-01-01T22:30:00+08:00",
+          "immutable": true
+        }
+      ],
+      "expectations": {
+        "hard": [
+          "within_range",
+          "respect_deadlines",
+          "no_overlap_with_immutable_events",
+          "within_work_hours",
+          "max_daily_minutes",
+          "no_weekend",
+          "daily_availability_windows"
+        ],
+        "soft": [
+          "precedence",
+          "min_distinct_days",
+          "max_daily_minutes",
+          "max_unplaced"
+        ],
+        "no_weekend": true,
+        "max_daily_minutes": 180,
+        "min_distinct_days": 3,
+        "max_unplaced": 0,
+        "precedence": [
+          {
+            "before": "h03_25_labs",
+            "after": "h03_25_message",
+            "min_gap_days": 0
+          },
+          {
+            "before": "h03_25_meds",
+            "after": "h03_25_message",
+            "min_gap_days": 0
+          }
+        ],
+        "daily_availability_windows": [
+          {
+            "start_date": "2026-12-21",
+            "end_date": "2026-12-24",
+            "daily_start": "09:00",
+            "daily_end": "12:00"
+          }
+        ]
+      },
+      "request_contract": {
+        "intent": "schedule_plan",
+        "intent_quote": "安排",
+        "write_policy": "allow_schedule_draft"
+      }
+    },
+    {
+      "id": "h03_26",
+      "split": "regression",
+      "name": "Synthetic planning scenario 26",
+      "anchor_at": "2026-12-18T11:00:00+08:00",
+      "timezone": "Asia/Jakarta",
+      "range_start": "2026-12-20T01:00:00+08:00",
+      "range_end": "2027-01-17T00:59:00+08:00",
+      "workday_start": "09:00",
+      "workday_end": "17:00",
+      "prompt": "我想把作品集更新好再申请几个设计岗位。先挑选最近的案例，整理每个案例的过程图，再写简短说明，最后请同事给反馈。每天最多 4 小时，至少分 4 天，不排周末；案例选择后再整理过程图。周三有作品集讨论会。",
+      "tasks": [
+        {
+          "key": "h03_26_cases",
+          "title": "挑选作品集案例",
+          "description": "从最近项目里挑三项代表作",
+          "estimated_minutes": 90,
+          "priority": "high",
+          "due_at": "2026-12-27T18:00:00+08:00"
+        },
+        {
+          "key": "h03_26_process",
+          "title": "整理案例过程图",
+          "description": "展示从草图到最终方案的关键步骤",
+          "estimated_minutes": 150,
+          "priority": "high",
+          "due_at": "2027-01-04T18:00:00+08:00"
+        },
+        {
+          "key": "h03_26_captions",
+          "title": "撰写案例简短说明",
+          "description": "说明目标、限制和最终结果",
+          "estimated_minutes": 90,
+          "priority": "medium",
+          "due_at": "2027-01-10T18:00:00+08:00"
+        },
+        {
+          "key": "h03_26_feedback",
+          "title": "请同事审阅作品集",
+          "description": "根据反馈记录最后修改项",
+          "estimated_minutes": 60,
+          "priority": "medium",
+          "due_at": "2027-01-16T18:00:00+08:00"
+        }
+      ],
+      "events": [
+        {
+          "title": "作品集讨论会",
+          "start_at": "2026-12-29T15:00:00+08:00",
+          "end_at": "2026-12-29T16:00:00+08:00",
+          "immutable": true
+        },
+        {
+          "title": "岗位咨询电话",
+          "start_at": "2027-01-08T12:00:00+08:00",
+          "end_at": "2027-01-08T12:30:00+08:00",
+          "immutable": true
+        }
+      ],
+      "expectations": {
+        "hard": [
+          "within_range",
+          "respect_deadlines",
+          "no_overlap_with_immutable_events",
+          "within_work_hours",
+          "max_daily_minutes",
+          "no_weekend"
+        ],
+        "soft": [
+          "precedence",
+          "min_distinct_days",
+          "max_daily_minutes",
+          "max_unplaced"
+        ],
+        "no_weekend": true,
+        "max_daily_minutes": 240,
+        "min_distinct_days": 4,
+        "max_unplaced": 0,
+        "precedence": [
+          {
+            "before": "h03_26_cases",
+            "after": "h03_26_process",
+            "min_gap_days": 0
+          },
+          {
+            "before": "h03_26_process",
+            "after": "h03_26_captions",
+            "min_gap_days": 0
+          },
+          {
+            "before": "h03_26_captions",
+            "after": "h03_26_feedback",
+            "min_gap_days": 0
+          }
+        ]
+      },
+      "request_contract": {
+        "intent": "schedule_plan",
+        "intent_quote": "想把作品集更新好",
+        "write_policy": "allow_schedule_draft"
+      }
+    },
+    {
+      "id": "h03_27",
+      "split": "regression",
+      "name": "Synthetic planning scenario 27",
+      "anchor_at": "2026-12-22T01:00:00+08:00",
+      "timezone": "America/Boise",
+      "range_start": "2026-12-23T15:00:00+08:00",
+      "range_end": "2027-01-06T14:59:00+08:00",
+      "workday_start": "08:00",
+      "workday_end": "16:00",
+      "prompt": "我经营的小手作摊位要更新商品目录：数一下现货、拍新款照片，再把商品信息上传。照片要等库存清点后安排，周末如果方便也可以做。每天尽量不超过 3 小时，分散在至少 3 天。周五有包材供应商电话。",
+      "tasks": [
+        {
+          "key": "h03_27_stock",
+          "title": "清点手作商品库存",
+          "description": "记录款式、颜色和剩余数量",
+          "estimated_minutes": 90,
+          "priority": "high",
+          "due_at": "2026-12-29T07:00:00+08:00"
+        },
+        {
+          "key": "h03_27_photos",
+          "title": "拍摄新品照片",
+          "description": "在自然光下拍摄本周新款",
+          "estimated_minutes": 120,
+          "priority": "medium",
+          "due_at": "2027-01-03T07:00:00+08:00"
+        },
+        {
+          "key": "h03_27_catalog",
+          "title": "更新在线商品目录",
+          "description": "补上尺寸、材料和库存数量",
+          "estimated_minutes": 90,
+          "priority": "high",
+          "due_at": "2027-01-06T07:00:00+08:00"
+        }
+      ],
+      "events": [
+        {
+          "title": "包材供应商电话",
+          "start_at": "2027-01-01T01:00:00+08:00",
+          "end_at": "2027-01-01T01:45:00+08:00",
+          "immutable": true
+        }
+      ],
+      "expectations": {
+        "hard": [
+          "within_range",
+          "respect_deadlines",
+          "no_overlap_with_immutable_events",
+          "within_work_hours",
+          "max_daily_minutes"
+        ],
+        "soft": [
+          "precedence",
+          "min_distinct_days",
+          "max_daily_minutes",
+          "max_unplaced"
+        ],
+        "no_weekend": false,
+        "max_daily_minutes": 180,
+        "min_distinct_days": 3,
+        "max_unplaced": 0,
+        "precedence": [
+          {
+            "before": "h03_27_stock",
+            "after": "h03_27_photos",
+            "min_gap_days": 0
+          },
+          {
+            "before": "h03_27_photos",
+            "after": "h03_27_catalog",
+            "min_gap_days": 0
+          }
+        ]
+      },
+      "request_contract": {
+        "intent": "schedule_plan",
+        "intent_quote": "安排",
+        "write_policy": "allow_schedule_draft"
+      }
+    },
+    {
+      "id": "h03_28",
+      "split": "regression",
+      "name": "Synthetic planning scenario 28",
+      "anchor_at": "2026-12-24T17:00:00+08:00",
+      "timezone": "Europe/Oslo",
+      "range_start": "2026-12-26T07:00:00+08:00",
+      "range_end": "2027-01-23T06:59:00+08:00",
+      "workday_start": "09:00",
+      "workday_end": "17:00",
+      "prompt": "明年初要启动读书会，请先选出第一本书，制定每周阅读章节，再联系图书馆确认房间，最后发邀请。房间要等日期安排明确后再预订。每天最多 4 小时，至少分 4 个工作日，周末不安排。12 月 30 日到 1 月 4 日每天只方便 12:00–16:00。",
+      "tasks": [
+        {
+          "key": "h03_28_book",
+          "title": "挑选读书会第一本书",
+          "description": "找一本适合 6 周讨论的短篇书",
+          "estimated_minutes": 90,
+          "priority": "medium",
+          "due_at": "2027-01-04T00:00:00+08:00"
+        },
+        {
+          "key": "h03_28_chapters",
+          "title": "制定每周阅读章节",
+          "description": "把全书分成每周可完成的份量",
+          "estimated_minutes": 60,
+          "priority": "medium",
+          "due_at": "2027-01-10T00:00:00+08:00"
+        },
+        {
+          "key": "h03_28_room",
+          "title": "联系图书馆预订房间",
+          "description": "确认每周固定时间是否有空房",
+          "estimated_minutes": 45,
+          "priority": "high",
+          "due_at": "2027-01-17T00:00:00+08:00"
+        },
+        {
+          "key": "h03_28_invite",
+          "title": "发送读书会邀请",
+          "description": "写明日期、地点和报名方法",
+          "estimated_minutes": 90,
+          "priority": "low",
+          "due_at": "2027-01-23T00:00:00+08:00"
+        }
+      ],
+      "events": [
+        {
+          "title": "图书馆开放时间咨询",
+          "start_at": "2027-01-06T17:00:00+08:00",
+          "end_at": "2027-01-06T17:30:00+08:00",
+          "immutable": true
+        },
+        {
+          "title": "朋友选书讨论",
+          "start_at": "2027-01-11T22:00:00+08:00",
+          "end_at": "2027-01-11T22:45:00+08:00",
+          "immutable": true
+        }
+      ],
+      "expectations": {
+        "hard": [
+          "within_range",
+          "respect_deadlines",
+          "no_overlap_with_immutable_events",
+          "within_work_hours",
+          "max_daily_minutes",
+          "no_weekend",
+          "daily_availability_windows"
+        ],
+        "soft": [
+          "precedence",
+          "min_distinct_days",
+          "max_daily_minutes",
+          "max_unplaced"
+        ],
+        "no_weekend": true,
+        "max_daily_minutes": 240,
+        "min_distinct_days": 4,
+        "max_unplaced": 0,
+        "precedence": [
+          {
+            "before": "h03_28_book",
+            "after": "h03_28_chapters",
+            "min_gap_days": 0
+          },
+          {
+            "before": "h03_28_chapters",
+            "after": "h03_28_room",
+            "min_gap_days": 0
+          },
+          {
+            "before": "h03_28_room",
+            "after": "h03_28_invite",
+            "min_gap_days": 0
+          }
+        ],
+        "daily_availability_windows": [
+          {
+            "start_date": "2026-12-30",
+            "end_date": "2027-01-04",
+            "daily_start": "12:00",
+            "daily_end": "16:00"
+          }
+        ]
+      },
+      "request_contract": {
+        "intent": "schedule_plan",
+        "intent_quote": "制定",
+        "write_policy": "allow_schedule_draft"
+      }
+    },
+    {
+      "id": "h03_29",
+      "split": "regression",
+      "name": "Synthetic planning scenario 29",
+      "anchor_at": "2026-12-27T23:00:00+08:00",
+      "timezone": "America/Indianapolis",
+      "range_start": "2026-12-29T13:00:00+08:00",
+      "range_end": "2027-01-12T12:59:00+08:00",
+      "workday_start": "09:00",
+      "workday_end": "17:00",
+      "prompt": "想在新年前把手机照片备份好：删除重复照片，按年份整理相册，再确认云端和移动硬盘都有副本。整理相册至少先完成一批后再做备份检查。12 月 31 日到 1 月 2 日我每天只有 10:00–13:00 空闲。每天最多 3 小时，至少分 3 个工作日，保留家人的晚餐安排。",
+      "tasks": [
+        {
+          "key": "h03_29_duplicates",
+          "title": "清理重复照片",
+          "description": "先删明显重复和模糊的图片",
+          "estimated_minutes": 90,
+          "priority": "low",
+          "due_at": "2026-12-31T17:00:00-05:00"
+        },
+        {
+          "key": "h03_29_albums",
+          "title": "按年份整理照片相册",
+          "description": "把照片归入年度和假期相册",
+          "estimated_minutes": 150,
+          "priority": "medium",
+          "due_at": "2026-12-31T17:00:00-05:00"
+        },
+        {
+          "key": "h03_29_backup",
+          "title": "核对云端和硬盘备份",
+          "description": "抽查最近照片是否在两个位置可见",
+          "estimated_minutes": 60,
+          "priority": "high",
+          "due_at": "2026-12-31T17:00:00-05:00"
+        }
+      ],
+      "events": [
+        {
+          "title": "家庭晚餐",
+          "start_at": "2027-01-04T07:00:00+08:00",
+          "end_at": "2027-01-04T08:30:00+08:00",
+          "immutable": true
+        }
+      ],
+      "expectations": {
+        "hard": [
+          "within_range",
+          "respect_deadlines",
+          "no_overlap_with_immutable_events",
+          "within_work_hours",
+          "max_daily_minutes",
+          "daily_availability_windows"
+        ],
+        "soft": [
+          "precedence",
+          "min_distinct_days",
+          "max_daily_minutes",
+          "max_unplaced"
+        ],
+        "max_daily_minutes": 180,
+        "min_distinct_days": 3,
+        "max_unplaced": 0,
+        "precedence": [
+          {
+            "before": "h03_29_albums",
+            "after": "h03_29_backup",
+            "min_gap_days": 0
+          }
+        ],
+        "daily_availability_windows": [
+          {
+            "start_date": "2026-12-31",
+            "end_date": "2027-01-02",
+            "daily_start": "10:00",
+            "daily_end": "13:00"
+          }
+        ],
+        "ask_planning_clarification": false
+      },
+      "request_contract": {
+        "intent": "schedule_plan",
+        "write_policy": "allow_schedule_draft",
+        "intent_quote": "想在新年前把手机照片备份好"
+      }
+    },
+    {
+      "id": "h03_30",
+      "split": "regression",
+      "name": "Synthetic planning scenario 30",
+      "anchor_at": "2026-12-31T16:00:00+08:00",
+      "timezone": "Africa/Johannesburg",
+      "range_start": "2027-01-02T06:00:00+08:00",
+      "range_end": "2027-01-23T05:59:00+08:00",
+      "workday_start": "08:00",
+      "workday_end": "16:30",
+      "prompt": "我负责下次董事会的材料。先向项目负责人收集进度，整理需要决策的事项，再排好议程并发送会议文件。收集完进度后才能整理决策事项。每天不超过 3.5 小时，至少安排 4 个工作日，只在工作日做。保留周二的主席沟通和周五的财务同步。",
+      "tasks": [
+        {
+          "key": "h03_30_updates",
+          "title": "收集项目进度",
+          "description": "让各负责人提供状态和风险",
+          "estimated_minutes": 90,
+          "priority": "high",
+          "due_at": "2027-01-08T22:30:00+08:00"
+        },
+        {
+          "key": "h03_30_decisions",
+          "title": "整理待决策事项",
+          "description": "写清每个选项、影响和建议",
+          "estimated_minutes": 90,
+          "priority": "high",
+          "due_at": "2027-01-14T22:30:00+08:00"
+        },
+        {
+          "key": "h03_30_agenda",
+          "title": "拟定董事会议程",
+          "description": "按时间安排汇报和决策环节",
+          "estimated_minutes": 60,
+          "priority": "high",
+          "due_at": "2027-01-18T22:30:00+08:00"
+        },
+        {
+          "key": "h03_30_packet",
+          "title": "发送董事会材料",
+          "description": "合并议程、项目更新和财务摘要",
+          "estimated_minutes": 75,
+          "priority": "urgent",
+          "due_at": "2027-01-22T22:30:00+08:00"
+        }
+      ],
+      "events": [
+        {
+          "title": "主席沟通",
+          "start_at": "2027-01-06T17:00:00+08:00",
+          "end_at": "2027-01-06T17:45:00+08:00",
+          "immutable": true
+        },
+        {
+          "title": "财务同步",
+          "start_at": "2027-01-09T20:00:00+08:00",
+          "end_at": "2027-01-09T21:00:00+08:00",
+          "immutable": true
+        }
+      ],
+      "expectations": {
+        "hard": [
+          "within_range",
+          "respect_deadlines",
+          "no_overlap_with_immutable_events",
+          "within_work_hours",
+          "max_daily_minutes",
+          "no_weekend"
+        ],
+        "soft": [
+          "precedence",
+          "min_distinct_days",
+          "max_daily_minutes",
+          "max_unplaced"
+        ],
+        "no_weekend": true,
+        "max_daily_minutes": 210,
+        "min_distinct_days": 4,
+        "max_unplaced": 0,
+        "precedence": [
+          {
+            "before": "h03_30_updates",
+            "after": "h03_30_decisions",
+            "min_gap_days": 0
+          },
+          {
+            "before": "h03_30_decisions",
+            "after": "h03_30_agenda",
+            "min_gap_days": 0
+          },
+          {
+            "before": "h03_30_agenda",
+            "after": "h03_30_packet",
+            "min_gap_days": 0
+          }
+        ]
+      },
+      "request_contract": {
+        "intent": "schedule_plan",
+        "intent_quote": "安排",
+        "write_policy": "allow_schedule_draft"
+      }
+    }
+  ]
+}

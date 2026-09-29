@@ -1,4 +1,4 @@
-from collections.abc import Mapping, MutableMapping, Sequence
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from datetime import UTC, date, datetime, time, timedelta
 from typing import Literal
@@ -63,25 +63,55 @@ class PlanningService:
         range_end: datetime,
         mode: Literal["context", "free_slots"] = "context",
         duration_minutes: int | None = None,
+        task_id: UUID | None = None,
         allowed_weekdays: Sequence[int] | None = None,
+        daily_worktime_overrides: Sequence[DailyAvailabilityWindow] | None = None,
+        one_slot_per_local_date: bool = False,
         max_free_slots: int = 10,
         reference_start_at: datetime | None = None,
         reference_end_at: datetime | None = None,
+        not_before: datetime | None = None,
     ) -> dict[str, object]:
         """Read one planning context or free-slot result through a single domain query."""
 
         start = to_utc(range_start)
         end = to_utc(range_end)
-        if end <= start:
-            raise ValueError("range_end must be later than range_start")
         if mode not in {"context", "free_slots"}:
             raise ValueError("mode must be context or free_slots")
+        if mode == "free_slots" and not_before is not None:
+            start = max(start, to_utc(not_before))
+        elif mode == "context" and not_before is not None:
+            raise ValueError("not_before is only supported in free_slots mode")
+        if end <= start:
+            raise ValueError("range_end must be later than range_start")
         user_preference = UserPreferenceService.get_for_user(user) or UserPreference(user=user)
         timezone_name = user_preference.timezone
         user_timezone = get_timezone(timezone_name)
 
         def local_iso(value: datetime | None) -> str | None:
             return value.astimezone(user_timezone).isoformat() if value is not None else None
+
+        selected_task: Task | None = None
+        if task_id is not None:
+            if mode != "free_slots":
+                raise ValueError("task_id is only supported in free_slots mode")
+            selected_task = Task.objects.filter(user=user, pk=task_id).first()
+            if selected_task is None:
+                raise ValueError("Task not found for this user")
+            if selected_task.status not in {TaskStatus.PENDING, TaskStatus.IN_PROGRESS}:
+                raise ValueError("Only active tasks can be used for task-scoped free-slot lookup")
+            # Use the persisted task estimate and dates as the source of truth. This
+            # prevents an event's overlap length from becoming the task duration.
+            duration_minutes = (
+                selected_task.estimated_minutes or user_preference.default_event_duration_minutes
+            )
+            if selected_task.planned_start_at and selected_task.planned_end_at:
+                reference_start_at = selected_task.planned_start_at
+                reference_end_at = selected_task.planned_end_at
+            if selected_task.due_at is not None:
+                end = min(end, to_utc(selected_task.due_at))
+            if end <= start:
+                raise ValueError("No free-slot search range remains before the task deadline")
 
         result: dict[str, object] = {
             "range_start": start.isoformat(),
@@ -107,6 +137,7 @@ class PlanningService:
                 if reference_end <= reference_start:
                     raise ValueError("reference_end_at must be later than reference_start_at")
             weekdays = tuple(range(5)) if allowed_weekdays is None else tuple(allowed_weekdays)
+            windows = PlanningService._normalize_daily_worktime_overrides(daily_worktime_overrides)
             slots = PlanningService.find_free_slots(
                 user=user,
                 range_start=start,
@@ -115,10 +146,28 @@ class PlanningService:
                 constraints=PlanningConstraints(
                     timezone=timezone_name,
                     allowed_weekdays=weekdays,
-                    max_results=100 if reference_start is not None else max_free_slots,
+                    daily_worktime_overrides=windows,
+                    # A chronological early cap can hide the nearest candidate on a
+                    # later day before reference-based ranking has a chance to see it.
+                    max_results=(
+                        max_free_slots
+                        if reference_start is None and not one_slot_per_local_date
+                        else None
+                    ),
+                    excluded_planned_task_ids=(selected_task.pk,) if selected_task else (),
                 ),
             )
-            if reference_start is not None and reference_end is not None:
+            if one_slot_per_local_date:
+                representative_slots = []
+                seen_local_dates: set[date] = set()
+                for slot in slots:
+                    local_date = slot.start_at.astimezone(user_timezone).date()
+                    if local_date in seen_local_dates:
+                        continue
+                    seen_local_dates.add(local_date)
+                    representative_slots.append(slot)
+                slots = representative_slots[:max_free_slots]
+            elif reference_start is not None and reference_end is not None:
                 slots = sorted(
                     slots,
                     key=lambda slot: (
@@ -157,10 +206,31 @@ class PlanningService:
                 }
                 for slot in slots
             ]
+            if selected_task is not None:
+                result["task"] = {
+                    "id": str(selected_task.pk),
+                    "title": selected_task.title,
+                    "status": selected_task.status,
+                    "version": selected_task.version,
+                    "estimated_minutes": selected_task.estimated_minutes,
+                    "effective_duration_minutes": duration_minutes,
+                    "due_at": selected_task.due_at.isoformat() if selected_task.due_at else None,
+                    "due_at_local": local_iso(selected_task.due_at),
+                    "planned_start_at": selected_task.planned_start_at.isoformat()
+                    if selected_task.planned_start_at
+                    else None,
+                    "planned_end_at": selected_task.planned_end_at.isoformat()
+                    if selected_task.planned_end_at
+                    else None,
+                    "planned_start_at_local": local_iso(selected_task.planned_start_at),
+                    "planned_end_at_local": local_iso(selected_task.planned_end_at),
+                }
             return result
         if (
             duration_minutes is not None
             or allowed_weekdays is not None
+            or daily_worktime_overrides is not None
+            or one_slot_per_local_date
             or reference_start_at is not None
             or reference_end_at is not None
         ):
@@ -302,6 +372,7 @@ class PlanningService:
             raise ValueError("Provide unique task IDs")
         if ordering not in PlanningService.ORDERINGS:
             raise ValueError("Unsupported planning ordering")
+        anchor = to_utc(now or timezone.now())
         tasks = list(Task.objects.filter(user=user, pk__in=task_ids))
         if len(tasks) != len(task_ids):
             raise ValueError("Every task must belong to the current user")
@@ -331,6 +402,8 @@ class PlanningService:
             max_daily_minutes=max_daily_minutes,
             daily_worktime_overrides=windows,
             task_decisions=decisions,
+            excluded_planned_task_ids=tuple(task.pk for task in tasks),
+            not_before=anchor,
         )
         items.append(
             PlanningService._plan_evidence(
@@ -342,7 +415,6 @@ class PlanningService:
                 planner_version=("v3_agent_guided" if decisions else "v2_deterministic"),
             )
         )
-        anchor = to_utc(now or timezone.now())
         plan = SchedulePlan.objects.create(
             user=user,
             strategy=strategy,
@@ -490,8 +562,8 @@ class PlanningService:
             retained_ends[task_id] = max(current_end, end_at) if current_end else end_at
         reserved = [
             (
-                datetime.fromisoformat(str(item["start_at"])),
-                datetime.fromisoformat(str(item["end_at"])),
+                datetime.fromisoformat(str(item.get("reserved_start_at", item["start_at"]))),
+                datetime.fromisoformat(str(item.get("reserved_end_at", item["end_at"]))),
             )
             for item in retained
             if item.get("state") == "placed"
@@ -509,6 +581,19 @@ class PlanningService:
         daily_worktime_overrides = PlanningService._snapshot_daily_worktime_overrides(
             plan.constraints_snapshot
         )
+        user_timezone = get_timezone(PlanningService._user_timezone(user))
+        retained_daily_minutes: dict[date, int] = {}
+        for item in retained:
+            if item.get("state") != "placed":
+                continue
+            duration = item.get("planned_duration_minutes")
+            if type(duration) is int:
+                local_day = (
+                    datetime.fromisoformat(str(item["start_at"])).astimezone(user_timezone).date()
+                )
+                retained_daily_minutes[local_day] = (
+                    retained_daily_minutes.get(local_day, 0) + duration
+                )
         regenerated = PlanningService._build_plan_items(
             user=user,
             tasks=tasks,
@@ -522,12 +607,15 @@ class PlanningService:
             daily_worktime_overrides=daily_worktime_overrides,
             task_decisions=task_decisions,
             already_scheduled=retained_ends,
+            excluded_planned_task_ids=tuple(UUID(task_id) for task_id in selected),
+            reserved_daily_minutes=retained_daily_minutes,
+            not_before=anchor,
         )
         items = [*retained, *regenerated]
         items.append(
             PlanningService._plan_evidence(
                 items=items,
-                task_count=len(items),
+                task_count=len({str(item["task_id"]) for item in items if item.get("task_id")}),
                 ordering=ordering,
                 range_start=datetime.fromisoformat(str(evidence["range_start"])),
                 range_end=datetime.fromisoformat(str(evidence["range_end"])),
@@ -744,18 +832,15 @@ class PlanningService:
         daily_worktime_overrides: Sequence[DailyAvailabilityWindow] = (),
         task_decisions: Mapping[UUID, TaskScheduleDecision] | None = None,
         already_scheduled: Mapping[UUID, datetime | None] | None = None,
+        excluded_planned_task_ids: Sequence[UUID] = (),
+        reserved_daily_minutes: Mapping[date, int] | None = None,
+        not_before: datetime | None = None,
     ) -> list[dict[str, object]]:
         items: list[dict[str, object]] = []
         assigned = list(reserved)
         decisions = task_decisions or {}
         user_timezone = get_timezone(PlanningService._user_timezone(user))
-        daily_minutes: dict[date, int] = {}
-        if max_daily_minutes is not None:
-            for assigned_start, assigned_end in reserved:
-                local_start = assigned_start.astimezone(user_timezone)
-                daily_minutes[local_start.date()] = daily_minutes.get(local_start.date(), 0) + int(
-                    (assigned_end - assigned_start).total_seconds() // 60
-                )
+        daily_minutes = dict(reserved_daily_minutes or {}) if max_daily_minutes is not None else {}
         scheduled_task_ends = dict(already_scheduled or {})
         for task in tasks:
             scheduled_task_ends[task.pk] = None
@@ -780,7 +865,9 @@ class PlanningService:
             reserved_duration = buffer_before + duration + buffer_after
             deadline = task.due_at.astimezone(UTC) if task.due_at else range_end
             candidate_end = min(range_end, deadline)
-            candidate_start = range_start
+            candidate_start = (
+                max(range_start, to_utc(not_before)) if not_before is not None else range_start
+            )
             if decision is not None and decision.earliest_start_at is not None:
                 candidate_start = max(candidate_start, to_utc(decision.earliest_start_at))
             predecessor_ends: list[datetime] = []
@@ -843,6 +930,7 @@ class PlanningService:
                 constraints=PlanningConstraints(
                     allowed_weekdays=allowed_weekdays,
                     daily_worktime_overrides=tuple(daily_worktime_overrides),
+                    excluded_planned_task_ids=tuple(excluded_planned_task_ids),
                 ),
             )
             available_slots = [
@@ -889,6 +977,7 @@ class PlanningService:
                     daily_worktime_overrides=daily_worktime_overrides,
                     daily_minutes=daily_minutes,
                     user_timezone=user_timezone,
+                    excluded_planned_task_ids=tuple(excluded_planned_task_ids),
                     preferred_start_at=(
                         decision.preferred_start_at if decision is not None else None
                     ),
@@ -985,8 +1074,9 @@ class PlanningService:
         allowed_weekdays: tuple[int, ...],
         max_daily_minutes: int | None = None,
         daily_worktime_overrides: Sequence[DailyAvailabilityWindow] = (),
-        daily_minutes: MutableMapping[date, int] | None = None,
+        daily_minutes: Mapping[date, int] | None = None,
         user_timezone: ZoneInfo,
+        excluded_planned_task_ids: Sequence[UUID] = (),
         preferred_start_at: datetime | None = None,
     ) -> list[dict[str, object]]:
         if strategy != "create_linked_event_blocks" or not task.splittable:
@@ -1015,6 +1105,7 @@ class PlanningService:
                     constraints=PlanningConstraints(
                         allowed_weekdays=allowed_weekdays,
                         daily_worktime_overrides=tuple(daily_worktime_overrides),
+                        excluded_planned_task_ids=tuple(excluded_planned_task_ids),
                     ),
                 )
                 available_slots = [
@@ -1082,8 +1173,6 @@ class PlanningService:
             segment["segment_count"] = len(segments)
         if len(segments) <= 1:
             return []
-        if daily_minutes is not None:
-            daily_minutes.update(local_daily_minutes)
         return segments
 
     @staticmethod
@@ -1097,7 +1186,14 @@ class PlanningService:
         planner_version: str = "v2_deterministic",
         regenerated_task_ids: list[str] | None = None,
     ) -> dict[str, object]:
-        placed = sum(1 for item in items if item.get("state") == "placed")
+        task_items = [item for item in items if item.get("kind") != "plan_evidence"]
+        task_ids = {str(item.get("task_id")) for item in task_items if item.get("task_id")}
+        placed_task_ids = {
+            str(item.get("task_id"))
+            for item in task_items
+            if item.get("state") == "placed" and item.get("task_id")
+        }
+        placed_segments = sum(1 for item in task_items if item.get("state") == "placed")
         evidence: dict[str, object] = {
             "planner_version": planner_version,
             "ordering": ordering,
@@ -1109,9 +1205,13 @@ class PlanningService:
                 "deadline",
                 "work_hours",
             ],
-            "task_count": task_count,
-            "placed_count": placed,
-            "unplaced_count": task_count - placed,
+            "task_count": len(task_ids) if task_ids else task_count,
+            "placed_count": len(placed_task_ids),
+            "unplaced_count": max(0, len(task_ids) - len(placed_task_ids))
+            if task_ids
+            else task_count,
+            "placed_segment_count": placed_segments,
+            "segment_count": len(task_items),
         }
         if regenerated_task_ids is not None:
             evidence["regenerated_task_ids"] = regenerated_task_ids
@@ -1151,7 +1251,13 @@ class PlanningService:
         reason_codes: Sequence[str] = (),
     ) -> dict[str, object]:
         task_items = [item for item in plan.items if item.get("kind") != "plan_evidence"]
-        placed = [item for item in task_items if item.get("state") == "placed"]
+        task_ids = {str(item.get("task_id")) for item in task_items if item.get("task_id")}
+        placed_task_ids = {
+            str(item.get("task_id"))
+            for item in task_items
+            if item.get("state") == "placed" and item.get("task_id")
+        }
+        placed_segments = sum(1 for item in task_items if item.get("state") == "placed")
         raw_evidence: object = next(
             (
                 item.get("evidence", {})
@@ -1164,8 +1270,11 @@ class PlanningService:
         return {
             "plan_id": str(plan.pk),
             "ordering": evidence.get("ordering"),
-            "placed_count": len(placed),
-            "unplaced_count": len(task_items) - len(placed),
+            "task_count": len(task_ids),
+            "placed_count": len(placed_task_ids),
+            "unplaced_count": max(0, len(task_ids) - len(placed_task_ids)),
+            "placed_segment_count": placed_segments,
+            "segment_count": len(task_items),
             "hard_constraint_violations": len(reason_codes),
             "hard_constraint_reason_codes": list(reason_codes),
         }
@@ -1241,18 +1350,19 @@ class PlanningService:
             raise ValueError("Schedule plan version conflict")
         if plan.expires_at <= anchor:
             raise ValueError("Schedule plan has expired")
-        by_task = {
-            str(item.get("task_id")): item
-            for item in plan.items
-            if item.get("kind") != "plan_evidence" and item.get("task_id")
-        }
+        plan_task_items: dict[str, list[dict[str, object]]] = {}
+        for item in plan.items:
+            if item.get("kind") != "plan_evidence" and item.get("task_id"):
+                plan_task_items.setdefault(str(item["task_id"]), []).append(item)
         edited_ids: set[str] = set()
         for edit in edits:
             task_id = str(edit.get("task_id", ""))
-            if not task_id or task_id in edited_ids or task_id not in by_task:
+            if not task_id or task_id in edited_ids or task_id not in plan_task_items:
                 raise ValueError("Each edited task must appear once in the plan")
+            if len(plan_task_items[task_id]) > 1:
+                raise ValueError("Split task items cannot be edited by task_id")
             edited_ids.add(task_id)
-            item = by_task[task_id]
+            item = plan_task_items[task_id][0]
             moves_item = "start_at" in edit or "end_at" in edit
             if moves_item and ("start_at" not in edit or "end_at" not in edit):
                 raise ValueError("Plan item start and end must be edited together")
@@ -1452,6 +1562,8 @@ class PlanningService:
         except (KeyError, TypeError, ValueError):
             return ("invalid_plan_item",)
         task_ids = list({task_id for task_id, _, _ in proposed_slots})
+        if any(start_at < now for _, start_at, _ in proposed_slots):
+            return ("schedule_in_past",)
         tasks = {task.pk: task for task in Task.objects.filter(user=user, pk__in=task_ids)}
         if len(tasks) != len(task_ids):
             return ("task_missing",)
@@ -1629,6 +1741,7 @@ class PlanningService:
             range_start=range_start_utc,
             range_end=range_end_utc,
             include_planned_tasks=constraints.include_planned_tasks,
+            excluded_planned_task_ids=constraints.excluded_planned_task_ids,
         )
         duration = timedelta(minutes=duration_minutes)
         increment = timedelta(minutes=constraints.slot_increment_minutes)
@@ -1681,6 +1794,7 @@ class PlanningService:
         range_start: datetime,
         range_end: datetime,
         include_planned_tasks: bool,
+        excluded_planned_task_ids: Sequence[UUID] = (),
     ) -> list[BusyInterval]:
         event_intervals = (
             CalendarEvent.objects.filter(
@@ -1698,7 +1812,10 @@ class PlanningService:
                 status__in=(TaskStatus.PENDING, TaskStatus.IN_PROGRESS),
                 planned_start_at__lt=range_end,
                 planned_end_at__gt=range_start,
-            ).values_list("planned_start_at", "planned_end_at")
+            )
+            if excluded_planned_task_ids:
+                task_intervals = task_intervals.exclude(pk__in=excluded_planned_task_ids)
+            task_intervals = task_intervals.values_list("planned_start_at", "planned_end_at")
             intervals.extend(
                 (start_at, end_at)
                 for start_at, end_at in task_intervals

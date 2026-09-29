@@ -120,11 +120,15 @@ class TemporalInsightService:
                 title="未来两天容量紧张",
                 summary=(
                     f"未来两天预计有 {forecast.unplanned_minutes} 分钟未安排工作，"
-                    f"可用空闲约 {forecast.available_minutes} 分钟。"
+                    f"剩余空闲约 {forecast.remaining_free_minutes} 分钟。"
                 ),
                 evidence={
                     "range_start": forecast.range_start.isoformat(),
                     "range_end": forecast.range_end.isoformat(),
+                    "total_schedulable_capacity_minutes": (
+                        forecast.total_schedulable_capacity_minutes
+                    ),
+                    "remaining_free_minutes": forecast.remaining_free_minutes,
                     "available_minutes": forecast.available_minutes,
                     "committed_minutes": forecast.committed_minutes,
                     "unplanned_minutes": forecast.unplanned_minutes,

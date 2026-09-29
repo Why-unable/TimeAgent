@@ -2,7 +2,7 @@ from dataclasses import dataclass, field
 from datetime import date, datetime, time
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+from pydantic import AwareDatetime, BaseModel, ConfigDict, Field, field_validator, model_validator
 
 
 class TaskScheduleDecision(BaseModel):
@@ -11,18 +11,18 @@ class TaskScheduleDecision(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     task_id: UUID = Field(description="所选排程任务的 UUID。")
-    preferred_start_at: datetime | None = Field(
+    preferred_start_at: AwareDatetime | None = Field(
         default=None,
         description=(
             "带时区的软目标开始时间；规划器会从可行时段中选择最接近者，"
             "可能受日历、工作时间和截止日调整。"
         ),
     )
-    earliest_start_at: datetime | None = Field(
+    earliest_start_at: AwareDatetime | None = Field(
         default=None,
         description="带时区的硬性最早开始时间；只用于用户明确给出或确认的限制。",
     )
-    latest_end_at: datetime | None = Field(
+    latest_end_at: AwareDatetime | None = Field(
         default=None,
         description="带时区的硬性最晚结束时间；只用于用户明确给出或确认的限制。",
     )
@@ -91,11 +91,11 @@ class SchedulePlanItemEdit(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     task_id: UUID = Field(description="草案中的任务 ID。")
-    start_at: datetime | None = Field(
+    start_at: AwareDatetime | None = Field(
         default=None,
         description="新的带时区开始时间；移动任务时必须与 end_at 同时提供。",
     )
-    end_at: datetime | None = Field(
+    end_at: AwareDatetime | None = Field(
         default=None,
         description="新的带时区结束时间；移动任务时必须与 start_at 同时提供。",
     )
@@ -134,6 +134,7 @@ class PlanningConstraints:
     slot_increment_minutes: int = 15
     max_results: int | None = None
     include_planned_tasks: bool = True
+    excluded_planned_task_ids: tuple[UUID, ...] = ()
     daily_worktime_overrides: tuple[DailyAvailabilityWindow, ...] = ()
 
     def validate(self) -> None:
@@ -155,6 +156,8 @@ class PlanningConstraints:
             raise ValueError("slot_increment_minutes must be positive")
         if self.max_results is not None and self.max_results < 1:
             raise ValueError("max_results must be positive")
+        if len(set(self.excluded_planned_task_ids)) != len(self.excluded_planned_task_ids):
+            raise ValueError("excluded_planned_task_ids must be unique")
         windows = sorted(self.daily_worktime_overrides, key=lambda item: item.start_date)
         if any(
             current.start_date <= previous.end_date

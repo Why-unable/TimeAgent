@@ -1,5 +1,5 @@
 from collections.abc import Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import datetime
 
 from django.contrib.auth.models import User
@@ -14,6 +14,8 @@ from common.time import to_utc
 class CapacityForecast:
     range_start: datetime
     range_end: datetime
+    total_schedulable_capacity_minutes: int
+    remaining_free_minutes: int
     available_minutes: int
     committed_minutes: int
     unplanned_minutes: int
@@ -24,6 +26,9 @@ class CapacityForecast:
         return {
             "range_start": self.range_start,
             "range_end": self.range_end,
+            "total_schedulable_capacity_minutes": self.total_schedulable_capacity_minutes,
+            "remaining_free_minutes": self.remaining_free_minutes,
+            # Compatibility alias: available_minutes means capacity remaining after commitments.
             "available_minutes": self.available_minutes,
             "committed_minutes": self.committed_minutes,
             "unplanned_minutes": self.unplanned_minutes,
@@ -48,20 +53,30 @@ class CapacityForecastService:
             raise ValueError("range_end must be later than range_start")
         if slot_minutes < 5 or slot_minutes > 240:
             raise ValueError("slot_minutes must be between 5 and 240")
-        slots = PlanningService.find_free_slots(
+        base_constraints = PlanningConstraints(
+            max_results=10000,
+            slot_increment_minutes=slot_minutes,
+            allowed_weekdays=(
+                tuple(range(5)) if allowed_weekdays is None else tuple(allowed_weekdays)
+            ),
+        )
+        total_slots = PlanningService.find_free_slots(
             user=user,
             range_start=start,
             range_end=end,
             duration_minutes=slot_minutes,
-            constraints=PlanningConstraints(
-                max_results=10000,
-                slot_increment_minutes=slot_minutes,
-                allowed_weekdays=(
-                    tuple(range(5)) if allowed_weekdays is None else tuple(allowed_weekdays)
-                ),
-            ),
+            constraints=replace(base_constraints, include_planned_tasks=False),
         )
-        available = len(slots) * slot_minutes
+        remaining_slots = PlanningService.find_free_slots(
+            user=user,
+            range_start=start,
+            range_end=end,
+            duration_minutes=slot_minutes,
+            constraints=base_constraints,
+        )
+        total_capacity = len(total_slots) * slot_minutes
+        remaining_capacity = len(remaining_slots) * slot_minutes
+        committed = max(0, total_capacity - remaining_capacity)
         tasks = Task.objects.filter(
             user=user,
             status__in=[TaskStatus.PENDING, TaskStatus.IN_PROGRESS],
@@ -69,23 +84,23 @@ class CapacityForecastService:
             due_at__gte=start,
             due_at__lte=end,
         )
-        committed = sum(
-            task.estimated_minutes or 30
-            for task in tasks
-            if task.planned_start_at is not None and task.planned_end_at is not None
-        )
         unplanned = sum(
             task.estimated_minutes or 30
             for task in tasks
-            if task.planned_start_at is None or task.planned_end_at is None
+            if (
+                task.planned_start_at is None
+                or task.planned_end_at is None
+                or task.planned_start_at >= end
+                or task.planned_end_at <= start
+            )
         )
         reason_codes: list[str] = []
-        if unplanned > available:
+        if unplanned > remaining_capacity:
             risk = "over_capacity"
             reason_codes.append("unplanned_exceeds_free_capacity")
-        elif committed + unplanned > available:
+        elif unplanned > 0 and (remaining_capacity == 0 or unplanned >= remaining_capacity * 0.8):
             risk = "tight"
-            reason_codes.append("commitments_and_unplanned_near_capacity")
+            reason_codes.append("unplanned_uses_most_free_capacity")
         else:
             risk = "within_capacity"
         if not tasks:
@@ -93,7 +108,9 @@ class CapacityForecastService:
         return CapacityForecast(
             range_start=start,
             range_end=end,
-            available_minutes=available,
+            total_schedulable_capacity_minutes=total_capacity,
+            remaining_free_minutes=remaining_capacity,
+            available_minutes=remaining_capacity,
             committed_minutes=committed,
             unplanned_minutes=unplanned,
             risk=risk,

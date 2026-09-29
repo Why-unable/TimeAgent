@@ -20,10 +20,27 @@ _PACK_INTENTS: dict[str, tuple[str, ...]] = {
         r"(?:找|推荐).{0,12}(?:时间|时段|晚上|早上|上午|下午|午休|夜间)|"
         r"\b(?:free slots?|availability)\b",
     ),
+    "clock": (
+        r"(?:现在|当前|此刻).{0,6}(?:几点|时间)|几点了|现在几时|今天(?:的)?(?:日期|几号)|"
+        r"\b(?:what time is it|current time|what is today's date|what is the date today)\b",
+    ),
     "planning_preview": (
-        r"排期|排程|排到|排入|排下|规划|帮我安排|安排(?:一下|任务|这些|课程|工作)|"
-        r"安排.{0,8}(?:任务|待办|事情|事项|要做)|"
+        r"排期|排程|排到|排入|排下|规划|计划一下|帮我安排|安排(?:一下|任务|这些|课程|工作)|"
+        r"安排.{0,20}(?:任务|待办|事情|事项|要做|工作)|"
+        r"(?:任务|待办|事项|工作|项目).{0,20}(?:安排|排程|排期|排入|排到|规划|分散)|"
+        r"(?:安排|排程|排期|规划).{0,16}(?:任务|待办|事项|工作|项目|日程|阶段)|"
+        r"(?:本周|下周|未来几周|接下来几周).{0,16}(?:安排|分散|排程|排期)|"
         r"\bschedule\s+(?:(?:two|three|four|several|multiple|some|\d+)\s+)?tasks?\b|\bplanning\b",
+    ),
+    "plan_comparison": (
+        r"(?:比较|对比|权衡).{0,16}(?:排程|方案|安排|计划)|"
+        r"(?:排程|方案|安排|计划).{0,10}(?:比较|对比)|"
+        r"\bcompare\b.{0,20}\bplans?\b",
+    ),
+    "duration_guidance": (
+        r"估(?:时|算)|(?:建议|推荐|预计|预估).{0,10}(?:时长|用时|多久)|"
+        r"(?:需要|大概|大约).{0,10}(?:多久|多长时间)|"
+        r"\b(?:estimate (?:the )?duration|how long|duration estimate)\b",
     ),
     "plan_adaptation": (
         r"冲突|被打断|重排|重新安排|改期|改时间|移动已排|调整已排|"
@@ -34,8 +51,12 @@ _PACK_INTENTS: dict[str, tuple[str, ...]] = {
         r"\b(?:automation policy|automated replanning)\b",
     ),
     "time_insights": (
-        r"洞察|时间偏好|时间习惯|作息|估时|估算时长|实际做了多久|工作量|容量|记忆|习惯规律|"
-        r"\b(?:insights?|duration estimate|capacity forecast)\b",
+        r"洞察|时间偏好|时间习惯|专注时间|作息|估时|估算时长|实际做了多久|工作量|容量|记忆|记住|记下|忘记|习惯规律|"
+        r"(?:能|可以|是否能|是否可以).{0,8}(?:塞进|放进|安排进|放下|挤进)|"
+        r"估时.{0,8}(?:太短|偏短|过长|太长|准确|不准确)|(?:太短|偏短|过长|太长|准确|不准确).{0,8}估时|"
+        r"estimate.{0,20}(?:too short|too long|accurate|inaccurate)|"
+        r"\b(?:insights?|duration estimate|capacity forecast|fit(?: into)? (?:today|this week)|"
+        r"can it fit|will it fit)\b",
     ),
     "integrations": (
         r"同步状态|日历连接|日历同步|外部日历|连接状态|\b(?:calendar sync|integration status)\b",
@@ -48,14 +69,23 @@ _READ_ONLY_INTENT = re.compile(
     r"不需要(?:创建|修改|调整)|保持(?:原样|不变)|\bread.only\b|\bno changes?\b",
     re.IGNORECASE,
 )
+_STRICT_READ_ONLY_INTENT = re.compile(
+    r"只(?:看|查|读|分析|给建议|要建议)|只给.{0,4}建议|只是查询|保持(?:原样|不变)|"
+    r"\bread.only\b|\bno changes?\b",
+    re.IGNORECASE,
+)
 _QUERY_ONLY_INTENT = re.compile(
     r"看看|看一下|查看|查询|列出|告诉我|是什么|有哪些|有什么|有啥|什么是|为什么|为何|哪里|"
     r"是否|有没有|吗[？?]|\?|\b(?:show|list|check|explain|what is|how many)\b",
     re.IGNORECASE,
 )
 _EXPLICIT_WRITE_INTENT = re.compile(
-    r"创建|新增|添加|设置|保存|修改|改动|移动|调整|安排|排程|排期|重排|取消|删除|"
-    r"应用|执行|记住|提醒我|\b(?:create|add|set|save|change|move|reschedule|cancel|delete|apply)\b",
+    r"创建|新增|添加|设置|保存|修改|改动|改到|改为|改成|改期|移动|挪到|提前|延后|调整|"
+    r"安排|排在|排到|排程|排期|重排|取消|删除|应用|执行|记住|记下|忘记|提醒我|"
+    r"(?:估时|时长建议).{0,8}(?:太短|偏短|过长|太长|准确|不准确)|"
+    r"(?:太短|偏短|过长|太长|准确|不准确).{0,8}(?:估时|时长建议)|"
+    r"estimate.{0,20}(?:too short|too long|accurate|inaccurate)|"
+    r"\b(?:create|add|set|save|change|move|reschedule|cancel|delete|apply)\b",
     re.IGNORECASE,
 )
 _SENSITIVE_OR_CROSS_USER_REQUEST = re.compile(
@@ -78,10 +108,36 @@ _MULTI_TASK_SCHEDULE_REQUEST = re.compile(
     r"\b(?:(?:multiple|all|these|several|two|three|four|\d+)\s+tasks?|tasks?\s+(?:together|all))\b",
     re.IGNORECASE,
 )
+_ORDERED_TASK_SEQUENCE = re.compile(
+    r"(?:先|首先).{0,160}(?:再|然后|之后|最后)|"
+    r"(?:再|然后|之后).{0,120}(?:最后|后续|完成)|"
+    r"[^。]{0,100}[，,].{0,80}(?:再|然后|之后)",
+    re.IGNORECASE,
+)
+_SCHEDULE_TIME_CONSTRAINT = re.compile(
+    r"(?:每天|每日).{0,12}(?:最多|不超过).{0,12}(?:分钟|小时)|"
+    r"至少.{0,12}(?:分|安排|用).{0,10}(?:\d+|[一二三四五六七八九十]+)\s*(?:个)?(?:工作日|天)|"
+    r"(?:不排|不安排|只排).{0,5}(?:周末|周六|周日|工作日)",
+    re.IGNORECASE,
+)
+_SCHEDULE_GOAL_LANGUAGE = re.compile(
+    r"我想|我打算|我需要|需要完成|需完成|帮我|请帮我|想把|需要把|要把|"
+    r"想分.{0,8}(?:几次|多次|几天|几周)",
+    re.IGNORECASE,
+)
 _TASK_MANAGEMENT_INTENT = re.compile(
     r"(?:新增|创建|编辑|修改|更新|标记|完成|取消|删除|安排).{0,12}"
     r"(?:任务|待办|事情|事项|要做)|"
-    r"(?:任务|待办).{0,8}(?:新增|创建|编辑|修改|更新|标记|完成|取消|删除)",
+    r"(?:任务|待办).{0,8}(?:新增|创建|编辑|修改|更新|标记|完成|取消|删除|"
+    r"改到|改为|改期|调整|挪到|提前|延后|重排)",
+    re.IGNORECASE,
+)
+_TASK_RECORD_MUTATION_INTENT = re.compile(
+    r"(?:新增|创建|编辑|修改|更新|标记|完成|取消|删除|改到|改为|改期|调整|挪到|提前|延后|重排).{0,12}"
+    r"(?:任务|待办|事情|事项|要做)|"
+    r"(?:任务|待办|事情|事项|要做).{0,10}"
+    r"(?:新增|创建|编辑|修改|更新|标记|完成|取消|删除|改到|改为|改期|调整|挪到|提前|延后|重排)|"
+    r"\b(?:create|add|update|edit|complete|cancel|delete|reschedule)\s+tasks?\b",
     re.IGNORECASE,
 )
 _TASK_WRITE_TOOL_NAMES = frozenset(
@@ -115,6 +171,16 @@ def _has_positive_intent(pattern: re.Pattern[str], text: str) -> bool:
     )
 
 
+def _has_constraint_driven_schedule_intent(message: str) -> bool:
+    """Recognize a structured task plan even without an explicit schedule verb."""
+
+    return bool(
+        _SCHEDULE_GOAL_LANGUAGE.search(message)
+        and _ORDERED_TASK_SEQUENCE.search(message)
+        and _SCHEDULE_TIME_CONSTRAINT.search(message)
+    )
+
+
 def select_tool_names(message: str) -> frozenset[str] | None:
     """Return the union of clearly matched packs, or None when intent is unclear."""
 
@@ -128,6 +194,10 @@ def select_tool_names(message: str) -> frozenset[str] | None:
         for pack, patterns in _PACK_INTENTS.items()
         if any(re.search(pattern, text, re.IGNORECASE) for pattern in patterns)
     }
+    if _has_constraint_driven_schedule_intent(text):
+        matched.add("planning_preview")
+    if "plan_comparison" in matched:
+        matched.update({"planning_preview", "plan_review"})
     if "availability" in matched:
         matched.discard("overview")
         if _has_positive_intent(_TASK_MANAGEMENT_INTENT, text):
@@ -144,7 +214,6 @@ def select_tool_names(message: str) -> frozenset[str] | None:
             matched.discard("tasks")
         if not _has_positive_intent(_CALENDAR_MANAGEMENT_INTENT, text):
             matched.discard("calendar")
-    # Broad, cross-domain requests are safer with the full registry available.
     if not matched or len(matched) > 4:
         return None
     selected = set().union(*(PACK_TOOL_NAMES[pack] for pack in matched))
@@ -153,14 +222,11 @@ def select_tool_names(message: str) -> frozenset[str] | None:
     if "calendar" in matched and not _has_positive_intent(_CALENDAR_MANAGEMENT_INTENT, text):
         selected.difference_update(_CALENDAR_WRITE_TOOL_NAMES)
     if "plan_adaptation" in matched:
-        # A single reschedule has its own approval gate. Keep unrelated task,
-        # calendar and policy mutations out of a one-off conflict workflow.
         selected.difference_update(_TASK_WRITE_TOOL_NAMES)
         selected.difference_update(_CALENDAR_WRITE_TOOL_NAMES)
         selected.difference_update({"list_tasks", "list_events"})
         selected.update(
             {
-                "get_current_datetime",
                 "get_planning_context",
                 "detect_schedule_disruptions",
                 "get_task",
@@ -175,11 +241,23 @@ def select_tool_names(message: str) -> frozenset[str] | None:
 def should_limit_to_read_tools(message: str) -> bool:
     if _VAGUE_PLANNING_REQUEST.search(message):
         return True
+    if _STRICT_READ_ONLY_INTENT.search(message):
+        return True
+    if _has_constraint_driven_schedule_intent(message):
+        return False
     has_positive_write = _has_positive_intent(_EXPLICIT_WRITE_INTENT, message)
     if _READ_ONLY_INTENT.search(message) and not has_positive_write:
         return True
-    return bool(_QUERY_ONLY_INTENT.search(message)) and not has_positive_write
+    if not has_positive_write:
+        return True
+    return False
 
 
 def is_multi_task_schedule_request(message: str) -> bool:
     return bool(_MULTI_TASK_SCHEDULE_REQUEST.search(message))
+
+
+def has_explicit_task_record_mutation(message: str) -> bool:
+    """Identify CRUD/reschedule intent separately from drafting a schedule plan."""
+
+    return _has_positive_intent(_TASK_RECORD_MUTATION_INTENT, message)
