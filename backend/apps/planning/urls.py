@@ -12,6 +12,7 @@ from apps.planning.views import (
     SchedulePlanAbandonView,
     SchedulePlanApplyView,
     SchedulePlanCompareView,
+    SchedulePlanDetailView,
     SchedulePlanEditView,
     SchedulePlanListView,
     SchedulePlanRegenerateView,
@@ -47,6 +48,7 @@ urlpatterns = [
     ),
     path("plans/", SchedulePlanListView.as_view(), name="schedule-plans"),
     path("plans/compare/", SchedulePlanCompareView.as_view(), name="schedule-plan-compare"),
+    path("plans/<uuid:plan_id>/", SchedulePlanDetailView.as_view(), name="schedule-plan-detail"),
     path(
         "plans/<uuid:plan_id>/apply/",
         SchedulePlanApplyView.as_view(),

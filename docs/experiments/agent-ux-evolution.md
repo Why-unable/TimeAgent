@@ -24,11 +24,11 @@ Primary observed UX risks:
 | View today | Today → next action, timeline, counts, quick actions | Strong base; quick actions are static and count-oriented sections can compete with next action. |
 | Ask about today's schedule | Chat → empty-state prompt → send → tool activity → answer | Raw tool names are exposed; first useful progress is not semantic. |
 | Ask agent to plan tasks | Chat prompt or Planning → select task IDs/range/ordering/strategy → generate | Planning is API-shaped; ordinary route requires several decisions. |
-| Modify agent plan | Planning edit/lock controls or another chat prompt | No common visual plan artifact/edit path surfaced across views. |
+| Modify agent plan | Planning edit/lock controls or another chat prompt | Chat now renders a schedule-plan artifact and can refresh it from a newer plan reference; a live natural-language edit journey still needs evaluation. |
 | Apply plan | Validate → read status/version → apply | Manual validation duplicates deterministic apply revalidation and adds a technical step. |
 | HITL | Inline ApprovalCard or Approvals inbox → inspect details → approve/edit/reject | Payload is prominent; timezone inconsistencies and recurring preview fallback undermine trust. |
 | Replan | Planning local-replan tab → specify blocked interval/horizon/tasks → preview → apply | User must understand disruption mechanics and raw reason codes. |
-| Insight | Insights list → generic action / Chat deep link | Chat prefills a prompt containing an insight ID; user must send it again. |
+| Insight | Insights list → primary action / Chat handoff | The Chat handoff now starts the selected insight request directly; the Agent still receives the insight ID as context. |
 | Notification deep link | Notification → route target where available | E2E coverage exists for notification paths; action context should be verified per destination. |
 | Briefing | Briefings → choose date/generate/view | Separate workspace; continuation into Chat should preserve context and avoid re-entry. |
 | Error/retry | Error message → user interprets request ID/backend details → retry | Chat and notification surfaces risk leaking internal details; recovery affordance consistency is unclear. |
@@ -39,7 +39,7 @@ Planning, Approval, Chat progress, Today empty-state actions, and user-facing no
 
 ## 4. Agent Interaction Problems
 
-Current Chat has SSE events and tool records, but uses tool names as the default activity language. Structured artifact references are not yet demonstrated in the inspected response contract. Insight-to-chat carries a prompt string and ID through query parameters rather than launching a structured action.
+Current Chat uses user-facing activity labels with raw tool traces folded away. It now receives reference-only schedule-plan artifact events and loads the plan through an authenticated, user-scoped detail API; conversation history retains those references. Other artifact types and other surfaces are not implemented yet. Insight-to-chat still carries the selected ID in prompt context, but its explicit CTA now starts the request directly.
 
 ## 5. Information Architecture
 
@@ -47,11 +47,11 @@ Desktop currently exposes Today, Chat, Calendar, Briefings, Insights, Approvals,
 
 ## 6. Planning UX Redesign
 
-Implemented first step: Planning opens with a goal prompt that routes the user's text into Chat, and the task-selection/API-shaped workflow is behind “高级规划设置”. A reusable `PlanPreview` now renders a timezone-aware timeline and unplaced work. Advanced details expose per-task lock/regenerate controls. Normal users apply once; apply still relies on server-side deterministic revalidation. Limitation: this frontend currently cannot show backend-authored `display_reason`, key tradeoffs, or a structured before/after edit; it uses a generic unplaced explanation and Chat still requires the user to send the prefilled goal.
+Implemented first step: Planning opens with a goal prompt that routes the user's text into Chat, and the task-selection/API-shaped workflow is behind “高级规划设置”. A reusable `PlanPreview` now renders a timezone-aware timeline and unplaced work. Advanced details expose per-task lock/regenerate controls. Normal users apply once; apply still relies on server-side deterministic revalidation. The natural-language goal CTA now starts the Chat request directly. Limitation: this frontend currently cannot show backend-authored `display_reason`, key tradeoffs, or a structured before/after edit; it uses a generic unplaced explanation.
 
 ## 7. Chat UX Redesign
 
-Implemented first step: progress summaries use user-facing activity labels with the raw tool trace collapsed; run and transport failures use recoverable user language. Goal and Today actions can prefill Chat. Structured plan artifacts still need authoritative references before they can be rendered in Chat/Today/Insight/Approval.
+Implemented first step: progress summaries use user-facing activity labels with the raw tool trace collapsed; run and transport failures use recoverable user language. Planning, empty Today, and Insight CTAs explicitly launch their request once. Ordinary `?prompt=` links remain editable prefill, and a failed launch restores the text to the composer. Schedule-plan references from Agent events are rendered as the shared timezone-aware `PlanPreview` in Chat and are reloaded when a later version is emitted. The artifact card keeps application behind the existing confirmation flow.
 
 ## 8. Approval UX
 
@@ -59,11 +59,11 @@ Keep the inbox and inline approval surfaces backed by the same card and state. T
 
 ## 9. Today UX
 
-Preserve next action and timeline. The empty-day mobile action now offers “帮我安排今天” and routes the goal to Chat; direct CRUD links remain secondary. Further state-aware actions need authoritative Today signals and still need journey evaluation.
+Preserve next action and timeline. The empty-day mobile action now offers “帮我安排今天” and sends that goal to Chat in one tap; direct CRUD links remain secondary. Further state-aware actions need authoritative Today signals and still need journey evaluation.
 
 ## 10. Insight / Notification / Briefing UX
 
-Insights now use account timezone for deadline evidence and specific CTA labels for capacity/deadline/overdue risks; the Chat handoff still makes users send a prefilled prompt. Notification settings now use user language for backend push availability, hide delivery codes in technical details, and use generic errors. Briefing journeys were not redesigned in this pass and need follow-up evaluation.
+Insights now use account timezone for deadline evidence and specific CTA labels for capacity/deadline/overdue risks; “问助理” starts a single Chat request with the selected insight ID and title in its prompt context. Notification settings now use user language for backend push availability, hide delivery codes in technical details, and use generic errors. Briefing journeys were not redesigned in this pass and need follow-up evaluation.
 
 ## 11. Timezone Audit
 
@@ -93,7 +93,7 @@ Turns, clicks, time-to-first-useful-UI, clarification rate, acceptance, and comp
 
 ## 16. Playwright Journey Results
 
-Playwright mock UI run: desktop workspace 6 scenarios and mobile workspace 13 scenarios were exercised. The day-plan path reached apply after opening Advanced Planning, generating the draft, and applying it (3 clicks); it also checked 320/375/430/1280px widths, zero horizontal overflow, and absence of raw status/version/strategy/reason fields. The locale test used Europe/London browser timezone with Asia/Shanghai account timezone and verified the submitted UTC range. The mobile approval card showed its change preview and primary action with no horizontal overflow. A selector mistake caused the first combined run of the natural-language entry test to time out; after correcting the selector, that scenario passed in isolation. These are mocked UI journeys, not a live backend or AgentRun completion test.
+Playwright mock UI run: the latest focused suite passed 7 desktop and 13 mobile scenarios. It verifies one-tap Planning submission, reload of a persisted schedule-plan reference into the Chat timeline, mobile keyboard/layout behavior, 320/375/430/1280px widths, zero horizontal overflow, and the existing apply flow. The locale scenario uses a Europe/London browser with Asia/Shanghai account timezone and verifies the submitted UTC range. These are mocked UI journeys, not a live AgentRun completion or acceptance test. An unfiltered run was stopped after backend-dependent smoke cases timed out because the local API proxy had no backend listener.
 
 ## 17. Blind UX Evaluation
 
@@ -101,11 +101,27 @@ No blind evaluation was run. Requires paired baseline/candidate captures and a t
 
 ## 18. Failure Cases
 
-Fixed in the first pass: browser/account timezone mismatch in Planning, Approval and Insight due evidence; client-invented recurring preview; Chat raw tool names as default progress; raw run errors in Chat; and provider jargon in notification availability. Fixed in the second pass: DST skipped/repeated local input is detected before writes, with form-level guidance and no partial Event+Task creation. Remaining: backend-authored unplaced explanations, the stale-plan user recovery path, choosing either occurrence during a repeated hour, structured plan artifact/edit, Insight→Chat auto-submit, notification actionability, briefing continuation, and accessibility screen-reader testing.
+Fixed in the first pass: browser/account timezone mismatch in Planning, Approval and Insight due evidence; client-invented recurring preview; Chat raw tool names as default progress; raw run errors in Chat; and provider jargon in notification availability. Fixed in the second pass: DST skipped/repeated local input is detected before writes, with form-level guidance and no partial Event+Task creation. Fixed in the third pass: explicit Planning, Today, and Insight actions submit once while ordinary prompt links remain prefilled drafts. Fixed in the fourth pass: schedule-plan artifact references persist with conversations and render in Chat from an authenticated plan read. Remaining: backend-authored unplaced explanations, the stale-plan user recovery path, choosing either occurrence during a repeated hour, live natural-language edit evaluation, artifact surfaces beyond Chat, notification actionability, briefing continuation, and accessibility screen-reader testing.
 
 ## 19. Remaining Limitations
 
-This report records the required current-state journey map and two UX implementation rounds. The full request spans more journeys and asks for longitudinal, blind and multi-agent evaluation; this remains an incomplete product-wide UX evolution. No live backend, AgentRun completion, or baseline-vs-after satisfaction comparison was measured. API additions require regenerated OpenAPI/types and backend changes through application services.
+This report records the required current-state journey map and four UX implementation rounds. The full request spans more journeys and asks for longitudinal, blind and multi-agent evaluation; this remains an incomplete product-wide UX evolution. No live backend, AgentRun completion, or baseline-vs-after satisfaction comparison was measured. API additions require regenerated OpenAPI/types and backend changes through application services.
+
+## Iteration 4 Before / After Record
+
+- **Before:** a plan generated in Chat was only represented by Markdown/tool activity; after leaving the run, the conversation did not retain a renderable plan reference.
+- **After:** completed planning tools emit a durable `schedule_plan` reference containing only plan ID and version. Conversation history exposes those references; Chat fetches plan details through the user-scoped Application Service endpoint and renders the shared `PlanPreview` in the account timezone. A later reference refreshes the same artifact. The card directs edits through Chat and leaves high-risk application behind the existing confirmation path.
+- **Evidence:** backend tests cover artifact-event emission, conversation-history serialization, plan retrieval, and cross-user 404 isolation. Frontend tests cover persisted artifact loading. Desktop Playwright verifies the schedule timeline and status display. OpenAPI and generated frontend types were regenerated; no migration was required.
+- **Interaction measure:** a user can inspect the plan in the same conversation without opening Planning or interpreting tool output. Natural-language changes, acceptance, and application completion were not measured with a live Agent.
+- **Validation:** backend focused suite passed (47 tests); Django system check, migration check, Ruff, and formatting checks passed. Frontend unit suite passed (26 files / 122 tests), lint and build passed, and focused desktop/mobile Playwright passed 20/20. The existing production bundle warning remains (>500 kB main chunk).
+
+## Iteration 3 Before / After Record
+
+- **Before:** Planning, empty Today, and Insight actions navigated to Chat with a prefilled composer, requiring a second Send action.
+- **After:** those explicit in-app actions carry a one-shot launch marker and send the intended prompt on arrival. Direct `?prompt=` links without that marker continue to prefill an editable draft. Failed sends restore the text so the user can retry; server-side high-risk approval policy is unchanged.
+- **Evidence:** Chat unit tests verify an Insight launch posts exactly once and a plain prompt does not post. Insights tests verify its CTA carries the launch marker. Today tests verify its action URL. Desktop Playwright verifies Planning posts the entered goal; the focused desktop/mobile workspace suite passed 19/19.
+- **Interaction measure:** the three entry actions now need one tap to issue the request instead of two. This counts initiation only; response latency, plan usefulness, completion, and acceptance were not measured.
+- **Validation:** frontend lint and production build passed; final frontend unit tests passed (26 files / 121 tests). The unfiltered E2E run was interrupted after backend-dependent smoke tests timed out because the configured API proxy refused the local backend connection; the focused desktop/mobile suite passed 19/19. Django system check passed. `makemigrations --check --dry-run` produced no output and was interrupted after waiting over two minutes for the local database.
 
 ## Iteration 2 Before / After Record
 

@@ -58,6 +58,19 @@ class SchedulePlanListView(APIView):
         return Response(SchedulePlanSerializer(plans, many=True).data)
 
 
+class SchedulePlanDetailView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    @extend_schema(responses=SchedulePlanSerializer)
+    def get(self, request: Request, plan_id: UUID) -> Response:
+        user = _authenticated_user(request)
+        try:
+            plan = PlanningService.get_schedule_plan(user=user, plan_id=plan_id)
+        except SchedulePlan.DoesNotExist:
+            raise Http404 from None
+        return Response(SchedulePlanSerializer(plan).data)
+
+
 class SchedulePlanApplyView(APIView):
     permission_classes = [IsAuthenticated]
 

@@ -149,7 +149,7 @@ describe("TodayPage", () => {
     const scoped = within(actions as HTMLElement);
     expect(scoped.getByRole("link", { name: /日程/ })).toHaveAttribute("href", "/calendar");
     expect(scoped.getByRole("link", { name: /任务/ })).toHaveAttribute("href", "/tasks");
-    expect(scoped.getByRole("link", { name: /帮我安排今天/ })).toHaveAttribute("href", "/chat?prompt=帮我安排今天的任务");
+    expect(scoped.getByRole("link", { name: /帮我安排今天/ })).toHaveAttribute("href", "/chat?prompt=帮我安排今天的任务&auto_send=1");
   });
 
   it("renders the backend summary without recomputing its business buckets", async () => {

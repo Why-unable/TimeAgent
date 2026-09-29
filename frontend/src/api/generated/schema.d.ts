@@ -846,6 +846,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/planning/plans/{plan_id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["api_v1_planning_plans_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/planning/plans/{plan_id}/abandon/": {
         parameters: {
             query?: never;
@@ -1539,7 +1555,7 @@ export interface components {
             readonly trigger_type: string;
             readonly trigger_payload: unknown;
             readonly synthetic_input: boolean;
-            readonly status: components["schemas"]["AgentRunStatusEnum"];
+            readonly status: components["schemas"]["Status7aeEnum"];
             readonly input_message: string;
             /** Format: date-time */
             readonly anchor_at: string;
@@ -1553,16 +1569,6 @@ export interface components {
             /** Format: date-time */
             readonly created_at: string;
         };
-        /**
-         * @description * `pending` - Pending
-         *     * `running` - Running
-         *     * `waiting_approval` - Waiting for approval
-         *     * `completed` - Completed
-         *     * `failed` - Failed
-         *     * `cancelled` - Cancelled
-         * @enum {string}
-         */
-        AgentRunStatusEnum: "pending" | "running" | "waiting_approval" | "completed" | "failed" | "cancelled";
         AndroidRelease: {
             version_code: number;
             version_name: string;
@@ -1579,6 +1585,11 @@ export interface components {
             enabled: boolean;
             release: components["schemas"]["AndroidRelease"] | null;
         };
+        /**
+         * @description * `schedule_plan` - schedule_plan
+         * @enum {string}
+         */
+        ArtifactTypeEnum: "schedule_plan";
         AuthToken: {
             readonly token: string;
             readonly user: components["schemas"]["CurrentUser"];
@@ -1804,6 +1815,32 @@ export interface components {
             /** Format: date-time */
             readonly updated_at: string;
         };
+        ConversationAgentRun: {
+            /** Format: uuid */
+            readonly id: string;
+            /** Format: uuid */
+            readonly conversation_id: string;
+            /** Format: uuid */
+            readonly operation_id: string;
+            readonly request_id: string;
+            readonly trigger_type: string;
+            readonly trigger_payload: unknown;
+            readonly synthetic_input: boolean;
+            readonly status: components["schemas"]["Status7aeEnum"];
+            readonly input_message: string;
+            /** Format: date-time */
+            readonly anchor_at: string;
+            readonly anchor_timezone: string;
+            readonly final_response: string;
+            readonly error: string;
+            /** Format: date-time */
+            readonly started_at: string | null;
+            /** Format: date-time */
+            readonly completed_at: string | null;
+            /** Format: date-time */
+            readonly created_at: string;
+            readonly artifacts: components["schemas"]["SchedulePlanArtifactReference"][];
+        };
         ConversationDetail: {
             /** Format: uuid */
             readonly id: string;
@@ -1813,7 +1850,7 @@ export interface components {
             readonly created_at: string;
             /** Format: date-time */
             readonly updated_at: string;
-            readonly runs: components["schemas"]["AgentRun"][];
+            readonly runs: components["schemas"]["ConversationAgentRun"][];
         };
         /**
          * @description * `chat` - Chat
@@ -2558,6 +2595,12 @@ export interface components {
         SchedulePlanApply: {
             expected_version: number;
         };
+        SchedulePlanArtifactReference: {
+            artifact_type: components["schemas"]["ArtifactTypeEnum"];
+            /** Format: uuid */
+            artifact_id: string;
+            version: number;
+        };
         SchedulePlanCompare: {
             task_ids: string[];
             /** Format: date-time */
@@ -2651,6 +2694,16 @@ export interface components {
          * @enum {string}
          */
         SignalTypeEnum: "started" | "paused" | "resumed" | "completed" | "skipped";
+        /**
+         * @description * `pending` - Pending
+         *     * `running` - Running
+         *     * `waiting_approval` - Waiting for approval
+         *     * `completed` - Completed
+         *     * `failed` - Failed
+         *     * `cancelled` - Cancelled
+         * @enum {string}
+         */
+        Status7aeEnum: "pending" | "running" | "waiting_approval" | "completed" | "failed" | "cancelled";
         /**
          * @description * `plan_tasks_only` - plan_tasks_only
          *     * `create_linked_event_blocks` - create_linked_event_blocks
@@ -4381,6 +4434,27 @@ export interface operations {
                 "multipart/form-data": components["schemas"]["SchedulePlanCreate"];
             };
         };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SchedulePlan"];
+                };
+            };
+        };
+    };
+    api_v1_planning_plans_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                plan_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
         responses: {
             200: {
                 headers: {

@@ -313,6 +313,17 @@ def test_conversation_history_is_scoped_ordered_and_updates_recency() -> None:
             message="提醒我提前十分钟准备。",
         )
     )
+    plan_id = uuid4()
+    AgentRunService.append_event(
+        second,
+        "artifact.available",
+        {
+            "artifact_type": "schedule_plan",
+            "artifact_id": str(plan_id),
+            "version": 2,
+            "tool_call_id": "plan-call-1",
+        },
+    )
 
     detail = client.get(f"/api/v1/chat/conversations/{conversation.pk}/")
 
@@ -322,6 +333,9 @@ def test_conversation_history_is_scoped_ordered_and_updates_recency() -> None:
     assert [run["id"] for run in body["runs"]] == [str(first.pk), str(second.pk)]
     assert body["runs"][0]["final_response"] == "下午三点开会。"
     assert body["runs"][1]["input_message"] == "提醒我提前十分钟准备。"
+    assert body["runs"][1]["artifacts"] == [
+        {"artifact_type": "schedule_plan", "artifact_id": str(plan_id), "version": 2}
+    ]
     assert client.get(f"/api/v1/chat/conversations/{other_conversation.pk}/").status_code == 404
 
     listed = client.get("/api/v1/chat/conversations/").json()

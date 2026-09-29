@@ -202,7 +202,7 @@ function TodayEmptyQuickAction() {
     <section className="rounded-2xl border border-white/10 bg-slate-900 p-4 lg:flex lg:items-center lg:justify-between lg:gap-5">
       <div><p className="text-sm font-medium text-slate-200">今天还没有安排</p>
       <p className="mt-1 text-xs text-slate-400">让助理根据你的任务先拟一份计划，再由你决定是否应用。</p></div>
-      <Link to="/chat?prompt=帮我安排今天的任务" className="mt-3 flex min-h-12 items-center justify-center gap-2 rounded-xl bg-cyan-300 px-3 text-sm font-semibold text-slate-950 lg:mt-0 lg:min-w-52">
+      <Link to="/chat?prompt=帮我安排今天的任务&auto_send=1" className="mt-3 flex min-h-12 items-center justify-center gap-2 rounded-xl bg-cyan-300 px-3 text-sm font-semibold text-slate-950 lg:mt-0 lg:min-w-52">
         <MessageSquare size={16} /> 帮我安排今天
       </Link>
       <div className="mt-3 flex justify-center gap-4 text-xs text-slate-400 lg:mt-0">

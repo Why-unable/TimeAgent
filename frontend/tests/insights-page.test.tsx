@@ -1,10 +1,14 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { MemoryRouter, Route, Routes } from "react-router-dom";
+import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { InsightsPage } from "../src/pages/insights-page";
+
+function RouteSearch() {
+  return <output data-testid="route-search">{useLocation().search}</output>;
+}
 
 const insight = {
   id: "61111111-1111-4111-8111-111111111111",
@@ -34,6 +38,7 @@ function renderPage(path = "/insights") {
         <Routes>
           <Route path="/insights" element={<InsightsPage />} />
           <Route path="/insights/:insightId" element={<InsightsPage />} />
+          <Route path="/chat" element={<RouteSearch />} />
         </Routes>
       </QueryClientProvider>
     </MemoryRouter>,
@@ -79,5 +84,21 @@ describe("InsightsPage", () => {
       action: "false_positive",
       disable_kind: true,
     }));
+  });
+
+  it("launches the selected insight as a one-click Chat action", async () => {
+    vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo | URL) => {
+      if (String(input).endsWith("/api/v1/insights/")) {
+        return new Response(JSON.stringify([insight]));
+      }
+      throw new Error(`Unexpected request: ${String(input)}`);
+    }));
+
+    renderPage();
+    await userEvent.click(await screen.findByRole("button", { name: "问助理" }));
+
+    const routeSearch = await screen.findByTestId("route-search");
+    expect(routeSearch).toHaveTextContent(`insight_id=${insight.id}`);
+    expect(routeSearch).toHaveTextContent("auto_send=1");
   });
 });

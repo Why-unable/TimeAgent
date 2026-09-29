@@ -33,6 +33,7 @@ import {
   type AgentRun,
   type Conversation,
 } from "../api/chat";
+import { getSchedulePlan, type SchedulePlan } from "../api/planning";
 import {
   decideActionProposal,
   getActionProposal,
@@ -42,15 +43,25 @@ import {
 import { ApprovalCard } from "../components/approvals/approval-card";
 import { ChatEmptyState } from "../components/chat/chat-empty-state";
 import { MarkdownMessage } from "../components/chat/markdown-message";
+import { PlanPreview, type PlanPreviewItem } from "../components/planning/plan-preview";
 import type { TodaySummary } from "../api/today";
 import { streamAgentRun, type AgentStreamEvent } from "../features/agent-runs/sse-client";
 import { useTodaySummary } from "../features/today/hooks";
 import { useCurrentUserPreference } from "../features/preferences/hooks";
+import { useTasks } from "../features/tasks/hooks";
 import { formatInUserTimezone, formatTimeInUserTimezone, getLocalDateKey } from "../utils/datetime";
 
 type ChatEntry =
   | { id: string; kind: "user" | "assistant"; content: string; timestamp: string }
   | { id: string; kind: "notice"; content: string; tone: "error" | "muted" }
+  | {
+      id: string;
+      kind: "schedule_plan";
+      planId: string;
+      version: number;
+      plan?: SchedulePlan;
+      state: "loading" | "loaded" | "failed";
+    }
   | {
       id: string;
       kind: "tool";
@@ -145,8 +156,59 @@ function TodayContextSummary({ data }: { data: TodaySummary }) {
   );
 }
 
-function entriesFromRuns(runs: AgentRun[]): ChatEntry[] {
-  return runs.flatMap((run) => {
+function SchedulePlanArtifactCard({
+  entry,
+  timezone,
+  onRetry,
+}: {
+  entry: Extract<ChatEntry, { kind: "schedule_plan" }>;
+  timezone: string;
+  onRetry: () => void;
+}) {
+  const tasks = useTasks();
+  const taskTitles = useMemo(
+    () => new Map((tasks.data ?? []).map((task) => [task.id, task.title])),
+    [tasks.data],
+  );
+  const planItems = (Array.isArray(entry.plan?.items) ? entry.plan.items : []) as Array<
+    PlanPreviewItem & { kind?: string }
+  >;
+  const visibleItems = planItems.filter((item) => item.kind !== "plan_evidence");
+  const statusLabel: Record<string, string> = {
+    draft: "计划草案",
+    applied: "已应用",
+    superseded: "已替换",
+    abandoned: "已放弃",
+    invalidated: "需要重新检查",
+  };
+
+  return (
+    <section aria-label="Agent 计划预览" className="w-full rounded-xl border border-cyan-200/20 bg-slate-950/70 p-4 shadow-sm lg:mx-auto lg:max-w-3xl">
+      <header className="flex items-center justify-between gap-3">
+        <div>
+          <h3 className="text-sm font-semibold text-cyan-100">计划预览</h3>
+          {entry.plan && <p className="mt-1 text-xs text-slate-400">{statusLabel[String(entry.plan.status)] ?? "计划"}</p>}
+        </div>
+        {entry.state === "failed" && <button type="button" onClick={onRetry} className="min-h-10 rounded-lg border border-white/15 px-3 text-xs text-slate-200 hover:bg-white/5">重试加载</button>}
+      </header>
+      {entry.state === "loading" && <p role="status" className="mt-3 text-sm text-slate-400">正在加载计划…</p>}
+      {entry.state === "failed" && <p role="alert" className="mt-3 text-sm text-amber-200">暂时无法加载这份计划。你可以重试，或继续在对话里调整。</p>}
+      {entry.state === "loaded" && entry.plan && (
+        <>
+          <PlanPreview items={visibleItems} taskTitles={taskTitles} timezone={timezone} />
+          <p className="mt-3 border-t border-white/10 pt-3 text-xs leading-5 text-slate-400">可以继续告诉助理如何调整；正式应用前会按确认流程检查。</p>
+        </>
+      )}
+    </section>
+  );
+}
+
+function entriesFromRuns(runs: Array<AgentRun & { artifacts: Array<{
+  artifact_type: string;
+  artifact_id: string;
+  version: number;
+}> }>): ChatEntry[] {
+  const entries = runs.flatMap((run) => {
     const entries: ChatEntry[] = run.synthetic_input
       ? [{ id: `trigger-${run.id}`, kind: "notice", content: run.input_message, tone: "muted" }]
       : [{ id: `user-${run.id}`, kind: "user", content: run.input_message, timestamp: run.created_at }];
@@ -167,8 +229,37 @@ function entriesFromRuns(runs: AgentRun[]): ChatEntry[] {
     } else if (run.status === "cancelled") {
       entries.push({ id: `notice-${run.id}`, kind: "notice", content: "这次运行已取消。", tone: "muted" });
     }
+    for (const artifact of run.artifacts ?? []) {
+      if (artifact.artifact_type !== "schedule_plan") continue;
+      entries.push({
+        id: `plan-artifact-${artifact.artifact_id}`,
+        kind: "schedule_plan",
+        planId: artifact.artifact_id,
+        version: artifact.version,
+        state: "loading",
+      });
+    }
     return entries;
   });
+  const uniqueEntries: ChatEntry[] = [];
+  const planEntryIndexes = new Map<string, number>();
+  for (const entry of entries) {
+    if (entry.kind !== "schedule_plan") {
+      uniqueEntries.push(entry);
+      continue;
+    }
+    const index = planEntryIndexes.get(entry.planId);
+    if (index === undefined) {
+      planEntryIndexes.set(entry.planId, uniqueEntries.length);
+      uniqueEntries.push(entry);
+      continue;
+    }
+    const previous = uniqueEntries[index];
+    if (previous.kind === "schedule_plan" && entry.version > previous.version) {
+      uniqueEntries[index] = { ...previous, version: entry.version };
+    }
+  }
+  return uniqueEntries;
 }
 
 function formatChatTimestamp(value: string, timezone: string, now = new Date()): string {
@@ -208,6 +299,7 @@ export function ChatPage() {
   const [entries, setEntries] = useState<ChatEntry[]>([]);
   const [runId, setRunId] = useState<string | null>(null);
   const [message, setMessage] = useState("");
+  const [autoSendIntent, setAutoSendIntent] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [loadingHistory, setLoadingHistory] = useState(false);
   const [loadingConversations, setLoadingConversations] = useState(true);
@@ -219,23 +311,24 @@ export function ChatPage() {
   const messagesEnd = useRef<HTMLDivElement | null>(null);
   const textarea = useRef<HTMLTextAreaElement | null>(null);
   const composer = useRef<HTMLFormElement | null>(null);
+  const autoSendStarted = useRef(false);
   const [composerOffset, setComposerOffset] = useState(0);
 
   useEffect(() => {
     const prompt = searchParams.get("prompt");
     const insightTitle = searchParams.get("insight_title");
     const insightId = searchParams.get("insight_id");
-    if (!conversationId && prompt) {
-      setMessage((current) => current.trim() ? current : prompt);
-      setSearchParams({}, { replace: true });
-    } else if (!conversationId && insightId && insightTitle) {
-      setMessage((current) =>
-        current.trim()
-          ? current
-          : `请基于洞察“${insightTitle}”分析影响并给出可执行选项。洞察 ID：${insightId}`,
-      );
-      setSearchParams({}, { replace: true });
+    const intent = prompt
+      ?? (insightId && insightTitle
+        ? `请基于洞察“${insightTitle}”分析影响并给出可执行选项。洞察 ID：${insightId}`
+        : null);
+    if (conversationId || !intent) return;
+
+    setMessage((current) => current.trim() ? current : intent);
+    if (searchParams.get("auto_send") === "1") {
+      setAutoSendIntent(intent);
     }
+    setSearchParams({}, { replace: true });
   }, [conversationId, searchParams, setSearchParams]);
 
   // Keep the composer above the software keyboard by tracking visualViewport.
@@ -283,6 +376,41 @@ export function ChatPage() {
     ));
   }, []);
 
+  const loadPlanArtifact = useCallback(async (planId: string, minimumVersion = 1) => {
+    const entryId = `plan-artifact-${planId}`;
+    setEntries((current) => {
+      const exists = current.some((entry) => entry.kind === "schedule_plan" && entry.planId === planId);
+      if (!exists) {
+        return [...current, {
+          id: entryId,
+          kind: "schedule_plan",
+          planId,
+          version: minimumVersion,
+          state: "loading",
+        }];
+      }
+      return current.map((entry) => entry.kind === "schedule_plan" && entry.planId === planId
+        ? { ...entry, version: Math.max(entry.version, minimumVersion), state: "loading" }
+        : entry);
+    });
+
+    try {
+      const plan = await getSchedulePlan(planId);
+      const planVersion = plan.version ?? minimumVersion;
+      setEntries((current) => current.map((entry) => {
+        if (entry.kind !== "schedule_plan" || entry.planId !== planId) return entry;
+        if (planVersion < entry.version) {
+          return { ...entry, state: "failed" };
+        }
+        return { ...entry, version: planVersion, plan, state: "loaded" };
+      }));
+    } catch {
+      setEntries((current) => current.map((entry) => entry.kind === "schedule_plan" && entry.planId === planId
+        ? { ...entry, state: "failed" }
+        : entry));
+    }
+  }, []);
+
   const applyEvent = useCallback((activeRunId: string, event: AgentStreamEvent) => {
     const callId = String(event.data.tool_call_id ?? event.id);
     const toolName = String(event.data.tool_name ?? "tool");
@@ -290,7 +418,14 @@ export function ChatPage() {
     const eventTimestamp = typeof event.data.event_created_at === "string"
       ? event.data.event_created_at
       : new Date().toISOString();
-    if (event.type === "tool.started") {
+    if (event.type === "artifact.available") {
+      const artifactId = String(event.data.artifact_id ?? "");
+      const artifactType = String(event.data.artifact_type ?? "");
+      const version = Number(event.data.version);
+      if (artifactType === "schedule_plan" && artifactId && Number.isInteger(version) && version > 0) {
+        void loadPlanArtifact(artifactId, version);
+      }
+    } else if (event.type === "tool.started") {
       setEntries((current) => current.some((entry) => entry.kind === "tool" && entry.id === callId)
         ? current
         : [...current, {
@@ -372,7 +507,7 @@ export function ChatPage() {
     } else if (event.type === "run.cancelled") {
       setError("Agent 运行已取消");
     }
-  }, []);
+  }, [loadPlanArtifact]);
 
   const consumeRun = useCallback(async (activeRunId: string, abortController: AbortController) => {
     setRunId(activeRunId);
@@ -428,7 +563,13 @@ export function ChatPage() {
         const approvalEntries: ChatEntry[] = proposals
           .filter((proposal) => proposal.conversation_id === conversation.id)
           .map((proposal) => ({ id: `approval-${proposal.id}`, kind: "approval", proposal }));
-        setEntries([...entriesFromRuns(conversation.runs), ...approvalEntries]);
+        const historyEntries = entriesFromRuns(conversation.runs);
+        setEntries([...historyEntries, ...approvalEntries]);
+        for (const entry of historyEntries) {
+          if (entry.kind === "schedule_plan") {
+            void loadPlanArtifact(entry.planId, entry.version);
+          }
+        }
         const activeRun = [...conversation.runs].reverse().find((run) => ACTIVE_RUN_STATUSES.has(run.status));
         if (activeRun) {
           const streamController = new AbortController();
@@ -448,7 +589,7 @@ export function ChatPage() {
       loadController.abort();
       controller.current?.abort();
     };
-  }, [consumeRun, conversationId]);
+  }, [consumeRun, conversationId, loadPlanArtifact]);
 
   useEffect(() => {
     messagesEnd.current?.scrollIntoView?.({ behavior: entries.length > 2 ? "smooth" : "auto" });
@@ -464,9 +605,8 @@ export function ChatPage() {
     if (activeConversation) setHistoryKind(activeConversation.kind);
   }, [activeConversation]);
 
-  const submit = async (event: FormEvent) => {
-    event.preventDefault();
-    const content = message.trim();
+  const sendMessage = useCallback(async (draft: string) => {
+    const content = draft.trim();
     if (!content || busy) return;
     setMessage("");
     setError("");
@@ -493,9 +633,22 @@ export function ChatPage() {
     } catch (reason) {
       setBusy(false);
       if (!(reason instanceof DOMException && reason.name === "AbortError")) {
+        setMessage(content);
         setError("消息没有发送成功，请检查连接后重试。");
       }
     }
+  }, [busy, consumeRun, conversationId, navigate, refreshConversations]);
+
+  useEffect(() => {
+    if (!autoSendIntent || autoSendStarted.current) return;
+    autoSendStarted.current = true;
+    setAutoSendIntent(null);
+    void sendMessage(autoSendIntent);
+  }, [autoSendIntent, sendMessage]);
+
+  const submit = (event: FormEvent) => {
+    event.preventDefault();
+    void sendMessage(message);
   };
 
   const cancel = async () => {
@@ -659,6 +812,16 @@ export function ChatPage() {
                 <div key={entry.id} className="w-full lg:mx-auto lg:max-w-3xl">
                   <ToolActivityPanel tools={runTools} />
                 </div>
+              );
+            }
+            if (entry.kind === "schedule_plan") {
+              return (
+                <SchedulePlanArtifactCard
+                  key={entry.id}
+                  entry={entry}
+                  timezone={timezone}
+                  onRetry={() => void loadPlanArtifact(entry.planId, entry.version)}
+                />
               );
             }
             if (entry.kind === "notice") {

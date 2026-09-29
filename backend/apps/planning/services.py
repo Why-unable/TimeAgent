@@ -56,6 +56,10 @@ class PlanningService:
         return list(SchedulePlan.objects.filter(user=user).order_by("-created_at", "-id")[:limit])
 
     @staticmethod
+    def get_schedule_plan(*, user: User, plan_id: UUID) -> SchedulePlan:
+        return SchedulePlan.objects.get(pk=plan_id, user=user)
+
+    @staticmethod
     def get_planning_context(
         *,
         user: User,

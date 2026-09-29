@@ -120,7 +120,7 @@ class ConversationService:
     def get_with_runs(*, user: User, conversation_id: UUID) -> Conversation:
         if user.pk is None:
             raise ValueError("Conversation user must be persisted")
-        return Conversation.objects.prefetch_related("runs").get(
+        return Conversation.objects.prefetch_related("runs__events").get(
             pk=conversation_id,
             user=user,
         )
@@ -299,10 +299,7 @@ class AgentRunService:
         AgentRunService.append_event(locked, "message.completed", {"content": final_response})
         from apps.time_memory.settings import get_time_memory_settings
 
-        if (
-            get_time_memory_settings().semantic_extraction_enabled
-            and not locked.synthetic_input
-        ):
+        if get_time_memory_settings().semantic_extraction_enabled and not locked.synthetic_input:
 
             def enqueue_extraction(run_id: str = str(locked.pk)) -> None:
                 from apps.time_memory.tasks import extract_semantic_memory

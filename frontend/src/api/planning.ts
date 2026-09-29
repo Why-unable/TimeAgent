@@ -52,6 +52,10 @@ export function createSchedulePlan(input: SchedulePlanCreate) {
   });
 }
 
+export function getSchedulePlan(planId: string) {
+  return apiRequest<SchedulePlan>(`/api/v1/planning/plans/${planId}/`);
+}
+
 export function applySchedulePlan(planId: string, input: SchedulePlanApply) {
   return apiRequest<SchedulePlan>(`/api/v1/planning/plans/${planId}/apply/`, {
     method: "POST",

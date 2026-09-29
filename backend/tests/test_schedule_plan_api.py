@@ -48,6 +48,15 @@ def test_schedule_plan_api_supports_preview_and_versioned_apply() -> None:
     )
     assert response.status_code == 201
     payload = response.json()
+    retrieved = client.get(f"/api/v1/planning/plans/{payload['id']}/")
+    assert retrieved.status_code == 200
+    assert retrieved.json()["id"] == payload["id"]
+
+    other_user = User.objects.create_user("plan-api-other")
+    other_client = Client()
+    other_client.force_login(other_user)
+    assert other_client.get(f"/api/v1/planning/plans/{payload['id']}/").status_code == 404
+
     applied = client.post(
         f"/api/v1/planning/plans/{payload['id']}/apply/",
         data={"expected_version": payload["version"]},

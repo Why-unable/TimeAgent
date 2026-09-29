@@ -3,6 +3,7 @@ from collections.abc import Awaitable, Callable, Sequence
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, cast
+from uuid import UUID
 
 from asgiref.sync import sync_to_async
 from django.core.exceptions import ObjectDoesNotExist, ValidationError
@@ -96,6 +97,15 @@ PLANNING_REVIEW_ACTIONS = frozenset(
         "validate_schedule_plan",
         "apply_schedule_plan",
         "abandon_schedule_plan",
+    }
+)
+SCHEDULE_PLAN_ARTIFACT_TOOLS = frozenset(
+    {
+        "propose_schedule_plan",
+        "compare_schedule_plans",
+        "edit_schedule_plan",
+        "validate_schedule_plan",
+        "apply_schedule_plan",
     }
 )
 
@@ -819,12 +829,77 @@ class ToolAuditMiddleware(AgentMiddleware[AppState, RuntimeContext, Any]):
         return audit, created
 
     @staticmethod
-    def _append_event(audit: Any, event_type: str, tool_call_id: str) -> None:
+    def _append_event(
+        audit: Any,
+        event_type: str,
+        tool_call_id: str,
+        result: Any = None,
+    ) -> None:
         AgentRunService.append_event(
             audit.run,
             event_type,
             {"tool_call_id": tool_call_id, "tool_name": audit.tool_name},
         )
+        if event_type != "tool.completed":
+            return
+        for artifact in ToolAuditMiddleware._schedule_plan_artifact_references(
+            audit.tool_name,
+            result,
+        ):
+            AgentRunService.append_event(
+                audit.run,
+                "artifact.available",
+                {
+                    "artifact_type": "schedule_plan",
+                    "artifact_id": artifact["plan_id"],
+                    "version": artifact["version"],
+                    "tool_call_id": tool_call_id,
+                },
+            )
+
+    @staticmethod
+    def _schedule_plan_artifact_references(
+        tool_name: str,
+        result: Any,
+    ) -> list[dict[str, str | int]]:
+        if tool_name not in SCHEDULE_PLAN_ARTIFACT_TOOLS:
+            return []
+
+        payload = ToolAuditMiddleware._json_result(result)
+        references: dict[str, dict[str, str | int]] = {}
+
+        def visit(value: Any) -> None:
+            if isinstance(value, str):
+                try:
+                    visit(json.loads(value))
+                except (json.JSONDecodeError, TypeError):
+                    return
+                return
+            if isinstance(value, list):
+                for item in value:
+                    visit(item)
+                return
+            if not isinstance(value, dict):
+                return
+
+            plan_id = value.get("plan_id")
+            version = value.get("version")
+            if (
+                isinstance(plan_id, str)
+                and isinstance(version, int)
+                and not isinstance(version, bool)
+            ):
+                try:
+                    normalized_id = str(UUID(plan_id))
+                except ValueError:
+                    pass
+                else:
+                    references[normalized_id] = {"plan_id": normalized_id, "version": version}
+            for nested in value.values():
+                visit(nested)
+
+        visit(payload)
+        return list(references.values())
 
     def wrap_tool_call(
         self,
@@ -851,7 +926,7 @@ class ToolAuditMiddleware(AgentMiddleware[AppState, RuntimeContext, Any]):
                     tool_call_id=tool_call_id,
                     result=self._json_result(result),
                 )
-                self._append_event(audit, "tool.completed", tool_call_id)
+                self._append_event(audit, "tool.completed", tool_call_id, result)
                 return result
         except Exception as exc:
             ToolAuditService.fail(audit, exc)
@@ -891,6 +966,7 @@ class ToolAuditMiddleware(AgentMiddleware[AppState, RuntimeContext, Any]):
                 audit,
                 "tool.completed",
                 tool_call_id,
+                result,
             )
             return result
         except Exception as exc:

@@ -2660,6 +2660,45 @@
                 }
             }
         },
+        "/api/v1/planning/plans/{plan_id}/": {
+            "get": {
+                "operationId": "api_v1_planning_plans_retrieve",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "plan_id",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "api"
+                ],
+                "security": [
+                    {
+                        "tokenAuth": []
+                    },
+                    {
+                        "cookieAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/SchedulePlan"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
         "/api/v1/planning/plans/{plan_id}/abandon/": {
             "post": {
                 "operationId": "api_v1_planning_plans_abandon_create",
@@ -4797,7 +4836,7 @@
                     "status": {
                         "allOf": [
                             {
-                                "$ref": "#/components/schemas/AgentRunStatusEnum"
+                                "$ref": "#/components/schemas/Status7aeEnum"
                             }
                         ],
                         "readOnly": true
@@ -4859,18 +4898,6 @@
                     "trigger_payload",
                     "trigger_type"
                 ]
-            },
-            "AgentRunStatusEnum": {
-                "enum": [
-                    "pending",
-                    "running",
-                    "waiting_approval",
-                    "completed",
-                    "failed",
-                    "cancelled"
-                ],
-                "type": "string",
-                "description": "* `pending` - Pending\n* `running` - Running\n* `waiting_approval` - Waiting for approval\n* `completed` - Completed\n* `failed` - Failed\n* `cancelled` - Cancelled"
             },
             "AndroidRelease": {
                 "type": "object",
@@ -4936,6 +4963,13 @@
                     "enabled",
                     "release"
                 ]
+            },
+            "ArtifactTypeEnum": {
+                "enum": [
+                    "schedule_plan"
+                ],
+                "type": "string",
+                "description": "* `schedule_plan` - schedule_plan"
             },
             "AuthToken": {
                 "type": "object",
@@ -5665,6 +5699,113 @@
                     "updated_at"
                 ]
             },
+            "ConversationAgentRun": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "format": "uuid",
+                        "readOnly": true
+                    },
+                    "conversation_id": {
+                        "type": "string",
+                        "format": "uuid",
+                        "readOnly": true
+                    },
+                    "operation_id": {
+                        "type": "string",
+                        "format": "uuid",
+                        "readOnly": true
+                    },
+                    "request_id": {
+                        "type": "string",
+                        "readOnly": true
+                    },
+                    "trigger_type": {
+                        "type": "string",
+                        "readOnly": true
+                    },
+                    "trigger_payload": {
+                        "readOnly": true
+                    },
+                    "synthetic_input": {
+                        "type": "boolean",
+                        "readOnly": true
+                    },
+                    "status": {
+                        "allOf": [
+                            {
+                                "$ref": "#/components/schemas/Status7aeEnum"
+                            }
+                        ],
+                        "readOnly": true
+                    },
+                    "input_message": {
+                        "type": "string",
+                        "readOnly": true
+                    },
+                    "anchor_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "readOnly": true
+                    },
+                    "anchor_timezone": {
+                        "type": "string",
+                        "readOnly": true
+                    },
+                    "final_response": {
+                        "type": "string",
+                        "readOnly": true
+                    },
+                    "error": {
+                        "type": "string",
+                        "readOnly": true
+                    },
+                    "started_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "readOnly": true,
+                        "nullable": true
+                    },
+                    "completed_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "readOnly": true,
+                        "nullable": true
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "readOnly": true
+                    },
+                    "artifacts": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/SchedulePlanArtifactReference"
+                        },
+                        "readOnly": true
+                    }
+                },
+                "required": [
+                    "anchor_at",
+                    "anchor_timezone",
+                    "artifacts",
+                    "completed_at",
+                    "conversation_id",
+                    "created_at",
+                    "error",
+                    "final_response",
+                    "id",
+                    "input_message",
+                    "operation_id",
+                    "request_id",
+                    "started_at",
+                    "status",
+                    "synthetic_input",
+                    "trigger_payload",
+                    "trigger_type"
+                ]
+            },
             "ConversationDetail": {
                 "type": "object",
                 "properties": {
@@ -5698,7 +5839,7 @@
                     "runs": {
                         "type": "array",
                         "items": {
-                            "$ref": "#/components/schemas/AgentRun"
+                            "$ref": "#/components/schemas/ConversationAgentRun"
                         },
                         "readOnly": true
                     }
@@ -7873,6 +8014,27 @@
                     "expected_version"
                 ]
             },
+            "SchedulePlanArtifactReference": {
+                "type": "object",
+                "properties": {
+                    "artifact_type": {
+                        "$ref": "#/components/schemas/ArtifactTypeEnum"
+                    },
+                    "artifact_id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "version": {
+                        "type": "integer",
+                        "minimum": 1
+                    }
+                },
+                "required": [
+                    "artifact_id",
+                    "artifact_type",
+                    "version"
+                ]
+            },
             "SchedulePlanCompare": {
                 "type": "object",
                 "properties": {
@@ -8155,6 +8317,18 @@
                 ],
                 "type": "string",
                 "description": "* `started` - Started\n* `paused` - Paused\n* `resumed` - Resumed\n* `completed` - Completed\n* `skipped` - Skipped"
+            },
+            "Status7aeEnum": {
+                "enum": [
+                    "pending",
+                    "running",
+                    "waiting_approval",
+                    "completed",
+                    "failed",
+                    "cancelled"
+                ],
+                "type": "string",
+                "description": "* `pending` - Pending\n* `running` - Running\n* `waiting_approval` - Waiting for approval\n* `completed` - Completed\n* `failed` - Failed\n* `cancelled` - Cancelled"
             },
             "StrategyEnum": {
                 "enum": [

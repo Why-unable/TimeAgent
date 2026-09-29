@@ -1,5 +1,6 @@
 from typing import Any
 
+from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
 from apps.conversations.models import AgentEvent, AgentRun, Conversation
@@ -48,8 +49,41 @@ class AgentRunSerializer(serializers.ModelSerializer[AgentRun]):
         read_only_fields = fields
 
 
+class SchedulePlanArtifactReferenceSerializer(serializers.Serializer[dict[str, Any]]):
+    artifact_type = serializers.ChoiceField(choices=["schedule_plan"])
+    artifact_id = serializers.UUIDField()
+    version = serializers.IntegerField(min_value=1)
+
+
+class ConversationAgentRunSerializer(AgentRunSerializer):
+    artifacts = serializers.SerializerMethodField()
+
+    class Meta(AgentRunSerializer.Meta):
+        fields = [*AgentRunSerializer.Meta.fields, "artifacts"]
+
+    @extend_schema_field(SchedulePlanArtifactReferenceSerializer(many=True))
+    def get_artifacts(self, run: AgentRun) -> list[dict[str, object]]:
+        references: dict[str, dict[str, object]] = {}
+        for event in run.events.all():
+            payload = event.payload
+            if (
+                event.event_type != "artifact.available"
+                or not isinstance(payload, dict)
+                or payload.get("artifact_type") != "schedule_plan"
+                or not isinstance(payload.get("artifact_id"), str)
+                or not isinstance(payload.get("version"), int)
+                or isinstance(payload.get("version"), bool)
+            ):
+                continue
+            reference = SchedulePlanArtifactReferenceSerializer(data=payload)
+            if reference.is_valid():
+                artifact = reference.validated_data
+                references[str(artifact["artifact_id"])] = artifact
+        return list(references.values())
+
+
 class ConversationDetailSerializer(serializers.ModelSerializer[Conversation]):
-    runs = AgentRunSerializer(many=True, read_only=True)
+    runs = ConversationAgentRunSerializer(many=True, read_only=True)
 
     class Meta:
         model = Conversation

@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -20,6 +20,10 @@ vi.mock("../src/features/today/hooks", () => ({
       conflicts: [],
     },
   }),
+}));
+
+vi.mock("../src/features/tasks/hooks", () => ({
+  useTasks: () => ({ data: [{ id: "task-a", title: "论文修改" }] }),
 }));
 
 const conversation = {
@@ -58,14 +62,100 @@ function renderChatPage(initialEntry = "/chat") {
 }
 
 describe("ChatPage", () => {
-  it("uses a Today action as a ready-to-send goal prompt", async () => {
-    vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo | URL) => {
+  it("prefills an ordinary prompt without sending it", async () => {
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
       if (String(input).endsWith("/conversations/")) return new Response(JSON.stringify([]));
       if (String(input).endsWith("/preferences/me/")) return new Response(JSON.stringify({ timezone: "Asia/Shanghai" }));
       return new Response(JSON.stringify([]));
-    }));
+    });
+    vi.stubGlobal("fetch", fetchMock);
     renderChatPage("/chat?prompt=帮我安排今天的任务");
     expect(await screen.findByLabelText("消息")).toHaveValue("帮我安排今天的任务");
+    expect(fetchMock.mock.calls.some(([input]) => String(input).endsWith("/messages/"))).toBe(false);
+  });
+
+  it("sends an explicitly launched insight prompt once and keeps normal prompts editable", async () => {
+    const createdConversation = { ...conversation, id: "55555555-5555-4555-8555-555555555555" };
+    const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      const method = init?.method ?? "GET";
+      if (url.endsWith("/conversations/") && method === "GET") return new Response(JSON.stringify([]));
+      if (url.endsWith("/conversations/") && method === "POST") {
+        return new Response(JSON.stringify(createdConversation));
+      }
+      if (url.endsWith("/messages/") && method === "POST") {
+        return new Response(JSON.stringify({ ...run, conversation_id: createdConversation.id }));
+      }
+      if (url.endsWith(`/conversations/${createdConversation.id}/`)) {
+        return new Response(JSON.stringify({ ...createdConversation, runs: [] }));
+      }
+      if (url.endsWith("/action-proposals/")) return new Response(JSON.stringify([]));
+      throw new Error(`Unexpected request: ${method} ${url}`);
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    renderChatPage("/chat?insight_id=insight-1&insight_title=容量风险&auto_send=1");
+
+    await waitFor(() => {
+      const messageCall = fetchMock.mock.calls.find(([input, init]) =>
+        String(input).endsWith("/messages/") && init?.method === "POST",
+      );
+      expect(messageCall).toBeDefined();
+      expect(JSON.parse(String(messageCall?.[1]?.body)).message)
+        .toBe("请基于洞察“容量风险”分析影响并给出可执行选项。洞察 ID：insight-1");
+    });
+    expect(fetchMock.mock.calls.filter(([input, init]) =>
+      String(input).endsWith("/messages/") && init?.method === "POST",
+    )).toHaveLength(1);
+  });
+
+  it("renders a persisted schedule plan artifact in conversation history", async () => {
+    const planId = "66666666-6666-4666-8666-666666666666";
+    const completedRun = {
+      ...run,
+      status: "completed",
+      final_response: "已经安排好了。",
+      artifacts: [{ artifact_type: "schedule_plan", artifact_id: planId, version: 1 }],
+    };
+    const plan = {
+      id: planId,
+      strategy: "plan_tasks_only",
+      items: [{
+        task_id: "task-a",
+        state: "placed",
+        start_at: "2026-07-17T01:00:00Z",
+        end_at: "2026-07-17T02:00:00Z",
+        segment_index: 1,
+        segment_count: 1,
+      }],
+      constraints_snapshot: {},
+      decision_profile_snapshot: {},
+      status: "draft",
+      version: 1,
+      created_at: "2026-07-17T00:00:00Z",
+      updated_at: "2026-07-17T00:00:00Z",
+      expires_at: "2026-07-18T00:00:00Z",
+      applied_at: null,
+      abandoned_at: null,
+      invalidated_at: null,
+      invalidation_reason: "",
+    };
+    vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url.endsWith("/conversations/")) return new Response(JSON.stringify([conversation]));
+      if (url.endsWith(`/conversations/${conversation.id}/`)) {
+        return new Response(JSON.stringify({ ...conversation, runs: [completedRun] }));
+      }
+      if (url.endsWith("/action-proposals/")) return new Response(JSON.stringify([]));
+      if (url.endsWith(`/planning/plans/${planId}/`)) return new Response(JSON.stringify(plan));
+      throw new Error(`Unexpected request: ${url}`);
+    }));
+
+    renderChatPage(`/chat/${conversation.id}`);
+
+    expect(await screen.findByRole("region", { name: "Agent 计划预览" })).toBeInTheDocument();
+    expect(screen.getByText("论文修改")).toBeInTheDocument();
+    expect(screen.getByText("计划草案")).toBeInTheDocument();
   });
 
   afterEach(() => {

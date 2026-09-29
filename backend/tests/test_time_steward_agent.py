@@ -575,6 +575,51 @@ def test_low_risk_write_is_audited_and_bound_to_current_user() -> None:
 
 
 @pytest.mark.django_db
+def test_completed_plan_tools_emit_authoritative_artifact_references() -> None:
+    user = User.objects.create_user(username="plan-artifact-event")
+    conversation = ConversationService.create(user=user)
+    run = AgentRunService.start(
+        StartRunCommand(
+            conversation=conversation,
+            operation_id=uuid4(),
+            request_id="request-plan-artifact",
+            message="帮我安排任务",
+        )
+    )
+    run = AgentRunService.mark_running(run)
+    plan_id = uuid4()
+    request = cast(
+        ToolCallRequest,
+        SimpleNamespace(
+            runtime=SimpleNamespace(context=context(user, agent_run_id=str(run.pk))),
+            tool_call={
+                "name": "propose_schedule_plan",
+                "args": {},
+                "id": "propose-plan-1",
+                "type": "tool_call",
+            },
+        ),
+    )
+
+    ToolAuditMiddleware().wrap_tool_call(
+        request,
+        lambda _request: ToolMessage(
+            content=json.dumps({"plan_id": str(plan_id), "version": 3, "status": "draft"}),
+            tool_call_id="propose-plan-1",
+            name="propose_schedule_plan",
+        ),
+    )
+
+    artifact = run.events.get(event_type="artifact.available")
+    assert artifact.payload == {
+        "artifact_type": "schedule_plan",
+        "artifact_id": str(plan_id),
+        "version": 3,
+        "tool_call_id": "propose-plan-1",
+    }
+
+
+@pytest.mark.django_db
 def test_tool_failure_is_audited_and_emitted() -> None:
     user = User.objects.create_user(username="async-writer")
     conversation = ConversationService.create(user=user)

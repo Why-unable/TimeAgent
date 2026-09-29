@@ -1,4 +1,5 @@
 import { apiRequest } from "./client";
+import type { components } from "./generated/schema";
 
 export interface Conversation {
   id: string;
@@ -9,6 +10,7 @@ export interface Conversation {
 }
 
 export type PersistedRunStatus = "pending" | "running" | "waiting_approval" | "completed" | "failed" | "cancelled";
+export type SchedulePlanArtifactReference = components["schemas"]["SchedulePlanArtifactReference"];
 
 export interface AgentRun {
   id: string;
@@ -28,7 +30,7 @@ export interface AgentRun {
 }
 
 export interface ConversationDetail extends Conversation {
-  runs: AgentRun[];
+  runs: Array<AgentRun & { artifacts: SchedulePlanArtifactReference[] }>;
 }
 
 export function listConversations() {

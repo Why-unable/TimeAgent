@@ -87,11 +87,45 @@ test.beforeEach(async ({ page }) => {
     }),
   );
   await page.route("**/api/v1/chat/conversations/**", (route) => {
-    if (route.request().url().endsWith("/conversations/")) {
+    const request = route.request();
+    const url = request.url();
+    if (url.endsWith("/conversations/") && request.method() === "GET") {
       return route.fulfill({ json: [] });
     }
-    return route.fulfill({ json: { runs: [] } });
+    if (url.endsWith("/conversations/") && request.method() === "POST") {
+      return route.fulfill({ json: {
+        id: "11111111-1111-4111-8111-111111111111",
+        title: "",
+        kind: "chat",
+        created_at: "2026-09-29T08:00:00Z",
+        updated_at: "2026-09-29T08:00:00Z",
+      } });
+    }
+    return route.fulfill({ json: {
+      id: "11111111-1111-4111-8111-111111111111",
+      title: "",
+      kind: "chat",
+      created_at: "2026-09-29T08:00:00Z",
+      updated_at: "2026-09-29T08:00:00Z",
+      runs: [],
+    } });
   });
+  await page.route("**/api/v1/chat/messages/", (route) => route.fulfill({ json: {
+    id: "22222222-2222-4222-8222-222222222222",
+    conversation_id: "11111111-1111-4111-8111-111111111111",
+    operation_id: "33333333-3333-4333-8333-333333333333",
+    request_id: "request-1",
+    trigger_type: "user_message",
+    trigger_payload: {},
+    synthetic_input: false,
+    status: "pending",
+    input_message: "",
+    final_response: "",
+    error: "",
+    started_at: null,
+    completed_at: null,
+    created_at: "2026-09-29T08:00:00Z",
+  } }));
   await page.route("**/api/v1/action-proposals/**", (route) => route.fulfill({ json: [] }));
 });
 
@@ -105,10 +139,73 @@ test.describe("desktop workspace", () => {
     const goal = page.getByRole("textbox", { name: "安排目标" });
     await expect(goal).toHaveValue("帮我安排明天的任务");
     await goal.fill("明天帮我安排任务，上午留给论文");
+    const messageRequest = page.waitForRequest((request) =>
+      request.url().endsWith("/api/v1/chat/messages/") && request.method() === "POST",
+    );
     await page.getByRole("button", { name: "让助理安排" }).click();
-    await expect(page).toHaveURL(/\/chat\?prompt=/);
-    await expect(page.getByRole("textbox", { name: "消息" })).toHaveValue("明天帮我安排任务，上午留给论文");
+    const sentRequest = await messageRequest;
+    await expect(page).toHaveURL(/\/chat\/11111111-1111-4111-8111-111111111111$/);
+    expect(sentRequest.postDataJSON().message).toBe("明天帮我安排任务，上午留给论文");
     await expect(page.getByRole("button", { name: "高级规划设置" })).toHaveCount(0);
+  });
+
+  test("renders a persisted schedule plan artifact in Chat", async ({ page }) => {
+    const conversationId = "44444444-4444-4444-8444-444444444444";
+    const runId = "55555555-5555-4555-8555-555555555555";
+    const planId = "66666666-6666-4666-8666-666666666666";
+    await page.route(`**/api/v1/chat/conversations/${conversationId}/`, (route) => route.fulfill({ json: {
+      id: conversationId,
+      title: "明天的安排",
+      kind: "chat",
+      created_at: "2026-09-29T00:00:00Z",
+      updated_at: "2026-09-29T00:00:00Z",
+      runs: [{
+        id: runId,
+        conversation_id: conversationId,
+        operation_id: "77777777-7777-4777-8777-777777777777",
+        request_id: "request-plan-artifact",
+        trigger_type: "user_message",
+        trigger_payload: {},
+        synthetic_input: false,
+        status: "completed",
+        input_message: "帮我安排明天的任务",
+        final_response: "我为你准备了一份计划。",
+        error: "",
+        started_at: "2026-09-29T00:00:00Z",
+        completed_at: "2026-09-29T00:00:01Z",
+        created_at: "2026-09-29T00:00:00Z",
+        artifacts: [{ artifact_type: "schedule_plan", artifact_id: planId, version: 1 }],
+      }],
+    } }));
+    await page.route(`**/api/v1/planning/plans/${planId}/`, (route) => route.fulfill({ json: {
+      id: planId,
+      strategy: "plan_tasks_only",
+      items: [{
+        task_id: "task-1",
+        state: "placed",
+        start_at: "2026-09-29T01:00:00Z",
+        end_at: "2026-09-29T02:00:00Z",
+      }],
+      constraints_snapshot: {},
+      decision_profile_snapshot: {},
+      status: "draft",
+      version: 1,
+      created_at: "2026-09-29T00:00:00Z",
+      updated_at: "2026-09-29T00:00:00Z",
+      expires_at: "2026-09-30T00:00:00Z",
+      applied_at: null,
+      abandoned_at: null,
+      invalidated_at: null,
+      invalidation_reason: "",
+    } }));
+
+    await page.goto(`/chat/${conversationId}`);
+
+    const artifact = page.getByRole("region", { name: "Agent 计划预览" });
+    await expect(artifact).toBeVisible();
+    await expect(artifact.getByText("计划草案")).toBeVisible();
+    await expect(artifact.getByRole("region", { name: "计划时间线" })).toContainText("09:00");
+    await expect(artifact).toContainText("正式应用前会按确认流程检查");
   });
 
   test("aggregates schedule navigation and keeps the bright wide-screen shell", async ({ page }) => {

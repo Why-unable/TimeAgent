@@ -76,7 +76,11 @@ export function InsightsPage() {
   };
 
   const continueInChat = (insight: TemporalInsight) => {
-    const query = new URLSearchParams({ insight_id: insight.id, insight_title: insight.title });
+    const query = new URLSearchParams({
+      insight_id: insight.id,
+      insight_title: insight.title,
+      auto_send: "1",
+    });
     navigate(`/chat?${query.toString()}`);
   };
 
