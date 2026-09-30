@@ -59,6 +59,7 @@ export function MobileNavigation() {
 
   useEffect(() => {
     const viewport = window.visualViewport;
+    let isMounted = true;
     const isTextEntry = (target: EventTarget | null) => {
       if (target instanceof HTMLTextAreaElement) return true;
       if (target instanceof HTMLElement && target.isContentEditable) return true;
@@ -66,6 +67,7 @@ export function MobileNavigation() {
         && !["button", "checkbox", "color", "file", "image", "radio", "range", "reset", "submit"].includes(target.type);
     };
     const updateKeyboardState = () => {
+      if (!isMounted) return;
       const coveredHeight = viewport
         ? window.innerHeight - viewport.height - viewport.offsetTop
         : 0;
@@ -81,6 +83,7 @@ export function MobileNavigation() {
     window.addEventListener("focusout", onFocusOut);
     updateKeyboardState();
     return () => {
+      isMounted = false;
       viewport?.removeEventListener("resize", updateKeyboardState);
       viewport?.removeEventListener("scroll", updateKeyboardState);
       window.removeEventListener("focusin", onFocusIn);

@@ -3,6 +3,7 @@ import { render, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { LocationTracker } from "../src/features/preferences/location-tracker";
+import type { DeviceCoordinates } from "../src/native/geolocation";
 
 const geolocationMocks = vi.hoisted(() => ({
   LOCATION_PERMISSION_GRANTED_EVENT: "time-agent:location-permission-granted",
@@ -126,5 +127,44 @@ describe("LocationTracker", () => {
 
     await waitFor(() => expect(geolocationMocks.watchCurrentDeviceCoordinates).toHaveBeenCalledOnce());
     view.unmount();
+  });
+
+  it("ignores a queued position callback after the app enters the background", async () => {
+    let deliverPosition: ((coordinates: DeviceCoordinates) => void) | undefined;
+    geolocationMocks.watchCurrentDeviceCoordinates.mockImplementation(async (onPosition) => {
+      deliverPosition = onPosition;
+      return "watch-background";
+    });
+    const requestedUrls: string[] = [];
+    vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input);
+      requestedUrls.push(url);
+      if (url.endsWith("/api/v1/preferences/me/")) {
+        return new Response(JSON.stringify(savedPreference));
+      }
+      throw new Error(`Unexpected request: ${url}`);
+    }));
+
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const view = render(<QueryClientProvider client={queryClient}><LocationTracker /></QueryClientProvider>);
+    await waitFor(() => expect(deliverPosition).toBeDefined());
+
+    const originalHiddenDescriptor = Object.getOwnPropertyDescriptor(document, "hidden");
+    Object.defineProperty(document, "hidden", { configurable: true, value: true });
+    document.dispatchEvent(new Event("visibilitychange"));
+    await waitFor(() => expect(geolocationMocks.clearCurrentDeviceWatch).toHaveBeenCalledWith("watch-background"));
+
+    deliverPosition?.({ latitude: 22.30, longitude: 113.60, accuracyMeters: 8 });
+    await Promise.resolve();
+    expect(requestedUrls.some((url) => url.includes("/api/v1/providers/locations/current/"))).toBe(false);
+    expect(requestedUrls.filter((url) => url.endsWith("/api/v1/preferences/me/")).length).toBe(1);
+
+    view.unmount();
+    if (originalHiddenDescriptor) {
+      Object.defineProperty(document, "hidden", originalHiddenDescriptor);
+    } else {
+      Reflect.deleteProperty(document, "hidden");
+    }
+    document.dispatchEvent(new Event("visibilitychange"));
   });
 });

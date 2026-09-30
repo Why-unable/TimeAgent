@@ -40,6 +40,7 @@ export function LocationTracker() {
     if (!hasSavedCurrentLocation) return;
 
     let active = true;
+    let isForeground = !document.hidden;
     let watchId: string | null = null;
     let isStarting = false;
     let isUpdating = false;
@@ -63,7 +64,7 @@ export function LocationTracker() {
     };
 
     const updateLocation = async (coordinates: DeviceCoordinates) => {
-      if (!active || isUpdating) return;
+      if (!active || !isForeground || document.hidden || isUpdating) return;
       if (lastUpdatedCoordinates && distanceInMeters(lastUpdatedCoordinates, coordinates) < 100) return;
       isUpdating = true;
       try {
@@ -76,7 +77,7 @@ export function LocationTracker() {
           Intl.DateTimeFormat().resolvedOptions().timeZone || "Asia/Shanghai",
           currentPreference.locale || "zh-CN",
         );
-        if (!active) return;
+        if (!active || !isForeground || document.hidden) return;
         const nextData = withCurrentCoordinates(currentData, candidate, coordinates.accuracyMeters);
         const updated = await updateCurrentUserPreference({
           weather_location: currentData.administrative_coordinates
@@ -95,14 +96,14 @@ export function LocationTracker() {
     };
 
     const startWatching = async () => {
-      if (!active || document.hidden || watchId || isStarting) return;
+      if (!active || !isForeground || document.hidden || watchId || isStarting) return;
       isStarting = true;
       try {
         if (!isPermissionGrantedInSession) {
           if (!(await hasLocationPermission())) return;
           isPermissionGrantedInSession = true;
         }
-        if (!active || document.hidden) return;
+        if (!active || !isForeground || document.hidden) return;
         const id = await watchCurrentDeviceCoordinates((coordinates) => {
           void updateLocation(coordinates);
         });
@@ -119,7 +120,8 @@ export function LocationTracker() {
     };
 
     const syncVisibility = () => {
-      if (document.hidden) stopWatching();
+      isForeground = !document.hidden;
+      if (!isForeground) stopWatching();
       else void startWatching();
     };
     const onLocationPermissionGranted = () => {
@@ -133,7 +135,8 @@ export function LocationTracker() {
     if (isNativePlatform()) {
       void import("@capacitor/app")
         .then(({ App }) => App.addListener("appStateChange", ({ isActive }) => {
-          if (isActive) void startWatching();
+          isForeground = isActive && !document.hidden;
+          if (isForeground) void startWatching();
           else stopWatching();
         }))
         .then((listener) => {
