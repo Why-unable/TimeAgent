@@ -1,0 +1,48 @@
+{
+  "journey": "HITL approval review for a proposed project meeting",
+  "goal": "Identify which existing event conflicts and the exact overlap; inspect without confirming creation.",
+  "iterations": [
+    {
+      "id": 1,
+      "biggest_failure": "The approval warning disclosed only the number of conflicts.",
+      "root_cause": "Conflict details existed in backend display context but were not rendered in the approval card.",
+      "change_selected": "Render the existing event title and occupied interval in the account timezone; disclose additional conflicts progressively.",
+      "expected_benefits": ["Identify the conflicting event", "Understand the occupied time without opening technical details"],
+      "evidence_after": ["Blind judge preferred event/time candidate to count-only baseline, confidence 0.98", "Static simulator read the event and occupied interval"],
+      "remaining_failure": "The user still had to calculate the exact intersection between the proposed and occupied intervals."
+    },
+    {
+      "id": 2,
+      "biggest_failure": "The user still needed to mentally compute which portion of the two time ranges overlapped.",
+      "root_cause": "The backend did not expose an explicit overlap interval for this approval display, and the frontend correctly avoided duplicating scheduling semantics.",
+      "change_selected": "Compute overlap_start_at/overlap_end_at in backend event and action-proposal services; present the supplied interval in the approval card. Improve card-label and mobile-navigation contrast, make the decision copy neutral, and state that execution waits for confirmation.",
+      "expected_benefits": ["Remove mental interval arithmetic", "Make the user's decision explicit", "Reduce pressure to approve immediately", "Keep the actual HITL boundary intact"],
+      "regression_risks": ["Overlap semantics could be wrong if proposal/event boundaries are mishandled", "Missing or malformed overlap fields must remain safe", "Mobile fixed navigation can overlay lower viewport content", "Frontend must not calculate overlap"],
+      "metrics_before": {
+        "blind_pair_task_completion": 4,
+        "blind_pair_clarity": 3,
+        "exact_overlap_displayed": false,
+        "user_clicks": null,
+        "user_turns": null,
+        "completion_time": null
+      },
+      "metrics_after": {
+        "blind_pair_preferred": "X",
+        "blind_pair_confidence": 0.99,
+        "blind_pair_task_completion": 5,
+        "blind_pair_clarity": 5,
+        "simulated_task_completed": true,
+        "simulated_satisfaction": 4,
+        "exact_overlap_displayed": true,
+        "320px_horizontal_overflow": false,
+        "approval_button_reachable_after_scroll": true,
+        "user_clicks": null,
+        "user_turns": null,
+        "completion_time": null
+      },
+      "next_iteration": "Run a browser journey from a real isolated AgentRun into a pending ActionProposal, inspect it on mobile/desktop, and verify apply/Today propagation without auto-approving. Add manual screen-reader and full keyboard walkthrough; retain the fixture-based conflict test as regression coverage."
+    }
+  ],
+  "analysis_artifact": "approval_conflict_iteration_analysis.json",
+  "overall_limit": "Current-source mocked Playwright and backend tests cover the presentation and service semantics. No live browser AgentRun approval, apply, or Today/Calendar propagation was performed."
+}

@@ -1,0 +1,62 @@
+{
+  "role": "independent Experiment Analyst",
+  "current_biggest_problem": "The fixed bottom navigation covers part of the approval card in the captured mobile viewport. Playwright verifies the approval button is reachable after scrolling, but the screenshots do not show the whole decision area at once. Screen-reader behavior and a live AgentRun journey remain unverified.",
+  "evidence": [
+    {
+      "type": "static screenshot",
+      "finding": "The 390px and single-conflict 320px screenshots show 客户评审, its occupied interval 15:30–16:30, and the exact overlap 15:30–16:00. The fixed navigation covers lower card content."
+    },
+    {
+      "type": "independent static simulation",
+      "finding": "One simulator marked the task complete with satisfaction 4/5 and reported no trust breakers; clicks and completion time were not measured."
+    },
+    {
+      "type": "blind screenshot comparison",
+      "finding": "The judge preferred the exact-overlap candidate X with confidence 0.99; completion ratings were 5 for X and 4 for context-only Y, clarity ratings were 5 and 3."
+    },
+    {
+      "type": "mocked Playwright interaction",
+      "finding": "No 320px horizontal overflow; Enter expands the disclosure; after scrolling the approval button is fully above navigation. No approval click occurred."
+    },
+    {
+      "type": "scope limitation",
+      "finding": "No live AgentRun approval/apply, screen-reader walkthrough, or human participant study was performed."
+    }
+  ],
+  "root_cause": "The approval card extends below the mobile viewport while navigation remains fixed. The current test proves scroll reachability, but cannot establish the full live interaction or assistive-technology experience.",
+  "affected_layer": ["Mobile approval-card/navigation interaction", "Browser-to-AgentRun evaluation coverage", "Screen-reader and full keyboard accessibility evidence"],
+  "changes_selected": ["Keep backend-authored event, occupied interval, and exact overlap in the card.", "For the next iteration, validate a real pending ActionProposal in a browser, preserving the pending decision and never auto-approving.", "Perform a manual screen-reader and full keyboard walkthrough, including the lower card and fixed navigation."],
+  "expected_benefits": ["Preserve reduced interval-comparison effort.", "Confirm users can inspect the real pending decision and reach its controls.", "Find accessibility issues that screenshots cannot expose."],
+  "regression_risks": ["Card/navigation layout changes could reintroduce mobile overflow or obscure conflict information.", "A real run must preserve HITL and must not auto-approve.", "Static ratings are small-sample evidence and may not predict real users."],
+  "metrics_before": {
+    "type": "context-only blind screenshot, not interaction telemetry",
+    "task_completion_rating": 4,
+    "clarity_rating": 3,
+    "exact_overlap_displayed": false,
+    "clicks": null,
+    "user_turns": null,
+    "completion_time": null
+  },
+  "metrics_after": {
+    "blind_preferred": "X",
+    "blind_confidence": 0.99,
+    "candidate_task_completion_rating": 5,
+    "context_only_task_completion_rating": 4,
+    "candidate_clarity_rating": 5,
+    "context_only_clarity_rating": 3,
+    "static_simulation_task_completed": true,
+    "static_simulation_satisfaction": 4,
+    "mocked_playwright_full_smoke": "19/19",
+    "mocked_playwright_targeted_approval": "2/2 after final copy change",
+    "horizontal_overflow_at_320px": false,
+    "keyboard_disclosure_opened": true,
+    "approval_button_reachable_after_scroll": true,
+    "approval_clicked": false,
+    "real_agent_run": false,
+    "live_apply": false,
+    "clicks": null,
+    "user_turns": null,
+    "completion_time": null
+  },
+  "next_iteration": "Validate a real browser journey from an isolated AgentRun into a pending ActionProposal; inspect and reach controls, but do not auto-approve. Add a manual screen-reader/full keyboard walkthrough and verify mobile scrolling around the fixed navigation."
+}

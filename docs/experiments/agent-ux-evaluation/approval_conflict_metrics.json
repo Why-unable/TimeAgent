@@ -1,0 +1,52 @@
+{
+  "measurement_scope": "One approval-conflict journey; do not aggregate into product-wide UX metrics.",
+  "user_simulator": {
+    "sample_size": 1,
+    "task_completed": true,
+    "satisfaction": 4,
+    "clicks": null,
+    "user_turns": null,
+    "page_transitions": null,
+    "time_to_first_useful_ui": null,
+    "time_to_completion": null,
+    "measurement_limit": "Static screenshot simulation; no interaction telemetry or human participant data."
+  },
+  "blind_pairwise": {
+    "preferred": "X",
+    "confidence": 0.99,
+    "candidate_task_completion_rating": 5,
+    "context_only_task_completion_rating": 4
+  },
+  "playwright_current_source_mock": {
+    "full_smoke_tests_passed": 19,
+    "targeted_approval_tests_passed_after_final_copy_change": 2,
+    "component_tests_passed": 9,
+    "320px_horizontal_overflow": false,
+    "keyboard_disclosure_opened": true,
+    "approval_button_reachable_above_navigation_after_scroll": true,
+    "approval_clicked": false,
+    "real_agent_run": false,
+    "live_apply": false
+  },
+  "backend_validation": {
+    "full_tests_passed": 628,
+    "full_tests_skipped": 3,
+    "focused_event_and_action_proposal_tests_passed": 26,
+    "django_system_check": "passed",
+    "migration_check": "no changes",
+    "ruff_check": "passed",
+    "changed_backend_ruff_format_check": "passed"
+  },
+  "frontend_validation": {
+    "unit_test_files_passed": 26,
+    "unit_tests_passed": 131,
+    "eslint": "passed",
+    "production_build": "passed",
+    "existing_bundle_warning": "Main JavaScript chunk is approximately 596 kB after minification."
+  },
+  "contract_validation": {
+    "backend_openapi_generation": "0 errors; one existing status-enum naming collision warning",
+    "frontend_types_generation": "completed; opaque display_context produced no schema/type diff",
+    "database_migration": "not needed"
+  }
+}

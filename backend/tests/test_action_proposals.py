@@ -21,7 +21,9 @@ from langgraph.store.memory import InMemoryStore
 from langgraph.types import Command
 
 from apps.action_proposals.models import ActionProposal, ActionProposalStatus
+from apps.action_proposals.risk_policy import HIGH_RISK_TOOL_POLICIES
 from apps.action_proposals.services import (
+    ACTION_TITLES,
     ActionProposalService,
     ProposalConflictError,
 )
@@ -31,7 +33,7 @@ from apps.conversations.execution import execute_agent_run, resume_agent_run
 from apps.conversations.models import AgentRunStatus
 from apps.conversations.services import AgentRunService, ConversationService, StartRunCommand
 from apps.events.models import CalendarEvent, CalendarEventStatus
-from apps.events.services import CreateEventCommand, EventService
+from apps.events.services import CreateEventCommand, EventService, UpdateEventCommand
 from apps.preferences.services import UserPreferenceService
 from apps.preferences.snapshots import PlanningPreferencesSnapshot
 from apps.reminders.models import ReminderStatus
@@ -45,6 +47,13 @@ from apps.time_memory.models import (
     SemanticMemorySource,
     SemanticMemoryStatus,
 )
+
+
+def test_every_high_risk_action_has_a_localized_presentation_title() -> None:
+    assert set(HIGH_RISK_TOOL_POLICIES) <= set(ACTION_TITLES)
+    assert all(
+        ACTION_TITLES[name] and name not in ACTION_TITLES[name] for name in HIGH_RISK_TOOL_POLICIES
+    )
 
 
 class ScriptedModel(BaseChatModel):
@@ -108,6 +117,115 @@ def _setup_run(user: User) -> tuple[Any, RuntimeContext, RunnableConfig]:
     )
     config: RunnableConfig = {"configurable": {"thread_id": str(conversation.pk)}}
     return run, context, config
+
+
+@pytest.mark.django_db
+def test_reminder_update_review_context_shows_each_proposed_change() -> None:
+    user = User.objects.create_user(username="hitl-reminder-update-review")
+    run, runtime_context, _ = _setup_run(user)
+    reminder = ReminderService.create_reminder(
+        CreateReminderCommand(
+            user=user,
+            title="提交周报",
+            trigger_at=datetime(2026, 7, 20, 7, tzinfo=UTC),
+            current_time=runtime_context.current_datetime,
+            timezone="Asia/Shanghai",
+            deduplication_key="hitl-reminder-update-review",
+        )
+    )
+
+    display_context = ActionProposalService._display_context(
+        run=run,
+        tool_name="update_reminder",
+        args={
+            "reminder_id": str(reminder.pk),
+            "expected_version": reminder.version,
+            "title": "提交周报初稿",
+            "trigger_at": "2026-07-20T08:00:00+00:00",
+            "timezone": "Asia/Shanghai",
+            "channel": "email",
+        },
+        allowed_decisions=["approve", "edit", "reject"],
+        position=0,
+    )
+
+    review_item = display_context["review_items"][0]
+    assert display_context["review_complete"] is True
+    assert display_context["action_summary"] == "将修改提醒「提交周报」。"
+    assert review_item["title"] == "提交周报初稿"
+    assert review_item["start_at"] == reminder.trigger_at.isoformat()
+    assert review_item["proposed_start_at"] == "2026-07-20T08:00:00+00:00"
+    assert "标题：提交周报 → 提交周报初稿" in review_item["detail"]
+    assert "通知方式：站内 → 邮件" in review_item["detail"]
+
+
+@pytest.mark.django_db
+def test_reminder_target_review_context_resolves_old_and_new_targets() -> None:
+    user = User.objects.create_user(username="hitl-reminder-target-review")
+    run, runtime_context, _ = _setup_run(user)
+    reminder = ReminderService.create_reminder(
+        CreateReminderCommand(
+            user=user,
+            title="准备材料提醒",
+            trigger_at=datetime(2026, 7, 20, 7, tzinfo=UTC),
+            current_time=runtime_context.current_datetime,
+            timezone="Asia/Shanghai",
+            deduplication_key="hitl-reminder-target-review",
+        )
+    )
+    task = TaskService.create_task(
+        CreateTaskCommand(user=user, title="准备答辩材料", source="agent")
+    )
+
+    display_context = ActionProposalService._display_context(
+        run=run,
+        tool_name="set_reminder_target",
+        args={
+            "reminder_id": str(reminder.pk),
+            "expected_version": reminder.version,
+            "target_type": "task",
+            "target_id": str(task.pk),
+        },
+        allowed_decisions=["approve", "edit", "reject"],
+        position=0,
+    )
+    review_item = display_context["review_items"][0]
+
+    assert display_context["review_complete"] is True
+    assert display_context["action_summary"] == "将更改提醒「准备材料提醒」关联的对象。"
+    assert "关联对象：独立提醒 → 任务「准备答辩材料」" in review_item["detail"]
+
+
+@pytest.mark.django_db
+def test_reminder_target_review_context_fails_closed_when_target_is_missing() -> None:
+    user = User.objects.create_user(username="hitl-reminder-target-missing")
+    run, runtime_context, _ = _setup_run(user)
+    reminder = ReminderService.create_reminder(
+        CreateReminderCommand(
+            user=user,
+            title="准备材料提醒",
+            trigger_at=datetime(2026, 7, 20, 7, tzinfo=UTC),
+            current_time=runtime_context.current_datetime,
+            timezone="Asia/Shanghai",
+            deduplication_key="hitl-reminder-target-missing",
+        )
+    )
+
+    display_context = ActionProposalService._display_context(
+        run=run,
+        tool_name="set_reminder_target",
+        args={
+            "reminder_id": str(reminder.pk),
+            "expected_version": reminder.version,
+            "target_type": "task",
+            "target_id": str(uuid4()),
+        },
+        allowed_decisions=["approve", "edit", "reject"],
+        position=0,
+    )
+
+    assert display_context["review_complete"] is False
+    assert "任务（详情暂不可用）" in display_context["review_items"][0]["detail"]
 
 
 def _event_tool_call() -> AIMessage:
@@ -279,6 +397,15 @@ def test_high_risk_tool_never_executes_before_edited_approval() -> None:
     )
     proposal = proposals[0]
     assert proposal.status == ActionProposalStatus.AWAITING_APPROVAL
+    resolved_operation = proposal.display_context["resolved_operations"][0]
+    edited_operation = {
+        key: value
+        for key, value in resolved_operation.items()
+        if key
+        not in {"display_title", "existing_start_at", "existing_end_at", "display_task_title"}
+    }
+    edited_operation["title"] = "已编辑的项目评审"
+    assert "display_title" not in edited_operation
 
     decision = ActionProposalService.decide(
         user=user,
@@ -286,11 +413,7 @@ def test_high_risk_tool_never_executes_before_edited_approval() -> None:
         expected_version=proposal.version,
         decision="edit",
         decision_idempotency_key=uuid4(),
-        edited_payload={
-            "operations": [
-                {**proposal.action_payload["operations"][0], "title": "已编辑的项目评审"}
-            ]
-        },
+        edited_payload={"operations": [edited_operation]},
     )
     assert decision.resume_ready
     resume_payload = ActionProposalService.resume_payload(run.pk)
@@ -302,6 +425,52 @@ def test_high_risk_tool_never_executes_before_edited_approval() -> None:
     proposal.refresh_from_db()
     assert proposal.status == ActionProposalStatus.EXECUTED
     assert "已编辑的项目评审" in str(proposal.execution_result)
+
+
+@pytest.mark.django_db
+def test_edit_stays_pending_when_fresh_review_is_incomplete(monkeypatch) -> None:
+    user = User.objects.create_user(username="proposal-edit-incomplete-review")
+    run, _, _ = _setup_run(user)
+    proposal = ActionProposalService.create_from_interrupt(
+        run=run,
+        interrupt_value={
+            "action_requests": [
+                {"name": "mutate_events", "args": _event_tool_call().tool_calls[0]["args"]}
+            ],
+            "review_configs": [
+                {"action_name": "mutate_events", "allowed_decisions": ["approve", "edit", "reject"]}
+            ],
+        },
+    )[0]
+    version_before_decision = proposal.version
+    incomplete_context = {
+        "allowed_decisions": ["approve", "edit", "reject"],
+        "review_complete": False,
+        "review_items": [],
+        "conflict_check": "unavailable_until_arguments_are_valid",
+        "conflicts": [],
+    }
+    monkeypatch.setattr(
+        ActionProposalService,
+        "_display_context",
+        staticmethod(lambda **_kwargs: incomplete_context),
+    )
+
+    decision = ActionProposalService.decide(
+        user=user,
+        proposal_id=proposal.pk,
+        expected_version=proposal.version,
+        decision="edit",
+        decision_idempotency_key=uuid4(),
+        edited_payload={"operations": [{"action": "create", "title": "不完整预览"}]},
+    )
+
+    assert not decision.resume_ready
+    assert decision.proposal.status == ActionProposalStatus.AWAITING_APPROVAL
+    assert decision.proposal.version == version_before_decision + 1
+    assert decision.proposal.action_payload == proposal.action_payload
+    assert decision.proposal.display_context == incomplete_context
+    assert decision.proposal.decision_type == "edit"
 
 
 @pytest.mark.django_db(transaction=True)
@@ -883,14 +1052,365 @@ def test_event_proposal_surfaces_conflict_and_cannot_be_approved() -> None:
 
     assert proposal.display_context["conflict_check"] == "completed"
     assert proposal.display_context["conflicts"][0]["title"] == "Existing meeting"
-    with pytest.raises(ProposalConflictError, match="still conflicts"):
-        ActionProposalService.decide(
+    assert (
+        proposal.display_context["conflicts"][0]["overlap_start_at"] == "2026-07-20T07:30:00+00:00"
+    )
+    assert proposal.display_context["conflicts"][0]["overlap_end_at"] == "2026-07-20T08:00:00+00:00"
+    decision = ActionProposalService.decide(
+        user=user,
+        proposal_id=proposal.pk,
+        expected_version=proposal.version,
+        decision="approve",
+        decision_idempotency_key=uuid4(),
+    )
+    assert not decision.resume_ready
+    assert decision.proposal.status == ActionProposalStatus.AWAITING_APPROVAL
+    assert decision.proposal.display_context["conflicts"][0]["title"] == "Existing meeting"
+    assert decision.proposal.version == proposal.version + 1
+
+
+@pytest.mark.django_db
+def test_update_event_preview_uses_existing_times_for_null_partial_fields() -> None:
+    user = User.objects.create_user(username="proposal-update-event-partial")
+    event = EventService.create_event(
+        CreateEventCommand(
             user=user,
-            proposal_id=proposal.pk,
-            expected_version=proposal.version,
-            decision="approve",
-            decision_idempotency_key=uuid4(),
+            title="Existing meeting",
+            start_at=datetime(2026, 7, 20, 7, tzinfo=UTC),
+            end_at=datetime(2026, 7, 20, 8, tzinfo=UTC),
+            timezone="Asia/Shanghai",
         )
+    )
+    run, _, _ = _setup_run(user)
+
+    display_context = ActionProposalService._display_context(
+        run=run,
+        tool_name="update_event",
+        args={
+            "event_id": str(event.pk),
+            "expected_version": event.version,
+            "title": "Renamed meeting",
+            "start_at": None,
+            "end_at": None,
+        },
+        allowed_decisions=["approve", "edit", "reject"],
+        position=0,
+    )
+
+    assert display_context["review_complete"] is True
+    assert display_context["conflict_check"] == "completed"
+    assert display_context["proposed_start_at"] == event.start_at.isoformat()
+    assert display_context["proposed_end_at"] == event.end_at.isoformat()
+    assert display_context["review_items"][0]["title"] == "Renamed meeting"
+
+
+@pytest.mark.django_db
+def test_approval_rebases_stale_event_version_and_requires_a_second_confirmation() -> None:
+    user = User.objects.create_user(username="proposal-stale-event-version")
+    event = EventService.create_event(
+        CreateEventCommand(
+            user=user,
+            title="Existing meeting",
+            start_at=datetime(2026, 10, 20, 7, tzinfo=UTC),
+            end_at=datetime(2026, 10, 20, 8, tzinfo=UTC),
+            timezone="Asia/Shanghai",
+        )
+    )
+    run, _, _ = _setup_run(user)
+    proposal = ActionProposalService.create_from_interrupt(
+        run=run,
+        interrupt_value={
+            "action_requests": [
+                {
+                    "name": "mutate_events",
+                    "args": {
+                        "operations": [
+                            {
+                                "action": "update",
+                                "event_id": str(event.pk),
+                                "expected_version": event.version,
+                                "title": "Renamed meeting",
+                            }
+                        ]
+                    },
+                }
+            ],
+            "review_configs": [
+                {
+                    "action_name": "mutate_events",
+                    "allowed_decisions": ["approve", "edit", "reject"],
+                }
+            ],
+        },
+    )[0]
+    assert proposal.display_context["stale_targets"] == []
+
+    event = EventService.update_event(
+        UpdateEventCommand(
+            user=user,
+            event_id=event.pk,
+            expected_version=event.version,
+            changes={"location": "Room B"},
+        )
+    )
+    refresh_key = uuid4()
+    first_decision = ActionProposalService.decide(
+        user=user,
+        proposal_id=proposal.pk,
+        expected_version=proposal.version,
+        decision="approve",
+        decision_idempotency_key=refresh_key,
+    )
+
+    assert not first_decision.resume_ready
+    assert first_decision.proposal.status == ActionProposalStatus.AWAITING_APPROVAL
+    assert (
+        first_decision.proposal.action_payload["operations"][0]["expected_version"] == event.version
+    )
+    assert (
+        first_decision.proposal.display_context["stale_targets"][0]["current_version"]
+        == event.version
+    )
+    assert "已有更新" in first_decision.proposal.display_context["review_notice"]
+    assert first_decision.proposal.version == proposal.version + 1
+    assert first_decision.proposal.decision_type == "approve"
+
+    replayed_refresh = ActionProposalService.decide(
+        user=user,
+        proposal_id=proposal.pk,
+        expected_version=proposal.version,
+        decision="approve",
+        decision_idempotency_key=refresh_key,
+    )
+    assert not replayed_refresh.resume_ready
+    assert replayed_refresh.proposal.status == ActionProposalStatus.AWAITING_APPROVAL
+    assert replayed_refresh.proposal.version == first_decision.proposal.version
+
+    second_decision = ActionProposalService.decide(
+        user=user,
+        proposal_id=proposal.pk,
+        expected_version=first_decision.proposal.version,
+        decision="approve",
+        decision_idempotency_key=uuid4(),
+    )
+    assert second_decision.resume_ready
+    assert second_decision.proposal.status == ActionProposalStatus.APPROVED
+
+
+@pytest.mark.django_db
+def test_edit_rebases_stale_event_version_and_stays_pending_for_review() -> None:
+    user = User.objects.create_user(username="proposal-stale-event-edit")
+    event = EventService.create_event(
+        CreateEventCommand(
+            user=user,
+            title="Existing meeting",
+            start_at=datetime(2026, 10, 20, 7, tzinfo=UTC),
+            end_at=datetime(2026, 10, 20, 8, tzinfo=UTC),
+            timezone="Asia/Shanghai",
+        )
+    )
+    run, _, _ = _setup_run(user)
+    proposal = ActionProposalService.create_from_interrupt(
+        run=run,
+        interrupt_value={
+            "action_requests": [
+                {
+                    "name": "mutate_events",
+                    "args": {
+                        "operations": [
+                            {
+                                "action": "update",
+                                "event_id": str(event.pk),
+                                "expected_version": event.version,
+                                "title": "Proposed title",
+                            }
+                        ]
+                    },
+                }
+            ],
+            "review_configs": [
+                {
+                    "action_name": "mutate_events",
+                    "allowed_decisions": ["approve", "edit", "reject"],
+                }
+            ],
+        },
+    )[0]
+    EventService.update_event(
+        UpdateEventCommand(
+            user=user,
+            event_id=event.pk,
+            expected_version=event.version,
+            changes={"location": "Room C"},
+        )
+    )
+    edited_payload = {
+        "operations": [
+            {
+                **proposal.action_payload["operations"][0],
+                "title": "Edited title",
+            }
+        ]
+    }
+    edit_key = uuid4()
+
+    first_edit = ActionProposalService.decide(
+        user=user,
+        proposal_id=proposal.pk,
+        expected_version=proposal.version,
+        decision="edit",
+        decision_idempotency_key=edit_key,
+        edited_payload=edited_payload,
+    )
+
+    assert not first_edit.resume_ready
+    assert first_edit.proposal.status == ActionProposalStatus.AWAITING_APPROVAL
+    assert (
+        first_edit.proposal.action_payload["operations"][0]["expected_version"] == event.version + 1
+    )
+    assert first_edit.proposal.action_payload["operations"][0]["title"] == "Edited title"
+    assert "编辑期间已有更新" in first_edit.proposal.display_context["review_notice"]
+    replayed_edit = ActionProposalService.decide(
+        user=user,
+        proposal_id=proposal.pk,
+        expected_version=proposal.version,
+        decision="edit",
+        decision_idempotency_key=edit_key,
+        edited_payload=edited_payload,
+    )
+    assert not replayed_edit.resume_ready
+    assert replayed_edit.proposal.status == ActionProposalStatus.AWAITING_APPROVAL
+    assert replayed_edit.proposal.version == first_edit.proposal.version
+
+    confirmed = ActionProposalService.decide(
+        user=user,
+        proposal_id=proposal.pk,
+        expected_version=first_edit.proposal.version,
+        decision="approve",
+        decision_idempotency_key=uuid4(),
+    )
+    assert confirmed.resume_ready
+    assert confirmed.proposal.status == ActionProposalStatus.APPROVED
+
+
+@pytest.mark.django_db
+def test_approval_refreshes_conflicts_created_after_the_proposal() -> None:
+    user = User.objects.create_user(username="proposal-stale-conflict")
+    run, _, _ = _setup_run(user)
+    proposal = ActionProposalService.create_from_interrupt(
+        run=run,
+        interrupt_value={
+            "action_requests": [
+                {
+                    "name": "mutate_events",
+                    "args": {
+                        "operations": [
+                            {
+                                "action": "create",
+                                "title": "Proposed meeting",
+                                "time": {
+                                    "kind": "absolute",
+                                    "start_at": "2026-07-20T07:00:00Z",
+                                    "end_at": "2026-07-20T08:00:00Z",
+                                },
+                            }
+                        ]
+                    },
+                }
+            ],
+            "review_configs": [
+                {
+                    "action_name": "mutate_events",
+                    "allowed_decisions": ["approve", "edit", "reject"],
+                }
+            ],
+        },
+    )[0]
+    assert proposal.display_context["conflicts"] == []
+    version_before_decision = proposal.version
+    EventService.create_event(
+        CreateEventCommand(
+            user=user,
+            title="Added after proposal",
+            start_at=datetime(2026, 7, 20, 7, 30, tzinfo=UTC),
+            end_at=datetime(2026, 7, 20, 8, 30, tzinfo=UTC),
+            timezone="Asia/Shanghai",
+        )
+    )
+
+    decision = ActionProposalService.decide(
+        user=user,
+        proposal_id=proposal.pk,
+        expected_version=proposal.version,
+        decision="approve",
+        decision_idempotency_key=uuid4(),
+    )
+
+    assert not decision.resume_ready
+    assert decision.proposal.status == ActionProposalStatus.AWAITING_APPROVAL
+    assert decision.proposal.display_context["conflicts"][0]["title"] == "Added after proposal"
+    assert decision.proposal.version == version_before_decision + 1
+
+
+@pytest.mark.django_db
+def test_edit_refreshes_conflicts_created_after_the_proposal() -> None:
+    user = User.objects.create_user(username="proposal-stale-edit-conflict")
+    run, _, _ = _setup_run(user)
+    args = {
+        "operations": [
+            {
+                "action": "create",
+                "title": "Proposed meeting",
+                "time": {
+                    "kind": "absolute",
+                    "start_at": "2026-07-20T07:00:00Z",
+                    "end_at": "2026-07-20T08:00:00Z",
+                },
+            }
+        ],
+    }
+    proposal = ActionProposalService.create_from_interrupt(
+        run=run,
+        interrupt_value={
+            "action_requests": [{"name": "mutate_events", "args": args}],
+            "review_configs": [
+                {"action_name": "mutate_events", "allowed_decisions": ["approve", "edit", "reject"]}
+            ],
+        },
+    )[0]
+    version_before_decision = proposal.version
+    resolved_operation = proposal.display_context["resolved_operations"][0]
+    edited_operation = {
+        key: value
+        for key, value in resolved_operation.items()
+        if key
+        not in {"display_title", "existing_start_at", "existing_end_at", "display_task_title"}
+    }
+    edited_operation["title"] = "Edited proposed meeting"
+    EventService.create_event(
+        CreateEventCommand(
+            user=user,
+            title="Added after proposal",
+            start_at=datetime(2026, 7, 20, 7, 30, tzinfo=UTC),
+            end_at=datetime(2026, 7, 20, 8, 30, tzinfo=UTC),
+            timezone="Asia/Shanghai",
+        )
+    )
+
+    decision = ActionProposalService.decide(
+        user=user,
+        proposal_id=proposal.pk,
+        expected_version=proposal.version,
+        decision="edit",
+        decision_idempotency_key=uuid4(),
+        edited_payload={"operations": [edited_operation]},
+    )
+
+    assert not decision.resume_ready
+    assert decision.proposal.status == ActionProposalStatus.AWAITING_APPROVAL
+    assert decision.proposal.display_context["conflicts"][0]["title"] == "Added after proposal"
+    assert decision.proposal.version == version_before_decision + 1
+    assert decision.proposal.action_payload == proposal.action_payload
 
 
 @pytest.mark.django_db
@@ -944,14 +1464,17 @@ def test_event_mutation_preflight_detects_overlap_inside_same_batch() -> None:
             "title": "First interview prep",
             "start_at": "2026-07-20T07:00:00+00:00",
             "end_at": "2026-07-20T08:00:00+00:00",
+            "overlap_start_at": "2026-07-20T07:30:00+00:00",
+            "overlap_end_at": "2026-07-20T08:00:00+00:00",
             "source": "same_mutation_batch",
         }
     ]
-    with pytest.raises(ProposalConflictError, match="still conflicts"):
-        ActionProposalService.decide(
-            user=user,
-            proposal_id=proposal.pk,
-            expected_version=proposal.version,
-            decision="approve",
-            decision_idempotency_key=uuid4(),
-        )
+    decision = ActionProposalService.decide(
+        user=user,
+        proposal_id=proposal.pk,
+        expected_version=proposal.version,
+        decision="approve",
+        decision_idempotency_key=uuid4(),
+    )
+    assert decision.proposal.status == ActionProposalStatus.AWAITING_APPROVAL
+    assert decision.proposal.display_context["conflicts"][0]["source"] == "same_mutation_batch"

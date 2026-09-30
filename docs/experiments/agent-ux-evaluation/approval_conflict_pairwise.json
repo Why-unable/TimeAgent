@@ -1,0 +1,58 @@
+{
+  "iteration": "Approval conflict context, iteration 2",
+  "goal": "Identify which existing event conflicts with the proposed project review and the exact overlap; inspect first and do not confirm creation.",
+  "method": "Blind screenshot comparison with the same current-source UI, proposal, event, viewport, and neutral decision copy. Y omits only the backend-authored overlap interval fields; the frontend does not calculate an intersection.",
+  "pair_files": {
+    "X": "blind-pair-approval/iteration-2/image-x.png",
+    "Y": "blind-pair-approval/iteration-2/image-y.png"
+  },
+  "sha256": {
+    "X": "358387E5EB064207AAC3FBCBDA15F7B5DDE5B65854A60BC103EA69B2B1C7F0D3",
+    "Y": "6E1186E0D93A24D6EC270C691B483E3279172678028FA1116F674B272DA84769"
+  },
+  "mapping_after_judgment": {
+    "X": "Final candidate: includes the exact 15:30–16:00 overlap supplied by the backend.",
+    "Y": "Controlled context-only view: shows the event and its occupied 15:30–16:30 interval, but no overlap interval."
+  },
+  "judge": {
+    "role": "independent blind UX judge",
+    "preferred": "X",
+    "confidence": 0.99,
+    "ratings_x": {
+      "task_completion": 5,
+      "clarity": 5,
+      "interaction_cost": 5,
+      "cognitive_load": 5,
+      "control": 5,
+      "trust": 5,
+      "error_recovery": 3,
+      "responsiveness": 4,
+      "mobile_usability": 4,
+      "accessibility": 4,
+      "visual_hierarchy": 5
+    },
+    "ratings_y": {
+      "task_completion": 4,
+      "clarity": 3,
+      "interaction_cost": 4,
+      "cognitive_load": 3,
+      "control": 5,
+      "trust": 4,
+      "error_recovery": 3,
+      "responsiveness": 4,
+      "mobile_usability": 4,
+      "accessibility": 3,
+      "visual_hierarchy": 4
+    },
+    "critical_difference": "X directly states the 15:30–16:00 intersection. Y requires the user to compare the proposal's 15:00–16:00 interval with the event's 15:30–16:30 interval.",
+    "shared_limitations": [
+      "The fixed bottom navigation overlays lower content in the captured viewport; scrolling behavior is assessed separately by Playwright.",
+      "Static screenshots cannot establish complete keyboard or screen-reader usability."
+    ]
+  },
+  "excluded_attempt": {
+    "status": "invalid; excluded from results",
+    "reason": "A previous iteration-2 pair accidentally used identical screenshots.",
+    "preserved_files": "blind-pair-approval/iteration-2-invalid-same-image/"
+  }
+}

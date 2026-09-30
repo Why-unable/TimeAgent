@@ -656,6 +656,8 @@ test("reviews and approves a high-risk action", async ({ page }) => {
     original_payload: {},
     display_context: {
       allowed_decisions: ["approve", "edit", "reject"],
+      action_title: "创建日程",
+      action_summary: "将创建日程「项目评审」。",
       object_name: "项目评审",
       impact_scope: "创建一个正式日程",
       proposed_start_at: "2026-07-20T07:00:00Z",
@@ -700,9 +702,440 @@ test("reviews and approves a high-risk action", async ({ page }) => {
 
   await page.goto("/approvals");
   await expect(page.getByRole("heading", { name: "操作审批" })).toBeVisible();
+  await expect(page.getByText("以下时间均按 Asia/Shanghai 显示。", { exact: true })).toBeVisible();
+  await expect(page.getByText(/Agent 提出的高风险操作/)).toHaveCount(0);
   await expect(page.getByText("未发现日程冲突。")).toBeVisible();
   await page.getByRole("button", { name: "确认并应用", exact: true }).click();
   await expect(page.getByRole("button", { name: "确认并应用", exact: true })).toHaveCount(0);
+});
+
+test("shows the conflict context before a user decides on approval", async ({ page }) => {
+  const proposal = {
+    id: "abababab-abab-4bab-8bab-abababababab",
+    conversation_id: "11111111-1111-4111-8111-111111111111",
+    agent_run_id: "22222222-2222-4222-8222-222222222222",
+    original_request: "把项目评审安排在明天下午三点。",
+    explanation: "创建正式日程会占用你的日历时间，需要确认后执行。",
+    action_type: "create_event",
+    action_payload: {
+      title: "项目评审",
+      start_at: "2026-10-01T07:00:00Z",
+      end_at: "2026-10-01T08:00:00Z",
+      timezone: "Asia/Shanghai",
+    },
+    original_payload: {},
+    display_context: {
+      allowed_decisions: ["approve", "edit", "reject"],
+      action_title: "创建日程",
+      action_summary: "将创建日程「项目评审」。",
+      object_name: "项目评审",
+      impact_scope: "创建一个正式日程",
+      proposed_start_at: "2026-10-01T07:00:00Z",
+      proposed_end_at: "2026-10-01T08:00:00Z",
+      conflict_check: "completed",
+      conflicts: [{
+        id: "cdcdcdcd-cdcd-4dcd-8dcd-cdcdcdcdcdcd",
+        title: "客户评审",
+        start_at: "2026-10-01T07:30:00Z",
+        end_at: "2026-10-01T08:30:00Z",
+        overlap_start_at: "2026-10-01T07:30:00Z",
+        overlap_end_at: "2026-10-01T08:00:00Z",
+      }],
+    },
+    risk_level: "high",
+    status: "awaiting_approval",
+    requires_approval: true,
+    version: 1,
+    expires_at: "2026-10-01T08:00:00Z",
+    decided_at: null,
+    approved_at: null,
+    resumed_at: null,
+    executed_at: null,
+    decision_reason: "",
+    execution_result: null,
+    error: "",
+    created_at: "2026-09-30T08:00:00Z",
+    updated_at: "2026-09-30T08:00:00Z",
+  };
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.route("**/api/v1/preferences/me/", async (route) => {
+    await route.fulfill({ json: { timezone: "Asia/Shanghai", locale: "zh-CN" } });
+  });
+  await page.route("**/api/v1/action-proposals/?status=awaiting_approval", async (route) => {
+    await route.fulfill({ json: [proposal] });
+  });
+
+  await page.goto("/approvals");
+  await expect(page.getByRole("heading", { name: "操作审批" })).toBeVisible();
+  await expect(page.getByText("发现 1 个时间冲突。请核对重叠时段，调整到无冲突时间，或拒绝这项操作。")).toBeVisible();
+  await expect(page.getByText("客户评审", { exact: true })).toBeVisible();
+  await expect(page.getByText("已占用：2026/10/01 15:30 – 16:30")).toBeVisible();
+  await expect(page.getByText("与你的提议重叠：2026/10/01 15:30 – 16:00")).toBeVisible();
+  await expect(page.getByRole("group", { name: "冲突日程详情" })).toBeVisible();
+  await expect(page.getByText("在你确认前，这项操作不会执行。")).toBeVisible();
+  await expect(page.getByText("重复操作")).toHaveCount(0);
+  await expect(page.getByText("提出时间")).not.toBeVisible();
+  await expect(page.getByRole("button", { name: "确认并应用", exact: true })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "先调整时间", exact: true })).toBeVisible();
+  await page.screenshot({
+    path: "../docs/experiments/agent-ux-evaluation/screenshots/approval-conflict-after.png",
+    fullPage: true,
+  });
+  await page.getByText("发现 1 个时间冲突。请核对重叠时段，调整到无冲突时间，或拒绝这项操作。").evaluate((element) => {
+    element.scrollIntoView({ block: "center" });
+  });
+  await page.screenshot({
+    path: "../docs/experiments/agent-ux-evaluation/screenshots/approval-conflict-after-focus.png",
+  });
+  await page.setViewportSize({ width: 320, height: 800 });
+  await expect(page.locator("body")).toHaveJSProperty("scrollWidth", 320);
+  await page.screenshot({
+    path: "../docs/experiments/agent-ux-evaluation/screenshots/approval-conflict-mobile-single-320.png",
+  });
+  await page.setViewportSize({ width: 390, height: 844 });
+
+  Object.assign(proposal.display_context.conflicts[0], {
+    overlap_start_at: null,
+    overlap_end_at: null,
+  });
+  await page.reload();
+  await expect(page.getByText("客户评审", { exact: true })).toBeVisible();
+  await expect(page.getByText(/与你的提议重叠/)).toHaveCount(0);
+  await page.getByText("发现 1 个时间冲突。请核对重叠时段，调整到无冲突时间，或拒绝这项操作。")
+    .evaluate((element) => element.scrollIntoView({ block: "center" }));
+  await page.screenshot({
+    path: "../docs/experiments/agent-ux-evaluation/screenshots/approval-conflict-context-only-focus.png",
+  });
+  await page.screenshot({
+    path: "../docs/experiments/agent-ux-evaluation/screenshots/approval-conflict-context-only-final.png",
+  });
+  await page.locator("summary").filter({ hasText: "查看操作详情" }).click();
+  await expect(page.getByText("提出时间")).toBeVisible();
+  await expect(page.getByText("重复操作")).toHaveCount(0);
+});
+
+test("shows the old and proposed time for a conflicting event move", async ({ page }) => {
+  const proposal = {
+    id: "cdcdcdcd-cdcd-4dcd-8dcd-cdcdcdcdcdcd",
+    conversation_id: "11111111-1111-4111-8111-111111111111",
+    agent_run_id: "22222222-2222-4222-8222-222222222222",
+    original_request: "把周四的日程挪到下午，先告诉我是否冲突。",
+    explanation: "update_event",
+    action_type: "update_event",
+    action_payload: {
+      event_id: "abababab-abab-4bab-8bab-abababababab",
+      expected_version: 2,
+      start_at: "2026-10-01T07:00:00Z",
+      end_at: "2026-10-01T08:00:00Z",
+      timezone: "Asia/Shanghai",
+    },
+    original_payload: {},
+    display_context: {
+      allowed_decisions: ["approve", "edit", "reject"],
+      action_title: "修改日程",
+      action_summary: "将把日程「周四论文讨论」调整到新时间。",
+      conflict_action: "调整",
+      conflict_check: "completed",
+      review_items: [{
+        title: "周四论文讨论",
+        detail: "查看原安排与调整后的时间",
+        time_label: "原安排",
+        proposed_time_label: "调整为",
+        start_at: "2026-10-01T02:00:00Z",
+        end_at: "2026-10-01T03:00:00Z",
+        proposed_start_at: "2026-10-01T07:00:00Z",
+        proposed_end_at: "2026-10-01T08:00:00Z",
+      }],
+      review_complete: true,
+      conflicts: [{
+        title: "客户评审",
+        start_at: "2026-10-01T07:30:00Z",
+        end_at: "2026-10-01T08:30:00Z",
+        overlap_start_at: "2026-10-01T07:30:00Z",
+        overlap_end_at: "2026-10-01T08:00:00Z",
+      }],
+    },
+    risk_level: "high",
+    status: "awaiting_approval",
+    requires_approval: true,
+    version: 1,
+    expires_at: "2026-10-01T08:00:00Z",
+    decided_at: null,
+    approved_at: null,
+    resumed_at: null,
+    executed_at: null,
+    decision_reason: "",
+    execution_result: null,
+    error: "",
+    created_at: "2026-09-30T08:00:00Z",
+    updated_at: "2026-09-30T08:00:00Z",
+  };
+  await page.setViewportSize({ width: 320, height: 800 });
+  await page.route("**/api/v1/preferences/me/", async (route) => {
+    await route.fulfill({ json: { timezone: "Asia/Shanghai", locale: "zh-CN" } });
+  });
+  await page.route("**/api/v1/action-proposals/?status=awaiting_approval", async (route) => {
+    await route.fulfill({ json: [proposal] });
+  });
+
+  await page.goto("/approvals");
+  await expect(page.getByRole("heading", { name: "修改日程" })).toBeVisible();
+  await expect(page.getByText("2026/10/01 10:00 – 11:00")).toBeVisible();
+  await expect(page.getByText("2026/10/01 15:00 – 16:00")).toBeVisible();
+  await expect(page.getByText("发现 1 个时间冲突。请核对重叠时段，调整到无冲突时间，或拒绝这项操作。"))
+    .toBeVisible();
+  await expect(page.getByText("与你的提议重叠：2026/10/01 15:30 – 16:00")).toBeVisible();
+  await expect(page.getByRole("button", { name: "确认并应用", exact: true })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "先调整时间", exact: true })).toBeVisible();
+  const conflictSummary = page.getByText("发现 1 个时间冲突。请核对重叠时段，调整到无冲突时间，或拒绝这项操作。");
+  await conflictSummary.evaluate((element) => element.scrollIntoView({ block: "center" }));
+  const conflictBounds = await page.getByText("与你的提议重叠：2026/10/01 15:30 – 16:00").boundingBox();
+  const navigationBounds = await page.locator('nav[aria-label="移动端主导航"]').boundingBox();
+  expect(conflictBounds).not.toBeNull();
+  expect(navigationBounds).not.toBeNull();
+  expect(conflictBounds!.y + conflictBounds!.height).toBeLessThanOrEqual(navigationBounds!.y);
+  await page.screenshot({
+    path: "../docs/experiments/agent-ux-evaluation/screenshots/approval-reschedule-holdout-mobile-320.png",
+  });
+  const adjustmentButton = page.getByRole("button", { name: "先调整时间", exact: true });
+  await adjustmentButton.evaluate((element) => element.scrollIntoView({ block: "center" }));
+  const actionViewOverlapBounds = await page.getByText("与你的提议重叠：2026/10/01 15:30 – 16:00").boundingBox();
+  const actionViewButtonBounds = await adjustmentButton.boundingBox();
+  const actionViewNavigationBounds = await page.locator('nav[aria-label="移动端主导航"]').boundingBox();
+  expect(actionViewOverlapBounds).not.toBeNull();
+  expect(actionViewButtonBounds).not.toBeNull();
+  expect(actionViewNavigationBounds).not.toBeNull();
+  expect(actionViewOverlapBounds!.y + actionViewOverlapBounds!.height)
+    .toBeLessThanOrEqual(actionViewNavigationBounds!.y);
+  expect(actionViewButtonBounds!.y + actionViewButtonBounds!.height)
+    .toBeLessThanOrEqual(actionViewNavigationBounds!.y);
+  await page.screenshot({
+    path: "../docs/experiments/agent-ux-evaluation/screenshots/approval-reschedule-action-mobile-320.png",
+  });
+  Object.assign(proposal.display_context.conflicts[0], {
+    overlap_start_at: null,
+    overlap_end_at: null,
+  });
+  await page.reload();
+  const contextOnlySummary = page.getByText("发现 1 个时间冲突。请核对重叠时段，调整到无冲突时间，或拒绝这项操作。");
+  await contextOnlySummary.evaluate((element) => element.scrollIntoView({ block: "center" }));
+  await expect(page.getByText(/与你的提议重叠/)).toHaveCount(0);
+  await page.screenshot({
+    path: "../docs/experiments/agent-ux-evaluation/screenshots/approval-reschedule-context-only-mobile-320.png",
+  });
+  await page.getByRole("button", { name: "先调整时间", exact: true })
+    .evaluate((element) => element.scrollIntoView({ block: "center" }));
+  await page.screenshot({
+    path: "../docs/experiments/agent-ux-evaluation/screenshots/approval-reschedule-context-only-action-mobile-320.png",
+  });
+});
+
+test("opens additional approval conflicts with the keyboard", async ({ page }) => {
+  const proposal = {
+    id: "abababab-abab-4bab-8bab-abababababab",
+    conversation_id: "11111111-1111-4111-8111-111111111111",
+    agent_run_id: "22222222-2222-4222-8222-222222222222",
+    original_request: "把项目评审安排在明天下午三点。",
+    explanation: "创建正式日程会占用你的日历时间，需要确认后执行。",
+    action_type: "create_event",
+    action_payload: {
+      title: "项目评审",
+      start_at: "2026-10-01T07:00:00Z",
+      end_at: "2026-10-01T08:00:00Z",
+      timezone: "Asia/Shanghai",
+    },
+    original_payload: {},
+    display_context: {
+      allowed_decisions: ["approve", "edit", "reject"],
+      conflict_check: "completed",
+      conflicts: Array.from({ length: 4 }, (_, index) => ({
+        id: `cdcdcdcd-cdcd-4dcd-8dcd-cdcdcdcdcd0${index}`,
+        title: ["客户评审", "团队同步", "供应商沟通", "项目例会"][index] ?? "已有日程",
+        start_at: "2026-10-01T07:30:00Z",
+        end_at: "2026-10-01T08:30:00Z",
+        overlap_start_at: "2026-10-01T07:30:00Z",
+        overlap_end_at: "2026-10-01T08:00:00Z",
+      })),
+    },
+    risk_level: "high",
+    status: "awaiting_approval",
+    requires_approval: true,
+    version: 1,
+    expires_at: "2026-10-01T08:00:00Z",
+    decided_at: null,
+    approved_at: null,
+    resumed_at: null,
+    executed_at: null,
+    decision_reason: "",
+    execution_result: null,
+    error: "",
+    created_at: "2026-09-30T08:00:00Z",
+    updated_at: "2026-09-30T08:00:00Z",
+  };
+  await page.route("**/api/v1/preferences/me/", async (route) => {
+    await route.fulfill({ json: { timezone: "Asia/Shanghai", locale: "zh-CN" } });
+  });
+  await page.route("**/api/v1/action-proposals/?status=awaiting_approval", async (route) => {
+    await route.fulfill({ json: [proposal] });
+  });
+
+  for (const viewport of [{ width: 320, height: 800 }, { width: 390, height: 844 }]) {
+    await page.setViewportSize(viewport);
+    await page.goto("/approvals");
+    await expect(page.getByText("以下时间均按 Asia/Shanghai 显示。", { exact: true })).toBeVisible();
+    await expect(page.getByText(/Agent 提出的高风险操作/)).toHaveCount(0);
+    const disclosure = page.locator("summary").filter({ hasText: "查看其余 1 个冲突" });
+    await expect(disclosure).toBeVisible();
+    const disclosureBounds = await disclosure.boundingBox();
+    expect(disclosureBounds?.height).toBeGreaterThanOrEqual(44);
+    expect(disclosureBounds?.width).toBeGreaterThanOrEqual(44);
+    const navigation = page.locator('nav[aria-label="移动端主导航"]');
+    for (const label of ["全部", "等待审批", "已执行", "已拒绝", "已过期", "执行失败"]) {
+      await page.keyboard.press("Tab");
+      const filterButton = page.getByRole("button", { name: label, exact: true });
+      await expect(filterButton).toBeFocused();
+      await expect(filterButton).toHaveAttribute("aria-pressed", String(label === "等待审批"));
+      const filterBounds = await filterButton.boundingBox();
+      expect(filterBounds?.height).toBeGreaterThanOrEqual(44);
+      expect(filterBounds?.width).toBeGreaterThanOrEqual(44);
+      const filterOwnsHitTarget = await filterButton.evaluate((element) => {
+        const rect = element.getBoundingClientRect();
+        const hitTarget = document.elementFromPoint(rect.x + rect.width / 2, rect.y + rect.height / 2);
+        return hitTarget !== null && element.contains(hitTarget);
+      });
+      expect(filterOwnsHitTarget).toBe(true);
+    }
+    await disclosure.evaluate((element) => element.scrollIntoView({ block: "center" }));
+    await page.keyboard.press("Tab");
+    await expect(disclosure).toBeFocused();
+    await expect(disclosure).not.toHaveCSS("outline-style", "none");
+    const disclosureFocusBounds = await disclosure.boundingBox();
+    const disclosureNavigationBounds = await navigation.boundingBox();
+    expect(disclosureFocusBounds).not.toBeNull();
+    expect(disclosureNavigationBounds).not.toBeNull();
+    expect(disclosureFocusBounds!.width).toBeGreaterThanOrEqual(44);
+    expect(disclosureFocusBounds!.y + disclosureFocusBounds!.height).toBeLessThanOrEqual(disclosureNavigationBounds!.y);
+    const disclosureOwnsHitTarget = await disclosure.evaluate((element) => {
+      const rect = element.getBoundingClientRect();
+      const hitTarget = document.elementFromPoint(rect.x + rect.width / 2, rect.y + rect.height / 2);
+      return hitTarget !== null && element.contains(hitTarget);
+    });
+    expect(disclosureOwnsHitTarget).toBe(true);
+    await page.keyboard.press("Enter");
+    await expect(page.getByText("客户评审", { exact: true })).toBeVisible();
+    await expect(page.getByText("项目例会", { exact: true })).toBeVisible();
+    await expect(page.getByRole("group", { name: "冲突日程详情" })).toBeVisible();
+    if (viewport.width === 320) {
+      await page.screenshot({
+        path: "../docs/experiments/agent-ux-evaluation/screenshots/approval-conflict-mobile-320.png",
+      });
+    }
+    await expect(page.locator("body")).toHaveJSProperty("scrollWidth", viewport.width);
+
+    const operationDetails = page.locator("summary").filter({ hasText: "查看操作详情" });
+    await operationDetails.evaluate((element) => element.scrollIntoView({ block: "center" }));
+    const operationDetailsBounds = await operationDetails.boundingBox();
+    expect(operationDetailsBounds?.height).toBeGreaterThanOrEqual(44);
+    expect(operationDetailsBounds?.width).toBeGreaterThanOrEqual(44);
+    await page.keyboard.press("Tab");
+    await expect(operationDetails).toBeFocused();
+    const operationDetailsFocusBounds = await operationDetails.boundingBox();
+    const operationDetailsNavigationBounds = await navigation.boundingBox();
+    expect(operationDetailsFocusBounds).not.toBeNull();
+    expect(operationDetailsNavigationBounds).not.toBeNull();
+    expect(operationDetailsFocusBounds!.width).toBeGreaterThanOrEqual(44);
+    expect(operationDetailsFocusBounds!.y + operationDetailsFocusBounds!.height).toBeLessThanOrEqual(operationDetailsNavigationBounds!.y);
+    const operationDetailsOwnsHitTarget = await operationDetails.evaluate((element) => {
+      const rect = element.getBoundingClientRect();
+      const hitTarget = document.elementFromPoint(rect.x + rect.width / 2, rect.y + rect.height / 2);
+      return hitTarget !== null && element.contains(hitTarget);
+    });
+    expect(operationDetailsOwnsHitTarget).toBe(true);
+
+    const decisionControls = [
+      page.getByRole("button", { name: "先调整时间", exact: true }),
+      page.getByRole("button", { name: "拒绝", exact: true }),
+    ];
+    for (const control of decisionControls) {
+      await page.keyboard.press("Tab");
+      await expect(control).toBeFocused();
+      const controlBounds = await control.boundingBox();
+      const navigationBounds = await navigation.boundingBox();
+      expect(controlBounds?.height).toBeGreaterThanOrEqual(44);
+      expect(controlBounds).not.toBeNull();
+      expect(navigationBounds).not.toBeNull();
+      expect(controlBounds!.width).toBeGreaterThanOrEqual(44);
+      expect(controlBounds!.y + controlBounds!.height).toBeLessThanOrEqual(navigationBounds!.y);
+      if (control === decisionControls[0]) {
+        await expect(control).toHaveCSS("outline-style", "solid");
+        await expect(control).toHaveCSS("outline-width", "3px");
+      }
+      const controlOwnsHitTarget = await control.evaluate((element) => {
+        const rect = element.getBoundingClientRect();
+        const hitTarget = document.elementFromPoint(rect.x + rect.width / 2, rect.y + rect.height / 2);
+        return hitTarget !== null && element.contains(hitTarget);
+      });
+      expect(controlOwnsHitTarget).toBe(true);
+    }
+    const rejectionReason = page.getByRole("textbox", { name: "拒绝原因" });
+    await page.keyboard.press("Tab");
+    await expect(rejectionReason).toBeFocused();
+    const rejectionReasonBounds = await rejectionReason.boundingBox();
+    expect(rejectionReasonBounds?.height).toBeGreaterThanOrEqual(44);
+    expect(rejectionReasonBounds?.width).toBeGreaterThanOrEqual(44);
+    await page.evaluate(() => {
+      const visualViewport = window.visualViewport;
+      if (!visualViewport) return;
+      Object.defineProperty(visualViewport, "height", { configurable: true, value: 500 });
+      visualViewport.dispatchEvent(new Event("resize"));
+    });
+    await expect(navigation).toHaveAttribute("aria-hidden", "true");
+    await expect(navigation).toHaveAttribute("inert", "");
+    await page.evaluate(() => {
+      const visualViewport = window.visualViewport;
+      if (!visualViewport) return;
+      Object.defineProperty(visualViewport, "height", { configurable: true, value: window.innerHeight });
+      visualViewport.dispatchEvent(new Event("resize"));
+    });
+    await expect(navigation).toHaveAttribute("aria-hidden", "false");
+    await expect(navigation).not.toHaveAttribute("inert", "");
+    await expect(rejectionReason).toBeFocused();
+
+    const editButton = page.getByRole("button", { name: "先调整时间", exact: true });
+    await editButton.focus();
+    await page.keyboard.press("Enter");
+    const reopenedDetails = page.locator("details").filter({ hasText: "查看操作详情" });
+    await expect(reopenedDetails).toHaveAttribute("open", "");
+    await expect(page.getByLabel("日程标题").first()).toBeFocused();
+    await page.getByRole("button", { name: "取消编辑" }).click();
+    await expect(editButton).toBeFocused();
+
+    await rejectionReason.focus();
+    await page.evaluate(() => {
+      const visualViewport = window.visualViewport;
+      if (!visualViewport) return;
+      Object.defineProperty(visualViewport, "height", { configurable: true, value: 500 });
+      visualViewport.dispatchEvent(new Event("resize"));
+    });
+    await expect(navigation).toHaveAttribute("aria-hidden", "true");
+    await page.keyboard.press("Tab");
+    const focusInsideHiddenNavigation = await navigation.evaluate((element) => element.contains(document.activeElement));
+    expect(focusInsideHiddenNavigation).toBe(false);
+  }
+
+  await page.addInitScript(() => {
+    Object.defineProperty(window, "visualViewport", { configurable: true, value: null });
+  });
+  await page.setViewportSize({ width: 320, height: 800 });
+  await page.goto("/approvals");
+  const navigation = page.locator('nav[aria-label="移动端主导航"]');
+  const rejectionReason = page.getByRole("textbox", { name: "拒绝原因" });
+  await rejectionReason.focus();
+  await expect(navigation).toHaveAttribute("aria-hidden", "true");
+  await expect(navigation).toHaveAttribute("inert", "");
+  await rejectionReason.evaluate((element) => element.blur());
+  await expect(navigation).toHaveAttribute("aria-hidden", "false");
+  await expect(navigation).not.toHaveAttribute("inert", "");
 });
 
 test("continues the chat stream after approving an interrupted run", async ({ page }) => {

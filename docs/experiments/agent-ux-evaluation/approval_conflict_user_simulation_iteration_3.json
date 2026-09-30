@@ -1,0 +1,19 @@
+{
+  "iteration": 3,
+  "role": "independent user simulator",
+  "private_chain_of_thought_included": false,
+  "goal": "Inspect a proposed meeting, identify the conflict and exact overlap, then avoid confirming it.",
+  "environment": "Current-source static mobile screenshots with fixture data; no live interaction was available to the simulator.",
+  "task_completed": "partial",
+  "satisfaction": 4,
+  "observable_result": "Identified 客户评审 as the conflicting event and read the exact 15:30–16:00 overlap against its 15:30–16:30 occupied interval. The simulator understood the proposal remains pending, but needed to scroll to reach the controls.",
+  "friction": ["Decision controls are below the fold at 320px."],
+  "clicks": null,
+  "user_turns": null,
+  "page_transitions": null,
+  "completion_time": null,
+  "limits": [
+    "Static evaluation; no actual click or approval occurred.",
+    "One simulator run; not a representative participant cohort."
+  ]
+}

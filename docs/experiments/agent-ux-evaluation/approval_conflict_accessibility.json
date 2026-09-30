@@ -1,0 +1,36 @@
+{
+  "review_role": "Independent accessibility critic",
+  "overall_status": "Scoped visual and keyboard-disclosure evidence is positive; not a whole-product accessibility pass.",
+  "observations": {
+    "320px_readability": "pass: conflict name, occupied interval, and overlap interval wrap without visible horizontal clipping.",
+    "390px_readability": "pass: proposal and conflict details remain legible; overlap is emphasized in bold text.",
+    "non_color_cues": "pass: conflict count, event name, occupied-time label, overlap label, and disclosure text communicate status without color alone.",
+    "focus_evidence": "partial pass: visible focus ring in the 320px disclosure screenshot; Playwright verifies Enter expands the remaining conflict.",
+    "contrast": "final screenshot review found the text visually distinguishable but did not measure every rendered color; source-token calculation after the fix is recorded below.",
+    "fixed_navigation": "The fixed navigation overlays some lower content in the captured viewport. Playwright verifies the approval button can be scrolled completely above the navigation."
+  },
+  "source_token_contrast_calculation": {
+    "method": "WCAG relative-luminance contrast calculation from final Tailwind colors and mobile workspace surface overrides; not a browser-wide contrast scan.",
+    "approval_secondary_labels": {
+      "foreground": "#334155 (slate-700)",
+      "surface": "#f4f5f2",
+      "ratio": 9.46
+    },
+    "inactive_mobile_navigation": {
+      "foreground": "#475569 (slate-600)",
+      "surface": "#edf3fa",
+      "ratio": 6.78
+    }
+  },
+  "verified_by_playwright": [
+    "320px body scroll width equals the viewport width.",
+    "Keyboard Enter expands the native disclosure and reveals the remaining event.",
+    "After scrolling, the approval button's lower edge is above the fixed mobile navigation."
+  ],
+  "not_verified": [
+    "Screen-reader output, VoiceOver, and TalkBack.",
+    "Full-product manual keyboard order and focus return.",
+    "Touch target dimensions and physical-device behavior.",
+    "Every color combination outside the measured approval labels and inactive mobile navigation."
+  ]
+}

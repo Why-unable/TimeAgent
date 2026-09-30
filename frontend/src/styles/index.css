@@ -49,7 +49,7 @@ a {
 }
 
 :where(button, a, input, textarea, select):focus-visible {
-  outline: 3px solid rgb(13 148 136 / 32%);
+  outline: 3px solid #0f766e;
   outline-offset: 2px;
 }
 
@@ -132,6 +132,16 @@ body::-webkit-scrollbar {
 
   [data-color-scheme="workspace"] [class*="text-emerald"] {
     color: #047857 !important;
+  }
+
+  [data-color-scheme="workspace"] [class*="text-amber"],
+  [data-color-scheme="workspace"] [class*="text-yellow"] {
+    color: #92400e !important;
+  }
+
+  [data-color-scheme="workspace"] [class*="text-red"],
+  [data-color-scheme="workspace"] [class*="text-rose"] {
+    color: #be123c !important;
   }
 
   [data-color-scheme="workspace"] [class*="border-white"] {

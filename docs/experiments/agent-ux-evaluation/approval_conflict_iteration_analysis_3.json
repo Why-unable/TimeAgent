@@ -1,0 +1,73 @@
+{
+  "iteration": 3,
+  "date": "2026-09-30",
+  "role": "independent experiment analyst",
+  "scoped_question": "Does showing the backend-computed exact overlap, with refreshed fail-closed approval/edit review and mobile editing safeguards, help a user understand a conflicting approval and reach a safe decision?",
+  "evidence": {
+    "blind_pair": {
+      "preferred_candidate": "X",
+      "confidence": 0.78,
+      "exact_overlap_ratings": {
+        "task_completion": 4.5,
+        "clarity": 4.5,
+        "trust": 4.5,
+        "scroll_navigation_framing": 3.5
+      },
+      "context_only_ratings": {
+        "task_completion": 4.0,
+        "clarity": 3.8,
+        "trust": 3.8,
+        "scroll_navigation_framing": 4.0
+      },
+      "interpretation": "One independent blind screenshot judge preferred the exact-overlap candidate and rated it higher for task completion, clarity, and trust; context-only scored slightly higher for viewport/navigation framing."
+    },
+    "holdout_simulation": {
+      "task_completed": "partial",
+      "satisfaction": 4,
+      "observed_outcome": "The simulator identified 客户评审 and the exact 15:30–16:00 overlap within its 15:30–16:30 occupied interval, understood that the proposal remained pending, and had to scroll to reach decision controls."
+    },
+    "independent_reviews": {
+      "critic": "Final read-only recheck found no remaining reproducible scoped P1/P2 after fixes for incomplete review, stale event versions and idempotency, null-time partial updates, mutation editor prefill, single-end edits, strict payload shape, and async focus.",
+      "accessibility": "No new scoped P1/P2 was found. Keyboard disclosure/edit focus and viewport restoration were reviewed; the end-to-end cancel action was mouse-driven."
+    },
+    "technical_validation": {
+      "backend": "638 passed, 3 skipped.",
+      "frontend": "26 test files and 143 tests passed; lint and production build passed.",
+      "playwright": "20/20 smoke tests passed.",
+      "migration_check": "No model changes were reported; the localhost PostgreSQL consistency/history check timed out, so database-backed migration consistency was not confirmed."
+    }
+  },
+  "outcome": {
+    "scoped_ux_improvement_supported": true,
+    "claim": "The evidence supports a limited, scoped improvement in communicating the exact conflict and preserving a pending, reviewable state in the tested approval journey. The paired screenshot ratings favor exact-overlap context, and the holdout simulator successfully identified the event and interval, though it completed only partially because controls required scrolling.",
+    "not_established": "This is not evidence of product-wide UX improvement, real-user task success, increased approval safety in production, or improved end-to-end completion. The evidence is one blind judgment and one static simulator run, alongside automated checks."
+  },
+  "unresolved_friction": [
+    "At 320px, decision controls remain below the fold and require scrolling.",
+    "The comparison screenshots keep the details disclosure collapsed; the simulator could not interact with the live interface.",
+    "Keyboard cancel was not exercised end-to-end, and full manual keyboard traversal remains unverified."
+  ],
+  "safety_and_technical_limits": [
+    "Evaluation used fixtures, static screenshots, and intercepted API requests; no live browser-to-AgentRun approval, apply, or Today/Calendar propagation was performed.",
+    "No human participant cohort, physical iOS/Android device, VoiceOver/TalkBack, or screen-reader walkthrough was used.",
+    "The migration check did not establish database-history consistency because its localhost PostgreSQL check timed out."
+  ],
+  "next_experiment": {
+    "focus": "Test the same conflict journey in a real browser using an isolated synthetic AgentRun that stops at a pending proposal, then conduct a human mobile walkthrough with keyboard and screen-reader coverage.",
+    "safety_boundary": "Keep the proposal pending: do not approve, apply, or propagate changes to Today/Calendar.",
+    "measures": [
+      "Whether participants identify the conflicting event and exact overlap without prompting.",
+      "Whether they find and understand the pending decision controls, including scroll effort and recovery from editing.",
+      "Observed keyboard and screen-reader focus order, disclosure, and status announcements on supported devices."
+    ]
+  },
+  "source_artifacts": [
+    "approval_conflict_iteration_3.json",
+    "approval_conflict_pairwise_iteration_3.json",
+    "approval_conflict_user_simulation_iteration_3.json",
+    "approval_conflict_critic_iteration_3.json",
+    "approval_conflict_accessibility_iteration_3.json",
+    "approval_conflict_metrics_iteration_3.json",
+    "../agent-ux-evolution.md"
+  ]
+}

@@ -30,9 +30,30 @@
       "result": "The entire smoke suite passed 17/17; five failures from outdated test expectations were resolved without changing the product UI.",
       "evidence": ["Playwright full smoke suite"],
       "risk_or_open_gap": "The suite still uses mocked APIs and cannot establish a real browser AgentRun."
+    },
+    {
+      "iteration": "Approval conflict context 1: identify the event",
+      "change": "Rendered backend-provided conflict titles and occupied intervals in the account timezone; added a disclosure for additional conflicts.",
+      "result": "Independent blind judge preferred the event/time candidate over count-only context (confidence 0.98); a static simulator could read the event and interval without interaction.",
+      "evidence": ["blind-pair-approval/iteration-1", "approval-conflict-before.png", "approval-conflict-context-only.png", "approval_conflict_iteration.json"],
+      "risk_or_open_gap": "The user still had to infer the exact intersection. The first desktop/mobile simulator screenshots used isolated proposal fixtures, not a live AgentRun."
+    },
+    {
+      "iteration": "Approval conflict context 2: state the exact overlap",
+      "change": "Computed the interval intersection in backend event/action-proposal services and displayed it in the approval card. Improved small secondary-text contrast, mobile navigation contrast, decision-neutral copy, and a no-execution-before-confirmation hint. Kept the existing HITL buttons and server policy.",
+      "result": "A fresh blind judge preferred X, the exact-overlap candidate, over a controlled view with the same text and layout but no backend overlap fields (confidence 0.99). The single-conflict simulator marked the goal complete at 4/5 satisfaction using static screenshots. No high-severity adversarial issue was found.",
+      "evidence": ["approval_conflict_pairwise.json", "approval_conflict_user_simulation.json", "approval_conflict_critic_results.json", "approval_conflict_accessibility.json", "approval_conflict_metrics.json", "approval_conflict_iteration_analysis.json", "approval-conflict-mobile-single-320.png"],
+      "risk_or_open_gap": "Static screenshots do not verify screen readers or a live AgentRun approval/apply journey. A four-conflict disclosure fixture is kept as a separate regression case; its first simulator run was not counted as the primary single-conflict goal."
+    },
+    {
+      "iteration": "Approval conflict context 3: preserve a safe, editable decision",
+      "change": "Fail closed when approval or edit review is incomplete or has fresh conflicts; strip UI-only fields before resuming strict event-mutation tools; keep incomplete edits open; validate event intervals before submit; retain reminder targets that are temporarily absent from the selector; restore edit focus after asynchronous target loading and restore mobile navigation when the keyboard closes.",
+      "result": "Conflict states expose an edit path but no approve action. Latest blind comparison preferred the exact-overlap view (X, confidence 0.78); the holdout simulator identified the conflict at 4/5 satisfaction but needed scrolling to reach controls. Follow-up findings in partial-update preview, stale event versions, and null-time editor context are fixed with regression coverage; final read-only critic recheck found no remaining scoped P1/P2.",
+      "evidence": ["approval_conflict_iteration_3.json", "approval_conflict_pairwise_iteration_3.json", "approval_conflict_user_simulation_iteration_3.json", "approval_conflict_critic_iteration_3.json", "approval_conflict_accessibility_iteration_3.json", "approval_conflict_metrics_iteration_3.json", "approval_conflict_iteration_analysis_3.json", "approval-conflict-mobile-320.png", "approval-reschedule-action-mobile-320.png"],
+      "risk_or_open_gap": "The decision controls remain below the fold in the holdout screenshot and require scrolling. Evidence uses current-source mocks and static reviews; there is no live AgentRun approval/apply, human participant study, real mobile device, or screen-reader walkthrough."
     }
   ],
-  "overall_status": "partial: auth state now reflects backend truth and scoped accessibility gaps were repaired; core no-account demo holdout failed; product-wide Agent UX remains incomplete",
+  "overall_status": "partial: auth state reflects backend truth; the scoped approval conflict context now shows backend-authored exact overlap; core no-account demo holdout failed; product-wide Agent UX remains incomplete",
   "rollback_decision": "Retain capability-driven rendering as a correctness/truthfulness fix, not as a successful solution to the holdout task. The blind comparison does not show overall task UX improvement; provide the user with the unresolved guest-access decision rather than hiding that result.",
   "evidence_gaps": ["human participant evaluation", "numeric satisfaction distribution", "browser-to-live-AgentRun-to-HITL-to-apply-to-Today trace", "holdout scenarios H02-H05", "screen-reader walkthrough", "full 320/375/430 auth-options failure matrix on physical mobile devices"]
 }

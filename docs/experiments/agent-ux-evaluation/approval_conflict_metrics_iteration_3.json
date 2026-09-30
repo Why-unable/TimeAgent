@@ -1,0 +1,35 @@
+{
+  "measurement_scope": "One approval-conflict journey and its safety regressions; not product-wide UX metrics.",
+  "static_simulation": {
+    "sample_size": 1,
+    "task_completion": "partial; event and overlap identified, action controls required scrolling",
+    "satisfaction": 4,
+    "clicks": null,
+    "turns": null,
+    "time_to_completion": null
+  },
+  "blind_pair": {
+    "preferred": "X",
+    "confidence": 0.78,
+    "candidate_exact_overlap_task_completion": 4.5,
+    "context_only_task_completion": 4.0,
+    "candidate_exact_overlap_clarity": 4.5,
+    "context_only_clarity": 3.8
+  },
+  "automated_validation": {
+    "backend_tests_passed": 638,
+    "backend_tests_skipped": 3,
+    "frontend_test_files_passed": 26,
+    "frontend_tests_passed": 143,
+    "playwright_smoke_passed": 20,
+    "playwright_smoke_failed": 0,
+    "320px_horizontal_overflow": false,
+    "approval_action_reachable_after_scroll": true,
+    "approval_action_clicked": false
+  },
+  "unmeasured": [
+    "Human satisfaction distribution, clicks, turns, and elapsed task time.",
+    "Live AgentRun approval/apply, Today/Calendar propagation, and real account data.",
+    "Physical mobile device and screen-reader outcomes."
+  ]
+}

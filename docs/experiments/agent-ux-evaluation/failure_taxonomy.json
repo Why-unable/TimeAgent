@@ -57,6 +57,69 @@
       "observed": true,
       "evidence_grade": "Source audit only; no screen-reader claim",
       "journey": "Chat / mobile navigation / workspace pages"
+    },
+    {
+      "code": "APPROVAL_CONTEXT_LOSS",
+      "category": "HITL approval conflict context loss",
+      "definition": "A pending approval identifies a conflict only by count or requires the user to calculate the overlap from separate intervals.",
+      "observed": true,
+      "status": "Resolved for the scoped approval review UI; live browser AgentRun approval/apply remains unverified.",
+      "evidence_grade": "Backend event/action-proposal tests, current-source mocked Playwright, independent simulator, blind screenshot judge, adversarial critic, and accessibility review",
+      "journey": "HITL approval / mobile approval"
+    },
+    {
+      "code": "APPROVAL_EDIT_FAIL_CLOSED",
+      "category": "Incomplete or stale approval review",
+      "definition": "An approval or edited proposal cannot be fully reviewed against current backend state, a fresh conflict is found, or the target event version changed after proposal creation.",
+      "observed": true,
+      "status": "Resolved: incomplete/conflicting review stays pending; a stale target is refreshed and visibly requires a new decision before execution.",
+      "evidence_grade": "Backend service tests plus current-source mocked Playwright/component coverage",
+      "journey": "HITL approval"
+    },
+    {
+      "code": "APPROVAL_PARTIAL_UPDATE_REVIEW",
+      "category": "Partial event update has incomplete preview",
+      "definition": "A legacy event update omits a field or supplies null for a field that the tool treats as unchanged, but the review preview fails instead of resolving the current value.",
+      "observed": true,
+      "status": "Resolved: null start/end fields use the existing event values and produce a complete preview.",
+      "evidence_grade": "Backend regression test for title-only update preview with null time fields",
+      "journey": "Review a partial event update"
+    },
+    {
+      "code": "APPROVAL_STALE_OBJECT_VERSION",
+      "category": "Approval target changed after proposal creation",
+      "definition": "A high-risk event update is approved using an expected object version that no longer matches the current event.",
+      "observed": true,
+      "status": "Resolved for mutate_events approvals: refreshes the pending payload and display, then requires another explicit decision; same idempotency-key replay stays pending.",
+      "evidence_grade": "Backend service regression test plus current-source approval-card/component coverage",
+      "journey": "Approve or edit a pending event update"
+    },
+    {
+      "code": "APPROVAL_MUTATION_SCHEMA",
+      "category": "Approval editor sends display-only fields to a strict tool",
+      "definition": "A review form serializes UI presentation fields or an invalid interval into a resumed event mutation.",
+      "observed": true,
+      "status": "Resolved: UI-only fields are stripped and invalid time ranges are blocked; strict tool schema is exercised through the resumed operation test.",
+      "evidence_grade": "Backend resumed-agent test and frontend component tests",
+      "journey": "Edit a pending event approval"
+    },
+    {
+      "code": "APPROVAL_MUTATION_TIME_PREFILL",
+      "category": "Partial mutation edit loses current time context",
+      "definition": "A mutation with null time fields opens an editor with blank values, making a title-only edit confusing or risking an unintended time rewrite.",
+      "observed": true,
+      "status": "Resolved: current times are shown for context; unchanged times remain null in the submitted partial update, while changing one endpoint preserves the other.",
+      "evidence_grade": "Frontend component regressions plus independent read-only critic recheck",
+      "journey": "Edit a pending event approval"
+    },
+    {
+      "code": "MOBILE_APPROVAL_FOCUS_RESTORE",
+      "category": "Mobile approval editor focus/navigation loss",
+      "definition": "Asynchronous reminder target loading misses initial focus, or a soft keyboard closing leaves fixed navigation inaccessible while an input remains focused.",
+      "observed": true,
+      "status": "Resolved in mocked interaction coverage: focus is retried when selector data becomes ready and viewport-based keyboard state restores navigation.",
+      "evidence_grade": "Component tests, current-source Playwright E2E, independent accessibility source review",
+      "journey": "Mobile approval edit"
     }
   ],
   "required_failure_types": [
@@ -64,7 +127,9 @@
     {"failure_type":"UNCLEAR_SYSTEM_STATE","severity":"P2","journey":"Login / first use","evidence":"Checkpoint A current-source browser: guest CTA was visible while backend guest access was disabled; the API returned '游客体验当前未开放。'. Registration tab was present, so this was a misleading CTA rather than a total dead-end."},
     {"failure_type":"FAILED_SELF_RECOVERY","severity":"P2","journey":"Login / first use","evidence":"Checkpoint A simulator stopped at the disabled-guest message instead of choosing the already-visible registration tab. Candidate removes the disabled CTA; the no-account goal still cannot complete."},
     {"failure_type":"UNCLEAR_UNPLACED_REASON","severity":"P2","journey":"PlanPreview / unplaced task","evidence":"Checkpoint A critic source review found the Preview uses generic no-slot text instead of a specific, actionable reason; not fixed in the account-entry iteration."},
-    {"failure_type":"APPROVAL_CONTEXT_LOSS","severity":"P2","journey":"Approval review","evidence":"Checkpoint A critic source review found conflict warning reports only the count and omits conflicting event/time; source-only finding, not retested in this iteration."},
+    {"failure_type":"APPROVAL_CONTEXT_LOSS","severity":"P2","journey":"Approval review","evidence":"Initially count-only; iteration 1 added the conflicting event and occupied interval, then iteration 2 added backend-authored exact overlap. Independent blind judge preferred the overlap candidate (X, confidence 0.99); 320px disclosure and scroll reachability are covered by mocked Playwright. Real browser AgentRun approval/apply and screen-reader behavior remain unverified."},
+    {"failure_type":"APPROVAL_STALE_OBJECT_VERSION","severity":"P2","journey":"Approve or edit a pending event update","evidence":"Iteration 3 critic found an event version could change after proposal creation. The service now refreshes the pending payload, records the review attempt idempotently, and requires a new explicit confirmation; the latest full suite verifies this behavior."},
+    {"failure_type":"APPROVAL_PARTIAL_UPDATE_REVIEW","severity":"P2","journey":"Review a partial legacy event update","evidence":"Iteration 3 critic found null start/end fields could make a title-only legacy update preview incomplete. The preview now preserves current times; backend regression coverage verifies the case."},
     {"failure_type":"DST_AMBIGUITY","severity":"P2","journey":"Repeated local hour","evidence":"Earlier timezone iteration blocks ambiguous repeated times, but users cannot select which occurrence they intend; unit/component evidence, no live browser journey."},
     {"failure_type":"ACCESSIBILITY_FAILURE","severity":"P2","journey":"Login / account options","evidence":"Checkpoint B initially found missing tab arrow navigation, retry focus return, and undersized retry target; all scoped findings passed the independent retest after iteration 2/3. Other product-wide screen-reader and keyboard findings remain source-only."}
   ],
@@ -83,6 +148,12 @@
     "CHAT_PLAN_DISCONNECT",
     "PLAN_TODAY_DISCONNECT",
     "APPROVAL_CONTEXT_LOSS",
+    "APPROVAL_EDIT_FAIL_CLOSED",
+    "APPROVAL_PARTIAL_UPDATE_REVIEW",
+    "APPROVAL_STALE_OBJECT_VERSION",
+    "APPROVAL_MUTATION_SCHEMA",
+    "APPROVAL_MUTATION_TIME_PREFILL",
+    "MOBILE_APPROVAL_FOCUS_RESTORE",
     "TIMEZONE_CONFUSION",
     "DST_AMBIGUITY",
     "POOR_MOBILE_LAYOUT",

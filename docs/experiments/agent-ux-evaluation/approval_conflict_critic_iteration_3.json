@@ -1,0 +1,33 @@
+{
+  "iteration": 3,
+  "role": "independent adversarial UX critic",
+  "initial_findings": [
+    {
+      "severity": "P2",
+      "finding": "Reminder-target query could resolve after the editor's first focus attempt, leaving focus off the target selector.",
+      "resolution": "Editor focus effect now retries when target-editor readiness changes; component coverage exercises asynchronous options."
+    },
+    {
+      "severity": "P2",
+      "finding": "When backend review remained incomplete, the pending response could close the editor and discard the user's ability to continue correcting it.",
+      "resolution": "The editor remains open on an awaiting-approval response and explains that the refreshed review is incomplete or still conflicting."
+    }
+  ],
+  "additional_findings": [
+    {
+      "severity": "P2",
+      "finding": "Legacy update_event previews treated explicit null start/end fields as invalid instead of preserving the existing values, so a title-only update could be unreviewable.",
+      "resolution": "Preview now falls back to the current event times for null fields; backend regression test covers a title-only update with both time fields null."
+    },
+    {
+      "severity": "P2",
+      "finding": "A mutate_events update could be approved against a stale expected_version when the event changed after proposal creation but remained conflict-free.",
+      "resolution": "Fresh review detects version drift, updates the pending operation to the current version, explains the refresh, and requires a separate decision. Pending review attempts retain their idempotency key, so replaying the same request cannot approve it. Backend regression test covers the refresh, same-key replay, and second confirmation."
+    }
+  ],
+  "follow_up": {
+    "status": "complete",
+    "notes": "Final read-only recheck found no remaining reproducible scoped P1/P2. Verified null-time mutation editor prefill preserves the existing time unless changed, single-end edits preserve the other endpoint, stale approve/edit refreshes remain pending until a new decision, and existing async focus, fail-closed, schema-stripping, and interval-validation fixes."
+  },
+  "scope_limits": ["Source and automated interaction evidence only; no live AgentRun or human participant study."]
+}

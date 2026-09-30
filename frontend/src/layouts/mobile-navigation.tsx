@@ -59,19 +59,20 @@ export function MobileNavigation() {
 
   useEffect(() => {
     const viewport = window.visualViewport;
-    const updateKeyboardState = () => {
-      if (!viewport) return;
-      const coveredHeight = window.innerHeight - viewport.height - viewport.offsetTop;
-      setKeyboardOpen(coveredHeight > 160);
+    const isTextEntry = (target: EventTarget | null) => {
+      if (target instanceof HTMLTextAreaElement) return true;
+      if (target instanceof HTMLElement && target.isContentEditable) return true;
+      return target instanceof HTMLInputElement
+        && !["button", "checkbox", "color", "file", "image", "radio", "range", "reset", "submit"].includes(target.type);
     };
-    const onFocusIn = (event: FocusEvent) => {
-      const target = event.target;
-      if (
-        target instanceof HTMLTextAreaElement
-        || (target instanceof HTMLInputElement && !["checkbox", "radio", "range"].includes(target.type))
-      ) {
-        setKeyboardOpen(true);
-      }
+    const updateKeyboardState = () => {
+      const coveredHeight = viewport
+        ? window.innerHeight - viewport.height - viewport.offsetTop
+        : 0;
+      setKeyboardOpen(viewport ? coveredHeight > 160 : isTextEntry(document.activeElement));
+    };
+    const onFocusIn = () => {
+      window.setTimeout(updateKeyboardState, 0);
     };
     const onFocusOut = () => window.setTimeout(updateKeyboardState, 100);
     viewport?.addEventListener("resize", updateKeyboardState);
@@ -102,6 +103,8 @@ export function MobileNavigation() {
     <>
       <nav
         aria-label="移动端主导航"
+        aria-hidden={keyboardOpen}
+        inert={keyboardOpen}
         className={`fixed inset-x-0 bottom-0 z-40 grid grid-cols-4 border-t border-white/10 bg-slate-900/95 px-2 pb-[max(env(safe-area-inset-bottom),0.625rem)] pt-2.5 shadow-[0_-12px_32px_rgba(2,6,23,0.45)] backdrop-blur transition-transform duration-150 lg:hidden ${
           keyboardOpen ? "pointer-events-none translate-y-full" : "translate-y-0"
         }`}
@@ -115,7 +118,7 @@ export function MobileNavigation() {
               data-onboarding-id={onboardingId}
               aria-current={isActive ? "page" : undefined}
               className={`flex min-h-16 flex-col items-center justify-center gap-1 rounded-xl text-xs font-medium transition ${
-                isActive ? "bg-cyan-300/10 text-cyan-200" : "text-slate-400"
+                isActive ? "bg-cyan-300/10 text-cyan-200" : "text-slate-600"
               }`}
             >
               <Icon size={23} strokeWidth={1.8} />
@@ -127,7 +130,7 @@ export function MobileNavigation() {
           type="button"
           data-onboarding-id="nav-more"
           onClick={() => setMoreOpen(true)}
-          className="flex min-h-16 flex-col items-center justify-center gap-1 rounded-xl text-xs font-medium text-slate-400 transition hover:bg-white/5 hover:text-white"
+          className="flex min-h-16 flex-col items-center justify-center gap-1 rounded-xl text-xs font-medium text-slate-600 transition hover:bg-white/5 hover:text-white"
         >
           <LayoutGrid size={23} strokeWidth={1.8} />
           更多

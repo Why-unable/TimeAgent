@@ -1,0 +1,36 @@
+{
+  "iteration": 3,
+  "goal": "Identify the conflicting event and exact overlap, then decide whether to continue reviewing without approving.",
+  "method": "Blind comparison of neutral current-source mobile screenshots. Candidate X includes the backend-authored exact overlap; candidate Y shows the event and occupied interval only.",
+  "pair_files": {
+    "X": "blind-pair-approval/iteration-3/image-x.png",
+    "Y": "blind-pair-approval/iteration-3/image-y.png"
+  },
+  "mapping_after_judgment": {
+    "X": "Shows 客户评审, occupied interval 15:30–16:30, and exact overlap 15:30–16:00.",
+    "Y": "Shows 客户评审 and occupied interval 15:30–16:30, without the explicit overlap interval."
+  },
+  "judge": {
+    "role": "independent blind screenshot judge",
+    "preferred": "X",
+    "confidence": 0.78,
+    "ratings_x": {
+      "task_completion": 4.5,
+      "clarity": 4.5,
+      "trust": 4.5,
+      "scroll_navigation_framing": 3.5
+    },
+    "ratings_y": {
+      "task_completion": 4.0,
+      "clarity": 3.8,
+      "trust": 3.8,
+      "scroll_navigation_framing": 4.0
+    },
+    "reason": "X states the exact 15:30–16:00 conflict, reducing interval-comparison effort; Y frames more surrounding proposal context in the screenshot."
+  },
+  "limitations": [
+    "The screenshots show the details disclosure collapsed.",
+    "Static screenshots do not establish live scrolling, keyboard interaction, execution, or assistive-technology behavior.",
+    "The pair is one independent judgment, not a participant study."
+  ]
+}

@@ -1,0 +1,50 @@
+{
+  "iteration": 3,
+  "date": "2026-09-30",
+  "journey": "Review and edit a conflicting event approval on mobile without executing it",
+  "goal": "Identify the conflicting event and exact overlap, understand the pending operation, and reach a safe edit/reject/leave-pending choice.",
+  "baseline": "Iteration 2 supplied event title, occupied interval, and exact backend-computed overlap. Remaining risks were stale/incomplete review during approve/edit, editor payload shape, asynchronous edit focus, and keyboard-aware navigation restoration.",
+  "changes": [
+    "Refresh current conflict and review completeness before approval or edit; leave proposals pending when review is incomplete or a fresh conflict exists.",
+    "Treat event-version changes after proposal creation as a refreshed review: update the pending proposal to the current expected version, show a notice, and require a new explicit decision with a new idempotency key.",
+    "Resolve null start/end values in the legacy update_event preview to the current event times, matching the tool's partial-update semantics.",
+    "Keep an incomplete/conflicting edit open with a clear pending-state message; do not apply the submitted edit until review is complete.",
+    "Remove presentation-only fields from event mutation replay and block invalid start/end intervals in the editor.",
+    "For a mutation with time: null, show the current event times in the editor without submitting them unless the user changes a time; preserve the other endpoint when only one endpoint changes.",
+    "Preserve an existing reminder target while the asynchronous target list loads or omits it; retry editor focus when the target control becomes ready.",
+    "Track actual visual viewport coverage so mobile navigation returns after the soft keyboard closes, even if the input retains focus."
+  ],
+  "evidence": {
+    "backend": "638 passed, 3 skipped in full suite; includes refreshed-conflict, stale-version/idempotency, incomplete-review, and resumed strict-tool cases.",
+    "frontend": "26 files / 143 unit tests passed; ESLint and production build passed.",
+    "playwright": "Full smoke file passed 20/20 after final changes; includes 320px conflict inspection, keyboard edit/focus/cancel, scrolling, and viewport-aware navigation.",
+    "blind_pair": "Independent screenshot judge preferred X, the exact-overlap candidate, with confidence 0.78.",
+    "holdout": "Static simulator identified the event and exact overlap, satisfaction 4/5, and reported scrolling to reach the controls.",
+    "critics": "Initial and follow-up P2 findings were fixed. The final read-only adversarial recheck found no remaining reproducible scoped P1/P2. Accessibility review found no new scoped P1/P2; keyboard cancel and real assistive-technology/device behavior remain unverified."
+  },
+  "results": {
+    "conflicting_proposal_has_approve_control": false,
+    "incomplete_review_can_be_approved": false,
+    "fresh_conflict_edit_applies_without_review": false,
+    "ui_only_fields_sent_to_strict_tool": false,
+    "title_only_mutation_resubmits_null_time": false,
+    "single_endpoint_edit_drops_other_endpoint": false,
+    "invalid_interval_is_submitted": false,
+    "320px_horizontal_overflow": false,
+    "action_controls_visible_without_scrolling": false,
+    "action_controls_reachable_after_scrolling": true
+  },
+  "remaining_limits": [
+    "The 320px holdout screenshot requires scrolling to reach action controls.",
+    "Evaluations use fixture data and intercepted API requests; no browser-to-live-AgentRun approval, apply, or Today/Calendar propagation was run.",
+    "No human participant study, real mobile device, VoiceOver/TalkBack, or screen-reader walkthrough was performed."
+  ],
+  "artifact_files": [
+    "approval_conflict_pairwise_iteration_3.json",
+    "approval_conflict_user_simulation_iteration_3.json",
+    "approval_conflict_critic_iteration_3.json",
+    "approval_conflict_accessibility_iteration_3.json",
+    "approval_conflict_metrics_iteration_3.json",
+    "approval_conflict_iteration_analysis_3.json"
+  ]
+}

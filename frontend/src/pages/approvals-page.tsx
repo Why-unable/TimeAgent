@@ -33,11 +33,20 @@ export function ApprovalsPage() {
         <ShieldCheck className="text-cyan-300" />
         <h2 className="text-3xl font-semibold">操作审批</h2>
       </div>
-      <p className="mt-3 text-slate-400">审查、编辑或拒绝 Agent 提出的高风险操作。</p>
+      <p className="mt-3 text-slate-400">这里列出需要你确认的更改。请先查看影响，再决定是否继续。</p>
+      <p className="mt-2 text-sm text-slate-500">以下时间均按 {timezone} 显示。</p>
 
       <div className="mt-7 flex flex-wrap gap-2" role="group" aria-label="审批状态筛选">
         {filters.map((item) => (
-          <button key={item.label} type="button" onClick={() => setFilter(item.value)} className={`rounded-full px-4 py-2 text-sm ${filter === item.value ? "bg-cyan-300 text-slate-950" : "bg-white/5 text-slate-300 hover:bg-white/10"}`}>{item.label}</button>
+          <button
+            key={item.label}
+            type="button"
+            aria-pressed={filter === item.value}
+            onClick={() => setFilter(item.value)}
+            className={`min-h-11 rounded-full px-4 py-2 text-sm ${filter === item.value ? "bg-cyan-300 text-slate-950" : "bg-white/5 text-slate-300 hover:bg-white/10"}`}
+          >
+            {item.label}
+          </button>
         ))}
       </div>
 

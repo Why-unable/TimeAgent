@@ -34,6 +34,8 @@ class EventConflict:
     title: str
     start_at: datetime
     end_at: datetime
+    overlap_start_at: datetime
+    overlap_end_at: datetime
 
     def as_dict(self) -> dict[str, str]:
         return {
@@ -41,6 +43,8 @@ class EventConflict:
             "title": self.title,
             "start_at": self.start_at.isoformat(),
             "end_at": self.end_at.isoformat(),
+            "overlap_start_at": self.overlap_start_at.isoformat(),
+            "overlap_end_at": self.overlap_end_at.isoformat(),
         }
 
 
@@ -313,15 +317,19 @@ class EventService:
             end_at=end_at,
             exclude_event_id=exclude_event_id,
         )
+        proposed_start_at = to_utc(start_at)
+        proposed_end_at = to_utc(end_at)
         return EventImpactPreview(
-            start_at=to_utc(start_at),
-            end_at=to_utc(end_at),
+            start_at=proposed_start_at,
+            end_at=proposed_end_at,
             conflicts=tuple(
                 EventConflict(
                     event_id=event.pk,
                     title=event.title,
                     start_at=event.start_at,
                     end_at=event.end_at,
+                    overlap_start_at=max(proposed_start_at, to_utc(event.start_at)),
+                    overlap_end_at=min(proposed_end_at, to_utc(event.end_at)),
                 )
                 for event in conflicts
             ),

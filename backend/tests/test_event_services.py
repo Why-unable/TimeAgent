@@ -268,6 +268,11 @@ def test_event_service_blocks_overlapping_create_and_update() -> None:
             end_at=END_AT + timedelta(minutes=30),
         )
     assert create_error.value.preview.conflicts[0].event_id == existing.id
+    overlap = create_error.value.preview.conflicts[0]
+    assert overlap.overlap_start_at == START_AT + timedelta(minutes=30)
+    assert overlap.overlap_end_at == END_AT
+    assert overlap.as_dict()["overlap_start_at"] == (START_AT + timedelta(minutes=30)).isoformat()
+    assert overlap.as_dict()["overlap_end_at"] == END_AT.isoformat()
 
     later = create_event(
         user,

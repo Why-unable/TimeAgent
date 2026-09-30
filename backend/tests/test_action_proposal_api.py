@@ -26,6 +26,19 @@ def _proposal(user: User) -> ActionProposal:
     )
     run = AgentRunService.mark_running(run)
     run = AgentRunService.wait_for_approval(run)
+    action_payload = {
+        "title": "项目评审",
+        "start_at": (timezone.now() + timedelta(hours=2)).isoformat(),
+        "end_at": (timezone.now() + timedelta(hours=3)).isoformat(),
+        "timezone": "Asia/Shanghai",
+    }
+    display_context = ActionProposalService._display_context(
+        run=run,
+        tool_name="create_event",
+        args=action_payload,
+        allowed_decisions=["approve", "edit", "reject"],
+        position=0,
+    )
     return ActionProposal.objects.create(
         user=user,
         conversation=conversation,
@@ -34,9 +47,9 @@ def _proposal(user: User) -> ActionProposal:
         original_request=run.input_message,
         explanation="创建正式日程需要审批",
         action_type="create_event",
-        action_payload={"title": "项目评审"},
+        action_payload=action_payload,
         original_payload={"title": "项目评审"},
-        display_context={"allowed_decisions": ["approve", "edit", "reject"], "position": 0},
+        display_context=display_context,
         expires_at=timezone.now() + timedelta(hours=1),
         idempotency_key=f"{run.pk}:create-event-api",
     )
