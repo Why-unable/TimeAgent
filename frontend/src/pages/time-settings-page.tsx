@@ -1,6 +1,6 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { Link } from "react-router-dom";
 import { z } from "zod";
@@ -47,7 +47,7 @@ type PreferenceForm = z.infer<typeof preferenceSchema>;
 const EMPTY_ADMINISTRATIVE_OPTIONS: readonly AdministrativeAreaOption[] = [];
 
 function messageForLocationError(error: unknown): string {
-  if (error instanceof Error && /permission/i.test(error.message)) return "未获得位置权限，请在系统设置中允许位置访问。";
+  if (error instanceof Error && /permission|denied|not allowed/i.test(error.message)) return "未获得位置权限，请在系统设置中允许位置访问。";
   if (error instanceof Error && /timeout|time/i.test(error.message)) return "定位超时，请到开阔处重试，或手动选择省、市、区。";
   return "无法获取完整的省、市、区位置，请重试或手动选择。";
 }
@@ -93,6 +93,7 @@ export function TimeSettingsPage() {
   const [locationError, setLocationError] = useState<string | null>(null);
   const [locationNotice, setLocationNotice] = useState<string | null>(null);
   const [isResolvingLocation, setIsResolvingLocation] = useState(false);
+  const hasHydratedPreference = useRef(false);
 
   const provincesQuery = useQuery({ queryKey: ["administrative-areas"], queryFn: () => getAdministrativeAreas(), staleTime: Infinity });
   const citiesQuery = useQuery({ queryKey: ["administrative-areas", provinceCode], queryFn: () => getAdministrativeAreas(provinceCode), enabled: Boolean(provinceCode), staleTime: Infinity });
@@ -105,6 +106,7 @@ export function TimeSettingsPage() {
 
   useEffect(() => {
     if (!preference.data) return;
+    if (hasHydratedPreference.current && form.formState.isDirty) return;
     form.reset({
       timezone: "Asia/Shanghai",
       locale: preference.data.locale ?? "zh-CN",
@@ -120,8 +122,9 @@ export function TimeSettingsPage() {
         ? preference.data.news_topics.filter((item): item is string => typeof item === "string").join(", ")
         : "",
     });
+    hasHydratedPreference.current = true;
     setSavedAdministrativeParts(administrativeParts(preference.data.weather_location_data));
-  }, [form, preference.data]);
+  }, [form, form.formState.isDirty, preference.data]);
 
   useEffect(() => {
     if (!savedAdministrativeParts || provinceCode || !provinces.length) return;
@@ -143,7 +146,10 @@ export function TimeSettingsPage() {
 
   const updatePreference = useMutation({
     mutationFn: updateCurrentUserPreference,
-    onSuccess: (data) => queryClient.setQueryData(preferenceQueryKey, data),
+    onSuccess: (data) => {
+      hasHydratedPreference.current = false;
+      queryClient.setQueryData(preferenceQueryKey, data);
+    },
   });
   const providerCatalog = useQuery({ queryKey: ["provider-catalog"], queryFn: getProviderCatalog });
 
@@ -289,7 +295,7 @@ export function TimeSettingsPage() {
 
         <fieldset className="rounded-xl border border-white/10 bg-slate-950/40 p-4">
           <legend className="px-1 text-sm font-medium text-slate-200">天气地点</legend>
-          <p className="mb-4 text-xs text-slate-500">手动选择会保存行政区代表性中心坐标；“使用当前位置”会另存手机 GPS 坐标，两者不会互相覆盖。生成简报时，两组坐标会分别发送给天气 Provider 查询并清晰标注。</p>
+          <p className="mb-4 text-xs text-slate-500">手动选择会保存行政区代表性中心坐标；“使用当前位置”会请求位置授权并另存手机 GPS 坐标，两者不会互相覆盖。授权并保存后，应用前台运行时会自动更新当前位置，切到后台时暂停。生成简报时，两组坐标会分别发送给天气 Provider 查询并清晰标注。</p>
           <div className="grid gap-3 sm:grid-cols-3">
             <label className="block text-sm text-slate-300">省<select value={provinceCode} onChange={(event) => { setLocationError(null); setLocationNotice(null); setProvinceCode(event.target.value); setCityCode(""); setDistrictCode(""); clearAdministrativeLocation(); }} className="mt-2 w-full rounded-xl border border-white/10 bg-slate-950 px-3 py-3"><option value="">请选择省</option>{provinces.map((item) => <option key={item.code} value={item.code}>{item.name}</option>)}</select></label>
             <label className="block text-sm text-slate-300">市<select value={cityCode} disabled={!provinceCode} onChange={(event) => { setLocationError(null); setLocationNotice(null); setCityCode(event.target.value); setDistrictCode(""); clearAdministrativeLocation(); }} className="mt-2 w-full rounded-xl border border-white/10 bg-slate-950 px-3 py-3 disabled:opacity-50"><option value="">请选择市</option>{cities.map((item) => <option key={item.code} value={item.code}>{item.name}</option>)}</select></label>

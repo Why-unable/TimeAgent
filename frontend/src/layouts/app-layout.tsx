@@ -22,6 +22,7 @@ import { Link, Outlet, useLocation } from "react-router-dom";
 import { AndroidAppDownloadDialog } from "../components/android-app-download-dialog";
 import { useCurrentUser } from "../features/accounts/hooks";
 import { useCurrentUserPreference } from "../features/preferences/hooks";
+import { LocationTracker } from "../features/preferences/location-tracker";
 import { OnboardingTour } from "../components/onboarding/onboarding-tour";
 import { requestOnboardingStart } from "../features/onboarding/storage";
 import { isNativePlatform } from "../platform";
@@ -118,6 +119,7 @@ export function AppLayout() {
 
   return (
     <div data-color-scheme="workspace" className="min-h-screen bg-slate-950 text-slate-100">
+      <LocationTracker />
       <aside
         data-testid="desktop-sidebar"
         className="fixed inset-y-0 left-0 z-30 hidden w-72 flex-col border-r border-white/10 bg-slate-900/80 px-5 py-6 backdrop-blur lg:flex"
