@@ -637,14 +637,14 @@ class ActionProposalService:
                             return f"{label}（详情暂不可用）", False
                         try:
                             if target_type == "task":
-                                target = TaskService.get_task(
+                                target_title = TaskService.get_task(
                                     user=user, task_id=UUID(str(target_id))
-                                )
+                                ).title
                             else:
-                                target = EventService.get_event(
+                                target_title = EventService.get_event(
                                     user=user, event_id=UUID(str(target_id))
-                                )
-                            return f"{label}「{target.title}」", True
+                                ).title
+                            return f"{label}「{target_title}」", True
                         except (ObjectDoesNotExist, TypeError, ValueError):
                             return f"{label}（详情暂不可用）", False
 
@@ -1220,18 +1220,18 @@ class ActionProposalService:
                 if action not in {"create", "update"}:
                     resolved_operation = dict(operation)
                     if action in {"cancel", "link_task"}:
-                        existing = EventService.get_event(
+                        existing_target = EventService.get_event(
                             user=user,
                             event_id=UUID(str(operation.get("event_id", ""))),
                         )
                         expected_version = operation.get("expected_version")
                         if expected_version is None:
                             raise ValueError("Event mutation requires expected_version")
-                        version_stale = expected_version != existing.version
+                        version_stale = expected_version != existing_target.version
                         resolved_operation.update(
                             {
-                                "expected_version": existing.version,
-                                "current_version": existing.version,
+                                "expected_version": existing_target.version,
+                                "current_version": existing_target.version,
                                 "version_stale": version_stale,
                             }
                         )
@@ -1239,15 +1239,17 @@ class ActionProposalService:
                             stale_targets.append(
                                 {
                                     "operation_index": index,
-                                    "event_id": str(existing.pk),
+                                    "event_id": str(existing_target.pk),
                                     "expected_version": expected_version,
-                                    "current_version": existing.version,
-                                    "title": existing.title,
+                                    "current_version": existing_target.version,
+                                    "title": existing_target.title,
                                 }
                             )
-                        resolved_operation["display_title"] = existing.title
-                        resolved_operation["existing_start_at"] = existing.start_at.isoformat()
-                        resolved_operation["existing_end_at"] = existing.end_at.isoformat()
+                        resolved_operation["display_title"] = existing_target.title
+                        resolved_operation["existing_start_at"] = (
+                            existing_target.start_at.isoformat()
+                        )
+                        resolved_operation["existing_end_at"] = existing_target.end_at.isoformat()
                         if action == "link_task" and operation.get("task_id"):
                             task = TaskService.get_task(
                                 user=user,
@@ -1257,41 +1259,43 @@ class ActionProposalService:
                     resolved_operations.append(resolved_operation)
                     continue
                 event_id = operation.get("event_id")
-                existing = (
+                existing_event = (
                     EventService.get_event(user=user, event_id=UUID(str(event_id)))
                     if operation.get("action") == "update"
                     else None
                 )
                 if action == "update":
                     expected_version = operation.get("expected_version")
-                    if expected_version is None or existing is None:
+                    if expected_version is None or existing_event is None:
                         raise ValueError("Event update requires event_id and expected_version")
-                    version_stale = expected_version != existing.version
+                    version_stale = expected_version != existing_event.version
                     if version_stale:
                         stale_targets.append(
                             {
                                 "operation_index": index,
-                                "event_id": str(existing.pk),
+                                "event_id": str(existing_event.pk),
                                 "expected_version": expected_version,
-                                "current_version": existing.version,
-                                "title": existing.title,
+                                "current_version": existing_event.version,
+                                "title": existing_event.title,
                             }
                         )
                 if operation.get("time") is None:
                     resolved_operation = dict(operation)
                     resolved_operation["display_title"] = str(
-                        operation.get("title") or (existing.title if existing else "")
+                        operation.get("title") or (existing_event.title if existing_event else "")
                     )
-                    if existing is not None:
+                    if existing_event is not None:
                         resolved_operation.update(
                             {
-                                "expected_version": existing.version,
-                                "current_version": existing.version,
+                                "expected_version": existing_event.version,
+                                "current_version": existing_event.version,
                                 "version_stale": version_stale,
                             }
                         )
-                        resolved_operation["existing_start_at"] = existing.start_at.isoformat()
-                        resolved_operation["existing_end_at"] = existing.end_at.isoformat()
+                        resolved_operation["existing_start_at"] = (
+                            existing_event.start_at.isoformat()
+                        )
+                        resolved_operation["existing_end_at"] = existing_event.end_at.isoformat()
                     resolved_operations.append(resolved_operation)
                     continue
                 resolution = ActionProposalService._resolve_event_time(
@@ -1301,19 +1305,19 @@ class ActionProposalService:
                 start_at = resolution.start_at
                 end_at = resolution.end_at
                 resolved_operation = dict(operation)
-                if existing is not None:
+                if existing_event is not None:
                     resolved_operation.update(
                         {
-                            "expected_version": existing.version,
-                            "current_version": existing.version,
+                            "expected_version": existing_event.version,
+                            "current_version": existing_event.version,
                             "version_stale": version_stale,
                         }
                     )
                     resolved_operation["display_title"] = str(
-                        operation.get("title") or existing.title
+                        operation.get("title") or existing_event.title
                     )
-                    resolved_operation["existing_start_at"] = existing.start_at.isoformat()
-                    resolved_operation["existing_end_at"] = existing.end_at.isoformat()
+                    resolved_operation["existing_start_at"] = existing_event.start_at.isoformat()
+                    resolved_operation["existing_end_at"] = existing_event.end_at.isoformat()
                 else:
                     resolved_operation["display_title"] = str(operation.get("title") or "")
                 resolved_operation["time"] = {
@@ -1326,7 +1330,7 @@ class ActionProposalService:
                     user=user,
                     start_at=start_at,
                     end_at=end_at,
-                    exclude_event_id=existing.pk if existing else None,
+                    exclude_event_id=existing_event.pk if existing_event else None,
                 )
                 cancelled_ids = {
                     str(previous.get("event_id"))
@@ -1359,7 +1363,7 @@ class ActionProposalService:
                         end_at,
                         str(
                             operation.get("title")
-                            or (existing.title if existing else "Untitled event")
+                            or (existing_event.title if existing_event else "Untitled event")
                         ),
                     )
                 )

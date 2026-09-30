@@ -428,7 +428,9 @@ def test_high_risk_tool_never_executes_before_edited_approval() -> None:
 
 
 @pytest.mark.django_db
-def test_edit_stays_pending_when_fresh_review_is_incomplete(monkeypatch) -> None:
+def test_edit_stays_pending_when_fresh_review_is_incomplete(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     user = User.objects.create_user(username="proposal-edit-incomplete-review")
     run, _, _ = _setup_run(user)
     proposal = ActionProposalService.create_from_interrupt(
