@@ -22,6 +22,9 @@ describe("datetime utilities", () => {
 
   it("formats API time in the configured user timezone", () => {
     expect(
+      formatTimeInUserTimezone("2026-10-05T14:30:00Z", "Asia/Shanghai"),
+    ).toBe("22:30");
+    expect(
       formatInUserTimezone(
         "2026-07-17T07:00:00Z",
         "Asia/Shanghai",

@@ -310,8 +310,13 @@ def edit_schedule_plan(
     """Revise one draft atomically; returned UTC schedule times include user-local fields.
 
     Include only tasks that actually need to move or change lock state; omit unchanged
-    items. A moved item on the current Runtime-local date must start strictly after the
-    Runtime current time, not merely at or after the day's work start.
+    items. Treat a clock time the user explicitly names (for example, 21:00) as the exact
+    requested start, preserving its local date and minute. Do not substitute a nearby
+    free slot. If that exact time conflicts with schedule facts or planning constraints,
+    let validation reject the edit and report the conflict. When only the start changes,
+    preserve the task's existing duration. A moved item on the current Runtime-local date
+    must start strictly after the Runtime current time, not merely at or after the day's
+    work start.
     """
 
     plan = PlanningService.edit_schedule_plan(

@@ -93,11 +93,17 @@ class SchedulePlanItemEdit(BaseModel):
     task_id: UUID = Field(description="草案中的任务 ID。")
     start_at: AwareDatetime | None = Field(
         default=None,
-        description="新的带时区开始时间；移动任务时必须与 end_at 同时提供。",
+        description=(
+            "新的带时区精确开始时间；按用户明确说出的本地时刻提交，不要改成最近空档。"
+            "移动任务时必须与 end_at 同时提供；后端会验证冲突，不会自动挪动时间。"
+        ),
     )
     end_at: AwareDatetime | None = Field(
         default=None,
-        description="新的带时区结束时间；移动任务时必须与 start_at 同时提供。",
+        description=(
+            "新的带时区结束时间；用户只要求移动开始时间时保留草案中的任务时长。"
+            "移动任务时必须与 start_at 同时提供；后端会验证冲突，不会自动挪动时间。"
+        ),
     )
     locked: bool | None = Field(default=None, description="是否锁定此草案项，避免后续重生成移动。")
 

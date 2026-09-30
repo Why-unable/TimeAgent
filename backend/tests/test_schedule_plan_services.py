@@ -1137,6 +1137,93 @@ def test_edit_can_move_an_item_within_the_same_validated_draft() -> None:
     assert item["end_at"] == "2026-07-27T03:30:00+00:00"
 
 
+def test_exact_local_edit_preserves_requested_minute_as_utc_instant() -> None:
+    user = get_user_model().objects.create_user(username="exact-local-plan-move")
+    UserPreferenceService.update_for_user(
+        user,
+        {
+            "timezone": "Asia/Shanghai",
+            "workday_start": time(9),
+            "workday_end": time(23),
+        },
+    )
+    task = TaskService.create_task(
+        CreateTaskCommand(user=user, title="Move exactly", estimated_minutes=30)
+    )
+    range_start = datetime(2026, 7, 27, 12, tzinfo=UTC)
+    plan = _propose_schedule_plan(
+        user=user,
+        task_ids=[task.pk],
+        range_start=range_start,
+        range_end=datetime(2026, 7, 27, 16, tzinfo=UTC),
+        strategy="plan_tasks_only",
+    )
+
+    moved = PlanningService.edit_schedule_plan(
+        user=user,
+        plan_id=plan.pk,
+        expected_version=plan.version,
+        edits=[
+            {
+                "task_id": task.pk,
+                "start_at": datetime(2026, 7, 27, 21, tzinfo=SHANGHAI),
+                "end_at": datetime(2026, 7, 27, 21, 30, tzinfo=SHANGHAI),
+            }
+        ],
+    )
+
+    item = next(item for item in moved.items if item.get("task_id") == str(task.pk))
+    start_at = datetime.fromisoformat(str(item["start_at"]))
+    assert item["start_at"] == "2026-07-27T13:00:00+00:00"
+    assert item["end_at"] == "2026-07-27T13:30:00+00:00"
+    assert start_at.astimezone(SHANGHAI).isoformat() == "2026-07-27T21:00:00+08:00"
+
+
+def test_exact_local_edit_is_rejected_when_requested_time_conflicts() -> None:
+    user = get_user_model().objects.create_user(username="conflicting-exact-plan-move")
+    UserPreferenceService.update_for_user(
+        user,
+        {
+            "timezone": "Asia/Shanghai",
+            "workday_start": time(9),
+            "workday_end": time(23),
+        },
+    )
+    task = TaskService.create_task(
+        CreateTaskCommand(user=user, title="Do not drift this", estimated_minutes=30)
+    )
+    EventService.create_event(
+        CreateEventCommand(
+            user=user,
+            title="Blocking meeting",
+            start_at=datetime(2026, 7, 27, 21, tzinfo=SHANGHAI),
+            end_at=datetime(2026, 7, 27, 21, 30, tzinfo=SHANGHAI),
+            timezone="Asia/Shanghai",
+        )
+    )
+    plan = _propose_schedule_plan(
+        user=user,
+        task_ids=[task.pk],
+        range_start=datetime(2026, 7, 27, 12, tzinfo=UTC),
+        range_end=datetime(2026, 7, 27, 16, tzinfo=UTC),
+        strategy="plan_tasks_only",
+    )
+
+    with pytest.raises(ValueError, match="Edited plan is invalid"):
+        PlanningService.edit_schedule_plan(
+            user=user,
+            plan_id=plan.pk,
+            expected_version=plan.version,
+            edits=[
+                {
+                    "task_id": task.pk,
+                    "start_at": datetime(2026, 7, 27, 21, tzinfo=SHANGHAI),
+                    "end_at": datetime(2026, 7, 27, 21, 30, tzinfo=SHANGHAI),
+                }
+            ],
+        )
+
+
 def test_user_can_abandon_only_a_versioned_draft() -> None:
     user = get_user_model().objects.create_user(username="plan-abandon-user")
     task = TaskService.create_task(
