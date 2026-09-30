@@ -3,6 +3,9 @@ ARG PYTHON_IMAGE=python:3.12-slim
 
 FROM ${UV_IMAGE} AS uv
 FROM ${PYTHON_IMAGE}
+ARG IMAGE_REVISION=unknown
+LABEL org.opencontainers.image.source="https://github.com/Why-unable/TimeAgent" \
+    org.opencontainers.image.revision="${IMAGE_REVISION}"
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \

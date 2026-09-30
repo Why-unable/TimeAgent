@@ -222,6 +222,19 @@ docker compose \
   up -d --build
 ```
 
+为每次构建的 Django、Celery 和前端镜像写入源仓库及完整 Git commit。发布时从干净的提交构建：
+
+```bash
+export IMAGE_REVISION="$(git rev-parse HEAD)"
+docker compose -f docker-compose.yml -f docker-compose.prod.yml build django celery-worker celery-beat frontend
+docker image inspect --format '{{.Id}} {{index .Config.Labels "org.opencontainers.image.revision"}}' \
+  time-agent-django time-agent-frontend
+```
+
+将完整 commit SHA、各镜像的 `sha256` image ID 和部署时间写入发布记录；部署后对照容器引用的 image ID，确认它与构建结果一致。不要仅凭可变镜像标签推断生产源码版本。
+
+当前公开入口如尚未由 Cloudflare Edge 配置 HSTS，应在确认 HTTPS 入口稳定后，通过生产环境 `SECURE_HSTS_SECONDS` 设置有限期策略，并检查公网 `Strict-Transport-Security` 响应头。不要默认启用 `includeSubDomains` 或 preload；必须先逐一确认所有子域都支持 HTTPS。
+
 初始化或版本升级后执行 Django 与 LangGraph 迁移：
 
 ```bash

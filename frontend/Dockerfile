@@ -9,6 +9,9 @@ COPY . .
 RUN npm run build
 
 FROM ${FRONTEND_NGINX_IMAGE}
+ARG IMAGE_REVISION=unknown
+LABEL org.opencontainers.image.source="https://github.com/Why-unable/TimeAgent" \
+    org.opencontainers.image.revision="${IMAGE_REVISION}"
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 COPY --from=build /app/dist /usr/share/nginx/html
 EXPOSE 80
