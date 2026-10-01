@@ -146,6 +146,64 @@ def test_free_slot_mode_returns_availability_without_planning_facts() -> None:
     assert "planning_rules" not in result
 
 
+def test_exact_start_decision_places_task_at_the_requested_instant() -> None:
+    user = _user_and_preferences("exact-start-plan")
+    task = _create_tasks(user, [("Exact start task", 30, 10, 13)])[0]
+    target = local(12, 10, 45)
+
+    plan = PlanningService.propose_schedule_plan(
+        user=user,
+        task_ids=[task.pk],
+        range_start=local(12, 9).astimezone(UTC),
+        range_end=local(13, 18).astimezone(UTC),
+        strategy="plan_tasks_only",
+        task_decisions=[TaskScheduleDecision(task_id=task.pk, exact_start_at=target)],
+        now=local(12, 8).astimezone(UTC),
+    )
+
+    item = _plan_items_by_task(plan)[str(task.pk)]
+    assert item["state"] == "placed"
+    assert datetime.fromisoformat(str(item["start_at"])) == target.astimezone(UTC)
+    assert datetime.fromisoformat(str(item["end_at"])) == target.astimezone(UTC) + timedelta(
+        minutes=30
+    )
+    assert PlanningService.validate_schedule_plan(
+        user=user,
+        plan_id=plan.pk,
+        expected_version=plan.version,
+        now=local(12, 8).astimezone(UTC),
+    ).is_valid
+
+
+def test_exact_start_decision_does_not_shift_when_requested_slot_conflicts() -> None:
+    user = _user_and_preferences("exact-start-conflict")
+    task = _create_tasks(user, [("Conflicting exact start task", 30, 10, 13)])[0]
+    target = local(12, 10, 45)
+    EventService.create_event(
+        CreateEventCommand(
+            user=user,
+            title="Exact requested time is busy",
+            start_at=target.astimezone(UTC),
+            end_at=(target + timedelta(minutes=30)).astimezone(UTC),
+            timezone="Asia/Shanghai",
+        )
+    )
+
+    plan = PlanningService.propose_schedule_plan(
+        user=user,
+        task_ids=[task.pk],
+        range_start=local(12, 9).astimezone(UTC),
+        range_end=local(13, 18).astimezone(UTC),
+        strategy="plan_tasks_only",
+        task_decisions=[TaskScheduleDecision(task_id=task.pk, exact_start_at=target)],
+        now=local(12, 8).astimezone(UTC),
+    )
+
+    item = _plan_items_by_task(plan)[str(task.pk)]
+    assert item["state"] == "unplaced"
+    assert item["reason_codes"] == ["exact_start_unavailable"]
+
+
 def test_reference_ranked_free_slots_include_nearest_candidate_across_long_range() -> None:
     user = _user_and_preferences("nearest-free-slot-across-range")
     reference_start = local(12, 13)

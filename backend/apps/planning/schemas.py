@@ -18,6 +18,13 @@ class TaskScheduleDecision(BaseModel):
             "可能受日历、工作时间和截止日调整。"
         ),
     )
+    exact_start_at: AwareDatetime | None = Field(
+        default=None,
+        description=(
+            "带时区的精确开始时刻硬约束；用户明确指定钟点时使用。"
+            "若该时刻不可行，任务应保持未排入，禁止移动到附近时段。"
+        ),
+    )
     earliest_start_at: AwareDatetime | None = Field(
         default=None,
         description="带时区的硬性最早开始时间；只用于用户明确给出或确认的限制。",
@@ -42,7 +49,12 @@ class TaskScheduleDecision(BaseModel):
         description="可展示给用户的简短安排依据；不要写私有推理。",
     )
 
-    @field_validator("preferred_start_at", "earliest_start_at", "latest_end_at")
+    @field_validator(
+        "preferred_start_at",
+        "exact_start_at",
+        "earliest_start_at",
+        "latest_end_at",
+    )
     @classmethod
     def require_aware_datetime(cls, value: datetime | None) -> datetime | None:
         if value is not None and value.utcoffset() is None:
@@ -51,6 +63,8 @@ class TaskScheduleDecision(BaseModel):
 
     @model_validator(mode="after")
     def validate_relationships(self) -> "TaskScheduleDecision":
+        if self.exact_start_at is not None and self.preferred_start_at is not None:
+            raise ValueError("exact_start_at and preferred_start_at are mutually exclusive")
         if len(set(self.predecessor_task_ids)) != len(self.predecessor_task_ids):
             raise ValueError("predecessor_task_ids must be unique")
         if self.task_id in self.predecessor_task_ids:

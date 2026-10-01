@@ -126,11 +126,11 @@ def propose_schedule_plan(
 ) -> dict[str, object]:
     """Create a reviewable draft and include structured decisions for selected tasks.
 
-    Preferred starts are soft goals. Explicit/confirmed date bounds, predecessor
-    links, minimum gaps, date-bounded daily availability windows and a requested
-    daily task-minute cap are validated as hard constraints. Use daily_worktime_overrides
-    when the user gives a temporary daily time restriction that later changes. The
-    draft is not applied. Create one draft per request; use its plan_id and
+    Preferred starts are soft goals. Exact requested starts, explicit/confirmed date
+    bounds, predecessor links, minimum gaps, date-bounded daily availability windows,
+    and a requested daily task-minute cap are validated as hard constraints. Use
+    daily_worktime_overrides when the user gives a temporary daily time restriction
+    that later changes. The draft is not applied. Create one draft per request; use its plan_id and
     edit_schedule_plan for refinements instead of proposing a replacement draft. Returned
     UTC start/end values have parallel user-local fields.
     """

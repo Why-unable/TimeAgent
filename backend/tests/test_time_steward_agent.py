@@ -333,7 +333,8 @@ def test_runtime_prompt_matches_request_level_read_only_tool_policy() -> None:
     prompt_text = str(prompt.content)
     assert "模式=只读" in prompt_text
     assert "不要尝试创建、比较或编辑已保存的排程草案" in prompt_text
-    assert "该钟点是精确开始时间，不是软偏好" in prompt_text
+    assert "exact_start_at" in prompt_text
+    assert "不能写入软目标 `preferred_start_at`" in prompt_text
     assert "不能静默偏移" in prompt_text
     assert "propose_schedule_plan" not in model.bound_tool_names
     assert "apply_schedule_plan" not in model.bound_tool_names
@@ -771,12 +772,16 @@ def test_tool_manifest_is_complete_and_pack_filter_is_conservative() -> None:
     assert "task_decisions" in proposal_schema.model_fields
     assert "max_daily_minutes" in proposal_schema.model_fields
     preferred_description = TaskScheduleDecision.model_fields["preferred_start_at"].description
+    exact_start_description = TaskScheduleDecision.model_fields["exact_start_at"].description
     earliest_description = TaskScheduleDecision.model_fields["earliest_start_at"].description
     exact_edit_start_description = SchedulePlanItemEdit.model_fields["start_at"].description
     exact_edit_end_description = SchedulePlanItemEdit.model_fields["end_at"].description
     assert preferred_description is not None
+    assert exact_start_description is not None
     assert earliest_description is not None
     assert "软目标开始时间" in preferred_description
+    assert "精确开始时刻硬约束" in exact_start_description
+    assert "禁止移动到附近时段" in exact_start_description
     assert "硬性最早开始时间" in earliest_description
     assert exact_edit_start_description is not None
     assert "精确开始时间" in exact_edit_start_description
