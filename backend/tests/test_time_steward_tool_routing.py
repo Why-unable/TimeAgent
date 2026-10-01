@@ -76,6 +76,19 @@ def test_planning_preview_route_matches_longer_natural_schedule_requests() -> No
         assert "propose_schedule_plan" in tools
 
 
+def test_apply_saved_plan_route_exposes_the_approval_tool() -> None:
+    prompt = (
+        "请应用计划 00000000-0000-0000-0000-000000000000 当前版本 2。"
+        "它只包含测试任务；请先提交正式审批，不要绕过确认流程。"
+    )
+
+    tools = select_tool_names(prompt)
+
+    assert tools is not None
+    assert "apply_schedule_plan" in tools
+    assert not should_limit_to_read_tools(prompt)
+
+
 def test_ordered_workflow_with_daily_constraints_is_schedule_intent() -> None:
     prompt = (
         "我想把作品集更新好再申请几个设计岗位。先挑选最近的案例，"
