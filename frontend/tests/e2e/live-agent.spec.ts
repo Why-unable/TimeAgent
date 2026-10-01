@@ -158,55 +158,68 @@ test("real browser completes Agent plan edit, HITL apply, Task API and Today", a
     await expect(onboarding).toBeHidden();
   }
 
-  const [today, preferences] = await Promise.all([
+  const [today, originalPreferences] = await Promise.all([
     api<TodaySummary>(page, "/api/v1/today/"),
     api<UserPreferences>(page, "/api/v1/preferences/me/"),
   ]);
   expect(today.timezone).toBe("Asia/Shanghai");
-  expect(preferences.timezone).toBe(today.timezone);
-  const nowParts = zonedParts(new Date());
-  const nowMinutes = Number(nowParts.hour) * 60 + Number(nowParts.minute);
-  const workdayStartMinutes = minutesSinceMidnight(preferences.workday_start);
-  const workdayEndMinutes = minutesSinceMidnight(preferences.workday_end);
-  const earliestStart = Math.max(
-    workdayStartMinutes,
-    Math.ceil((nowMinutes + 30) / 15) * 15,
-  );
+  expect(originalPreferences.timezone).toBe(today.timezone);
   const busy = [
     ...today.events,
     ...today.planned_tasks.flatMap((task) => task.planned_start_at && task.planned_end_at
       ? [{ start_at: task.planned_start_at, end_at: task.planned_end_at }]
       : []),
   ];
-  let initialMinutes: number | undefined;
-  for (let candidate = earliestStart; candidate + 45 <= workdayEndMinutes; candidate += 15) {
-    const editMinutes = candidate + 15;
-    const firstStart = isoForShanghaiWallTime(today.date, candidate);
-    const firstEnd = isoForShanghaiWallTime(today.date, candidate + 30);
-    const editStart = isoForShanghaiWallTime(today.date, editMinutes);
-    const editEnd = isoForShanghaiWallTime(today.date, editMinutes + 30);
-    if (
-      hasFreeWindow(busy, firstStart, firstEnd)
-      && hasFreeWindow(busy, editStart, editEnd)
-    ) {
-      initialMinutes = candidate;
-      break;
-    }
-  }
-  expect(
-    initialMinutes,
-    "No pair of future conflict-free 30-minute work windows fits the configured workday today.",
-  ).toBeDefined();
-
-  const initialStart = isoForShanghaiWallTime(today.date, initialMinutes as number);
-  const initialEnd = isoForShanghaiWallTime(today.date, (initialMinutes as number) + 30);
-  const editedMinutes = (initialMinutes as number) + 15;
-  const editedStart = isoForShanghaiWallTime(today.date, editedMinutes);
-  const editedEnd = isoForShanghaiWallTime(today.date, editedMinutes + 30);
   const title = "E2E-LIVE-AgentUX-V2-acceptance";
   let taskId: string | undefined;
+  let workdayEndWasExtended = false;
 
   try {
+    let preferences = originalPreferences;
+    const findInitialStart = (workdayEnd: string) => {
+      const nowParts = zonedParts(new Date());
+      const nowMinutes = Number(nowParts.hour) * 60 + Number(nowParts.minute);
+      const earliestStart = Math.max(
+        minutesSinceMidnight(preferences.workday_start),
+        Math.ceil((nowMinutes + 30) / 15) * 15,
+      );
+      const endMinutes = minutesSinceMidnight(workdayEnd);
+      for (let candidate = earliestStart; candidate + 45 <= endMinutes; candidate += 15) {
+        const firstStart = isoForShanghaiWallTime(today.date, candidate);
+        const firstEnd = isoForShanghaiWallTime(today.date, candidate + 30);
+        const editStart = isoForShanghaiWallTime(today.date, candidate + 15);
+        const editEnd = isoForShanghaiWallTime(today.date, candidate + 45);
+        if (
+          hasFreeWindow(busy, firstStart, firstEnd)
+          && hasFreeWindow(busy, editStart, editEnd)
+        ) {
+          return candidate;
+        }
+      }
+      return undefined;
+    };
+
+    let initialMinutes = findInitialStart(preferences.workday_end);
+    if (initialMinutes === undefined) {
+      await api(page, "/api/v1/preferences/me/", {
+        method: "PATCH",
+        body: JSON.stringify({ workday_end: "23:45" }),
+      });
+      workdayEndWasExtended = true;
+      preferences = await api<UserPreferences>(page, "/api/v1/preferences/me/");
+      initialMinutes = findInitialStart(preferences.workday_end);
+    }
+    expect(
+      initialMinutes,
+      "No pair of future conflict-free 30-minute windows fits today, even after extending the dedicated E2E account's workday.",
+    ).toBeDefined();
+
+    const initialStart = isoForShanghaiWallTime(today.date, initialMinutes as number);
+    const initialEnd = isoForShanghaiWallTime(today.date, (initialMinutes as number) + 30);
+    const editedMinutes = (initialMinutes as number) + 15;
+    const editedStart = isoForShanghaiWallTime(today.date, editedMinutes);
+    const editedEnd = isoForShanghaiWallTime(today.date, editedMinutes + 30);
+
     const existingAcceptanceTask = (await api<TaskRecord[]>(page, "/api/v1/tasks/")).find(
       (task) => task.title.startsWith("E2E-LIVE-") && task.status === "pending",
     );
@@ -295,7 +308,9 @@ test("real browser completes Agent plan edit, HITL apply, Task API and Today", a
     expect(Date.parse(appliedTask!.planned_end_at as string)).toBe(Date.parse(editedEnd));
 
     await page.goto("/today");
-    await expect(page.getByText(title, { exact: true })).toBeVisible();
+    await expect(
+      page.getByRole("main").getByText(title, { exact: true }).filter({ visible: true }).first(),
+    ).toBeVisible();
     const todayAfterApply = await api<TodaySummary>(page, "/api/v1/today/");
     const todayTask = todayAfterApply.planned_tasks.find((task) => task.id === taskId);
     expect(todayAfterApply.timezone).toBe("Asia/Shanghai");
@@ -306,6 +321,12 @@ test("real browser completes Agent plan edit, HITL apply, Task API and Today", a
       await api(page, `/api/v1/tasks/${taskId}/`, {
         method: "PATCH",
         body: JSON.stringify({ planned_start_at: null, planned_end_at: null }),
+      }).catch(() => undefined);
+    }
+    if (workdayEndWasExtended) {
+      await api(page, "/api/v1/preferences/me/", {
+        method: "PATCH",
+        body: JSON.stringify({ workday_end: originalPreferences.workday_end }),
       }).catch(() => undefined);
     }
   }
