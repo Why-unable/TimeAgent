@@ -906,7 +906,8 @@ class PlanningService:
             has_hard_decision = bool(
                 decision is not None
                 and (
-                    decision.earliest_start_at is not None
+                    decision.exact_start_at is not None
+                    or decision.earliest_start_at is not None
                     or decision.latest_end_at is not None
                     or decision.predecessor_task_ids
                 )
@@ -926,17 +927,43 @@ class PlanningService:
                     )
                 )
                 continue
-            slots = PlanningService.find_free_slots(
-                user=user,
-                range_start=candidate_start,
-                range_end=candidate_end,
-                duration_minutes=reserved_duration,
-                constraints=PlanningConstraints(
-                    allowed_weekdays=allowed_weekdays,
-                    daily_worktime_overrides=tuple(daily_worktime_overrides),
-                    excluded_planned_task_ids=tuple(excluded_planned_task_ids),
-                ),
+            slot_constraints = PlanningConstraints(
+                allowed_weekdays=allowed_weekdays,
+                daily_worktime_overrides=tuple(daily_worktime_overrides),
+                excluded_planned_task_ids=tuple(excluded_planned_task_ids),
             )
+            if decision is not None and decision.exact_start_at is not None:
+                exact_reserved_start = to_utc(decision.exact_start_at) - timedelta(
+                    minutes=buffer_before
+                )
+                exact_reserved_end = exact_reserved_start + timedelta(minutes=reserved_duration)
+                if exact_reserved_start < candidate_start or exact_reserved_end > candidate_end:
+                    items.append(
+                        PlanningService._unplaced_item(
+                            task=task,
+                            reason="exact_start_outside_allowed_window",
+                            base_duration=base_duration,
+                            planned_duration=duration,
+                            duration_source=duration_source,
+                        )
+                    )
+                    continue
+                slots = PlanningService.find_free_slots(
+                    user=user,
+                    range_start=exact_reserved_start,
+                    range_end=exact_reserved_end,
+                    duration_minutes=reserved_duration,
+                    constraints=slot_constraints,
+                )
+                slots = [slot for slot in slots if slot.start_at == exact_reserved_start]
+            else:
+                slots = PlanningService.find_free_slots(
+                    user=user,
+                    range_start=candidate_start,
+                    range_end=candidate_end,
+                    duration_minutes=reserved_duration,
+                    constraints=slot_constraints,
+                )
             available_slots = [
                 slot
                 for slot in slots
@@ -965,6 +992,17 @@ class PlanningService:
                 else:
                     selected = available_slots[0]
             if selected is None:
+                if decision is not None and decision.exact_start_at is not None:
+                    items.append(
+                        PlanningService._unplaced_item(
+                            task=task,
+                            reason="exact_start_unavailable",
+                            base_duration=base_duration,
+                            planned_duration=duration,
+                            duration_source=duration_source,
+                        )
+                    )
+                    continue
                 split_items = PlanningService._build_split_items(
                     user=user,
                     task=task,
@@ -1355,6 +1393,7 @@ class PlanningService:
         if plan.expires_at <= anchor:
             raise ValueError("Schedule plan has expired")
         plan_task_items: dict[str, list[dict[str, object]]] = {}
+        edited_exact_starts: dict[str, datetime] = {}
         for item in plan.items:
             if item.get("kind") != "plan_evidence" and item.get("task_id"):
                 plan_task_items.setdefault(str(item["task_id"]), []).append(item)
@@ -1393,8 +1432,39 @@ class PlanningService:
                 item["reserved_end_at"] = (to_utc(end_at) + timedelta(minutes=after)).isoformat()
                 item["state"] = "placed"
                 item["reason_codes"] = []
+                edited_exact_starts[task_id] = to_utc(start_at)
             if "locked" in edit:
                 item["locked"] = bool(edit["locked"])
+        if edited_exact_starts:
+            snapshot = dict(plan.constraints_snapshot)
+            raw_decisions = snapshot.get("planning_decisions", [])
+            if not isinstance(raw_decisions, list):
+                raise ValueError("Schedule plan has invalid planning decisions")
+            updated_decisions: list[dict[str, object]] = []
+            matched_task_ids: set[str] = set()
+            for raw_decision in raw_decisions:
+                if not isinstance(raw_decision, dict):
+                    raise ValueError("Schedule plan has invalid planning decisions")
+                task_id = str(raw_decision.get("task_id", ""))
+                exact_start_at = edited_exact_starts.get(task_id)
+                if exact_start_at is None:
+                    updated_decisions.append(raw_decision)
+                    continue
+                decision = TaskScheduleDecision.model_validate(raw_decision).model_copy(
+                    update={"preferred_start_at": None, "exact_start_at": exact_start_at}
+                )
+                updated_decisions.append(decision.model_dump(mode="json"))
+                matched_task_ids.add(task_id)
+            for task_id, exact_start_at in edited_exact_starts.items():
+                if task_id in matched_task_ids:
+                    continue
+                decision = TaskScheduleDecision(
+                    task_id=UUID(task_id),
+                    exact_start_at=exact_start_at,
+                )
+                updated_decisions.append(decision.model_dump(mode="json"))
+            snapshot["planning_decisions"] = updated_decisions
+            plan.constraints_snapshot = snapshot
         plan.expires_at = anchor + timedelta(seconds=settings.SCHEDULE_PLAN_TTL_SECONDS)
         reason_codes = PlanningService._plan_validation_reason_codes(
             user=user,
@@ -1596,6 +1666,10 @@ class PlanningService:
                 continue
             starts = [datetime.fromisoformat(str(item["start_at"])) for item in placed_items]
             ends = [datetime.fromisoformat(str(item["end_at"])) for item in placed_items]
+            if decision.exact_start_at is not None and (
+                len(starts) != 1 or starts[0] != to_utc(decision.exact_start_at)
+            ):
+                return ("planning_exact_start_violation",)
             if decision.earliest_start_at is not None and min(starts) < to_utc(
                 decision.earliest_start_at
             ):

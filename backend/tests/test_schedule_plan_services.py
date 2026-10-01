@@ -7,7 +7,7 @@ from django.contrib.auth import get_user_model
 
 from apps.events.services import CreateEventCommand, EventService
 from apps.planning.models import SchedulePlan, SchedulePlanStatus
-from apps.planning.schemas import DailyAvailabilityWindow
+from apps.planning.schemas import DailyAvailabilityWindow, TaskScheduleDecision
 from apps.planning.services import PlanningService
 from apps.preferences.services import UserPreferenceService
 from apps.tasks.services import CreateTaskCommand, TaskService
@@ -895,6 +895,51 @@ def test_proposal_excludes_selected_tasks_old_plan_but_keeps_other_plans_busy() 
     assert item["state"] == "placed"
     assert retained.planned_start_at is not None
     assert datetime.fromisoformat(str(item["reserved_end_at"])) <= retained.planned_start_at
+
+
+def test_editing_exact_start_updates_plan_hard_time_constraint() -> None:
+    user = get_user_model().objects.create_user(username="exact-start-plan-edit")
+    UserPreferenceService.update_for_user(user, {"timezone": "UTC"})
+    start = datetime(2026, 8, 24, 9, tzinfo=UTC)
+    task = TaskService.create_task(
+        CreateTaskCommand(user=user, title="Move exact task", estimated_minutes=30)
+    )
+    original_start = start + timedelta(hours=1)
+    plan = _propose_schedule_plan(
+        user=user,
+        task_ids=[task.pk],
+        range_start=start,
+        range_end=start + timedelta(hours=8),
+        strategy="plan_tasks_only",
+        task_decisions=[TaskScheduleDecision(task_id=task.pk, exact_start_at=original_start)],
+    )
+    edited_start = start + timedelta(hours=3)
+
+    moved = PlanningService.edit_schedule_plan(
+        user=user,
+        plan_id=plan.pk,
+        expected_version=plan.version,
+        edits=[
+            {
+                "task_id": task.pk,
+                "start_at": edited_start,
+                "end_at": edited_start + timedelta(minutes=30),
+            }
+        ],
+        now=start,
+    )
+
+    decision = moved.constraints_snapshot["planning_decisions"][0]
+    item = next(item for item in moved.items if item.get("task_id") == str(task.pk))
+    assert datetime.fromisoformat(str(decision["exact_start_at"])) == edited_start
+    assert decision["preferred_start_at"] is None
+    assert datetime.fromisoformat(str(item["start_at"])) == edited_start
+    assert PlanningService.validate_schedule_plan(
+        user=user,
+        plan_id=moved.pk,
+        expected_version=moved.version,
+        now=start,
+    ).is_valid
 
 
 def test_split_plan_item_edit_is_rejected_as_ambiguous() -> None:
