@@ -200,7 +200,7 @@ test("real browser completes Agent plan edit, HITL apply, Task API and Today", a
 
   const initialStart = isoForShanghaiWallTime(today.date, initialMinutes as number);
   const initialEnd = isoForShanghaiWallTime(today.date, (initialMinutes as number) + 30);
-  const editedMinutes = (initialMinutes as number) + 60;
+  const editedMinutes = (initialMinutes as number) + 15;
   const editedStart = isoForShanghaiWallTime(today.date, editedMinutes);
   const editedEnd = isoForShanghaiWallTime(today.date, editedMinutes + 30);
   const title = "E2E-LIVE-AgentUX-V2-acceptance";
