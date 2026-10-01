@@ -1057,6 +1057,22 @@ def test_compact_planning_surface_switches_to_plan_review_after_draft() -> None:
     assert not handler_called
 
 
+@pytest.mark.django_db(transaction=True)
+def test_compact_planning_surface_exposes_apply_for_explicit_plan_approval_request() -> None:
+    user = User.objects.create_user(username="compact-plan-apply-request")
+    prompt = (
+        "请应用计划 00000000-0000-0000-0000-000000000000 当前版本 2。"
+        "它只包含测试任务；请先提交正式审批，不要绕过确认流程。"
+    )
+
+    decision = resolve_tool_policy(
+        context(user, input_message=prompt),
+        compact_planning_surface=True,
+    )
+
+    assert "apply_schedule_plan" in decision.visible_tools
+
+
 def test_plan_review_phase_requires_a_successful_draft_in_the_current_turn() -> None:
     user_turn = HumanMessage(content="帮我安排下周任务")
     proposal = ToolMessage(
