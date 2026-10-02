@@ -1,5 +1,6 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -52,12 +53,17 @@ const run = {
 };
 
 function renderChatPage(initialEntry = "/chat") {
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+  });
   return render(
-    <MemoryRouter initialEntries={[initialEntry]}>
-      <Routes>
-        <Route path="/chat/:conversationId?" element={<ChatPage />} />
-      </Routes>
-    </MemoryRouter>,
+    <QueryClientProvider client={queryClient}>
+      <MemoryRouter initialEntries={[initialEntry]}>
+        <Routes>
+          <Route path="/chat/:conversationId?" element={<ChatPage />} />
+        </Routes>
+      </MemoryRouter>
+    </QueryClientProvider>,
   );
 }
 
@@ -117,6 +123,17 @@ describe("ChatPage", () => {
       final_response: "已经安排好了。",
       artifacts: [{ artifact_type: "schedule_plan", artifact_id: planId, version: 1 }],
     };
+    const latestRun = {
+      ...run,
+      id: "88888888-8888-4888-8888-888888888888",
+      operation_id: "99999999-9999-4999-8999-999999999999",
+      request_id: "request-2",
+      status: "completed",
+      input_message: "请继续调整这个草案",
+      final_response: "已打开计划调整。",
+      created_at: "2026-07-17T09:00:00Z",
+      artifacts: [{ artifact_type: "schedule_plan", artifact_id: planId, version: 1 }],
+    };
     const plan = {
       id: planId,
       strategy: "plan_tasks_only",
@@ -140,22 +157,73 @@ describe("ChatPage", () => {
       invalidated_at: null,
       invalidation_reason: "",
     };
-    vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo | URL) => {
+    const agentInteraction = {
+      id: "77777777-7777-4777-8777-777777777771",
+      conversation_id: conversation.id,
+      agent_run_id: latestRun.id,
+      plan_id: planId,
+      plan_version: 1,
+      task_id: null,
+      type: "priority_ranking",
+      payload: { plan_id: planId },
+      allowed_actions: ["reorder", "dismiss"],
+      status: "pending",
+      expires_at: "2026-07-18T00:00:00Z",
+      version: 1,
+      created_at: "2026-07-17T00:00:00Z",
+      updated_at: "2026-07-17T00:00:00Z",
+      resolved_at: null,
+    };
+    const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
       const url = String(input);
+      const method = init?.method ?? "GET";
       if (url.endsWith("/conversations/")) return new Response(JSON.stringify([conversation]));
       if (url.endsWith(`/conversations/${conversation.id}/`)) {
-        return new Response(JSON.stringify({ ...conversation, runs: [completedRun] }));
+        return new Response(JSON.stringify({ ...conversation, runs: [completedRun, latestRun] }));
       }
       if (url.endsWith("/action-proposals/")) return new Response(JSON.stringify([]));
       if (url.endsWith(`/planning/plans/${planId}/`)) return new Response(JSON.stringify(plan));
+      if (url.includes(`/api/v1/interactions/?plan_id=${planId}`)) {
+        return new Response(JSON.stringify([agentInteraction]));
+      }
+      if (url.endsWith("/api/v1/interactions/") && method === "POST") {
+        const request = JSON.parse(String(init?.body)) as Record<string, string>;
+        return new Response(JSON.stringify({
+          id: request.type === "priority_ranking"
+            ? "77777777-7777-4777-8777-777777777771"
+            : "77777777-7777-4777-8777-777777777772",
+          conversation_id: conversation.id,
+          agent_run_id: run.id,
+          plan_id: planId,
+          plan_version: 1,
+          task_id: null,
+          type: request.type,
+          payload: { plan_id: planId },
+          allowed_actions: ["edit", "reorder", "dismiss"],
+          status: "pending",
+          expires_at: "2026-07-18T00:00:00Z",
+          version: 1,
+          created_at: "2026-07-17T00:00:00Z",
+          updated_at: "2026-07-17T00:00:00Z",
+          resolved_at: null,
+        }));
+      }
+      if (url.endsWith("/api/v1/interactions/telemetry/")) return new Response(null, { status: 202 });
       throw new Error(`Unexpected request: ${url}`);
-    }));
+    });
+    vi.stubGlobal("fetch", fetchMock);
 
     renderChatPage(`/chat/${conversation.id}`);
 
     expect(await screen.findByRole("region", { name: "Agent 计划预览" })).toBeInTheDocument();
     expect(screen.getByText("论文修改")).toBeInTheDocument();
     expect(screen.getByText("计划草案")).toBeInTheDocument();
+    expect(await screen.findByRole("region", { name: "本次计划优先顺序" })).toBeInTheDocument();
+    expect(await screen.findByText(/助理已准备好“调整本次任务顺序”交互/)).toBeInTheDocument();
+    expect(screen.queryByRole("region", { name: "可编辑计划时间线" })).not.toBeInTheDocument();
+    expect(fetchMock.mock.calls.some(([input, init]) =>
+      String(input).endsWith("/api/v1/interactions/") && init?.method === "POST",
+    )).toBe(false);
   });
 
   afterEach(() => {

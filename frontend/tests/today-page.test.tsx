@@ -115,6 +115,13 @@ const summary = {
 };
 
 function renderPage() {
+  const configuredFetch = globalThis.fetch;
+  vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+    if (String(input).includes("/api/v1/interactions/")) {
+      return new Response("{}", { status: 503 });
+    }
+    return configuredFetch(input, init);
+  }));
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   });

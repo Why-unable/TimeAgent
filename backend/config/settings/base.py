@@ -66,6 +66,7 @@ INSTALLED_APPS = [
     "apps.agents",
     "apps.briefings",
     "apps.conversations",
+    "apps.interactions",
     "apps.health",
     "apps.notifications",
     "apps.observability",
@@ -210,9 +211,7 @@ WEB_PUSH_HTTPS_PROXY = os.getenv("WEB_PUSH_HTTPS_PROXY", "")
 
 CALENDAR_OAUTH_FERNET_KEY = os.getenv("CALENDAR_OAUTH_FERNET_KEY", "")
 CALENDAR_OAUTH_FERNET_OLD_KEYS = [
-    key.strip()
-    for key in os.getenv("CALENDAR_OAUTH_FERNET_OLD_KEYS", "").split(",")
-    if key.strip()
+    key.strip() for key in os.getenv("CALENDAR_OAUTH_FERNET_OLD_KEYS", "").split(",") if key.strip()
 ]
 CALENDAR_OAUTH_STATE_TTL_SECONDS = int(os.getenv("CALENDAR_OAUTH_STATE_TTL_SECONDS", "600"))
 CALENDAR_OAUTH_SUCCESS_URL = os.getenv(
@@ -282,8 +281,14 @@ SPECTACULAR_SETTINGS = {
         "ActionProposalStatusEnum": "apps.action_proposals.models.ActionProposalStatus",
         "RiskLevelEnum": "apps.action_proposals.models.RiskLevel",
         "ConversationKindEnum": "apps.conversations.models.ConversationKind",
+        "AgentRunStatusEnum": "apps.conversations.models.AgentRunStatus",
         "NotificationSourceTypeEnum": "apps.notifications.models.NotificationSourceType",
         "NotificationChannelTypeEnum": "apps.notifications.models.NotificationChannelType",
+        "InteractionStatusEnum": "apps.interactions.models.InteractionStatus",
+        "InteractionTypeEnum": "apps.interactions.models.InteractionType",
+        "InteractionTelemetryEventTypeEnum": (
+            "apps.interactions.models.InteractionTelemetryEventType"
+        ),
     },
 }
 
@@ -294,9 +299,7 @@ AGENT_EVENT_STREAM_ENABLED = os.getenv("AGENT_EVENT_STREAM_ENABLED", "true").low
     "yes",
     "on",
 }
-AGENT_EVENT_STREAM_REDIS_URL = os.getenv(
-    "AGENT_EVENT_STREAM_REDIS_URL", "redis://localhost:6379/2"
-)
+AGENT_EVENT_STREAM_REDIS_URL = os.getenv("AGENT_EVENT_STREAM_REDIS_URL", "redis://localhost:6379/2")
 CACHES = {
     "default": {
         "BACKEND": "django.core.cache.backends.redis.RedisCache",
@@ -375,9 +378,7 @@ TIME_MEMORY_AGENT_WRITE_TOOLS_ENABLED = (
 TIME_MEMORY_AGENT_INLINE_APPROVAL_ENABLED = (
     os.getenv("TIME_MEMORY_AGENT_INLINE_APPROVAL_ENABLED", "false").lower() == "true"
 )
-TIME_MEMORY_AGENT_DIRECT_APPLY_MODE = os.getenv(
-    "TIME_MEMORY_AGENT_DIRECT_APPLY_MODE", "confirm"
-)
+TIME_MEMORY_AGENT_DIRECT_APPLY_MODE = os.getenv("TIME_MEMORY_AGENT_DIRECT_APPLY_MODE", "confirm")
 SCHEDULE_PLAN_TTL_SECONDS = int(os.getenv("SCHEDULE_PLAN_TTL_SECONDS", "3600"))
 
 LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")

@@ -621,6 +621,37 @@ def test_completed_plan_tools_emit_authoritative_artifact_references() -> None:
         "tool_call_id": "propose-plan-1",
     }
 
+    interaction_request = cast(
+        ToolCallRequest,
+        SimpleNamespace(
+            runtime=SimpleNamespace(context=context(user, agent_run_id=str(run.pk))),
+            tool_call={
+                "name": "request_plan_interaction",
+                "args": {},
+                "id": "request-plan-interaction-1",
+                "type": "tool_call",
+            },
+        ),
+    )
+    ToolAuditMiddleware().wrap_tool_call(
+        interaction_request,
+        lambda _request: ToolMessage(
+            content=json.dumps({"plan_id": str(plan_id), "plan_version": 3, "version": 3}),
+            tool_call_id="request-plan-interaction-1",
+            name="request_plan_interaction",
+        ),
+    )
+    interaction_artifact = run.events.get(
+        event_type="artifact.available",
+        payload__tool_call_id="request-plan-interaction-1",
+    )
+    assert interaction_artifact.payload == {
+        "artifact_type": "schedule_plan",
+        "artifact_id": str(plan_id),
+        "version": 3,
+        "tool_call_id": "request-plan-interaction-1",
+    }
+
 
 @pytest.mark.django_db
 def test_tool_failure_is_audited_and_emitted() -> None:
@@ -734,6 +765,7 @@ def test_official_middleware_and_fixed_eval_policy_cover_phase_five() -> None:
         "forget_time_preference",
         "propose_schedule_plan",
         "compare_schedule_plans",
+        "request_plan_interaction",
     }
 
 
@@ -741,8 +773,8 @@ def test_official_middleware_and_fixed_eval_policy_cover_phase_five() -> None:
 def test_tool_manifest_is_complete_and_pack_filter_is_conservative() -> None:
     user = User.objects.create_user(username="tool-manifest-contract")
     names = {spec.tool.name for spec in TOOL_MANIFEST}
-    assert len(TOOL_MANIFEST) == 44
-    assert len(names) == 44
+    assert len(TOOL_MANIFEST) == 45
+    assert len(names) == 45
     assert names == set(TOOL_SPECS)
     assert {name for name, spec in TOOL_SPECS.items() if spec.requires_approval} == set(
         HIGH_RISK_TOOL_POLICIES
@@ -755,6 +787,16 @@ def test_tool_manifest_is_complete_and_pack_filter_is_conservative() -> None:
     assert TOOL_SPECS["propose_schedule_plan"].effect == "draft"
     assert TOOL_SPECS["propose_schedule_plan"].run_modes == frozenset({"write"})
     assert TOOL_SPECS["edit_schedule_plan"].effect == "draft"
+    assert TOOL_SPECS["request_plan_interaction"].effect == "draft"
+    assert not TOOL_SPECS["request_plan_interaction"].requires_approval
+    interaction_schema = cast(
+        type[BaseModel], TOOL_SPECS["request_plan_interaction"].tool.tool_call_schema
+    )
+    assert {"plan_id", "interaction_type"}.issubset(interaction_schema.model_fields)
+    assert get_args(interaction_schema.model_fields["interaction_type"].annotation) == (
+        "priority_ranking",
+        "plan_timeline_edit",
+    )
     edit_schema = cast(type[BaseModel], TOOL_SPECS["edit_schedule_plan"].tool.tool_call_schema)
     assert {"plan_id", "expected_version", "edits"}.issubset(edit_schema.model_fields)
     assert TOOL_SPECS["get_planning_context"].effect == "read"
@@ -837,7 +879,7 @@ def test_tool_manifest_is_complete_and_pack_filter_is_conservative() -> None:
     assert "reschedule_task" not in multi_task_plan_names
     assert "create_task" not in multi_task_plan_names
     assert "list_tasks" not in multi_task_plan_names
-    assert len(multi_task_plan_names) == 6
+    assert len(multi_task_plan_names) == 7
     assert not {
         "compare_schedule_plans",
         "recommend_task_duration",
@@ -957,6 +999,7 @@ def test_compact_planning_surface_hides_broad_reads_but_recovers_explicitly() ->
     assert {"list_tasks", "list_events"}.issubset(compact.hard_allowed_tools)
     assert len(compact.visible_tools) < len(standard.visible_tools) - 5
     assert {"get_planning_context", "propose_schedule_plan"}.issubset(compact.visible_tools)
+    assert "request_plan_interaction" in compact.visible_tools
     assert not {"create_task", "complete_task", "reschedule_task"}.intersection(
         compact.visible_tools
     )
@@ -1024,10 +1067,30 @@ def test_compact_planning_surface_switches_to_plan_review_after_draft() -> None:
     assert not {"propose_schedule_plan", "compare_schedule_plans"}.intersection(visible_names)
     assert {
         "edit_schedule_plan",
+        "request_plan_interaction",
         "validate_schedule_plan",
         "apply_schedule_plan",
         "abandon_schedule_plan",
     }.issubset(visible_names)
+
+    interaction_messages = [
+        *messages,
+        ToolMessage(
+            content=json.dumps(
+                {
+                    "interaction_id": str(uuid4()),
+                    "interaction_type": "priority_ranking",
+                    "plan_id": str(uuid4()),
+                    "plan_version": 1,
+                    "version": 1,
+                }
+            ),
+            name="request_plan_interaction",
+            tool_call_id="interaction-call",
+            status="success",
+        ),
+    ]
+    assert _planning_review_phase_active(interaction_messages)
 
     hidden_request = cast(
         ToolCallRequest,
@@ -1071,6 +1134,30 @@ def test_compact_planning_surface_exposes_apply_for_explicit_plan_approval_reque
     )
 
     assert "apply_schedule_plan" in decision.visible_tools
+
+
+@pytest.mark.django_db(transaction=True)
+def test_explicit_plan_interaction_request_exposes_only_the_interaction_tool() -> None:
+    user = User.objects.create_user(username="compact-plan-interaction-request")
+    prompt = (
+        "请为计划 00000000-0000-0000-0000-000000000000 打开本次计划的优先顺序交互，"
+        "让我自己决定两个任务的先后顺序。不要替我排序，不要更改永久优先级，也不要应用计划。"
+    )
+
+    decision = resolve_tool_policy(
+        context(user, input_message=prompt),
+        compact_planning_surface=True,
+        planning_review_phase_active=True,
+    )
+
+    assert decision.visible_tools == frozenset({"request_plan_interaction"})
+    assert "read_only_request" not in decision.reason_codes
+    assert not {
+        "apply_schedule_plan",
+        "edit_schedule_plan",
+        "abandon_schedule_plan",
+        "propose_schedule_plan",
+    }.intersection(decision.visible_tools)
 
 
 def test_plan_review_phase_requires_a_successful_draft_in_the_current_turn() -> None:

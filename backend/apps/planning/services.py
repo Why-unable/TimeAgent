@@ -23,7 +23,7 @@ from apps.preferences.models import UserPreference
 from apps.preferences.services import UserPreferenceService
 from apps.preferences.snapshots import PlanningPreferencesSnapshot
 from apps.tasks.models import Task, TaskStatus
-from apps.tasks.services import TaskQuery, TaskService
+from apps.tasks.services import TaskQuery, TaskService, UpdateTaskCommand
 from common.database_locks import lock_user_schedule_writes
 from common.time import get_timezone, resolve_local_datetime, to_utc
 
@@ -1379,9 +1379,10 @@ class PlanningService:
         plan_id: UUID,
         expected_version: int,
         edits: Sequence[dict[str, object]],
+        ordered_task_ids: Sequence[UUID] | None = None,
         now: datetime | None = None,
     ) -> SchedulePlan:
-        if not edits:
+        if not edits and not ordered_task_ids:
             raise ValueError("Provide at least one plan item edit")
         anchor = to_utc(now or timezone.now())
         lock_user_schedule_writes(user)
@@ -1418,6 +1419,9 @@ class PlanningService:
                     raise ValueError("Plan item times must be datetimes")
                 item["start_at"] = to_utc(start_at).isoformat()
                 item["end_at"] = to_utc(end_at).isoformat()
+                item["planned_duration_minutes"] = max(
+                    1, round((to_utc(end_at) - to_utc(start_at)).total_seconds() / 60)
+                )
                 before_value = item.get("buffer_before_minutes", 0)
                 after_value = item.get("buffer_after_minutes", 0)
                 if isinstance(before_value, bool) or not isinstance(before_value, (int, str)):
@@ -1465,6 +1469,34 @@ class PlanningService:
                 updated_decisions.append(decision.model_dump(mode="json"))
             snapshot["planning_decisions"] = updated_decisions
             plan.constraints_snapshot = snapshot
+        if ordered_task_ids is not None:
+            task_item_ids = list(
+                dict.fromkeys(
+                    UUID(str(item["task_id"]))
+                    for item in plan.items
+                    if item.get("kind") != "plan_evidence" and item.get("task_id")
+                )
+            )
+            if len(set(ordered_task_ids)) != len(ordered_task_ids) or set(ordered_task_ids) != set(
+                task_item_ids
+            ):
+                raise ValueError("ordered_task_ids must contain every plan task exactly once")
+            by_task: dict[str, list[dict[str, object]]] = {
+                str(task_id): [] for task_id in task_item_ids
+            }
+            evidence_items: list[dict[str, object]] = []
+            for item in plan.items:
+                if item.get("kind") == "plan_evidence":
+                    evidence_items.append(item)
+                elif item.get("task_id"):
+                    by_task[str(item["task_id"])].append(item)
+            reordered: list[dict[str, object]] = []
+            for order, task_id in enumerate(ordered_task_ids):
+                task_items = by_task[str(task_id)]
+                for item in task_items:
+                    item["planning_order"] = order
+                reordered.extend(task_items)
+            plan.items = [*reordered, *evidence_items]
         plan.expires_at = anchor + timedelta(seconds=settings.SCHEDULE_PLAN_TTL_SECONDS)
         reason_codes = PlanningService._plan_validation_reason_codes(
             user=user,
@@ -1488,6 +1520,253 @@ class PlanningService:
             ]
         )
         return plan
+
+    @staticmethod
+    def plan_edit_recovery(
+        *,
+        user: User,
+        plan_id: UUID,
+        edits: Sequence[dict[str, object]],
+        ordered_task_ids: Sequence[UUID] | None = None,
+        now: datetime | None = None,
+    ) -> tuple[tuple[str, ...], dict[str, str] | None, list[dict[str, str]]]:
+        """Return authoritative validation reasons, overlapping facts, and a safe free slot."""
+        import copy
+
+        anchor = to_utc(now or timezone.now())
+        plan = SchedulePlan.objects.get(pk=plan_id, user=user)
+        attempted = copy.deepcopy(plan)
+        edited_task_ids = {str(edit.get("task_id", "")) for edit in edits}
+        reason: tuple[str, ...] = ()
+        for edit in edits:
+            task_id = str(edit.get("task_id", ""))
+            matches = [
+                item
+                for item in attempted.items
+                if item.get("kind") != "plan_evidence" and str(item.get("task_id")) == task_id
+            ]
+            if len(matches) != 1:
+                continue
+            item = matches[0]
+            if "start_at" in edit and "end_at" in edit:
+                if item.get("locked") is True and edit.get("locked") is not False:
+                    reason = ("plan_item_locked",)
+                    continue
+                start_at = edit["start_at"]
+                end_at = edit["end_at"]
+                if not isinstance(start_at, datetime) or not isinstance(end_at, datetime):
+                    continue
+                before = int(item.get("buffer_before_minutes", 0))
+                after = int(item.get("buffer_after_minutes", 0))
+                item["start_at"] = to_utc(start_at).isoformat()
+                item["end_at"] = to_utc(end_at).isoformat()
+                item["reserved_start_at"] = (
+                    to_utc(start_at) - timedelta(minutes=before)
+                ).isoformat()
+                item["reserved_end_at"] = (to_utc(end_at) + timedelta(minutes=after)).isoformat()
+                item["state"] = "placed"
+                item["reason_codes"] = []
+            if "locked" in edit:
+                item["locked"] = bool(edit["locked"])
+        if ordered_task_ids is not None:
+            reason = ()
+        elif not reason:
+            reason = PlanningService._plan_validation_reason_codes(
+                user=user, plan=attempted, now=anchor
+            )
+        conflicts: list[dict[str, str]] = []
+        candidate: dict[str, str] | None = None
+        if (
+            reason != ("plan_item_locked",)
+            and edits
+            and "start_at" in edits[0]
+            and "end_at" in edits[0]
+        ):
+            edit = edits[0]
+            start_at = edit["start_at"]
+            end_at = edit["end_at"]
+            task_id = str(edit.get("task_id", ""))
+            if (
+                isinstance(start_at, datetime)
+                and isinstance(end_at, datetime)
+                and end_at > start_at
+            ):
+                start_utc, end_utc = to_utc(start_at), to_utc(end_at)
+                edited_item = next(
+                    (
+                        item
+                        for item in attempted.items
+                        if item.get("kind") != "plan_evidence"
+                        and str(item.get("task_id")) == task_id
+                    ),
+                    {},
+                )
+                reserved_start = start_utc - timedelta(
+                    minutes=int(edited_item.get("buffer_before_minutes", 0))
+                )
+                reserved_end = end_utc + timedelta(
+                    minutes=int(edited_item.get("buffer_after_minutes", 0))
+                )
+                event_rows = CalendarEvent.objects.filter(
+                    user=user,
+                    start_at__lt=reserved_end,
+                    end_at__gt=reserved_start,
+                ).exclude(status=CalendarEventStatus.CANCELLED)
+                conflicts.extend(
+                    {
+                        "kind": "event",
+                        "label": event.title,
+                        "start_at": event.start_at.isoformat(),
+                        "end_at": event.end_at.isoformat(),
+                    }
+                    for event in event_rows
+                )
+                planned_task_ids = tuple(
+                    UUID(str(item["task_id"]))
+                    for item in plan.items
+                    if item.get("kind") != "plan_evidence" and item.get("task_id")
+                )
+                task_conflicts = Task.objects.filter(
+                    user=user,
+                    status__in=(TaskStatus.PENDING, TaskStatus.IN_PROGRESS),
+                    planned_start_at__lt=reserved_end,
+                    planned_end_at__gt=reserved_start,
+                ).exclude(pk__in=planned_task_ids)
+                conflicts.extend(
+                    {
+                        "kind": "task",
+                        "label": task.title,
+                        "start_at": task.planned_start_at.isoformat(),
+                        "end_at": task.planned_end_at.isoformat(),
+                    }
+                    for task in task_conflicts
+                    if task.planned_start_at is not None and task.planned_end_at is not None
+                )
+                for item in plan.items:
+                    if (
+                        item.get("kind") == "plan_evidence"
+                        or str(item.get("task_id")) in edited_task_ids
+                    ):
+                        continue
+                    if item.get("state", "placed") != "placed":
+                        continue
+                    busy_start = datetime.fromisoformat(
+                        str(item.get("reserved_start_at", item["start_at"]))
+                    )
+                    busy_end = datetime.fromisoformat(
+                        str(item.get("reserved_end_at", item["end_at"]))
+                    )
+                    if reserved_start < busy_end and reserved_end > busy_start:
+                        conflicts.append(
+                            {
+                                "kind": "plan_item",
+                                "label": str(item.get("task_title", "另一项计划任务")),
+                                "start_at": busy_start.isoformat(),
+                                "end_at": busy_end.isoformat(),
+                            }
+                        )
+                evidence = next(
+                    (
+                        item.get("evidence")
+                        for item in plan.items
+                        if item.get("kind") == "plan_evidence"
+                    ),
+                    None,
+                )
+                if isinstance(evidence, dict) and evidence.get("range_end"):
+                    task_ids = tuple(
+                        UUID(str(item["task_id"]))
+                        for item in plan.items
+                        if item.get("kind") != "plan_evidence" and item.get("task_id")
+                    )
+                    constraints = PlanningConstraints(
+                        timezone=str(plan.constraints_snapshot.get("timezone") or "UTC"),
+                        allowed_weekdays=PlanningService._snapshot_weekdays(
+                            plan.constraints_snapshot
+                        ),
+                        excluded_planned_task_ids=task_ids,
+                        daily_worktime_overrides=PlanningService._snapshot_daily_worktime_overrides(
+                            plan.constraints_snapshot
+                        ),
+                    )
+                    duration = max(1, round((end_utc - start_utc).total_seconds() / 60))
+                    try:
+                        slots = PlanningService.find_free_slots(
+                            user=user,
+                            range_start=max(start_utc, anchor),
+                            range_end=datetime.fromisoformat(str(evidence["range_end"])),
+                            duration_minutes=duration,
+                            constraints=constraints,
+                        )
+                    except ValueError:
+                        slots = []
+                    for slot in slots:
+                        if any(
+                            slot.start_at
+                            < datetime.fromisoformat(
+                                str(item.get("reserved_end_at", item["end_at"]))
+                            )
+                            and slot.end_at
+                            > datetime.fromisoformat(
+                                str(item.get("reserved_start_at", item["start_at"]))
+                            )
+                            for item in plan.items
+                            if item.get("kind") != "plan_evidence"
+                            and str(item.get("task_id")) not in edited_task_ids
+                            and item.get("state", "placed") == "placed"
+                        ):
+                            continue
+                        candidate_plan = copy.deepcopy(plan)
+                        candidate_item = next(
+                            (
+                                item
+                                for item in candidate_plan.items
+                                if item.get("kind") != "plan_evidence"
+                                and str(item.get("task_id")) == task_id
+                            ),
+                            None,
+                        )
+                        if candidate_item is None:
+                            continue
+                        before = int(candidate_item.get("buffer_before_minutes", 0))
+                        after = int(candidate_item.get("buffer_after_minutes", 0))
+                        candidate_item["start_at"] = slot.start_at.isoformat()
+                        candidate_item["end_at"] = (
+                            slot.start_at + timedelta(minutes=duration)
+                        ).isoformat()
+                        candidate_item["planned_duration_minutes"] = duration
+                        candidate_item["reserved_start_at"] = (
+                            slot.start_at - timedelta(minutes=before)
+                        ).isoformat()
+                        candidate_item["reserved_end_at"] = (
+                            slot.start_at + timedelta(minutes=duration + after)
+                        ).isoformat()
+                        candidate_item["state"] = "placed"
+                        candidate_snapshot = dict(candidate_plan.constraints_snapshot)
+                        decisions = candidate_snapshot.get("planning_decisions", [])
+                        if isinstance(decisions, list):
+                            candidate_snapshot["planning_decisions"] = [
+                                {
+                                    **decision,
+                                    "preferred_start_at": None,
+                                    "exact_start_at": slot.start_at.isoformat(),
+                                }
+                                if isinstance(decision, dict)
+                                and str(decision.get("task_id")) == task_id
+                                else decision
+                                for decision in decisions
+                            ]
+                        candidate_plan.constraints_snapshot = candidate_snapshot
+                        if PlanningService._plan_validation_reason_codes(
+                            user=user, plan=candidate_plan, now=anchor
+                        ):
+                            continue
+                        candidate = {
+                            "start_at": candidate_item["start_at"],
+                            "end_at": candidate_item["end_at"],
+                        }
+                        break
+        return reason, candidate, conflicts
 
     @staticmethod
     @transaction.atomic
@@ -1540,6 +1819,14 @@ class PlanningService:
         plan.abandoned_at = anchor
         plan.version += 1
         plan.save(update_fields=["status", "abandoned_at", "version", "updated_at"])
+        from apps.interactions.services import InteractionArtifactService
+
+        InteractionArtifactService.resolve_plan_interactions(
+            user=user,
+            plan_id=plan.pk,
+            final_status="abandoned",
+            now=anchor,
+        )
         return plan
 
     @staticmethod
@@ -1573,6 +1860,20 @@ class PlanningService:
                     now=anchor,
                 )
             else:
+                duration_by_task: dict[UUID, int] = {}
+                item_versions: dict[UUID, int] = {}
+                for item in plan.items:
+                    if (
+                        item.get("kind") == "plan_evidence"
+                        or item.get("state", "placed") != "placed"
+                    ):
+                        continue
+                    task_id = UUID(str(item["task_id"]))
+                    duration = item.get("planned_duration_minutes")
+                    if type(duration) is not int or duration < 1:
+                        raise ValueError("Schedule plan has an invalid planned duration")
+                    duration_by_task[task_id] = duration_by_task.get(task_id, 0) + duration
+                    item_versions[task_id] = int(item["task_version"])
                 for item in plan.items:
                     if (
                         item.get("kind") == "plan_evidence"
@@ -1588,6 +1889,7 @@ class PlanningService:
                             user=user,
                             planned_start_at=start_at,
                             planned_end_at=end_at,
+                            estimated_minutes=duration_by_task[task.pk],
                             expected_version=int(item["task_version"]),
                             validate_conflicts=False,
                             origin=origin,
@@ -1604,10 +1906,29 @@ class PlanningService:
                                 origin=origin,
                             )
                         )
+                if plan.strategy != "plan_tasks_only":
+                    for task_id, estimated_minutes in duration_by_task.items():
+                        TaskService.update_task(
+                            UpdateTaskCommand(
+                                user=user,
+                                task_id=task_id,
+                                changes={"estimated_minutes": estimated_minutes},
+                                expected_version=item_versions[task_id],
+                                origin=origin,
+                            )
+                        )
                 plan.status = SchedulePlanStatus.APPLIED
                 plan.version += 1
                 plan.applied_at = anchor
                 plan.save(update_fields=["status", "version", "applied_at", "updated_at"])
+                from apps.interactions.services import InteractionArtifactService
+
+                InteractionArtifactService.resolve_plan_interactions(
+                    user=user,
+                    plan_id=plan.pk,
+                    final_status="completed",
+                    now=anchor,
+                )
         if reason_codes:
             raise ValueError(f"Schedule plan invalid: {', '.join(reason_codes)}")
         return plan
@@ -1641,6 +1962,18 @@ class PlanningService:
             ]
         except (KeyError, TypeError, ValueError):
             return ("invalid_plan_item",)
+        for item in plan.items:
+            if item.get("kind") == "plan_evidence" or item.get("state", "placed") != "placed":
+                continue
+            duration = item.get("planned_duration_minutes")
+            try:
+                start_at = datetime.fromisoformat(str(item["start_at"]))
+                end_at = datetime.fromisoformat(str(item["end_at"]))
+            except (KeyError, TypeError, ValueError):
+                return ("invalid_plan_item",)
+            actual_duration = round((end_at - start_at).total_seconds() / 60)
+            if type(duration) is not int or duration < 1 or duration != actual_duration:
+                return ("invalid_planned_duration",)
         task_ids = list({task_id for task_id, _, _ in proposed_slots})
         if any(start_at < now for _, start_at, _ in proposed_slots):
             return ("schedule_in_past",)
@@ -1791,6 +2124,14 @@ class PlanningService:
                 "version",
                 "updated_at",
             ]
+        )
+        from apps.interactions.services import InteractionArtifactService
+
+        InteractionArtifactService.resolve_plan_interactions(
+            user=plan.user,
+            plan_id=plan.pk,
+            final_status="abandoned",
+            now=now,
         )
 
     @staticmethod

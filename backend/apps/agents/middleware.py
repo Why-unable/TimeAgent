@@ -93,6 +93,7 @@ PLANNING_REVIEW_ACTIONS = frozenset(
     {
         "propose_schedule_plan",
         "compare_schedule_plans",
+        "request_plan_interaction",
         "edit_schedule_plan",
         "validate_schedule_plan",
         "apply_schedule_plan",
@@ -103,6 +104,7 @@ SCHEDULE_PLAN_ARTIFACT_TOOLS = frozenset(
     {
         "propose_schedule_plan",
         "compare_schedule_plans",
+        "request_plan_interaction",
         "edit_schedule_plan",
         "validate_schedule_plan",
         "apply_schedule_plan",
@@ -283,6 +285,7 @@ def _planning_review_phase_active(messages: Sequence[BaseMessage]) -> bool:
     return last_plan_action in {
         "propose_schedule_plan",
         "compare_schedule_plans",
+        "request_plan_interaction",
         "edit_schedule_plan",
         "validate_schedule_plan",
     }

@@ -2,7 +2,7 @@ import { Activity, CalendarCheck, GitCompare, Lock, Pause, Play, RefreshCw, Rota
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
-import type { LocalReplanPreview, SchedulePlan } from "../api/planning";
+import { getSchedulePlan, type LocalReplanPreview, type SchedulePlan } from "../api/planning";
 import { useTasks } from "../features/tasks/hooks";
 import { useCapacityForecast } from "../features/preferences/time-memory-hooks";
 import { useCurrentUserPreference } from "../features/preferences/hooks";
@@ -294,6 +294,11 @@ export function PlanningPage() {
     }, { onSuccess: setSelectedPlan });
   };
 
+  const refreshSelectedPlan = async () => {
+    if (!selectedPlan) return;
+    setSelectedPlan(await getSchedulePlan(selectedPlan.id));
+  };
+
   return (
     <section className="mx-auto max-w-6xl space-y-6">
       <ScheduleWorkspaceTabs />
@@ -417,7 +422,7 @@ export function PlanningPage() {
                 })}
               </div>
             )}
-            <PlanPreview items={planItems.filter((item) => item.kind !== "plan_evidence")} taskTitles={taskTitles} timezone={timezone} />
+            <PlanPreview items={planItems.filter((item) => item.kind !== "plan_evidence")} taskTitles={taskTitles} timezone={timezone} plan={selectedPlan} onPlanChange={setSelectedPlan} onRefreshPlan={refreshSelectedPlan} />
             <details className="mt-4 rounded-xl border border-white/10 p-3">
             <summary className="cursor-pointer text-sm text-slate-300">高级调整（锁定或重新安排任务）</summary>
             <div className="mt-3 space-y-3">

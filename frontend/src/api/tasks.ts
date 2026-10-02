@@ -33,6 +33,10 @@ export function listTasks(params: TaskListParams = {}) {
   return apiRequest<Task[]>(`/api/v1/tasks/${suffix}`);
 }
 
+export function getTask(taskId: string) {
+  return apiRequest<Task>(`/api/v1/tasks/${taskId}/`);
+}
+
 export function createTask(input: CreateTask) {
   return apiRequest<Task>("/api/v1/tasks/", {
     method: "POST",

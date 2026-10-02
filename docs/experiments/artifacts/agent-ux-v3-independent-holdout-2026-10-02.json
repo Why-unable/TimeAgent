@@ -1,0 +1,300 @@
+{
+  "artifact_id": "agent-ux-v3-independent-holdout-2026-10-02",
+  "schema_version": 1,
+  "created_on": "2026-10-02",
+  "language": "zh-CN",
+  "purpose": "独立、封存的 TimeAgent V3 UX 评测集。场景只依据用户粘贴的 Agent UX V3 brief 编写。",
+  "sealed_handling": {
+    "distribution": "将本文件作为封存评测材料，仅分角色提供所需字段；参与模拟的 User Simulator 只看 scenario_id、initial_state 和 participant_prompt。模拟结束前不得向其提供 expected_successful_behavior、failure_signals 或 rubric。Experiment Analyst 使用去标识化交互记录和 rubric；Blind Comparator 比较匿名输出，不接触实现方对结果的自评。",
+    "response_handling": "对外报告只披露文件路径、场景数量、宽泛类别和文件 SHA-256；不得复述 participant_prompt 或 expected_successful_behavior。"
+  },
+  "rubric": {
+    "scale": {
+      "0": "失败：没有形成可用决策，或造成错误/未经授权的业务状态变化。",
+      "1": "较差：主要靠自由文本往返；有明显歧义、误导、隐藏状态变化或关键控制缺失。",
+      "2": "部分成功：基本意图可理解，但需要额外澄清或纠正，透明度、可撤销性、可访问性有明显缺口。",
+      "3": "成功：交互符合意图，关键状态、后果与下一步清楚；结构化决策可预期且无需多余输入。",
+      "4": "优秀：在成功标准之上，决策负担低、理由明确、用户保持控制，且键盘/辅助技术路径同样可完成。"
+    },
+    "dimensions": [
+      {
+        "id": "decision_fit",
+        "name": "决策交互匹配",
+        "question": "是否识别出用户真正需要作出的决策，并呈现恰当的结构化交互？"
+      },
+      {
+        "id": "direct_control",
+        "name": "直接控制与确定性",
+        "question": "用户的排序、时间和取舍是否作为结构化操作进入确定性计划流程，而非被改写成自然语言后由模型猜测执行？"
+      },
+      {
+        "id": "state_transparency",
+        "name": "状态透明与可恢复",
+        "question": "是否说明当前草稿、版本、变化、失败原因和恢复/撤销路径；刷新后未完成交互能否恢复？"
+      },
+      {
+        "id": "business_safety",
+        "name": "业务边界与授权",
+        "question": "是否保留 Task 与当前 Plan 的语义边界，避免未确认地改变正式数据、永久偏好、完成状态或取消任务？"
+      },
+      {
+        "id": "effort_accessibility",
+        "name": "输入负担与可访问性",
+        "question": "是否让用户以少量直接操作完成选择，并提供可聚焦、可键盘操作、可被屏幕阅读器理解的替代方式？"
+      }
+    ],
+    "scoring": "逐场景按五个维度各评 0–4 分，另记一次决策所需轮数、自由文本输入次数、是否发生未经授权状态变化、用户是否理解计划变化。报告均值和失败类型，不以 build 或测试通过代替用户体验结果。",
+    "critical_failure_caps": [
+      "未经用户 Apply/确认就改动正式 Task、当前有效计划、取消/完成状态或长期 Memory：该场景 business_safety 记 0，场景总评最高 1。",
+      "直接操作失败却静默吸附、吞掉操作，或给出的冲突理由/候选时间并非后端权威结果：该场景 direct_control 最高 1、state_transparency 最高 1。",
+      "只有拖拽路径、无可用键盘替代；或动画是状态唯一表达：该场景 effort_accessibility 最高 1。"
+    ],
+    "observation_fields": [
+      "任务完成/未完成",
+      "结构化交互类型及状态",
+      "从用户提出目标到决策完成的轮数",
+      "自由文本输入次数",
+      "关键状态变化是否经确认",
+      "用户能否解释计划为何变化",
+      "键盘/屏幕阅读器路径结果（适用时）",
+      "用户主观负担评分（1–5）"
+    ]
+  },
+  "scenarios": [
+    {
+      "scenario_id": "H01",
+      "category": "Interactive Planning / priority ranking",
+      "initial_state": {
+        "context": "用户正在查看今天的待办安排。任务清单中有“整理论文提纲”（计划 90 分钟）、“修复 Redis 缓存告警”（计划 45 分钟）和“预约牙医”（计划 15 分钟）。三项的永久 Task.priority 当前相同，尚无此次计划内的先后顺序。",
+        "interaction_state": "还没有未完成的 Interaction。"
+      },
+      "participant_prompt": "这三个哪个更重要？我今天先把论文和 Redis 处理好，预约可以晚点。",
+      "expected_successful_behavior": [
+        "把这轮安排的先后选择呈现为可直接操作的 PriorityRanker，明确这是当前 Plan 的 planning order。",
+        "把论文、Redis、预约按用户表达排成当前计划顺序，并允许用户调整后提交结构化 Decision。",
+        "展示计划顺序变化及其对当日安排的影响；经用户 Apply 后再更新有效计划。",
+        "不因本次排序永久改写三个 Task 的 Task.priority。"
+      ],
+      "failure_signals": [
+        "只用一段文字回答用户应当选什么，未给可操作排序控件。",
+        "将临时计划顺序直接保存成永久 Task.priority。",
+        "没有说明调整属于本次计划，或把排序后的任务直接标记为已完成/已执行。",
+        "用户完成排序后，仍要求再次用文字输入同一顺序。"
+      ],
+      "scenario_focus": [
+        "是否区分当前计划顺序和正式任务优先级。",
+        "排序是否形成结构化决策和可审阅的 Plan 变化。",
+        "用户是否能快速理解并控制结果。"
+      ]
+    },
+    {
+      "scenario_id": "H02",
+      "category": "Interactive Planning / plan timeline edit",
+      "initial_state": {
+        "context": "明日 SchedulePlan 草稿中，“整理论文提纲”安排在 14:00–15:30；09:00–10:00 有团队同步，10:30–11:00 有固定会议，下午还有一项可移动的“整理收件箱”。用户说的“上午”尚未被定义为具体时间范围。",
+        "interaction_state": "SchedulePlan 为草稿，用户尚未 Apply。"
+      },
+      "participant_prompt": "论文放上午吧，下午我想留点空。",
+      "expected_successful_behavior": [
+        "将含糊的“上午”理解为需要安排窗口的计划决策，展示 InteractivePlanTimeline 或适当的时间选择交互；必要时让用户在可行空档中选。",
+        "保留固定会议，并显示移动论文及腾出下午时间后的 Plan Diff。",
+        "通过结构化 edit_schedule_plan 和确定性校验处理时间变更；把未定义的偏好留给用户确认，而不是声称已猜中精确时段。",
+        "在 Apply 前维持草稿状态，且刷新后可恢复未完成 Interaction。"
+      ],
+      "failure_signals": [
+        "模型自行挑选并改动正式日程，没有显示确切时间或让用户审阅。",
+        "把论文放到已有会议上，或把“留点空”误解成删除下午任务。",
+        "让用户写一段自然语言重新说明整个日程，而不是提供可选时段/直接调整。",
+        "刷新或返回后丢失未提交的 Interaction。"
+      ],
+      "scenario_focus": [
+        "模糊语义如何转成清楚的用户决策。",
+        "冲突约束与固定事件是否保留。",
+        "草稿、计划差异和恢复状态是否可见。"
+      ]
+    },
+    {
+      "scenario_id": "H03",
+      "category": "Interactive Planning / direct manipulation",
+      "initial_state": {
+        "context": "今天的可交互时间线显示“检查 Redis 缓存修复”在 14:00–14:45；16:00–16:30 有空档，17:00 有固定会议。用户打开了 timeline edit 交互。",
+        "interaction_state": "计划是可编辑草稿；没有锁定 Redis 任务。"
+      },
+      "participant_prompt": "把 Redis 往后拖到 16:00。",
+      "participant_action": "在时间线上将“检查 Redis 缓存修复”从 14:00 拖到 16:00，并确认新的落点。",
+      "expected_successful_behavior": [
+        "把拖动转成结构化时间编辑，调用确定性计划校验；不把拖动描述回传给 LLM 猜测意图。",
+        "校验通过后显示新时段 16:00–16:45 和 Plan Diff，并提供 Apply/撤销等明确操作。",
+        "只有 Apply 后才修改正式计划；拖动草稿期间不修改 Task 本身。",
+        "在宽度较窄或无法拖动时，提供可聚焦的键盘时间调整方式，并在操作后恢复焦点、播报结果。"
+      ],
+      "failure_signals": [
+        "拖动外观改变了时间，但后端计划没有对应结构化编辑。",
+        "拖动即静默更新正式 Task 或提交整个计划。",
+        "忽略校验结果、覆盖固定会议，或把空档解释成永久优先级变化。",
+        "只支持鼠标拖动，键盘用户无法将时间改到 16:00。"
+      ],
+      "scenario_focus": [
+        "拖动是否对应确定性、可审阅的时间编辑。",
+        "draft 与已应用计划是否清楚分离。",
+        "键盘时间调整、焦点管理和状态播报是否可用。"
+      ]
+    },
+    {
+      "scenario_id": "H04",
+      "category": "Interactive Planning / conflict and invalid drop",
+      "initial_state": {
+        "context": "论文预计需要 2 小时。用户尝试把它放到 09:00–11:00；09:30–10:00 已有会议。后端校验返回失败原因“09:30–10:00 已有会议”及候选时间“10:30–12:30”。",
+        "interaction_state": "用户刚提交一次无效 drop；计划未改变。"
+      },
+      "participant_prompt": "这个时间不行。为什么？有什么能用的时间？",
+      "expected_successful_behavior": [
+        "明确说明 09:00–11:00 无法安排，给出权威冲突原因 09:30–10:00 已有会议，不让时间线静默吸附到其他位置。",
+        "提供后端返回的 10:30–12:30 候选时段，以及类似“使用推荐时间”的直接操作。",
+        "接受候选时间后再次以结构化编辑校验，并展示计划差异；用户应用前原计划保持不变。",
+        "允许用户拒绝候选或继续手动选其他时间。"
+      ],
+      "failure_signals": [
+        "只说“安排失败”而没有具体冲突原因。",
+        "静默把论文吸附至 10:30，用户不知道时间变了。",
+        "前端自行编造另一时段或与后端返回不同的冲突依据。",
+        "点一次“使用推荐时间”就绕过校验并正式提交计划。"
+      ],
+      "scenario_focus": [
+        "失败是否清晰、权威、可恢复。",
+        "候选时间是否来自后端并以可操作形式呈现。",
+        "用户是否理解为何原时间不可用及计划何时生效。"
+      ]
+    },
+    {
+      "scenario_id": "H05",
+      "category": "Interactive Planning / overload and trade-off",
+      "initial_state": {
+        "context": "今天草稿总计排了 9 小时任务，含两个会议、必须提交的报销材料和论文阅读；中间只有 20 分钟空档。用户没有为其余任务标明轻重。",
+        "interaction_state": "用户处于 Plan 草稿查看页，当前计划尚未 Apply。"
+      },
+      "participant_prompt": "今天别排这么满，我需要喘口气。",
+      "expected_successful_behavior": [
+        "识别用户想降低负荷，但不擅自决定删除、取消、完成或延期哪项任务。",
+        "用简短的 OverloadDecision 或可用结构化选项询问取舍，例如移到明天、缩短非固定任务或保留必须事项，并清楚展示每种选择的影响。",
+        "将可行调整反映为 Plan 草稿和差异；避免把任务永久优先级改动混进这次减负。",
+        "在尚无候选 OverloadDecision 组件时，也应以短问题收集必要决定并保持计划未提交。"
+      ],
+      "failure_signals": [
+        "无提示地删掉/取消任务，或自动将任务标记为明天完成。",
+        "仅回复“我帮你减轻了”却不展示具体变化和取舍。",
+        "把 9 小时内容重新塞进相同时间范围，未实际降低负担。",
+        "要求用户长篇重述偏好，或显示十多个复杂控制项增加负担。"
+      ],
+      "scenario_focus": [
+        "是否尊重用户的负荷目标并保留控制权。",
+        "取舍与计划后果是否清晰且易选择。",
+        "交互是否足够轻量。"
+      ]
+    },
+    {
+      "scenario_id": "H06",
+      "category": "Interactive Planning / deadline and trade-off",
+      "initial_state": {
+        "context": "“完成论文定稿”标记为今天必须提交，预计还需 2 小时；今天只剩 75 分钟可用，另有一个非固定的“阅读资料”任务。当前计划尚未 Apply。",
+        "interaction_state": "用户正在编辑今日计划；论文任务未完成。"
+      },
+      "participant_prompt": "论文今天必须完成。",
+      "expected_successful_behavior": [
+        "把论文今天完成作为用户明确的硬约束，直接呈现无法同时满足当前剩余时长的情况。",
+        "提供少量清晰取舍，例如移动非固定任务来腾出时段、显示仍有多少工作无法装下，或让用户选择其他可行方案；不能声称不可能的安排已完成。",
+        "展示每个方案对论文、其他任务和可用时段的影响，在用户 Apply 前保持草稿。",
+        "只调整当前 Plan 的安排；不自动改 Task.priority、缩短估时或标记论文已完成。"
+      ],
+      "failure_signals": [
+        "承诺论文会完成，但计划时间仍不足 2 小时。",
+        "擅自覆盖会议、删除阅读任务或改写任务时长。",
+        "将“必须今天完成”只当普通排序建议而未指出资源冲突。",
+        "未让用户确认就改变正式计划或任务状态。"
+      ],
+      "scenario_focus": [
+        "硬约束冲突是否明确呈现。",
+        "取舍选项是否尊重用户的优先目标。",
+        "确定性可行性与正式状态授权边界。"
+      ]
+    },
+    {
+      "scenario_id": "H07",
+      "category": "Completion Feedback / duration evidence",
+      "initial_state": {
+        "context": "用户刚完成“整理论文提纲”。原计划 60 分钟，实际计时 105 分钟。完成操作应已可用，不得要求用户先提交反馈才能完成任务。",
+        "interaction_state": "Task 已完成；尚无本次 Execution Signal 或 Duration Evidence 反馈。"
+      },
+      "participant_prompt": "这个任务花的时间比预想长很多。",
+      "expected_successful_behavior": [
+        "不阻塞完成状态，轻量显示预计 60 分钟与实际 105 分钟，并允许用户确认“比预计久”。",
+        "可选展示“被打断 / 比预想复杂 / 状态不好 / 等待他人 / 其他”原因，也允许跳过，不强迫填写。",
+        "将本次反馈作为执行信号和时长证据交给相应确定性服务；说明它会用于改进后续计划，但不夸大一次反馈已永久改变估时。",
+        "若要修改长期偏好，另行请求显式确认；普通“完成”路径保持简单可用。"
+      ],
+      "failure_signals": [
+        "要求必须选原因或填长表单后才准完成任务。",
+        "用果实动画阻塞状态确认，或没有普通完成入口。",
+        "把一次实际用时自动写成所有同类任务的永久估时偏好。",
+        "显示与记录的计划/实际时间不一致，或错误地将任务标为未完成。"
+      ],
+      "scenario_focus": [
+        "反馈是否低负担、可选且与完成解耦。",
+        "时长证据和长期 Memory 是否有清楚授权边界。",
+        "用户能否看懂反馈对下一次计划的作用。"
+      ]
+    },
+    {
+      "scenario_id": "H08",
+      "category": "Day Closing / unfinished task disposition",
+      "initial_state": {
+        "context": "今天已完成 3 项任务；还剩“提交报销材料”（预计 20 分钟）和“阅读论文”（预计 60 分钟）。明天已有 10:00–11:00 会议；两项剩余任务都没有被取消或标记完成。",
+        "interaction_state": "今天的计划和实际投入可供 DayClosing 汇总；明日计划尚未创建。"
+      },
+      "participant_prompt": "今天剩下的明天再做，帮我整理一下明天。",
+      "expected_successful_behavior": [
+        "展示简洁的 DayClosing 摘要和两项未完成任务，并确认/呈现“移入明日草稿”的决定，不把未完成任务误认为已完成。",
+        "直接形成明日 SchedulePlan 草稿，尊重 10:00–11:00 会议并通过确定性校验排入任务。",
+        "清楚展示延期后的时段、计划差异和可能无法放入的任务；只在用户 Apply 后提交明日计划。",
+        "允许用户单独移除某项或取消操作；“整理明天”不应静默取消、复制或永久改动原 Task。"
+      ],
+      "failure_signals": [
+        "未检查会议冲突就把两项任务塞进明天。",
+        "静默取消任务、重复创建任务，或标记为今天已完成。",
+        "以总结文字代替明日计划草稿和可审阅的安排。",
+        "对明确的“剩下的明天再做”要求用户重新逐项输入任务名称。"
+      ],
+      "scenario_focus": [
+        "DayClosing 是否连接今日执行状态与次日计划。",
+        "延期、取消和完成状态是否清楚区分。",
+        "明日草稿是否尊重约束且由用户 Apply。"
+      ]
+    },
+    {
+      "scenario_id": "H09",
+      "category": "Time Memory / explicit preference confirmation",
+      "initial_state": {
+        "context": "Time Memory 有足够证据：最近 8 个类似的研究阅读任务中，实际时长平均比计划多约 25%。当前默认估时仍按 60 分钟，尚未提出或保存新的长期偏好。",
+        "interaction_state": "用户已完成本次研究阅读任务并提交了“比预计久”的轻量反馈。"
+      },
+      "participant_prompt": "以后这种任务多留点时间。",
+      "expected_successful_behavior": [
+        "给出简洁、有依据的 MemorySuggestion，例如最近类似任务通常超出约 25%，询问是否将这一默认估时调整用于明确范围的同类任务。",
+        "解释建议影响范围和预计后果，提供确认、修改范围或暂不采纳的直接选项。",
+        "只有用户显式确认后才更新长期偏好/Memory；取消、略过或离开都不得保存建议。",
+        "将本次临时排程与长期偏好清楚区分，不宣称所有任务都应加时。"
+      ],
+      "failure_signals": [
+        "仅凭“以后多留点时间”就静默写入长期 Memory。",
+        "没有证据时声称精确的 25% 规律，或不说明建议适用任务范围。",
+        "把新偏好自动应用到当前正式计划，或扩大到无关任务类型。",
+        "将 Memory 变更作为反馈必填项，或隐藏拒绝/取消选项。"
+      ],
+      "scenario_focus": [
+        "建议是否可理解并有充分证据。",
+        "长期写入是否通过明确的用户确认。",
+        "范围、影响和拒绝路径是否透明。"
+      ]
+    }
+  ]
+}

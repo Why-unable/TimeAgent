@@ -13,8 +13,12 @@ import {
   Pencil,
   Play,
 } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 
+import type { InteractionArtifact } from "../api/interactions";
+import { ensureInteraction, listPendingInteractions } from "../api/interactions";
 import type { CalendarEvent } from "../api/events";
 import type { Task } from "../api/tasks";
 import type { TodaySummary } from "../api/today";
@@ -30,6 +34,7 @@ import {
 } from "../features/today/derive";
 import { TodayTimeline } from "../features/today/today-timeline";
 import { useCompleteTodayTask, useTodaySummary } from "../features/today/hooks";
+import { interactionComponentRegistry } from "../components/planning/interaction-component-registry";
 import { useRecordTaskExecutionSignal } from "../features/tasks/hooks";
 import {
   formatDateKey,
@@ -37,6 +42,19 @@ import {
   formatTimeInUserTimezone,
 } from "../utils/datetime";
 import { Button, PageHeader } from "../components/ui/primitives";
+
+const COMPLETION_FEEDBACK_RETRY_KEY = "timeagent.completion-feedback-retry.v1";
+
+function readCompletionFeedbackRetryIds(): string[] {
+  try {
+    if (typeof window === "undefined") return [];
+    const value = window.sessionStorage.getItem(COMPLETION_FEEDBACK_RETRY_KEY);
+    const parsed: unknown = value ? JSON.parse(value) : [];
+    return Array.isArray(parsed) ? parsed.filter((id): id is string => typeof id === "string") : [];
+  } catch {
+    return [];
+  }
+}
 
 function TaskList({
   title,
@@ -279,11 +297,85 @@ function MobileNextAction({
 }
 
 export function TodayPage() {
+  const queryClient = useQueryClient();
+  const [focusInteractionId, setFocusInteractionId] = useState<string | null>(null);
+  const [feedbackDismissed, setFeedbackDismissed] = useState(false);
+  const [activeCompletionId, setActiveCompletionId] = useState<string | null>(null);
+  const [feedbackRetryTaskIds, setFeedbackRetryTaskIds] = useState<string[]>(readCompletionFeedbackRetryIds);
+  const retryingFeedbackIds = useRef(new Set<string>());
   const summary = useTodaySummary();
   const completeTask = useCompleteTodayTask();
+  const completionInteractions = useQuery({
+    queryKey: ["interactions", "task_completion"],
+    queryFn: () => listPendingInteractions({ type: "task_completion" }),
+    retry: false,
+  });
   const startTask = useRecordTaskExecutionSignal();
   const insights = useTemporalInsights();
   const actOnInsight = useActOnTemporalInsight();
+
+  const updateFeedbackRetryQueue = useCallback((update: (current: string[]) => string[]) => {
+    setFeedbackRetryTaskIds((current) => {
+      const next = update(current);
+      try {
+        window.sessionStorage.setItem(COMPLETION_FEEDBACK_RETRY_KEY, JSON.stringify(next));
+      } catch {
+        // The retry remains available in memory for this page even when session storage is unavailable.
+      }
+      return next;
+    });
+  }, []);
+
+  const installCompletionInteraction = useCallback((interaction: InteractionArtifact) => {
+    if (interaction.status !== "pending") return;
+    setFeedbackDismissed(false);
+    setActiveCompletionId(interaction.id);
+    setFocusInteractionId(interaction.id);
+    queryClient.setQueryData<InteractionArtifact[]>(["interactions", "task_completion"], (current = []) => [
+      interaction,
+      ...current.filter((entry) => entry.id !== interaction.id),
+    ]);
+  }, [queryClient]);
+
+  const retryCompletionFeedback = useCallback(async (taskId: string) => {
+    try {
+      const interaction = await ensureInteraction({ type: "task_completion", task_id: taskId });
+      installCompletionInteraction(interaction);
+      updateFeedbackRetryQueue((current) => current.filter((id) => id !== taskId));
+    } catch {
+      // Keep the task ID queued so the user can retry without repeating completion.
+    }
+  }, [installCompletionInteraction, updateFeedbackRetryQueue]);
+
+  useEffect(() => {
+    for (const taskId of feedbackRetryTaskIds) {
+      if (retryingFeedbackIds.current.has(taskId)) continue;
+      retryingFeedbackIds.current.add(taskId);
+      void retryCompletionFeedback(taskId).finally(() => retryingFeedbackIds.current.delete(taskId));
+    }
+  }, [feedbackRetryTaskIds, retryCompletionFeedback]);
+
+  useEffect(() => {
+    const rows = completionInteractions.data ?? [];
+    if (rows.length === 0) {
+      setActiveCompletionId(null);
+    } else if (!activeCompletionId || !rows.some((interaction) => interaction.id === activeCompletionId)) {
+      setActiveCompletionId(rows[0].id);
+    }
+  }, [activeCompletionId, completionInteractions.data]);
+
+  useEffect(() => {
+    if (focusInteractionId) {
+      document.getElementById(`completion-feedback-heading-${focusInteractionId}`)?.focus();
+      setFocusInteractionId(null);
+    }
+  }, [focusInteractionId]);
+
+  useEffect(() => {
+    if (feedbackDismissed) {
+      document.getElementById("today-completion-feedback-dismissed")?.focus();
+    }
+  }, [feedbackDismissed]);
 
   if (summary.isPending) {
     return <p className="mx-auto max-w-6xl text-slate-400">正在汇总今天的安排…</p>;
@@ -300,12 +392,41 @@ export function TodayPage() {
   }
 
   const data = summary.data;
+  const CompletionRenderer = interactionComponentRegistry.task_completion;
   const timeline = getTimeline(data);
   const taskCount = countPendingTasks(data);
   const pendingTasks = getPendingTasks(data);
   const isEmptyDay = timeline.length === 0 && taskCount === 0 && data.pending_reminders.length === 0;
   const nextTask = pendingTasks.find((task) => task.planned_start_at) ?? pendingTasks[0] ?? null;
-  const complete = (taskId: string) => completeTask.mutate(taskId);
+  const complete = async (taskId: string) => {
+    try {
+      await completeTask.mutateAsync(taskId);
+    } catch {
+      return;
+    }
+    try {
+      const interaction = await ensureInteraction({ type: "task_completion", task_id: taskId });
+      installCompletionInteraction(interaction);
+    } catch {
+      updateFeedbackRetryQueue((current) => current.includes(taskId) ? current : [...current, taskId]);
+    }
+  };
+  const closeCompletionInteraction = (interaction: InteractionArtifact) => {
+    setFocusInteractionId(null);
+    setFeedbackDismissed(true);
+    const remaining = (completionInteractions.data ?? []).filter((entry) => entry.id !== interaction.id);
+    if (remaining.length > 0) {
+      setFeedbackDismissed(false);
+      setActiveCompletionId(remaining[0].id);
+      setFocusInteractionId(remaining[0].id);
+    } else {
+      setActiveCompletionId(null);
+    }
+    queryClient.setQueryData<InteractionArtifact[]>(["interactions", "task_completion"], (current = []) =>
+      current.filter((entry) => entry.id !== interaction.id),
+    );
+    void queryClient.invalidateQueries({ queryKey: ["interactions", "task_completion"] });
+  };
 
   return (
     <section className="mx-auto max-w-6xl">
@@ -347,6 +468,36 @@ export function TodayPage() {
           starting={startTask.isPending}
         />
       </div>
+
+      {feedbackRetryTaskIds.length > 0 && (
+        <div role="status" className="mt-3 rounded-lg border border-amber-300/20 bg-amber-300/5 p-3 text-sm text-amber-100">
+          完成记录已保存，但反馈卡暂时不可用。{feedbackRetryTaskIds.length > 1 ? `还有 ${feedbackRetryTaskIds.length} 项可以恢复。` : "可以重试显示反馈。"}
+          <button type="button" onClick={() => void Promise.all(feedbackRetryTaskIds.map(retryCompletionFeedback))} className="ml-2 min-h-10 underline">重试</button>
+        </div>
+      )}
+      {completionInteractions.data?.filter((interaction) => interaction.id === activeCompletionId).map((interaction) => (
+        <CompletionRenderer
+          key={interaction.id}
+          interaction={interaction}
+          autoFocus={focusInteractionId === interaction.id}
+          onClose={closeCompletionInteraction}
+        />
+      ))}
+      {(completionInteractions.data?.length ?? 0) > 1 && (
+        <p className="mt-2 flex flex-wrap items-center gap-2 text-xs text-slate-400">
+          尚有 {completionInteractions.data!.length} 项可选反馈。
+          <button type="button" onClick={() => {
+            const rows = completionInteractions.data ?? [];
+            if (rows.length < 2) return;
+            const index = rows.findIndex((entry) => entry.id === activeCompletionId);
+            const next = rows[(index + 1) % rows.length];
+            setFeedbackDismissed(false);
+            setActiveCompletionId(next.id);
+            setFocusInteractionId(next.id);
+          }} className="min-h-10 underline">查看下一项</button>
+        </p>
+      )}
+      {feedbackDismissed && <p id="today-completion-feedback-dismissed" tabIndex={-1} role="status" className="mt-3 rounded-lg border border-emerald-300/20 bg-emerald-300/5 p-3 text-sm text-emerald-100">任务已完成，可选反馈已关闭。</p>}
 
       {/* Mobile stats row (own block per §7.3) */}
       <div className="mt-4 lg:hidden">

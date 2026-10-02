@@ -2150,6 +2150,183 @@
                 }
             }
         },
+        "/api/v1/interactions/": {
+            "get": {
+                "operationId": "api_v1_interactions_list",
+                "tags": [
+                    "api"
+                ],
+                "security": [
+                    {
+                        "tokenAuth": []
+                    },
+                    {
+                        "cookieAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/InteractionArtifact"
+                                    }
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            },
+            "post": {
+                "operationId": "api_v1_interactions_create",
+                "tags": [
+                    "api"
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/EnsureInteraction"
+                            }
+                        },
+                        "application/x-www-form-urlencoded": {
+                            "schema": {
+                                "$ref": "#/components/schemas/EnsureInteraction"
+                            }
+                        },
+                        "multipart/form-data": {
+                            "schema": {
+                                "$ref": "#/components/schemas/EnsureInteraction"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "security": [
+                    {
+                        "tokenAuth": []
+                    },
+                    {
+                        "cookieAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/InteractionArtifact"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/api/v1/interactions/{interaction_id}/submit/": {
+            "post": {
+                "operationId": "api_v1_interactions_submit_create",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "interaction_id",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "api"
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/InteractionSubmit"
+                            }
+                        },
+                        "application/x-www-form-urlencoded": {
+                            "schema": {
+                                "$ref": "#/components/schemas/InteractionSubmit"
+                            }
+                        },
+                        "multipart/form-data": {
+                            "schema": {
+                                "$ref": "#/components/schemas/InteractionSubmit"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "security": [
+                    {
+                        "tokenAuth": []
+                    },
+                    {
+                        "cookieAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/InteractionSubmissionResponse"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/api/v1/interactions/telemetry/": {
+            "post": {
+                "operationId": "api_v1_interactions_telemetry_create",
+                "tags": [
+                    "api"
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/InteractionTelemetry"
+                            }
+                        },
+                        "application/x-www-form-urlencoded": {
+                            "schema": {
+                                "$ref": "#/components/schemas/InteractionTelemetry"
+                            }
+                        },
+                        "multipart/form-data": {
+                            "schema": {
+                                "$ref": "#/components/schemas/InteractionTelemetry"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "security": [
+                    {
+                        "tokenAuth": []
+                    },
+                    {
+                        "cookieAuth": []
+                    }
+                ],
+                "responses": {
+                    "202": {
+                        "description": "No response body"
+                    }
+                }
+            }
+        },
         "/api/v1/notification-deliveries/": {
             "get": {
                 "operationId": "api_v1_notification_deliveries_list",
@@ -4859,7 +5036,7 @@
                     "status": {
                         "allOf": [
                             {
-                                "$ref": "#/components/schemas/Status7aeEnum"
+                                "$ref": "#/components/schemas/AgentRunStatusEnum"
                             }
                         ],
                         "readOnly": true
@@ -4921,6 +5098,18 @@
                     "trigger_payload",
                     "trigger_type"
                 ]
+            },
+            "AgentRunStatusEnum": {
+                "enum": [
+                    "pending",
+                    "running",
+                    "waiting_approval",
+                    "completed",
+                    "failed",
+                    "cancelled"
+                ],
+                "type": "string",
+                "description": "* `pending` - Pending\n* `running` - Running\n* `waiting_approval` - Waiting for approval\n* `completed` - Completed\n* `failed` - Failed\n* `cancelled` - Cancelled"
             },
             "AndroidRelease": {
                 "type": "object",
@@ -5775,7 +5964,7 @@
                     "status": {
                         "allOf": [
                             {
-                                "$ref": "#/components/schemas/Status7aeEnum"
+                                "$ref": "#/components/schemas/AgentRunStatusEnum"
                             }
                         ],
                         "readOnly": true
@@ -6412,6 +6601,33 @@
                     "email"
                 ]
             },
+            "EnsureInteraction": {
+                "type": "object",
+                "properties": {
+                    "type": {
+                        "$ref": "#/components/schemas/InteractionTypeEnum"
+                    },
+                    "plan_id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "task_id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "conversation_id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "agent_run_id": {
+                        "type": "string",
+                        "format": "uuid"
+                    }
+                },
+                "required": [
+                    "type"
+                ]
+            },
             "ErrorResponse": {
                 "type": "object",
                 "properties": {
@@ -6474,6 +6690,18 @@
                     "timezone",
                     "warnings"
                 ]
+            },
+            "EventTypeEnum": {
+                "enum": [
+                    "interaction_shown",
+                    "interaction_started",
+                    "memory_suggestion_shown",
+                    "invalid_drop",
+                    "plan_edit",
+                    "undo"
+                ],
+                "type": "string",
+                "description": "* `interaction_shown` - Interaction shown\n* `interaction_started` - Interaction started\n* `memory_suggestion_shown` - Memory suggestion shown\n* `invalid_drop` - Invalid drop\n* `plan_edit` - Plan edit\n* `undo` - Undo"
             },
             "EvidenceStatusEnum": {
                 "enum": [
@@ -6543,6 +6771,239 @@
                     "reason_codes",
                     "start_at"
                 ]
+            },
+            "InteractionArtifact": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "format": "uuid",
+                        "readOnly": true
+                    },
+                    "conversation_id": {
+                        "type": "string",
+                        "format": "uuid",
+                        "nullable": true
+                    },
+                    "agent_run_id": {
+                        "type": "string",
+                        "format": "uuid",
+                        "nullable": true
+                    },
+                    "plan_id": {
+                        "type": "string",
+                        "format": "uuid",
+                        "nullable": true
+                    },
+                    "plan_version": {
+                        "type": "integer",
+                        "maximum": 9223372036854775807,
+                        "minimum": 0,
+                        "format": "int64",
+                        "nullable": true
+                    },
+                    "task_id": {
+                        "type": "string",
+                        "format": "uuid",
+                        "nullable": true
+                    },
+                    "type": {
+                        "$ref": "#/components/schemas/InteractionTypeEnum"
+                    },
+                    "payload": {},
+                    "allowed_actions": {},
+                    "status": {
+                        "$ref": "#/components/schemas/InteractionStatusEnum"
+                    },
+                    "expires_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "version": {
+                        "type": "integer",
+                        "maximum": 9223372036854775807,
+                        "minimum": 0,
+                        "format": "int64"
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "readOnly": true
+                    },
+                    "updated_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "readOnly": true
+                    },
+                    "resolved_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "nullable": true
+                    }
+                },
+                "required": [
+                    "agent_run_id",
+                    "conversation_id",
+                    "created_at",
+                    "id",
+                    "plan_id",
+                    "task_id",
+                    "type",
+                    "updated_at"
+                ]
+            },
+            "InteractionStatusEnum": {
+                "enum": [
+                    "pending",
+                    "completed",
+                    "abandoned",
+                    "expired"
+                ],
+                "type": "string",
+                "description": "* `pending` - Pending\n* `completed` - Completed\n* `abandoned` - Abandoned\n* `expired` - Expired"
+            },
+            "InteractionSubmissionResponse": {
+                "type": "object",
+                "properties": {
+                    "accepted": {
+                        "type": "boolean"
+                    },
+                    "detail": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "interaction": {
+                        "$ref": "#/components/schemas/InteractionArtifact"
+                    },
+                    "plan": {
+                        "allOf": [
+                            {
+                                "$ref": "#/components/schemas/SchedulePlan"
+                            }
+                        ],
+                        "nullable": true
+                    },
+                    "reason_codes": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "conflicts": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "candidate": {
+                        "type": "object",
+                        "additionalProperties": {
+                            "type": "string"
+                        },
+                        "nullable": true
+                    },
+                    "replayed": {
+                        "type": "boolean"
+                    }
+                },
+                "required": [
+                    "accepted",
+                    "candidate",
+                    "conflicts",
+                    "detail",
+                    "interaction",
+                    "plan",
+                    "reason_codes",
+                    "replayed"
+                ]
+            },
+            "InteractionSubmit": {
+                "type": "object",
+                "properties": {
+                    "expected_version": {
+                        "type": "integer",
+                        "minimum": 1
+                    },
+                    "action": {
+                        "type": "string",
+                        "maxLength": 32
+                    },
+                    "values": {},
+                    "idempotency_key": {
+                        "type": "string",
+                        "maxLength": 128
+                    }
+                },
+                "required": [
+                    "action",
+                    "expected_version",
+                    "idempotency_key"
+                ]
+            },
+            "InteractionTelemetry": {
+                "type": "object",
+                "properties": {
+                    "event_type": {
+                        "$ref": "#/components/schemas/EventTypeEnum"
+                    },
+                    "interaction_type": {
+                        "$ref": "#/components/schemas/InteractionTypeEnum"
+                    },
+                    "duration_ms": {
+                        "type": "integer",
+                        "maximum": 86400000,
+                        "minimum": 0,
+                        "nullable": true
+                    },
+                    "drag_count": {
+                        "type": "integer",
+                        "maximum": 1000,
+                        "minimum": 0,
+                        "default": 0
+                    },
+                    "invalid_drop_count": {
+                        "type": "integer",
+                        "maximum": 1000,
+                        "minimum": 0,
+                        "default": 0
+                    },
+                    "undo_count": {
+                        "type": "integer",
+                        "maximum": 1000,
+                        "minimum": 0,
+                        "default": 0
+                    },
+                    "plan_edit_count": {
+                        "type": "integer",
+                        "maximum": 1000,
+                        "minimum": 0,
+                        "default": 0
+                    },
+                    "actual_vs_planned_ratio": {
+                        "type": "number",
+                        "format": "double",
+                        "maximum": 10,
+                        "minimum": 0,
+                        "nullable": true
+                    }
+                },
+                "required": [
+                    "event_type",
+                    "interaction_type"
+                ]
+            },
+            "InteractionTypeEnum": {
+                "enum": [
+                    "priority_ranking",
+                    "plan_timeline_edit",
+                    "task_completion",
+                    "memory_suggestion"
+                ],
+                "type": "string",
+                "description": "* `priority_ranking` - Priority ranking\n* `plan_timeline_edit` - Plan timeline edit\n* `task_completion` - Task completion feedback\n* `memory_suggestion` - Memory suggestion"
             },
             "LaunchBriefing": {
                 "type": "object",
@@ -8357,18 +8818,6 @@
                 ],
                 "type": "string",
                 "description": "* `started` - Started\n* `paused` - Paused\n* `resumed` - Resumed\n* `completed` - Completed\n* `skipped` - Skipped"
-            },
-            "Status7aeEnum": {
-                "enum": [
-                    "pending",
-                    "running",
-                    "waiting_approval",
-                    "completed",
-                    "failed",
-                    "cancelled"
-                ],
-                "type": "string",
-                "description": "* `pending` - Pending\n* `running` - Running\n* `waiting_approval` - Waiting for approval\n* `completed` - Completed\n* `failed` - Failed\n* `cancelled` - Cancelled"
             },
             "StrategyEnum": {
                 "enum": [

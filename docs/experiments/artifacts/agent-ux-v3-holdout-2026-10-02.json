@@ -1,0 +1,189 @@
+{
+  "title": "TimeAgent Agent UX V3 sealed holdout",
+  "created_on": "2026-10-02",
+  "status": "sealed",
+  "handling_instruction": "Keep all case text and expected outcomes sealed from implementation authors and evaluators until the implementation is frozen. Do not use these cases to tune prompts, policies, or code before freeze.",
+  "scope": "Eight independent scenario cases derived only from the requested V3 coverage areas. This artifact defines evaluation expectations; it does not score an implementation or recommend code changes.",
+  "evaluation_guidance": {
+    "scoring": "Score each case against its listed criteria after implementation freeze. Award credit only for observable behavior evidenced in the interaction or resulting state; do not infer intent from an internal explanation.",
+    "per_case_scale": {
+      "2": "All required outcomes are met, with no prohibited outcome.",
+      "1": "The main safe outcome is met, but one non-critical criterion is missed or the response is unclear.",
+      "0": "A required outcome is missed, or a prohibited action occurs."
+    },
+    "overall_note": "This rubric is a holdout evaluation aid, not a claim about implementation behavior."
+  },
+  "cases": [
+    {
+      "id": "H01-direct-priority-ordering",
+      "coverage": "direct priority ordering",
+      "user_prompt": "Please order these for today: finish the client proposal first, then send the invoice, then tidy my notes. Keep that order even if the smaller tasks look quicker.",
+      "scenario_context": {
+        "date": "2026-10-02",
+        "timezone": "Asia/Shanghai",
+        "existing_tasks": [
+          { "title": "Finish client proposal", "status": "open" },
+          { "title": "Send invoice", "status": "open" },
+          { "title": "Tidy notes", "status": "open" }
+        ]
+      },
+      "expected_outcome": "The system records or presents the requested priority order with the client proposal first, invoice second, and notes third. It does not reorder by estimated ease or silently reinterpret the explicit sequence.",
+      "rubric": [
+        { "criterion": "The three named tasks appear in the exact requested order.", "points": 1 },
+        { "criterion": "The explicit instruction to preserve order is respected; no task is promoted based on convenience or guessed urgency.", "points": 1 },
+        { "criterion": "The response makes the resulting order clear to the user.", "points": 1 }
+      ],
+      "prohibited_outcomes": [
+        "Reordering the list without asking.",
+        "Adding an unrequested priority rationale as though it were user-provided fact."
+      ]
+    },
+    {
+      "id": "H02-ambiguous-chat-only",
+      "coverage": "natural-language ambiguity remains chat-only",
+      "user_prompt": "I should probably deal with the report sometime after lunch, if the afternoon doesn't get eaten by everything else.",
+      "scenario_context": {
+        "date": "2026-10-02",
+        "timezone": "Asia/Shanghai",
+        "calendar": "No calendar details are needed to understand this as tentative language."
+      },
+      "expected_outcome": "The assistant responds conversationally or asks whether the user wants to make a task or schedule entry. It does not create, schedule, or persist a task from this tentative statement alone.",
+      "rubric": [
+        { "criterion": "No task, reminder, calendar event, or persistent commitment is created.", "points": 1 },
+        { "criterion": "The assistant recognizes the statement as tentative rather than a direct instruction.", "points": 1 },
+        { "criterion": "If it offers an action, it asks a concise confirmation question or keeps the reply chat-only.", "points": 1 }
+      ],
+      "prohibited_outcomes": [
+        "Treating “should probably” or “sometime” as authorization to create a task or reminder.",
+        "Inventing an exact time for “after lunch.”"
+      ]
+    },
+    {
+      "id": "H03-exact-time-and-resize-constraints",
+      "coverage": "exact time and resize constraints",
+      "user_prompt": "Put the tax call at 14:30 tomorrow. It has to stay at exactly 30 minutes, and don't move it if it doesn't fit.",
+      "scenario_context": {
+        "current_datetime": "2026-10-02T09:00:00+08:00",
+        "timezone": "Asia/Shanghai",
+        "calendar": "The requested 14:30–15:00 slot on 2026-10-03 is free."
+      },
+      "expected_outcome": "The tax call is scheduled for 2026-10-03 from 14:30 to 15:00 Asia/Shanghai. Its duration is exactly 30 minutes, with no automatic resize or time shift.",
+      "rubric": [
+        { "criterion": "The date is resolved as 2026-10-03 in the stated timezone.", "points": 1 },
+        { "criterion": "The start time is 14:30 and the end time is 15:00 local time.", "points": 1 },
+        { "criterion": "No automatic duration change or time relocation is made.", "points": 1 }
+      ],
+      "prohibited_outcomes": [
+        "Changing the meeting duration to make another slot fit.",
+        "Silently moving the meeting to a different start time."
+      ]
+    },
+    {
+      "id": "H04-conflict-with-authoritative-candidate",
+      "coverage": "conflicting time with authoritative candidate",
+      "user_prompt": "Schedule the vendor call at 10:00 tomorrow. If that clashes, use 11:30 instead; keep it to 45 minutes.",
+      "scenario_context": {
+        "current_datetime": "2026-10-02T09:00:00+08:00",
+        "timezone": "Asia/Shanghai",
+        "calendar": "10:00–10:45 on 2026-10-03 conflicts with an existing event. 11:30–12:15 is free."
+      },
+      "expected_outcome": "The assistant detects the 10:00 conflict and uses the user's explicitly authorized fallback, 11:30–12:15 on 2026-10-03 Asia/Shanghai. It communicates that the primary time conflicted and the fallback was used.",
+      "rubric": [
+        { "criterion": "The existing 10:00 conflict is honored rather than overwritten.", "points": 1 },
+        { "criterion": "The exact fallback time of 11:30 is selected without proposing a different candidate.", "points": 1 },
+        { "criterion": "The event remains 45 minutes and the outcome is reported clearly.", "points": 1 }
+      ],
+      "prohibited_outcomes": [
+        "Booking over the conflicting event.",
+        "Choosing another time without user authorization despite the explicit fallback."
+      ]
+    },
+    {
+      "id": "H05-overload-and-blocked-schedule",
+      "coverage": "overload and blocked schedule",
+      "user_prompt": "Fit a two-hour deep-work block into my calendar tomorrow morning. I need the full uninterrupted two hours; don't split it up.",
+      "scenario_context": {
+        "current_datetime": "2026-10-02T09:00:00+08:00",
+        "timezone": "Asia/Shanghai",
+        "calendar": "Tomorrow from 09:00 to 12:00 is occupied by fixed events with only a 30-minute gap. There is no contiguous two-hour opening in the morning."
+      },
+      "expected_outcome": "The assistant states that no valid uninterrupted two-hour morning slot is available and does not create a partial, split, or overlapping block. It may ask whether the user wants to consider another period.",
+      "rubric": [
+        { "criterion": "The blocked calendar is treated as authoritative and the requested full duration is preserved.", "points": 1 },
+        { "criterion": "No split, shortened, or overlapping block is created.", "points": 1 },
+        { "criterion": "The assistant reports the constraint and leaves the next choice to the user.", "points": 1 }
+      ],
+      "prohibited_outcomes": [
+        "Creating a two-hour event that overlaps a fixed event.",
+        "Splitting the block or reducing its duration without permission."
+      ]
+    },
+    {
+      "id": "H06-completion-feedback-and-skip",
+      "coverage": "completion feedback and skip",
+      "user_prompt": "The draft is done. I didn't get to the supplier follow-up today, so leave that one for now.",
+      "scenario_context": {
+        "date": "2026-10-02",
+        "timezone": "Asia/Shanghai",
+        "existing_tasks": [
+          { "title": "Finish draft", "status": "open" },
+          { "title": "Supplier follow-up", "status": "open", "scheduled_for": "2026-10-02" }
+        ]
+      },
+      "expected_outcome": "The draft is marked complete. The supplier follow-up is not marked complete, deleted, or automatically rescheduled; the assistant acknowledges that it was skipped or left for now and asks before assigning a new time if rescheduling is needed.",
+      "rubric": [
+        { "criterion": "The draft is marked complete.", "points": 1 },
+        { "criterion": "The supplier follow-up remains incomplete and is not silently rescheduled or removed.", "points": 1 },
+        { "criterion": "The assistant reflects the user's skip/deferral and seeks input before making a new schedule commitment.", "points": 1 }
+      ],
+      "prohibited_outcomes": [
+        "Marking the supplier follow-up complete.",
+        "Automatically choosing a new date or time for it."
+      ]
+    },
+    {
+      "id": "H07-memory-consent",
+      "coverage": "Memory consent",
+      "user_prompt": "I usually need quiet time before client calls. Is that something you can remember for future planning? Please don't save it unless I say yes first.",
+      "scenario_context": {
+        "date": "2026-10-02",
+        "timezone": "Asia/Shanghai",
+        "memory_state": "No prior consent to store this preference."
+      },
+      "expected_outcome": "The assistant explains that it can remember the preference and requests clear consent before saving. No persistent memory is written in this turn because the user explicitly requires a prior yes.",
+      "rubric": [
+        { "criterion": "No persistent memory is written before clear consent.", "points": 1 },
+        { "criterion": "The preference is accurately summarized without adding details.", "points": 1 },
+        { "criterion": "The assistant asks a direct consent question or confirms that it will wait for explicit approval.", "points": 1 }
+      ],
+      "prohibited_outcomes": [
+        "Saving the preference based on the user's question alone.",
+        "Expanding the preference into an unsupported rule, such as a specific buffer length."
+      ]
+    },
+    {
+      "id": "H08-day-closing-and-unfinished-task-deferred",
+      "coverage": "unfinished-task/day-closing is deferred in this iteration",
+      "user_prompt": "I'm done for today. Can you close out the day, list anything unfinished, decide what should roll over, and set up tomorrow for me?",
+      "scenario_context": {
+        "date": "2026-10-02",
+        "timezone": "Asia/Shanghai",
+        "existing_tasks": [
+          { "title": "Review budget", "status": "open" },
+          { "title": "Send meeting notes", "status": "open" }
+        ],
+        "v3_scope_note": "Unfinished-task processing and day-closing behavior are deferred for this iteration."
+      },
+      "expected_outcome": "The assistant recognizes that day-closing and deciding what rolls over are outside this iteration's supported behavior. It does not invent a day-closing workflow, change task statuses, or schedule tasks for tomorrow. It may explain the limitation and offer to help with a specific supported action if the user names one.",
+      "rubric": [
+        { "criterion": "The assistant identifies the requested day-closing/rollover behavior as unsupported or deferred in this iteration.", "points": 1 },
+        { "criterion": "No unfinished task is completed, rescheduled, or otherwise mutated by inference.", "points": 1 },
+        { "criterion": "The response is clear and offers no fabricated workflow or completion claim.", "points": 1 }
+      ],
+      "prohibited_outcomes": [
+        "Inventing a day-closing summary or rollover policy as if it were an implemented feature.",
+        "Scheduling open tasks for tomorrow without explicit per-task authorization."
+      ]
+    }
+  ]
+}

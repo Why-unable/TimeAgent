@@ -59,6 +59,9 @@ type ChatEntry =
       kind: "schedule_plan";
       planId: string;
       version: number;
+      conversationId?: string;
+      agentRunId?: string;
+      agentRunActive?: boolean;
       plan?: SchedulePlan;
       state: "loading" | "loaded" | "failed";
     }
@@ -82,6 +85,7 @@ const toolActivities: Record<string, string> = {
   list_tasks: "正在读取你的任务…",
   get_planning_context: "正在检查可用时间…",
   propose_schedule_plan: "正在安排任务…",
+  request_plan_interaction: "正在准备计划交互…",
   validate_schedule_plan: "正在检查计划…",
   apply_schedule_plan: "正在更新计划…",
   create_event: "正在准备日程变更…",
@@ -160,10 +164,18 @@ function SchedulePlanArtifactCard({
   entry,
   timezone,
   onRetry,
+  onPlanChange,
+  conversationId,
+  agentRunId,
+  agentRunActive,
 }: {
   entry: Extract<ChatEntry, { kind: "schedule_plan" }>;
   timezone: string;
   onRetry: () => void;
+  onPlanChange: (plan: SchedulePlan) => void;
+  conversationId?: string;
+  agentRunId?: string;
+  agentRunActive?: boolean;
 }) {
   const tasks = useTasks();
   const taskTitles = useMemo(
@@ -195,8 +207,17 @@ function SchedulePlanArtifactCard({
       {entry.state === "failed" && <p role="alert" className="mt-3 text-sm text-amber-200">暂时无法加载这份计划。你可以重试，或继续在对话里调整。</p>}
       {entry.state === "loaded" && entry.plan && (
         <>
-          <PlanPreview items={visibleItems} taskTitles={taskTitles} timezone={timezone} />
-          <p className="mt-3 border-t border-white/10 pt-3 text-xs leading-5 text-slate-400">可以继续告诉助理如何调整；正式应用前会按确认流程检查。</p>
+          <PlanPreview
+            items={visibleItems}
+            taskTitles={taskTitles}
+            timezone={timezone}
+            plan={entry.plan}
+            onPlanChange={onPlanChange}
+            conversationId={conversationId}
+            agentRunId={agentRunId}
+            agentRunActive={agentRunActive}
+          />
+          <p className="mt-3 border-t border-white/10 pt-3 text-xs leading-5 text-slate-400">可以直接拖动或输入时间调整草案，也可以继续告诉助理如何调整；正式应用前会按确认流程检查。</p>
         </>
       )}
     </section>
@@ -207,7 +228,7 @@ function entriesFromRuns(runs: Array<AgentRun & { artifacts: Array<{
   artifact_type: string;
   artifact_id: string;
   version: number;
-}> }>): ChatEntry[] {
+}> }>, conversationId?: string): ChatEntry[] {
   const entries = runs.flatMap((run) => {
     const entries: ChatEntry[] = run.synthetic_input
       ? [{ id: `trigger-${run.id}`, kind: "notice", content: run.input_message, tone: "muted" }]
@@ -236,6 +257,9 @@ function entriesFromRuns(runs: Array<AgentRun & { artifacts: Array<{
         kind: "schedule_plan",
         planId: artifact.artifact_id,
         version: artifact.version,
+        conversationId,
+        agentRunId: run.id,
+        agentRunActive: ACTIVE_RUN_STATUSES.has(run.status),
         state: "loading",
       });
     }
@@ -255,8 +279,15 @@ function entriesFromRuns(runs: Array<AgentRun & { artifacts: Array<{
       continue;
     }
     const previous = uniqueEntries[index];
-    if (previous.kind === "schedule_plan" && entry.version > previous.version) {
-      uniqueEntries[index] = { ...previous, version: entry.version };
+    if (previous.kind === "schedule_plan") {
+      uniqueEntries[index] = {
+        ...previous,
+        version: Math.max(previous.version, entry.version),
+        conversationId: entry.conversationId ?? previous.conversationId,
+        agentRunId: entry.agentRunId,
+        agentRunActive: entry.agentRunActive,
+        state: "loading",
+      };
     }
   }
   return uniqueEntries;
@@ -376,7 +407,12 @@ export function ChatPage() {
     ));
   }, []);
 
-  const loadPlanArtifact = useCallback(async (planId: string, minimumVersion = 1) => {
+  const loadPlanArtifact = useCallback(async (
+    planId: string,
+    minimumVersion = 1,
+    agentRunId?: string,
+    agentRunActive = false,
+  ) => {
     const entryId = `plan-artifact-${planId}`;
     setEntries((current) => {
       const exists = current.some((entry) => entry.kind === "schedule_plan" && entry.planId === planId);
@@ -386,11 +422,14 @@ export function ChatPage() {
           kind: "schedule_plan",
           planId,
           version: minimumVersion,
+          conversationId,
+          agentRunId,
+          agentRunActive,
           state: "loading",
         }];
       }
       return current.map((entry) => entry.kind === "schedule_plan" && entry.planId === planId
-        ? { ...entry, version: Math.max(entry.version, minimumVersion), state: "loading" }
+        ? { ...entry, version: Math.max(entry.version, minimumVersion), conversationId: entry.conversationId ?? conversationId, agentRunId: agentRunId ?? entry.agentRunId, agentRunActive: agentRunId === undefined ? entry.agentRunActive || agentRunActive : agentRunActive, state: "loading" }
         : entry);
     });
 
@@ -409,7 +448,7 @@ export function ChatPage() {
         ? { ...entry, state: "failed" }
         : entry));
     }
-  }, []);
+  }, [conversationId]);
 
   const applyEvent = useCallback((activeRunId: string, event: AgentStreamEvent) => {
     const callId = String(event.data.tool_call_id ?? event.id);
@@ -423,7 +462,7 @@ export function ChatPage() {
       const artifactType = String(event.data.artifact_type ?? "");
       const version = Number(event.data.version);
       if (artifactType === "schedule_plan" && artifactId && Number.isInteger(version) && version > 0) {
-        void loadPlanArtifact(artifactId, version);
+        void loadPlanArtifact(artifactId, version, activeRunId, true);
       }
     } else if (event.type === "tool.started") {
       setEntries((current) => current.some((entry) => entry.kind === "tool" && entry.id === callId)
@@ -530,6 +569,9 @@ export function ChatPage() {
       }
     } finally {
       if (!abortController.signal.aborted) {
+        setEntries((current) => current.map((entry) => entry.kind === "schedule_plan" && entry.agentRunId === activeRunId
+          ? { ...entry, agentRunActive: false }
+          : entry));
         setBusy(false);
         setRunId(null);
         controller.current = null;
@@ -563,11 +605,11 @@ export function ChatPage() {
         const approvalEntries: ChatEntry[] = proposals
           .filter((proposal) => proposal.conversation_id === conversation.id)
           .map((proposal) => ({ id: `approval-${proposal.id}`, kind: "approval", proposal }));
-        const historyEntries = entriesFromRuns(conversation.runs);
+        const historyEntries = entriesFromRuns(conversation.runs, conversation.id);
         setEntries([...historyEntries, ...approvalEntries]);
         for (const entry of historyEntries) {
           if (entry.kind === "schedule_plan") {
-            void loadPlanArtifact(entry.planId, entry.version);
+            void loadPlanArtifact(entry.planId, entry.version, entry.agentRunId);
           }
         }
         const activeRun = [...conversation.runs].reverse().find((run) => ACTIVE_RUN_STATUSES.has(run.status));
@@ -820,7 +862,15 @@ export function ChatPage() {
                   key={entry.id}
                   entry={entry}
                   timezone={timezone}
-                  onRetry={() => void loadPlanArtifact(entry.planId, entry.version)}
+                  onRetry={() => void loadPlanArtifact(entry.planId, entry.version, entry.agentRunId)}
+                  onPlanChange={(updatedPlan) => setEntries((current) => current.map((candidate) =>
+                    candidate.kind === "schedule_plan" && candidate.planId === updatedPlan.id
+                    ? { ...candidate, plan: updatedPlan, version: updatedPlan.version ?? candidate.version, state: "loaded" }
+                      : candidate,
+                  ))}
+                  conversationId={entry.conversationId}
+                  agentRunId={entry.agentRunId}
+                  agentRunActive={entry.agentRunActive}
                 />
               );
             }

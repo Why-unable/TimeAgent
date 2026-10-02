@@ -1,4 +1,8 @@
-from apps.agents.tool_routing import select_tool_names, should_limit_to_read_tools
+from apps.agents.tool_routing import (
+    is_explicit_plan_interaction_request,
+    select_tool_names,
+    should_limit_to_read_tools,
+)
 
 
 def test_replan_intent_exposes_free_slot_context_tool() -> None:
@@ -76,6 +80,22 @@ def test_planning_preview_route_matches_longer_natural_schedule_requests() -> No
         assert "propose_schedule_plan" in tools
 
 
+def test_schedule_by_existing_task_titles_exposes_task_lookup_and_plan_tools() -> None:
+    prompt = (
+        "请先用任务列表按标题查找并确认这两条已有任务（不要把标题当作任务 ID），"
+        "再只为「V3 staging Alpha 1234abcd」和「V3 staging Beta 1234abcd」"
+        "创建下一个工作日的排程草案。"
+    )
+
+    tools = select_tool_names(prompt)
+
+    assert tools is not None
+    assert "list_tasks" in tools
+    assert "get_planning_context" in tools
+    assert "propose_schedule_plan" in tools
+    assert not should_limit_to_read_tools(prompt)
+
+
 def test_apply_saved_plan_route_exposes_the_approval_tool() -> None:
     prompt = (
         "请应用计划 00000000-0000-0000-0000-000000000000 当前版本 2。"
@@ -87,6 +107,17 @@ def test_apply_saved_plan_route_exposes_the_approval_tool() -> None:
     assert tools is not None
     assert "apply_schedule_plan" in tools
     assert not should_limit_to_read_tools(prompt)
+
+
+def test_explicit_plan_interaction_request_is_not_treated_as_read_only() -> None:
+    prompt = (
+        "请为计划 00000000-0000-0000-0000-000000000000 打开本次计划的优先顺序交互，"
+        "让我自己决定两个任务的先后顺序。不要替我排序，不要更改永久优先级，也不要应用计划。"
+    )
+
+    assert is_explicit_plan_interaction_request(prompt)
+    assert not should_limit_to_read_tools(prompt)
+    assert select_tool_names(prompt) == frozenset({"request_plan_interaction"})
 
 
 def test_ordered_workflow_with_daily_constraints_is_schedule_intent() -> None:

@@ -25,6 +25,7 @@ _PACK_INTENTS: dict[str, tuple[str, ...]] = {
         r"\b(?:what time is it|current time|what is today's date|what is the date today)\b",
     ),
     "planning_preview": (
+        r"(?:创建|生成|提出).{0,32}(?:排程|日程|计划|草案)|(?:排程|日程|计划|草案).{0,32}(?:创建|生成|提出)|"
         r"排期|排程|排到|排入|排下|规划|计划一下|帮我安排|安排(?:一下|任务|这些|课程|工作)|"
         r"安排.{0,20}(?:任务|待办|事情|事项|要做|工作)|"
         r"(?:任务|待办|事项|工作|项目).{0,20}(?:安排|排程|排期|排入|排到|规划|分散)|"
@@ -105,6 +106,13 @@ _VAGUE_PLANNING_REQUEST = re.compile(
     r"安排一下(?:重要的事|事情|某件事)",
     re.IGNORECASE,
 )
+_PLAN_INTERACTION_REQUEST = re.compile(
+    r"(?:打开|开启|展示|提供|请求|调出).{0,32}"
+    r"(?:优先顺序|排序|时间线).{0,8}(?:交互|控件|组件)|"
+    r"(?:计划|草案).{0,80}(?:打开|开启|展示|提供|请求|调出).{0,32}"
+    r"(?:优先顺序|排序|时间线).{0,8}(?:交互|控件|组件)",
+    re.IGNORECASE,
+)
 _MULTI_TASK_SCHEDULE_REQUEST = re.compile(
     r"(?:两|二|三|四|五|几|多|若干|所有|全部|这几|这些).{0,4}"
     r"(?:个|项|件)?(?:任务|待办|事情|事项|事|要做)|"
@@ -135,6 +143,12 @@ _TASK_MANAGEMENT_INTENT = re.compile(
     r"(?:任务|待办|事情|事项|要做)|"
     r"(?:任务|待办).{0,8}(?:新增|创建|编辑|修改|更新|标记|完成|取消|删除|"
     r"改到|改为|改期|调整|挪到|提前|延后|重排)",
+    re.IGNORECASE,
+)
+_TASK_LOOKUP_INTENT = re.compile(
+    r"任务列表|(?:查找|搜索|列出|查看).{0,8}(?:任务|待办)|"
+    r"(?:任务|待办).{0,8}(?:标题|名称).{0,8}(?:查找|搜索|匹配)|"
+    r"\b(?:list|find|search)\s+tasks?\b",
     re.IGNORECASE,
 )
 _TASK_RECORD_MUTATION_INTENT = re.compile(
@@ -176,6 +190,12 @@ def _has_positive_intent(pattern: re.Pattern[str], text: str) -> bool:
     )
 
 
+def is_explicit_plan_interaction_request(message: str) -> bool:
+    """Recognize a user's direct request to open a typed control for a draft."""
+
+    return bool(_PLAN_INTERACTION_REQUEST.search(message))
+
+
 def _has_constraint_driven_schedule_intent(message: str) -> bool:
     """Recognize a structured task plan even without an explicit schedule verb."""
 
@@ -199,6 +219,9 @@ def select_tool_names(message: str) -> frozenset[str] | None:
         for pack, patterns in _PACK_INTENTS.items()
         if any(re.search(pattern, text, re.IGNORECASE) for pattern in patterns)
     }
+    plan_interaction_request = is_explicit_plan_interaction_request(text)
+    if plan_interaction_request:
+        matched.add("plan_review")
     if _has_constraint_driven_schedule_intent(text):
         matched.add("planning_preview")
     if "plan_comparison" in matched:
@@ -213,7 +236,7 @@ def select_tool_names(message: str) -> frozenset[str] | None:
             matched.discard("calendar")
     if "planning_preview" in matched:
         matched.add("plan_review")
-        if _has_positive_intent(_TASK_MANAGEMENT_INTENT, text):
+        if _has_positive_intent(_TASK_MANAGEMENT_INTENT, text) or _TASK_LOOKUP_INTENT.search(text):
             matched.add("tasks")
         else:
             matched.discard("tasks")
@@ -222,6 +245,10 @@ def select_tool_names(message: str) -> frozenset[str] | None:
     if not matched or len(matched) > 4:
         return None
     selected = set().union(*(PACK_TOOL_NAMES[pack] for pack in matched))
+    if plan_interaction_request:
+        # Opening a draft control persists a typed interaction artifact. Keep
+        # this explicit low-risk request separate from Apply and other writes.
+        selected.intersection_update({"request_plan_interaction"})
     if "tasks" in matched and not _has_positive_intent(_TASK_MANAGEMENT_INTENT, text):
         selected.difference_update(_TASK_WRITE_TOOL_NAMES)
     if "calendar" in matched and not _has_positive_intent(_CALENDAR_MANAGEMENT_INTENT, text):
@@ -244,6 +271,8 @@ def select_tool_names(message: str) -> frozenset[str] | None:
 
 
 def should_limit_to_read_tools(message: str) -> bool:
+    if is_explicit_plan_interaction_request(message):
+        return False
     if _VAGUE_PLANNING_REQUEST.search(message):
         return True
     if _STRICT_READ_ONLY_INTENT.search(message):

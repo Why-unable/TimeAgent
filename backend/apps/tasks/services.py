@@ -164,6 +164,7 @@ class TaskService:
         lock_user_schedule_writes(user)
         task = Task.objects.select_for_update().get(pk=task_id, user=user)
         if task.status == TaskStatus.COMPLETED:
+            TaskService._ensure_completion_feedback(task)
             return task
 
         old_snapshot = TaskService._snapshot(task)
@@ -181,7 +182,28 @@ class TaskService:
             old_snapshot=old_snapshot,
             occurred_at=task.completed_at,
         )
+        TaskService._ensure_completion_feedback(task)
         return task
+
+    @staticmethod
+    def _ensure_completion_feedback(task: Task) -> None:
+        """Create the optional check-in without making task completion depend on it."""
+
+        from apps.interactions.models import InteractionType
+        from apps.interactions.services import InteractionArtifactService
+
+        try:
+            with transaction.atomic():
+                InteractionArtifactService.ensure(
+                    user=task.user,
+                    interaction_type=InteractionType.TASK_COMPLETION,
+                    task_id=task.pk,
+                    now=task.completed_at,
+                )
+        except Exception:
+            # A completed task remains authoritative even if this optional surface
+            # cannot be persisted. Replaying completion retries this reconciliation.
+            return
 
     @staticmethod
     @transaction.atomic
@@ -225,10 +247,15 @@ class TaskService:
         user: User,
         planned_start_at: datetime | None,
         planned_end_at: datetime | None,
+        estimated_minutes: int | None = None,
         expected_version: int | None = None,
         validate_conflicts: bool = True,
         origin: str = "web",
     ) -> Task:
+        if estimated_minutes is not None and (
+            type(estimated_minutes) is not int or estimated_minutes < 1
+        ):
+            raise ValueError("estimated_minutes must be a positive integer")
         TaskService._ensure_persisted_user(user)
         lock_user_schedule_writes(user)
         task = Task.objects.select_for_update().get(pk=task_id, user=user)
@@ -237,6 +264,8 @@ class TaskService:
         old_snapshot = TaskService._snapshot(task)
         task.planned_start_at = planned_start_at
         task.planned_end_at = planned_end_at
+        if estimated_minutes is not None:
+            task.estimated_minutes = estimated_minutes
         task.version += 1
         task.full_clean()
         if validate_conflicts and planned_start_at is not None and planned_end_at is not None:
@@ -275,6 +304,8 @@ class TaskService:
         task = Task.objects.select_for_update().get(pk=task_id, user=user)
         normalized_status = TaskStatus(status)
         if task.status == normalized_status:
+            if normalized_status == TaskStatus.COMPLETED:
+                TaskService._ensure_completion_feedback(task)
             return task
         old_snapshot = TaskService._snapshot(task)
         task.transition_to(normalized_status, occurred_at=occurred_at)
@@ -300,6 +331,8 @@ class TaskService:
             old_snapshot=old_snapshot,
             occurred_at=occurred_at,
         )
+        if normalized_status == TaskStatus.COMPLETED:
+            TaskService._ensure_completion_feedback(task)
         return task
 
     @staticmethod
@@ -361,6 +394,8 @@ class TaskService:
                     old_snapshot=old_snapshots[task.pk],
                     occurred_at=occurred_at,
                 )
+            if normalized_status == TaskStatus.COMPLETED:
+                TaskService._ensure_completion_feedback(task)
         return tasks
 
     @staticmethod
@@ -415,6 +450,7 @@ class TaskService:
                 "due_at",
                 "planned_start_at",
                 "planned_end_at",
+                "estimated_minutes",
                 "completed_at",
                 "buffer_before_minutes",
                 "buffer_after_minutes",

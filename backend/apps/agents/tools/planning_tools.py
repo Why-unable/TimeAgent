@@ -8,6 +8,7 @@ from pydantic import AwareDatetime
 
 from apps.agents.context import RuntimeContext
 from apps.agents.tools.common import require_actor, require_writable
+from apps.interactions.services import InteractionArtifactService
 from apps.planning.adaptive import AdaptivePlanningService
 from apps.planning.automation import AutomationPolicyService
 from apps.planning.schemas import (
@@ -338,6 +339,47 @@ def edit_schedule_plan(
 
 
 @tool
+def request_plan_interaction(
+    plan_id: UUID,
+    interaction_type: Literal["priority_ranking", "plan_timeline_edit"],
+    runtime: ToolRuntime[RuntimeContext],
+) -> dict[str, object]:
+    """Request one typed, frontend-rendered decision for an active plan draft.
+
+    Use only when a concrete user decision remains and direct ranking or timeline
+    editing would resolve it. Do not call by default after every draft; when no
+    unresolved decision remains, the user can still open the optional controls.
+    This creates no UI markup and does not apply the schedule.
+    """
+
+    interaction = InteractionArtifactService.ensure(
+        user=require_writable(runtime),
+        interaction_type=interaction_type,
+        plan_id=plan_id,
+        conversation_id=(
+            UUID(runtime.context.conversation_id)
+            if runtime.context.conversation_id is not None
+            else None
+        ),
+        agent_run_id=(
+            UUID(runtime.context.agent_run_id) if runtime.context.agent_run_id is not None else None
+        ),
+        now=runtime.context.current_datetime,
+    )
+    return {
+        "interaction_id": str(interaction.pk),
+        "interaction_type": interaction.type,
+        "plan_id": str(interaction.plan_id),
+        "plan_version": interaction.plan_version,
+        "version": interaction.plan_version,
+        "interaction_version": interaction.version,
+        "allowed_actions": interaction.allowed_actions,
+        "status": interaction.status,
+        "payload": interaction.payload,
+    }
+
+
+@tool
 def abandon_schedule_plan(
     plan_id: UUID,
     expected_version: int,
@@ -416,6 +458,7 @@ PLANNING_READ_TOOLS = [
     list_automation_policies,
 ]
 PLANNING_WRITE_TOOLS = [
+    request_plan_interaction,
     validate_schedule_plan,
     edit_schedule_plan,
     abandon_schedule_plan,

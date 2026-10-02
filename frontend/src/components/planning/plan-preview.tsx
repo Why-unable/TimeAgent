@@ -1,6 +1,8 @@
 import { Lock } from "lucide-react";
 
+import type { SchedulePlan } from "../../api/planning";
 import { formatInUserTimezone, formatTimeInUserTimezone } from "../../utils/datetime";
+import { InteractivePlanningSurface } from "./interactive-planning-surface";
 
 export interface PlanPreviewItem {
   task_id?: string;
@@ -16,10 +18,22 @@ export function PlanPreview({
   items,
   taskTitles,
   timezone,
+  plan,
+  onPlanChange,
+  onRefreshPlan,
+  conversationId,
+  agentRunId,
+  agentRunActive,
 }: {
   items: PlanPreviewItem[];
   taskTitles: Map<string, string>;
   timezone: string;
+  plan?: SchedulePlan;
+  onPlanChange?: (plan: SchedulePlan) => void;
+  onRefreshPlan?: () => Promise<void>;
+  conversationId?: string;
+  agentRunId?: string;
+  agentRunActive?: boolean;
 }) {
   const placed = items.filter((item) => item.state === "placed" && item.start_at).slice().sort(
     (left, right) => new Date(left.start_at as string).getTime() - new Date(right.start_at as string).getTime(),
@@ -31,6 +45,19 @@ export function PlanPreview({
   return (
     <section aria-label="计划时间线" className="mt-4">
       <h4 className="mb-3 text-sm font-semibold text-slate-200">安排预览</h4>
+      {plan?.status === "draft" && (
+        <InteractivePlanningSurface
+          plan={plan}
+          taskTitles={taskTitles}
+          timezone={timezone}
+          onPlanChange={onPlanChange}
+          onRefreshPlan={onRefreshPlan}
+          conversationId={conversationId}
+          agentRunId={agentRunId}
+          agentRunActive={agentRunActive}
+        />
+      )}
+      {plan?.status !== "draft" && <>
       {placed.length > 0 && <ol className="ml-2 space-y-0 border-l border-cyan-300/25">
         {placed.map((item, index) => {
           const title = taskTitles.get(item.task_id ?? "") ?? "任务";
@@ -48,6 +75,7 @@ export function PlanPreview({
         <p className="text-xs font-semibold text-amber-200">未安排 · {unplaced.length} 项</p>
         <ul className="mt-2 space-y-2">{unplaced.map((item, index) => <li key={`${item.task_id}-${index}`} className="text-sm text-slate-200"><span>{taskTitles.get(item.task_id ?? "") ?? "任务"}</span><p className="mt-1 text-xs text-slate-400">暂时没有合适的安排位置；你可以调整计划范围或任务。</p></li>)}</ul>
       </div>}
+      </>}
     </section>
   );
 }

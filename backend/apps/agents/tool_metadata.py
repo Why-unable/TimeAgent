@@ -63,6 +63,7 @@ PACK_TOOL_NAMES: dict[str, frozenset[str]] = {
         {
             "get_planning_context",
             "validate_schedule_plan",
+            "request_plan_interaction",
             "edit_schedule_plan",
             "abandon_schedule_plan",
             "apply_schedule_plan",
@@ -109,6 +110,7 @@ DRAFT_TOOL_NAMES = frozenset(
         "compare_schedule_plans",
         "edit_schedule_plan",
         "abandon_schedule_plan",
+        "request_plan_interaction",
     }
 )
 DERIVE_TOOL_NAMES = frozenset({"list_temporal_insights", "validate_schedule_plan"})

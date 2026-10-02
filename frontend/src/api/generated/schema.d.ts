@@ -718,6 +718,54 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/interactions/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["api_v1_interactions_list"];
+        put?: never;
+        post: operations["api_v1_interactions_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/interactions/{interaction_id}/submit/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["api_v1_interactions_submit_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/interactions/telemetry/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["api_v1_interactions_telemetry_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/notification-deliveries/": {
         parameters: {
             query?: never;
@@ -1571,7 +1619,7 @@ export interface components {
             readonly trigger_type: string;
             readonly trigger_payload: unknown;
             readonly synthetic_input: boolean;
-            readonly status: components["schemas"]["Status7aeEnum"];
+            readonly status: components["schemas"]["AgentRunStatusEnum"];
             readonly input_message: string;
             /** Format: date-time */
             readonly anchor_at: string;
@@ -1585,6 +1633,16 @@ export interface components {
             /** Format: date-time */
             readonly created_at: string;
         };
+        /**
+         * @description * `pending` - Pending
+         *     * `running` - Running
+         *     * `waiting_approval` - Waiting for approval
+         *     * `completed` - Completed
+         *     * `failed` - Failed
+         *     * `cancelled` - Cancelled
+         * @enum {string}
+         */
+        AgentRunStatusEnum: "pending" | "running" | "waiting_approval" | "completed" | "failed" | "cancelled";
         AndroidRelease: {
             version_code: number;
             version_name: string;
@@ -1846,7 +1904,7 @@ export interface components {
             readonly trigger_type: string;
             readonly trigger_payload: unknown;
             readonly synthetic_input: boolean;
-            readonly status: components["schemas"]["Status7aeEnum"];
+            readonly status: components["schemas"]["AgentRunStatusEnum"];
             readonly input_message: string;
             /** Format: date-time */
             readonly anchor_at: string;
@@ -2045,6 +2103,17 @@ export interface components {
             /** Format: email */
             email: string;
         };
+        EnsureInteraction: {
+            type: components["schemas"]["InteractionTypeEnum"];
+            /** Format: uuid */
+            plan_id?: string;
+            /** Format: uuid */
+            task_id?: string;
+            /** Format: uuid */
+            conversation_id?: string;
+            /** Format: uuid */
+            agent_run_id?: string;
+        };
         ErrorResponse: {
             detail: string;
         };
@@ -2065,6 +2134,16 @@ export interface components {
             }[];
             warnings: string[];
         };
+        /**
+         * @description * `interaction_shown` - Interaction shown
+         *     * `interaction_started` - Interaction started
+         *     * `memory_suggestion_shown` - Memory suggestion shown
+         *     * `invalid_drop` - Invalid drop
+         *     * `plan_edit` - Plan edit
+         *     * `undo` - Undo
+         * @enum {string}
+         */
+        EventTypeEnum: "interaction_shown" | "interaction_started" | "memory_suggestion_shown" | "invalid_drop" | "plan_edit" | "undo";
         /**
          * @description * `no_execution_evidence` - no_execution_evidence
          *     * `recording` - recording
@@ -2089,6 +2168,85 @@ export interface components {
             end_at: string;
             reason_codes: string[];
         };
+        InteractionArtifact: {
+            /** Format: uuid */
+            readonly id: string;
+            /** Format: uuid */
+            conversation_id: string | null;
+            /** Format: uuid */
+            agent_run_id: string | null;
+            /** Format: uuid */
+            plan_id: string | null;
+            /** Format: int64 */
+            plan_version?: number | null;
+            /** Format: uuid */
+            task_id: string | null;
+            type: components["schemas"]["InteractionTypeEnum"];
+            payload?: unknown;
+            allowed_actions?: unknown;
+            status?: components["schemas"]["InteractionStatusEnum"];
+            /** Format: date-time */
+            expires_at?: string;
+            /** Format: int64 */
+            version?: number;
+            /** Format: date-time */
+            readonly created_at: string;
+            /** Format: date-time */
+            readonly updated_at: string;
+            /** Format: date-time */
+            resolved_at?: string | null;
+        };
+        /**
+         * @description * `pending` - Pending
+         *     * `completed` - Completed
+         *     * `abandoned` - Abandoned
+         *     * `expired` - Expired
+         * @enum {string}
+         */
+        InteractionStatusEnum: "pending" | "completed" | "abandoned" | "expired";
+        InteractionSubmissionResponse: {
+            accepted: boolean;
+            detail: string | null;
+            interaction: components["schemas"]["InteractionArtifact"];
+            plan: components["schemas"]["SchedulePlan"] | null;
+            reason_codes: string[];
+            conflicts: {
+                [key: string]: string;
+            }[];
+            candidate: {
+                [key: string]: string;
+            } | null;
+            replayed: boolean;
+        };
+        InteractionSubmit: {
+            expected_version: number;
+            action: string;
+            values?: unknown;
+            idempotency_key: string;
+        };
+        InteractionTelemetry: {
+            event_type: components["schemas"]["EventTypeEnum"];
+            interaction_type: components["schemas"]["InteractionTypeEnum"];
+            duration_ms?: number | null;
+            /** @default 0 */
+            drag_count: number;
+            /** @default 0 */
+            invalid_drop_count: number;
+            /** @default 0 */
+            undo_count: number;
+            /** @default 0 */
+            plan_edit_count: number;
+            /** Format: double */
+            actual_vs_planned_ratio?: number | null;
+        };
+        /**
+         * @description * `priority_ranking` - Priority ranking
+         *     * `plan_timeline_edit` - Plan timeline edit
+         *     * `task_completion` - Task completion feedback
+         *     * `memory_suggestion` - Memory suggestion
+         * @enum {string}
+         */
+        InteractionTypeEnum: "priority_ranking" | "plan_timeline_edit" | "task_completion" | "memory_suggestion";
         LaunchBriefing: {
             /** Format: uuid */
             definition_id?: string | null;
@@ -2714,16 +2872,6 @@ export interface components {
          * @enum {string}
          */
         SignalTypeEnum: "started" | "paused" | "resumed" | "completed" | "skipped";
-        /**
-         * @description * `pending` - Pending
-         *     * `running` - Running
-         *     * `waiting_approval` - Waiting for approval
-         *     * `completed` - Completed
-         *     * `failed` - Failed
-         *     * `cancelled` - Cancelled
-         * @enum {string}
-         */
-        Status7aeEnum: "pending" | "running" | "waiting_approval" | "completed" | "failed" | "cancelled";
         /**
          * @description * `plan_tasks_only` - plan_tasks_only
          *     * `create_linked_event_blocks` - create_linked_event_blocks
@@ -4206,6 +4354,101 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["CalendarOAuthStartResult"];
                 };
+            };
+        };
+    };
+    api_v1_interactions_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InteractionArtifact"][];
+                };
+            };
+        };
+    };
+    api_v1_interactions_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EnsureInteraction"];
+                "application/x-www-form-urlencoded": components["schemas"]["EnsureInteraction"];
+                "multipart/form-data": components["schemas"]["EnsureInteraction"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InteractionArtifact"];
+                };
+            };
+        };
+    };
+    api_v1_interactions_submit_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                interaction_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["InteractionSubmit"];
+                "application/x-www-form-urlencoded": components["schemas"]["InteractionSubmit"];
+                "multipart/form-data": components["schemas"]["InteractionSubmit"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InteractionSubmissionResponse"];
+                };
+            };
+        };
+    };
+    api_v1_interactions_telemetry_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["InteractionTelemetry"];
+                "application/x-www-form-urlencoded": components["schemas"]["InteractionTelemetry"];
+                "multipart/form-data": components["schemas"]["InteractionTelemetry"];
+            };
+        };
+        responses: {
+            /** @description No response body */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };

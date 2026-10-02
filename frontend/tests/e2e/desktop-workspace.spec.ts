@@ -151,7 +151,8 @@ test.describe("desktop workspace", () => {
 
   test("renders a persisted schedule plan artifact in Chat", async ({ page }) => {
     const conversationId = "44444444-4444-4444-8444-444444444444";
-    const runId = "55555555-5555-4555-8555-555555555555";
+    const earlierRunId = "55555555-5555-4555-8555-555555555555";
+    const runId = "88888888-8888-4888-8888-888888888888";
     const planId = "66666666-6666-4666-8666-666666666666";
     await page.route(`**/api/v1/chat/conversations/${conversationId}/`, (route) => route.fulfill({ json: {
       id: conversationId,
@@ -159,23 +160,42 @@ test.describe("desktop workspace", () => {
       kind: "chat",
       created_at: "2026-09-29T00:00:00Z",
       updated_at: "2026-09-29T00:00:00Z",
-      runs: [{
-        id: runId,
-        conversation_id: conversationId,
-        operation_id: "77777777-7777-4777-8777-777777777777",
-        request_id: "request-plan-artifact",
-        trigger_type: "user_message",
-        trigger_payload: {},
-        synthetic_input: false,
-        status: "completed",
-        input_message: "帮我安排明天的任务",
-        final_response: "我为你准备了一份计划。",
-        error: "",
-        started_at: "2026-09-29T00:00:00Z",
-        completed_at: "2026-09-29T00:00:01Z",
-        created_at: "2026-09-29T00:00:00Z",
-        artifacts: [{ artifact_type: "schedule_plan", artifact_id: planId, version: 1 }],
-      }],
+      runs: [
+        {
+          id: earlierRunId,
+          conversation_id: conversationId,
+          operation_id: "77777777-7777-4777-8777-777777777777",
+          request_id: "request-plan-artifact",
+          trigger_type: "user_message",
+          trigger_payload: {},
+          synthetic_input: false,
+          status: "completed",
+          input_message: "帮我安排明天的任务",
+          final_response: "我为你准备了一份计划。",
+          error: "",
+          started_at: "2026-09-29T00:00:00Z",
+          completed_at: "2026-09-29T00:00:01Z",
+          created_at: "2026-09-29T00:00:00Z",
+          artifacts: [{ artifact_type: "schedule_plan", artifact_id: planId, version: 1 }],
+        },
+        {
+          id: runId,
+          conversation_id: conversationId,
+          operation_id: "99999999-9999-4999-8999-999999999999",
+          request_id: "request-plan-interaction",
+          trigger_type: "user_message",
+          trigger_payload: {},
+          synthetic_input: false,
+          status: "completed",
+          input_message: "请继续调整这个草案",
+          final_response: "我已打开计划调整。",
+          error: "",
+          started_at: "2026-09-29T01:00:00Z",
+          completed_at: "2026-09-29T01:00:01Z",
+          created_at: "2026-09-29T01:00:00Z",
+          artifacts: [{ artifact_type: "schedule_plan", artifact_id: planId, version: 1 }],
+        },
+      ],
     } }));
     await page.route(`**/api/v1/planning/plans/${planId}/`, (route) => route.fulfill({ json: {
       id: planId,
@@ -198,13 +218,41 @@ test.describe("desktop workspace", () => {
       invalidated_at: null,
       invalidation_reason: "",
     } }));
+    await page.route(`**/api/v1/interactions/?plan_id=${planId}`, async (route) => {
+      await new Promise((resolve) => setTimeout(resolve, 350));
+      await route.fulfill({ json: [{
+        id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+        conversation_id: conversationId,
+        agent_run_id: runId,
+        plan_id: planId,
+        plan_version: 1,
+        task_id: null,
+        type: "priority_ranking",
+        payload: { plan_id: planId },
+        allowed_actions: ["reorder", "dismiss"],
+        status: "pending",
+        expires_at: "2026-09-30T00:00:00Z",
+        version: 1,
+        created_at: "2026-09-29T01:00:00Z",
+        updated_at: "2026-09-29T01:00:00Z",
+        resolved_at: null,
+      }] });
+    });
+    await page.route("**/api/v1/interactions/telemetry/", (route) => route.fulfill({ status: 202 }));
 
     await page.goto(`/chat/${conversationId}`);
+    await page.waitForRequest((request) => request.url().includes(`/api/v1/interactions/?plan_id=${planId}`));
+    const composer = page.getByRole("textbox", { name: "消息" });
+    await composer.focus();
 
     const artifact = page.getByRole("region", { name: "Agent 计划预览" });
     await expect(artifact).toBeVisible();
     await expect(artifact.getByText("计划草案")).toBeVisible();
     await expect(artifact.getByRole("region", { name: "计划时间线" })).toContainText("09:00");
+    await expect(page.getByRole("region", { name: "本次计划优先顺序" })).toBeVisible();
+    await expect(page.getByRole("status").filter({ hasText: "助理已准备好“调整本次任务顺序”交互" })).toBeAttached();
+    await expect(page.getByRole("region", { name: "本次计划优先顺序" })).not.toBeFocused();
+    await expect(composer).toBeFocused();
     await expect(artifact).toContainText("正式应用前会按确认流程检查");
   });
 

@@ -1,0 +1,125 @@
+{
+  "artifact": "agent-ux-v3-repair-independent-holdout",
+  "created_on": "2026-10-02",
+  "case_count": 9,
+  "cases": [
+    {
+      "id": "uxv3-rh-01",
+      "journey": "plan_local_priority_ranking",
+      "fixture_ui": "Create a plan for today with three unscheduled items: submit the grant form (deadline today, marked important), replace the desk lamp (no deadline, low importance), and send the client recap (deadline tomorrow, marked important).",
+      "user_prompt": "Help me decide which of these three should come first in this plan, and show me the ordering with a short reason for each.",
+      "observable_success": [
+        "The ordering is shown for these plan items with concise reasons tied to their visible urgency or importance.",
+        "The ranking is presented as a recommendation the user can inspect or change, without silently changing unrelated plans."
+      ],
+      "observable_failure": [
+        "No ordering or rationale is produced, or the result relies on facts not visible in the fixture.",
+        "A plan item is changed without a visible user action."
+      ]
+    },
+    {
+      "id": "uxv3-rh-02",
+      "journey": "schedule_task_in_morning",
+      "fixture_ui": "Open tomorrow's schedule and add one 30-minute task named 'Review the supplier quote'. Leave the morning otherwise free from 09:00 to 12:00.",
+      "user_prompt": "Put the supplier quote review somewhere in my morning tomorrow, ideally before lunch.",
+      "observable_success": [
+        "A proposed or saved time for the task falls between 09:00 and 12:00 tomorrow and is visible in the schedule.",
+        "Any choice that would commit the placement is made through a visible user control."
+      ],
+      "observable_failure": [
+        "The item is placed outside the requested window without asking, disappears, or is marked complete instead of scheduled."
+      ]
+    },
+    {
+      "id": "uxv3-rh-03",
+      "journey": "direct_timeline_edit_in_draft",
+      "fixture_ui": "Create a draft for today with 'Prepare the workshop handout' at 10:00–10:45 and 'Call the print shop' at 14:00–14:20. Keep 11:00–12:00 open.",
+      "user_prompt": "Move the handout work to 11:00 and leave the print-shop call where it is.",
+      "observable_success": [
+        "The task can be moved through a visible, keyboard-accessible timeline control, or the UI clearly reports that this control is unsupported.",
+        "Before Apply, the draft visibly reflects the move while the saved schedule remains unchanged; after explicit Apply, the chosen placement appears in the schedule."
+      ],
+      "observable_failure": [
+        "The saved schedule changes before Apply, the wrong task moves, or the interface gives no observable result."
+      ]
+    },
+    {
+      "id": "uxv3-rh-04",
+      "journey": "reject_conflicting_drop",
+      "fixture_ui": "In a draft for today, show a fixed appointment from 13:00–14:00 and a 45-minute task 'Update the onboarding notes' currently at 10:00. Keep 14:00–15:00 free.",
+      "user_prompt": "Move the onboarding notes into the appointment at 13:15.",
+      "observable_success": [
+        "The invalid placement is rejected and the task remains at its prior time in the draft.",
+        "The UI explains the visible conflict and, when available, presents a feasible alternative such as the free 14:00 hour."
+      ],
+      "observable_failure": [
+        "The conflict is silently accepted, the task is lost, or no failure reason is shown."
+      ]
+    },
+    {
+      "id": "uxv3-rh-05",
+      "journey": "overload_tradeoff",
+      "fixture_ui": "Add three tasks to today's plan: prepare a 90-minute budget review, attend a fixed 60-minute project check-in at 15:00, and take a 30-minute pharmacy break before 17:00. Mark the day as available only until 17:00 and show that the tasks do not all fit.",
+      "user_prompt": "This day looks too full. Help me make it workable, but ask me before you defer or shorten anything.",
+      "observable_success": [
+        "The UI identifies that the visible workload exceeds available time and offers concrete, understandable tradeoffs such as moving or shortening a task.",
+        "The user chooses a tradeoff before the plan is changed or applied."
+      ],
+      "observable_failure": [
+        "The app claims all items fit despite the displayed durations, or defers, deletes, or shortens work without user choice."
+      ]
+    },
+    {
+      "id": "uxv3-rh-06",
+      "journey": "optional_completion_feedback",
+      "fixture_ui": "Create a 25-minute task named 'Sort the travel receipts' and start it with the normal timer control.",
+      "user_prompt": "I finished sorting the receipts; it took about 40 minutes. Record that, but don't make me update any future estimate unless I choose to.",
+      "observable_success": [
+        "The task can be marked complete and the user can optionally record the reported 40-minute actual duration as completion feedback.",
+        "The UI keeps timer evidence and completion feedback visibly distinct and does not change a future estimate without an explicit choice."
+      ],
+      "observable_failure": [
+        "The task cannot be completed without feedback, the reported duration is silently inferred from the timer, or a future estimate is changed automatically."
+      ]
+    },
+    {
+      "id": "uxv3-rh-07",
+      "journey": "day_close_carry_unfinished_work",
+      "fixture_ui": "For today, mark 'Send the venue deposit' complete and leave 'Draft the volunteer rota' and 'Check the microphone batteries' unfinished. Open the normal end-of-day or day-close view.",
+      "user_prompt": "Close out today and carry the two unfinished tasks into tomorrow. Keep the completed deposit task closed.",
+      "observable_success": [
+        "The day-close view identifies the two unfinished tasks and previews their carry-over to tomorrow for user review.",
+        "After the user confirms the visible action, those tasks appear tomorrow and the completed deposit task remains complete."
+      ],
+      "observable_failure": [
+        "The completed task reopens, an unfinished task is omitted or duplicated, or carry-over occurs with no visible confirmation."
+      ]
+    },
+    {
+      "id": "uxv3-rh-08",
+      "journey": "evidence_based_future_estimate_suggestion",
+      "fixture_ui": "In the task history, complete five instances of 'Prepare the weekly lab summary' with visible actual durations of 42, 46, 44, 48, and 45 minutes. Set the next instance's current estimate to 30 minutes.",
+      "user_prompt": "Would it make sense to use a longer estimate for future weekly summaries? Show me what the history supports, and only save a change if I accept it.",
+      "observable_success": [
+        "A future-estimate suggestion is offered with the repeated completion evidence and a clear proposed value or range.",
+        "The stored estimate remains 30 minutes until the user explicitly accepts; acceptance is a separate visible action."
+      ],
+      "observable_failure": [
+        "A new estimate is asserted from insufficient or hidden evidence, or the estimate changes before explicit acceptance."
+      ]
+    },
+    {
+      "id": "uxv3-rh-09",
+      "journey": "clarify_ambiguous_intent",
+      "fixture_ui": "Show two open tasks in today's plan: 'Email Jordan about the venue' and 'Review Jordan's venue proposal'. Do not highlight either task.",
+      "user_prompt": "Take care of the Jordan venue thing before the other one.",
+      "observable_success": [
+        "The assistant asks which task the user means or otherwise presents the two visible candidates for clarification.",
+        "No task is scheduled, reordered, completed, or edited until the user resolves the ambiguity."
+      ],
+      "observable_failure": [
+        "The assistant picks one candidate and changes the plan without clarification, or invents a third task."
+      ]
+    }
+  ]
+}
