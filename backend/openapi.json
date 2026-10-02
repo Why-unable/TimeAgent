@@ -2958,65 +2958,6 @@
                 }
             }
         },
-        "/api/v1/planning/plans/{plan_id}/apply/": {
-            "post": {
-                "operationId": "api_v1_planning_plans_apply_create",
-                "parameters": [
-                    {
-                        "in": "path",
-                        "name": "plan_id",
-                        "schema": {
-                            "type": "string",
-                            "format": "uuid"
-                        },
-                        "required": true
-                    }
-                ],
-                "tags": [
-                    "api"
-                ],
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "$ref": "#/components/schemas/SchedulePlanApply"
-                            }
-                        },
-                        "application/x-www-form-urlencoded": {
-                            "schema": {
-                                "$ref": "#/components/schemas/SchedulePlanApply"
-                            }
-                        },
-                        "multipart/form-data": {
-                            "schema": {
-                                "$ref": "#/components/schemas/SchedulePlanApply"
-                            }
-                        }
-                    },
-                    "required": true
-                },
-                "security": [
-                    {
-                        "tokenAuth": []
-                    },
-                    {
-                        "cookieAuth": []
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/SchedulePlan"
-                                }
-                            }
-                        },
-                        "description": ""
-                    }
-                }
-            }
-        },
         "/api/v1/planning/plans/{plan_id}/edit/": {
             "post": {
                 "operationId": "api_v1_planning_plans_edit_create",
@@ -6857,10 +6798,11 @@
                     "pending",
                     "completed",
                     "abandoned",
-                    "expired"
+                    "expired",
+                    "stale"
                 ],
                 "type": "string",
-                "description": "* `pending` - Pending\n* `completed` - Completed\n* `abandoned` - Abandoned\n* `expired` - Expired"
+                "description": "* `pending` - Pending\n* `completed` - Completed\n* `abandoned` - Abandoned\n* `expired` - Expired\n* `stale` - Stale"
             },
             "InteractionSubmissionResponse": {
                 "type": "object",

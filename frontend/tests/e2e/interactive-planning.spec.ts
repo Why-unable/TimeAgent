@@ -197,7 +197,7 @@ async function installApi(page: Page) {
     if (path.includes("/api/v1/interactions/") && path.endsWith("/submit/")) {
       const body = request.postDataJSON() as {
         action: string;
-        values: { ordered_task_ids?: string[]; items?: Array<{ task_id: string; start_at: string; end_at: string }> };
+        values: { ordered_task_ids?: string[]; items?: Array<{ task_id: string; start_at: string; end_at: string }>; rating?: string; reason?: string };
       };
       interactionSubmitActions.push(body.action);
       const submittedInteractionId = path.split("/").filter(Boolean).at(-2) ?? "";
@@ -235,7 +235,7 @@ async function installApi(page: Page) {
         interaction: {
           id: submittedInteractionId,
           conversation_id: null, agent_run_id: null, plan_id: interactionType === "task_completion" ? null : planId, plan_version: interactionType === "task_completion" ? null : currentPlan.version,
-          task_id: interactionType === "task_completion" ? paperId : null, type: interactionType, payload: interactionType === "task_completion" ? { task_id: paperId } : { plan_id: planId },
+          task_id: interactionType === "task_completion" ? paperId : null, type: interactionType, payload: interactionType === "task_completion" ? { task_id: paperId, ...(body.action === "submit_feedback" ? { completion_feedback: body.values } : {}) } : { plan_id: planId },
           allowed_actions: ["edit", "reorder", "dismiss"], status: "pending", expires_at: "2026-10-03T00:00:00Z",
           version: 2, created_at: "2026-10-02T00:00:00Z", updated_at: "2026-10-02T00:00:00Z", resolved_at: null,
         },
@@ -403,7 +403,7 @@ test("opens only the requested planning interaction and lets the user resume it 
   expect(api.ensuredInteractionTypes).toEqual(["plan_timeline_edit"]);
 });
 
-test("recovers a stale plan in place and refreshes the pending interaction", async ({ page }) => {
+test("automatically refreshes the plan after a stale interaction conflict", async ({ page }) => {
   const api = await installApi(page);
   await page.goto("/planning");
   await openDraft(page);
@@ -411,9 +411,8 @@ test("recovers a stale plan in place and refreshes the pending interaction", asy
   api.makeNextSubmitConflict();
 
   await page.getByRole("button", { name: "保存" }).first().click();
-  await expect(page.getByRole("button", { name: "同步最新计划" })).toBeVisible();
-  await page.getByRole("button", { name: "同步最新计划" }).click();
-  await expect(page.getByRole("alert")).toHaveCount(0);
+  await expect(page.getByText("计划刚刚更新，已载入最新版本。请检查后继续。")).toBeVisible();
+  await expect(page.getByRole("button", { name: "重试同步" })).toHaveCount(0);
   await expect(page.getByRole("region", { name: "可编辑计划时间线" })).toBeVisible();
 });
 
@@ -471,7 +470,7 @@ test("supports touch dragging a timeline block and submits the edited draft", as
   expect(api.planEditValues[0]).toMatchObject({ start_at: "2026-10-05T09:15:00.000Z" });
 });
 
-test("keeps completion feedback available and suppresses optional animation under reduced motion", async ({ page }) => {
+test("keeps completion feedback optional, reveals reasons progressively, and respects reduced motion", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
   await installApi(page);
   await page.goto("/today");
@@ -483,11 +482,17 @@ test("keeps completion feedback available and suppresses optional animation unde
   await expect(checkIn.getByText("计划时长：60 分钟")).toBeVisible();
   await expect(checkIn.getByText("实际投入：75 分钟")).toBeVisible();
   await expect(checkIn.getByRole("button", { name: "跳过" })).toBeVisible();
+  await expect(checkIn.getByRole("button", { name: "补充原因（可选）" })).toBeVisible();
+  await expect(checkIn.getByLabel("补充原因（可选）")).toHaveCount(0);
 
-  await checkIn.getByLabel("轻量动画").check();
+  await checkIn.getByRole("button", { name: "差不多" }).click();
+  await checkIn.getByRole("button", { name: "记录反馈" }).click();
+  const savedStatus = checkIn.getByText("已记录：差不多");
+  await expect(savedStatus).toBeVisible();
+  await expect.poll(async () => savedStatus.evaluate((element) => document.activeElement === element)).toBe(true);
   const icon = checkIn.locator("svg").first();
   await expect.poll(() => icon.evaluate((element) => getComputedStyle(element).animationName)).toBe("none");
-  await checkIn.getByRole("button", { name: "跳过" }).click();
+  await checkIn.getByRole("button", { name: "完成" }).click();
   const dismissed = page.locator("#today-completion-feedback-dismissed");
   await expect(dismissed).toBeVisible();
   await expect.poll(async () => dismissed.evaluate((element) => document.activeElement === element)).toBe(true);

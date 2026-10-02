@@ -197,7 +197,9 @@ test("Agent-requested priority interaction opens across runs and saves a plan-on
   const targetTaskCard = timeline.locator("ol > li").filter({ hasText: targetTask.title });
   await targetTaskCard.getByLabel("开始时间（Asia/Shanghai）").fill(localInput(new Date(Date.now() - 60 * 60_000).toISOString()));
   await targetTaskCard.getByRole("button", { name: "保存" }).click();
-  await expect(timeline.getByRole("alert")).toContainText("不能把任务安排在过去");
+  await expect(timeline.getByRole("alert")).toContainText("这次时间调整没有保存");
+  await expect(timeline.getByRole("region", { name: "时间冲突与可选安排" }))
+    .toContainText("不能把任务安排在过去");
 
   const afterPastEdit = await getJson<SchedulePlan>(page, "/api/v1/planning/plans/" + planId + "/");
   expect(afterPastEdit.version).toBe(beforePastEdit.version);

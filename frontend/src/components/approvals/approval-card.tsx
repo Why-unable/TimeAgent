@@ -626,11 +626,13 @@ export function ApprovalCard({ proposal, timezone = "Asia/Shanghai", busy = fals
   );
   const [reason, setReason] = useState("");
   const [error, setError] = useState("");
+  const [decisionMessage, setDecisionMessage] = useState("");
   const [hasInvalidTime, setHasInvalidTime] = useState(false);
   const [occurrenceIndex, setOccurrenceIndex] = useState(0);
   const editorDetailsRef = useRef<HTMLDetailsElement>(null);
   const editorRootRef = useRef<HTMLDivElement>(null);
   const editEntryButtonRef = useRef<HTMLButtonElement>(null);
+  const decisionStatusRef = useRef<HTMLParagraphElement>(null);
   const returnFocusToEditEntry = useRef(false);
   useEffect(() => {
     if (editing) {
@@ -644,6 +646,9 @@ export function ApprovalCard({ proposal, timezone = "Asia/Shanghai", busy = fals
       returnFocusToEditEntry.current = false;
     }
   }, [editing, targetEditorReady]);
+  useEffect(() => {
+    if (decisionMessage) decisionStatusRef.current?.focus();
+  }, [decisionMessage]);
   const awaiting = proposal.status === "awaiting_approval";
   const conflicts = Array.isArray(proposal.display_context.conflicts)
     ? proposal.display_context.conflicts
@@ -761,7 +766,18 @@ export function ApprovalCard({ proposal, timezone = "Asia/Shanghai", busy = fals
   const submitDecision = async (decision: "approve" | "reject") => {
     try {
       setError("");
-      await onDecision(decision, decision === "reject" ? { reason } : undefined);
+      const result = await onDecision(decision, decision === "reject" ? { reason } : undefined);
+      setDecisionMessage(decision === "reject"
+        ? "已提交拒绝决定。"
+        : result?.proposal.status === "executed"
+          ? "操作已完成。"
+        : result?.proposal.status === "failed"
+          ? "已完成审批处理，但执行结果需要进一步核对。"
+          : result?.proposal.status === "awaiting_approval"
+            ? result.proposal.action_type === "apply_schedule_plan"
+              ? "计划内容已有更新，审批仍待处理；请核对上方最新预览。"
+              : "操作内容已有更新，审批仍待处理；请核对上方最新预览。"
+          : "已提交审批，正在处理操作。");
     } catch {
       setError("这项操作没有完成，请重试。");
     }
@@ -875,7 +891,21 @@ export function ApprovalCard({ proposal, timezone = "Asia/Shanghai", busy = fals
       {awaiting && <p className="mt-3 flex items-center gap-2 text-xs text-slate-700">
         <Clock3 size={14} /> 在你确认前，这项操作不会执行。
       </p>}
-      {proposal.error && <p role="alert" className="mt-3 text-sm text-red-300">这项操作暂时没有完成，请重试或稍后再试。</p>}
+      {proposal.error && proposal.action_type !== "apply_schedule_plan" && <p role="alert" className="mt-3 text-sm text-red-300">这项操作暂时没有完成，请重试或稍后再试。</p>}
+      {(proposal.error || proposal.status === "failed") && proposal.action_type === "apply_schedule_plan" && (
+        <div role="alert" className="mt-3 rounded-lg border border-amber-300/30 bg-amber-300/5 p-3 text-sm text-amber-100">
+          <p>计划应用结果暂时无法确认。请先刷新并核对最新日程，再决定是否重新提交。</p>
+          <a
+            href={typeof proposal.action_payload.plan_id === "string"
+              ? `/planning?plan_id=${encodeURIComponent(proposal.action_payload.plan_id)}`
+              : "/planning"}
+            className="mt-2 inline-flex min-h-11 items-center underline"
+          >
+            打开这份计划核对
+          </a>
+        </div>
+      )}
+      {decisionMessage && <p ref={decisionStatusRef} tabIndex={-1} role="status" className="mt-3 text-sm text-emerald-200">{decisionMessage}</p>}
       {error && <p role="alert" className="mt-3 text-sm text-red-300">{error}</p>}
       {awaiting && allowedDecisions.includes("approve") && !hasReviewableChange && (
         <p role="status" className="mt-3 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900">

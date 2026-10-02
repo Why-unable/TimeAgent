@@ -2,7 +2,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { MemoryRouter } from "react-router-dom";
+import { MemoryRouter, useLocation } from "react-router-dom";
 
 import { PlanningPage } from "../src/pages/planning-page";
 
@@ -27,17 +27,23 @@ const task = {
   updated_at: "2026-07-18T01:00:00Z",
 };
 
-function renderPage() {
+function renderPage(initialEntry = "/") {
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   });
   return render(
-    <MemoryRouter>
+    <MemoryRouter initialEntries={[initialEntry]}>
       <QueryClientProvider client={client}>
+        <LocationProbe />
         <PlanningPage />
       </QueryClientProvider>
     </MemoryRouter>,
   );
+}
+
+function LocationProbe() {
+  const location = useLocation();
+  return <output data-testid="current-location">{location.pathname}{location.search}</output>;
 }
 
 describe("PlanningPage", () => {
@@ -48,9 +54,87 @@ describe("PlanningPage", () => {
 
   afterEach(() => vi.useRealTimers());
 
-  it("generates an explainable draft and applies it once", async () => {
+  it("supports keyboard navigation and relationships in the planning mode tabs", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: RequestInfo | URL) => {
+        const url = String(input);
+        const payload = url.includes("/capacity-forecast/")
+          ? {
+              total_schedulable_capacity_minutes: 0,
+              remaining_free_minutes: 0,
+              committed_minutes: 0,
+              unplanned_minutes: 0,
+              risk: "within_capacity",
+              reason_codes: [],
+            }
+          : [];
+        return new Response(JSON.stringify(payload), { status: 200 });
+      }),
+    );
+    renderPage();
+
+    const planTab = await screen.findByRole("tab", { name: "计划草案" });
+    await userEvent.click(planTab);
+    await userEvent.keyboard("{ArrowRight}");
+
+    const replanTab = screen.getByRole("tab", { name: "局部调整" });
+    expect(replanTab).toHaveFocus();
+    expect(replanTab).toHaveAttribute("aria-selected", "true");
+    expect(replanTab).toHaveAttribute("tabindex", "0");
+    expect(screen.getByRole("tabpanel")).toHaveAttribute("aria-labelledby", replanTab.id);
+  });
+
+  it("reloads the linked plan when opened from an application failure", async () => {
+    const planId = "41111111-1111-4111-8111-111111111111";
+    const plan = {
+      id: planId,
+      strategy: "plan_tasks_only",
+      status: "draft",
+      version: 2,
+      created_at: "2026-07-20T01:00:00Z",
+      updated_at: "2026-07-20T01:05:00Z",
+      expires_at: "2026-07-20T02:00:00Z",
+      items: [{
+        task_id: task.id,
+        task_version: 1,
+        state: "placed",
+        start_at: "2026-07-20T02:00:00Z",
+        end_at: "2026-07-20T03:00:00Z",
+        locked: false,
+        reason_codes: [],
+      }],
+    };
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url.endsWith(`/api/v1/planning/plans/${planId}/`)) {
+        return new Response(JSON.stringify(plan), { status: 200 });
+      }
+      if (url.includes("/capacity-forecast/")) {
+        return new Response(JSON.stringify({
+          total_schedulable_capacity_minutes: 0,
+          remaining_free_minutes: 0,
+          committed_minutes: 0,
+          unplanned_minutes: 0,
+          risk: "within_capacity",
+          reason_codes: [],
+        }), { status: 200 });
+      }
+      return new Response(JSON.stringify([]), { status: 200 });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    renderPage(`/planning?plan_id=${planId}`);
+
+    expect(await screen.findByText("已载入最新计划，请核对当前状态和安排。")).toHaveAttribute("role", "status");
+    expect(await screen.findByText("计划草稿 · 尚未应用到日程")).toBeInTheDocument();
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringContaining(`/api/v1/planning/plans/${planId}/`),
+      expect.anything(),
+    );
+  });
+
+  it("generates an explainable draft and routes application through HITL approval", async () => {
     let createBody: Record<string, unknown> | undefined;
-    let applyBody: Record<string, unknown> | undefined;
     let editBody: Record<string, unknown> | undefined;
     const draft = (version: number, locked: boolean) => ({
       id: "41111111-1111-4111-8111-111111111111",
@@ -113,18 +197,6 @@ describe("PlanningPage", () => {
             checked_at: "2026-07-20T01:02:00Z",
           }), { status: 200 });
         }
-        if (url.includes("/apply/") && init?.method === "POST") {
-          applyBody = JSON.parse(String(init.body)) as Record<string, unknown>;
-          return new Response(JSON.stringify({
-            id: "41111111-1111-4111-8111-111111111111",
-            strategy: "plan_tasks_only",
-            status: "applied",
-            version: 2,
-            created_at: "2026-07-20T01:00:00Z",
-            applied_at: "2026-07-20T01:01:00Z",
-            items: [],
-          }), { status: 200 });
-        }
         return new Response(JSON.stringify([]), { status: 200 });
       }),
     );
@@ -146,9 +218,13 @@ describe("PlanningPage", () => {
       items: [{ task_id: task.id, locked: true }],
     }));
     expect(await screen.findByRole("button", { name: "解锁计划块：准备发布报告" })).toBeInTheDocument();
-    await userEvent.click(screen.getByRole("button", { name: "应用计划" }));
-    await waitFor(() => expect(applyBody).toEqual({ expected_version: 2 }));
-    expect(await screen.findByText("计划已应用。")).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "提交应用审批" }));
+    await waitFor(() => expect(screen.getByTestId("current-location").textContent).toContain("/chat?"));
+    const location = new URL(screen.getByTestId("current-location").textContent ?? "", "http://localhost");
+    expect(location.pathname).toBe("/chat");
+    expect(location.searchParams.get("auto_send")).toBe("1");
+    expect(location.searchParams.get("prompt")).toContain("41111111-1111-4111-8111-111111111111");
+    expect(location.searchParams.get("prompt")).toContain("版本：2");
   });
 
   it("compares deterministic alternatives and regenerates only selected items", async () => {

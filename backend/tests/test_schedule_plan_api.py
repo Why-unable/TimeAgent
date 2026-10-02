@@ -8,6 +8,7 @@ from django.contrib.auth.models import User
 from django.test import Client
 from langgraph.store.memory import InMemoryStore
 
+from apps.planning.services import PlanningService
 from apps.tasks.services import CreateTaskCommand, TaskService
 
 pytestmark = pytest.mark.django_db
@@ -23,7 +24,7 @@ def fake_planning_store() -> Iterator[None]:
         yield
 
 
-def test_schedule_plan_api_supports_preview_and_versioned_apply() -> None:
+def test_schedule_plan_api_requires_action_proposal_for_apply() -> None:
     user = User.objects.create_user("plan-api")
     start = datetime(2026, 8, 24, 9, tzinfo=UTC)
     task = TaskService.create_task(
@@ -57,13 +58,19 @@ def test_schedule_plan_api_supports_preview_and_versioned_apply() -> None:
     other_client.force_login(other_user)
     assert other_client.get(f"/api/v1/planning/plans/{payload['id']}/").status_code == 404
 
-    applied = client.post(
+    direct_apply = client.post(
         f"/api/v1/planning/plans/{payload['id']}/apply/",
         data={"expected_version": payload["version"]},
         content_type="application/json",
     )
-    assert applied.status_code == 200
-    assert applied.json()["status"] == "applied"
+    assert direct_apply.status_code == 404
+    applied = PlanningService.apply_schedule_plan(
+        user=user,
+        plan_id=payload["id"],
+        expected_version=payload["version"],
+        now=start - timedelta(hours=1),
+    )
+    assert applied.status == "applied"
 
 
 def test_schedule_plan_api_supports_comparison_and_local_regeneration() -> None:

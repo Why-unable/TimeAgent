@@ -205,11 +205,11 @@ describe("interactive planning controls", () => {
 
     await userEvent.click(screen.getByRole("button", { name: "推后 15 分钟：论文" }));
     await userEvent.click(screen.getAllByRole("button", { name: "保存" })[0]);
-    expect(await screen.findByRole("alert")).toHaveTextContent("与现有日程或任务时间冲突");
-    expect(await screen.findByRole("button", { name: /使用推荐时间/ })).toBeInTheDocument();
+    expect(await screen.findByRole("region", { name: "时间冲突与可选安排" })).toHaveTextContent("与现有日程或任务时间冲突");
+    expect(await screen.findByRole("button", { name: "使用这个时间" })).toBeInTheDocument();
     expect(onPlanChange).toHaveBeenCalledWith(plan);
 
-    await userEvent.click(screen.getByRole("button", { name: /使用推荐时间/ }));
+    await userEvent.click(screen.getByRole("button", { name: "使用这个时间" }));
     await waitFor(() => expect(submitInteraction).toHaveBeenCalledTimes(2));
     expect(vi.mocked(submitInteraction).mock.calls[1][1]).toMatchObject({
       values: {

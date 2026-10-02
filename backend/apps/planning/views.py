@@ -71,27 +71,6 @@ class SchedulePlanDetailView(APIView):
         return Response(SchedulePlanSerializer(plan).data)
 
 
-class SchedulePlanApplyView(APIView):
-    permission_classes = [IsAuthenticated]
-
-    @extend_schema(request=SchedulePlanApplySerializer, responses=SchedulePlanSerializer)
-    def post(self, request: Request, plan_id: UUID) -> Response:
-        user = _authenticated_user(request)
-        serializer = SchedulePlanApplySerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        try:
-            plan = PlanningService.apply_schedule_plan(
-                user=user,
-                plan_id=plan_id,
-                expected_version=serializer.validated_data["expected_version"],
-            )
-        except SchedulePlan.DoesNotExist:
-            raise Http404 from None
-        except ValueError as exc:
-            return Response({"detail": str(exc)}, status=status.HTTP_409_CONFLICT)
-        return Response(SchedulePlanSerializer(plan).data)
-
-
 class SchedulePlanCompareView(APIView):
     permission_classes = [IsAuthenticated]
 

@@ -1,6 +1,6 @@
 import { Activity, CalendarCheck, GitCompare, Lock, Pause, Play, RefreshCw, RotateCcw, ShieldCheck, Unlock, WandSparkles } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 
 import { getSchedulePlan, type LocalReplanPreview, type SchedulePlan } from "../api/planning";
 import { useTasks } from "../features/tasks/hooks";
@@ -8,7 +8,6 @@ import { useCapacityForecast } from "../features/preferences/time-memory-hooks";
 import { useCurrentUserPreference } from "../features/preferences/hooks";
 import {
   useApplyLocalReplan,
-  useApplySchedulePlan,
   useAbandonSchedulePlan,
   useAutomationPolicies,
   useCompareSchedulePlans,
@@ -76,12 +75,13 @@ function movesOf(preview: LocalReplanPreview | undefined): ReplanItem[] {
 
 export function PlanningPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const recoveryPlanId = searchParams.get("plan_id");
   const preference = useCurrentUserPreference();
   const timezone = preference.data?.timezone ?? import.meta.env.VITE_DEFAULT_TIMEZONE ?? "Asia/Shanghai";
   const now = useMemo(() => new Date(), []);
   const tasks = useTasks();
   const createPlan = useCreateSchedulePlan();
-  const applyPlan = useApplySchedulePlan();
   const comparePlans = useCompareSchedulePlans();
   const regeneratePlan = useRegenerateSchedulePlan();
   const editPlan = useEditSchedulePlan();
@@ -97,6 +97,7 @@ export function PlanningPage() {
   const [mode, setMode] = useState<"plan" | "replan">("plan");
   const [selectedTaskIds, setSelectedTaskIds] = useState<string[]>([]);
   const [selectedPlan, setSelectedPlan] = useState<SchedulePlan>();
+  const [planRecoveryState, setPlanRecoveryState] = useState<"loading" | "loaded" | "error">();
   const [regenerateTaskIds, setRegenerateTaskIds] = useState<string[]>([]);
   const [ordering, setOrdering] = useState<"priority_deadline" | "longest_first">("priority_deadline");
   const [strategy, setStrategy] = useState<"plan_tasks_only" | "create_linked_event_blocks">("plan_tasks_only");
@@ -110,6 +111,26 @@ export function PlanningPage() {
   const [planningGoal, setPlanningGoal] = useState("帮我安排明天的任务");
   const [dateTimeError, setDateTimeError] = useState("");
   const selectedTasksInitialized = useRef(false);
+
+  useEffect(() => {
+    if (!recoveryPlanId) {
+      setPlanRecoveryState(undefined);
+      return;
+    }
+    let active = true;
+    setSelectedPlan(undefined);
+    setPlanRecoveryState("loading");
+    void getSchedulePlan(recoveryPlanId).then((plan) => {
+      if (!active) return;
+      setSelectedPlan(plan);
+      setMode("plan");
+      setManualPlannerOpen(true);
+      setPlanRecoveryState("loaded");
+    }).catch(() => {
+      if (active) setPlanRecoveryState("error");
+    });
+    return () => { active = false; };
+  }, [recoveryPlanId]);
 
   useEffect(() => {
     if (!preference.data?.timezone) return;
@@ -258,13 +279,11 @@ export function PlanningPage() {
     }
   };
 
-  const applyGeneratedPlan = () => {
+  const requestPlanApproval = () => {
     const plan = selectedPlan;
     if (!plan) return;
-    applyPlan.mutate({
-      planId: plan.id,
-      input: { expected_version: plan.version ?? 1 },
-    }, { onSuccess: setSelectedPlan });
+    const prompt = `请将这份计划草案提交正式应用审批，等待我在审批卡确认后再执行。计划编号：${plan.id}；版本：${plan.version ?? 1}。`;
+    navigate(`/chat?${new URLSearchParams({ prompt, auto_send: "1" }).toString()}`);
   };
 
   const setItemLocked = (item: PlanItem, locked: boolean) => {
@@ -299,6 +318,20 @@ export function PlanningPage() {
     setSelectedPlan(await getSchedulePlan(selectedPlan.id));
   };
 
+  const handleModeKeyDown = (event: KeyboardEvent<HTMLButtonElement>) => {
+    if (event.key !== "ArrowLeft" && event.key !== "ArrowRight" && event.key !== "Home" && event.key !== "End") return;
+    event.preventDefault();
+    const nextMode = event.key === "Home"
+      ? "plan"
+      : event.key === "End"
+        ? "replan"
+        : mode === "plan"
+          ? "replan"
+          : "plan";
+    setMode(nextMode);
+    document.getElementById(`planning-mode-${nextMode}`)?.focus();
+  };
+
   return (
     <section className="mx-auto max-w-6xl space-y-6">
       <ScheduleWorkspaceTabs />
@@ -307,12 +340,17 @@ export function PlanningPage() {
         <h2 className="text-3xl font-semibold">我的计划</h2>
           <p className="mt-2 text-sm text-slate-400">查看安排、了解取舍，再决定是否应用。时间按 {timezone} 显示。</p>
         </div>
-        <div className="inline-flex rounded-lg border border-white/10 bg-slate-900 p-1" role="tablist">
-          <ModeButton active={mode === "plan"} onClick={() => setMode("plan")}>计划草案</ModeButton>
-          <ModeButton active={mode === "replan"} onClick={() => setMode("replan")}>局部调整</ModeButton>
+        <div className="inline-flex rounded-lg border border-white/10 bg-slate-900 p-1" role="tablist" aria-label="计划视图">
+          <ModeButton id="planning-mode-plan" controls="planning-mode-panel" active={mode === "plan"} onClick={() => setMode("plan")} onKeyDown={handleModeKeyDown}>计划草案</ModeButton>
+          <ModeButton id="planning-mode-replan" controls="planning-mode-panel" active={mode === "replan"} onClick={() => setMode("replan")} onKeyDown={handleModeKeyDown}>局部调整</ModeButton>
         </div>
       </header>
       {dateTimeError && <p role="alert" className="rounded-lg border border-amber-300/30 bg-amber-300/5 p-3 text-sm text-amber-100">{dateTimeError}</p>}
+      {planRecoveryState && (
+        <p role={planRecoveryState === "error" ? "alert" : "status"} className="rounded-lg border border-cyan-300/20 bg-cyan-300/5 p-3 text-sm text-cyan-100">
+          {planRecoveryState === "loading" ? "正在重新载入这份计划…" : planRecoveryState === "loaded" ? "已载入最新计划，请核对当前状态和安排。" : "无法重新载入这份计划。请刷新页面，或重新生成计划。"}
+        </p>
+      )}
 
       <section className="border-y border-white/10 py-4" aria-labelledby="capacity-heading">
         <div className="flex flex-wrap items-center justify-between gap-3">
@@ -345,6 +383,7 @@ export function PlanningPage() {
         )}
       </section>
 
+      <div id="planning-mode-panel" role="tabpanel" aria-labelledby={`planning-mode-${mode}`} tabIndex={0}>
       {mode === "plan" ? (
         <>
         <section className="rounded-2xl border border-cyan-300/20 bg-cyan-300/5 p-5 sm:p-6">
@@ -440,16 +479,15 @@ export function PlanningPage() {
             {editPlan.isError && <ErrorText error={editPlan.error} />}
             {selectedPlan?.status === "draft" && (
               <div className="mt-5 flex flex-wrap gap-2">
-                <button type="button" disabled={applyPlan.isPending} onClick={applyGeneratedPlan} className="min-h-12 flex-1 rounded-lg bg-emerald-300 px-4 font-semibold text-slate-950 disabled:opacity-40">{applyPlan.isPending ? "正在应用…" : "应用计划"}</button>
+                <button type="button" onClick={requestPlanApproval} className="min-h-12 flex-1 rounded-lg bg-emerald-300 px-4 font-semibold text-slate-950">提交应用审批</button>
                 <button type="button" disabled={abandonPlan.isPending} onClick={abandonSelectedPlan} className="min-h-12 rounded-lg border border-white/10 px-4 text-sm text-slate-300 disabled:opacity-40">放弃草案</button>
               </div>
             )}
+            {selectedPlan?.status === "draft" && <p className="mt-2 text-xs text-slate-400">助理会为这份草案生成审批卡；确认前不会应用到正式日程。</p>}
             {selectedPlan?.status === "draft" && advancedOpen && <button type="button" disabled={validatePlan.isPending} onClick={validateSelectedPlan} className="mt-3 min-h-10 rounded-lg border border-white/10 px-3 text-xs text-slate-400 disabled:opacity-40"><ShieldCheck size={14} className="mr-1 inline" />高级检查</button>}
             {validatePlan.data && <p role="status" className={`mt-3 text-sm ${validatePlan.data.valid ? "text-emerald-200" : "text-amber-200"}`}>{validatePlan.data.valid ? "计划已检查，可以应用。" : "计划需要重新生成。"}</p>}
             {validatePlan.isError && <ErrorText error={validatePlan.error} />}
             {abandonPlan.isError && <ErrorText error={abandonPlan.error} />}
-            {applyPlan.isSuccess && <p role="status" className="mt-3 text-sm text-emerald-200">计划已应用。</p>}
-            {applyPlan.isError && <ErrorText error={applyPlan.error} />}
           </section>
         </div>}
         </>
@@ -557,12 +595,13 @@ export function PlanningPage() {
           </section>
         </div>
       )}
+      </div>
     </section>
   );
 }
 
-function ModeButton({ active, onClick, children }: { active: boolean; onClick: () => void; children: string }) {
-  return <button type="button" role="tab" aria-selected={active} onClick={onClick} className={`min-h-10 rounded-md px-4 text-sm font-medium ${active ? "bg-cyan-300 text-slate-950" : "text-slate-300"}`}>{children}</button>;
+function ModeButton({ id, controls, active, onClick, onKeyDown, children }: { id: string; controls: string; active: boolean; onClick: () => void; onKeyDown: (event: KeyboardEvent<HTMLButtonElement>) => void; children: string }) {
+  return <button id={id} type="button" role="tab" aria-controls={controls} aria-selected={active} tabIndex={active ? 0 : -1} onClick={onClick} onKeyDown={onKeyDown} className={`min-h-11 rounded-md px-4 text-sm font-medium ${active ? "bg-cyan-300 text-slate-950" : "text-slate-300"}`}>{children}</button>;
 }
 
 function DateField({ label, value, onChange }: { label: string; value: string; onChange: (value: string) => void }) {

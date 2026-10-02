@@ -3,7 +3,6 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   abandonSchedulePlan,
   applyLocalReplan,
-  applySchedulePlan,
   compareSchedulePlans,
   createSchedulePlan,
   detectScheduleDisruptions,
@@ -76,21 +75,6 @@ export function useAbandonSchedulePlan() {
   return useMutation({
     mutationFn: ({ planId, input }: { planId: string; input: SchedulePlanApply }) =>
       abandonSchedulePlan(planId, input),
-  });
-}
-
-export function useApplySchedulePlan() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: ({ planId, input }: { planId: string; input: SchedulePlanApply }) =>
-      applySchedulePlan(planId, input),
-    onSuccess: async () => {
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ["tasks"] }),
-        queryClient.invalidateQueries({ queryKey: ["events"] }),
-        queryClient.invalidateQueries({ queryKey: ["today"] }),
-      ]);
-    },
   });
 }
 

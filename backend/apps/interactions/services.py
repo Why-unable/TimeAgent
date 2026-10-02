@@ -91,6 +91,8 @@ class InteractionArtifactService:
             task = Task.objects.get(pk=task_id, user=user)
             if task.status != TaskStatus.COMPLETED:
                 raise ValueError("Task completion feedback is available after completion")
+            if task.completed_at is None:
+                raise ValueError("Task completion time must be recorded before feedback")
             plan = None
             expires_at = min(anchor + timedelta(days=14), task.completed_at + timedelta(days=14))
             payload = {"task_id": str(task.pk)}
@@ -123,24 +125,29 @@ class InteractionArtifactService:
         )
         if latest is not None:
             if latest.status == InteractionStatus.PENDING and latest.expires_at > anchor:
-                update_fields: set[str] = set()
                 if plan is not None and latest.plan_version != plan.version:
-                    latest.plan_version = plan.version
-                    update_fields.add("plan_version")
-                if conversation is not None and latest.conversation_id != conversation.pk:
-                    latest.conversation = conversation
-                    update_fields.add("conversation")
-                if run is not None and latest.agent_run_id != run.pk:
-                    latest.agent_run = run
-                    update_fields.add("agent_run")
-                if update_fields:
-                    latest.save(update_fields=[*sorted(update_fields), "updated_at"])
-                return latest
+                    latest.status = InteractionStatus.STALE
+                    latest.resolved_at = anchor
+                    latest.save(update_fields=["status", "resolved_at", "updated_at"])
+                else:
+                    update_fields: set[str] = set()
+                    if conversation is not None and latest.conversation_id != conversation.pk:
+                        latest.conversation = conversation
+                        update_fields.add("conversation")
+                    if run is not None and latest.agent_run_id != run.pk:
+                        latest.agent_run = run
+                        update_fields.add("agent_run")
+                    if update_fields:
+                        latest.save(update_fields=[*sorted(update_fields), "updated_at"])
+                    return latest
             if latest.status == InteractionStatus.PENDING:
                 latest.status = InteractionStatus.EXPIRED
                 latest.resolved_at = anchor
                 latest.save(update_fields=["status", "resolved_at", "updated_at"])
-            if plan is None or latest.plan_version == plan.version:
+            if plan is None or (
+                latest.status in {InteractionStatus.COMPLETED, InteractionStatus.ABANDONED}
+                and latest.plan_version == plan.version
+            ):
                 return latest
         artifact = InteractionArtifact(
             user=user,
@@ -347,7 +354,7 @@ class InteractionArtifactService:
                 try:
                     plan = PlanningService.edit_schedule_plan(
                         user=user,
-                        plan_id=artifact.plan_id,
+                        plan_id=artifact.plan.pk,
                         expected_version=artifact.plan_version,
                         edits=edits,
                         ordered_task_ids=ordered_task_ids,
@@ -356,7 +363,7 @@ class InteractionArtifactService:
                 except ValueError as exc:
                     reason_codes, candidate, conflict_rows = PlanningService.plan_edit_recovery(
                         user=user,
-                        plan_id=artifact.plan_id,
+                        plan_id=artifact.plan.pk,
                         edits=edits,
                         ordered_task_ids=ordered_task_ids,
                         now=anchor,
@@ -369,14 +376,7 @@ class InteractionArtifactService:
                         "conflicts": list(conflicts),
                         "candidate": candidate,
                     }
-                    plan = SchedulePlan.objects.get(pk=artifact.plan_id, user=user)
-                    if artifact.plan_version != plan.version:
-                        artifact.plan_version = plan.version
-                        InteractionArtifact.objects.filter(
-                            user=user,
-                            plan=plan,
-                            status=InteractionStatus.PENDING,
-                        ).update(plan_version=plan.version)
+                    plan = SchedulePlan.objects.get(pk=artifact.plan.pk, user=user)
             if result["accepted"]:
                 artifact.version += 1
                 if plan is not None:
@@ -385,7 +385,10 @@ class InteractionArtifactService:
                         user=user,
                         plan=plan,
                         status=InteractionStatus.PENDING,
-                    ).exclude(pk=artifact.pk).update(plan_version=plan.version)
+                    ).exclude(pk=artifact.pk).update(
+                        status=InteractionStatus.STALE,
+                        resolved_at=anchor,
+                    )
         elif artifact.type == InteractionType.TASK_COMPLETION:
             if artifact.task is None:
                 raise InteractionConflictError("Completion interaction is missing its task")
@@ -462,8 +465,11 @@ class InteractionArtifactService:
                 if artifact.type == InteractionType.TASK_COMPLETION and action == "submit_feedback":
                     from apps.tasks.execution_services import TaskExecutionSignalService
 
+                    task = artifact.task
+                    if task is None:
+                        raise InteractionConflictError("Completion interaction is missing the task")
                     execution = TaskExecutionSignalService.summary(
-                        user=user, task_id=artifact.task_id, now=anchor
+                        user=user, task_id=task.pk, now=anchor
                     )
                     actual_vs_planned_ratio = (
                         min(10.0, execution.active_seconds / execution.planned_seconds)

@@ -332,20 +332,6 @@ test("reviews and applies a deterministic schedule plan", async ({ page }) => {
       },
     });
   });
-  await page.route(`**/api/v1/planning/plans/${planId}/apply/`, async (route) => {
-    await route.fulfill({
-      json: {
-        id: planId,
-        strategy: "plan_tasks_only",
-        status: "applied",
-        version: 2,
-        created_at: "2026-08-24T09:00:00Z",
-        applied_at: "2026-08-24T09:01:00Z",
-        items: [],
-      },
-    });
-  });
-
   await page.goto("/planning");
   await expect(page.getByText("容量超载")).toBeVisible();
   await page.getByRole("button", { name: "高级规划设置" }).click();
@@ -354,8 +340,14 @@ test("reviews and applies a deterministic schedule plan", async ({ page }) => {
   const planPreview = page.getByRole("region", { name: "计划时间线" });
   await expect(planPreview).toBeVisible();
   await expect(planPreview.getByText("准备规划演示")).toBeVisible();
-  await page.getByRole("button", { name: "应用计划" }).click();
-  await expect(page.getByText("计划已应用。")).toBeVisible();
+  let directApplyCalled = false;
+  await page.route(`**/api/v1/planning/plans/${planId}/apply/`, async (route) => {
+    directApplyCalled = true;
+    await route.fulfill({ status: 500, json: { detail: "Unexpected direct apply" } });
+  });
+  await page.getByRole("button", { name: "提交应用审批" }).click();
+  await expect(page).toHaveURL(/\/chat(?:\/[0-9a-f-]+)?(?:\?.*)?$/);
+  expect(directApplyCalled).toBe(false);
 });
 
 test("reads and updates time preferences", async ({ page }) => {

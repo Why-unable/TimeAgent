@@ -1,6 +1,6 @@
 from collections.abc import Iterator
 from contextlib import contextmanager
-from datetime import UTC, datetime, time
+from datetime import UTC, datetime, time, timedelta
 from unittest.mock import patch
 from zoneinfo import ZoneInfo
 
@@ -9,6 +9,7 @@ from django.contrib.auth.models import User
 from django.test import Client
 from langgraph.store.memory import InMemoryStore
 
+from apps.planning.services import PlanningService
 from apps.preferences.services import UserPreferenceService
 from apps.tasks.services import CreateTaskCommand, TaskService
 
@@ -92,16 +93,18 @@ def test_plan_edit_apply_task_detail_and_today_keep_one_time_instant() -> None:
     )
     client = Client()
     client.force_login(user)
-    planned = client.post(
-        "/api/v1/planning/plans/",
-        data={
-            "task_ids": [str(task.pk)],
-            "range_start": "2026-10-05T12:00:00Z",
-            "range_end": "2026-10-05T16:00:00Z",
-            "strategy": "plan_tasks_only",
-        },
-        content_type="application/json",
-    )
+    plan_created_at = datetime(2026, 10, 3, 0, tzinfo=UTC)
+    with patch("apps.planning.views.timezone.now", return_value=plan_created_at):
+        planned = client.post(
+            "/api/v1/planning/plans/",
+            data={
+                "task_ids": [str(task.pk)],
+                "range_start": "2026-10-05T12:00:00Z",
+                "range_end": "2026-10-05T16:00:00Z",
+                "strategy": "plan_tasks_only",
+            },
+            content_type="application/json",
+        )
     assert planned.status_code == 201
     plan = planned.json()
     edited = client.post(
@@ -130,12 +133,22 @@ def test_plan_edit_apply_task_detail_and_today_keep_one_time_instant() -> None:
         == "2026-10-05T22:30:00+08:00"
     )
 
-    applied = client.post(
+    direct_apply = client.post(
         f"/api/v1/planning/plans/{plan['id']}/apply/",
         data={"expected_version": edited_plan["version"]},
         content_type="application/json",
     )
-    assert applied.status_code == 200
+    assert direct_apply.status_code == 404
+    applied = PlanningService.apply_schedule_plan(
+        user=user,
+        plan_id=plan["id"],
+        expected_version=edited_plan["version"],
+        now=datetime.fromisoformat(
+            edited_plan["expires_at"].replace("Z", "+00:00")
+        )
+        - timedelta(seconds=1),
+    )
+    assert applied.status == "applied"
     task_detail = client.get(f"/api/v1/tasks/{task.pk}/")
     assert task_detail.status_code == 200
     raw_task_start = task_detail.json()["planned_start_at"]

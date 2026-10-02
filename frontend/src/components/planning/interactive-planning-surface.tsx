@@ -186,7 +186,7 @@ export function InteractivePlanningSurface({
       {activeType === "plan_timeline_edit" && timeline.data && <>
         <TimelineRenderer plan={activePlan} interaction={timeline.data} taskTitles={taskTitles} timezone={timezone} onPlanChange={updatePlan} onSnooze={snooze} onRefreshPlan={refreshCurrentPlan} focusOnMount={focusOnOpen} />
       </>}
-      {activeType && !interactionPending && (interactionUnavailable || !activeQuery.data) && <button type="button" onClick={() => setActiveType(null)} className="min-h-10 rounded-lg px-3 text-xs text-slate-400 hover:bg-white/5">返回计划</button>}
+      {activeType && !interactionPending && (interactionUnavailable || !activeQuery.data) && <button type="button" onClick={() => { setFocusReturnType(activeType); setActiveType(null); }} className="min-h-11 rounded-lg px-3 text-xs text-slate-400 hover:bg-white/5">返回计划</button>}
     </div>
   );
 }

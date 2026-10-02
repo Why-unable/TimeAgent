@@ -942,22 +942,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/planning/plans/{plan_id}/apply/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: operations["api_v1_planning_plans_apply_create"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/v1/planning/plans/{plan_id}/edit/": {
         parameters: {
             query?: never;
@@ -2201,9 +2185,10 @@ export interface components {
          *     * `completed` - Completed
          *     * `abandoned` - Abandoned
          *     * `expired` - Expired
+         *     * `stale` - Stale
          * @enum {string}
          */
-        InteractionStatusEnum: "pending" | "completed" | "abandoned" | "expired";
+        InteractionStatusEnum: "pending" | "completed" | "abandoned" | "expired" | "stale";
         InteractionSubmissionResponse: {
             accepted: boolean;
             detail: string | null;
@@ -4749,33 +4734,6 @@ export interface operations {
         };
     };
     api_v1_planning_plans_abandon_create: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                plan_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["SchedulePlanApply"];
-                "application/x-www-form-urlencoded": components["schemas"]["SchedulePlanApply"];
-                "multipart/form-data": components["schemas"]["SchedulePlanApply"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["SchedulePlan"];
-                };
-            };
-        };
-    };
-    api_v1_planning_plans_apply_create: {
         parameters: {
             query?: never;
             header?: never;

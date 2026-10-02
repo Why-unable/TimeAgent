@@ -52,10 +52,23 @@ test("runs the Phase A-E write path against a real backend", async ({ page }) =>
 
   await page.goto("/planning");
   await page.getByRole("checkbox", { name: new RegExp(title) }).click();
+  const planResponsePromise = page.waitForResponse((response) =>
+    response.url().includes("/api/v1/planning/plans/")
+    && response.request().method() === "POST",
+  );
   await page.getByRole("button", { name: "生成草案" }).click();
+  const generatedPlan = await (await planResponsePromise).json() as { id: string; version: number };
   await expect(page.getByText("已安排", { exact: true })).toBeVisible();
-  await page.getByRole("button", { name: "确认应用" }).click();
-  await expect(page.getByText("计划已应用。", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "提交应用审批" }).click();
+  await expect(page).toHaveURL(/\/chat\/[0-9a-f-]+$/);
+  const approvalCard = page.locator("article").filter({ hasText: "需要你确认" }).last();
+  await expect(approvalCard).toBeVisible({ timeout: 90_000 });
+  await approvalCard.getByRole("button", { name: "确认并应用" }).click();
+  await expect.poll(async () => page.evaluate(async (planId) => {
+    const response = await fetch(`/api/v1/planning/plans/${planId}/`);
+    if (!response.ok) return null;
+    return ((await response.json()) as { status: string }).status;
+  }, generatedPlan.id), { timeout: 90_000 }).toBe("applied");
 
   const plannedTask = await page.evaluate(async (taskTitle) => {
     const response = await fetch("/api/v1/tasks/");

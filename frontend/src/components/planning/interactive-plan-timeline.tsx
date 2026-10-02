@@ -28,6 +28,7 @@ import {
 import { ApiError } from "../../api/client";
 import type { SchedulePlan } from "../../api/planning";
 import { formatTimeInUserTimezone, toDateTimeLocalValue, toUtcISOString } from "../../utils/datetime";
+import { ConflictResolver } from "./conflict-resolver";
 
 type PlanItem = {
   kind?: string;
@@ -64,9 +65,9 @@ function sendTelemetry(event: Parameters<typeof recordInteractionTelemetry>[0]) 
 
 function interactionError(error: unknown) {
   if (error instanceof ApiError && error.status === 409) {
-    return "计划或交互已被其他操作更新。请刷新计划后再试。";
+    return "计划刚刚更新。";
   }
-  return error instanceof Error ? error.message : "暂时无法保存这次计划调整。";
+  return "暂时无法保存这次计划调整，请稍后重试。";
 }
 
 function itemList(plan: SchedulePlan) {
@@ -75,21 +76,6 @@ function itemList(plan: SchedulePlan) {
 
 function planTaskItems(plan: SchedulePlan) {
   return itemList(plan).filter((item) => item.kind !== "plan_evidence" && item.task_id);
-}
-
-function reasonLabel(code: string) {
-  const labels: Record<string, string> = {
-    schedule_conflict: "与现有日程或任务时间冲突",
-    work_hours_violation: "超出你的工作时段",
-    deadline_violation: "超过任务截止时间",
-    max_daily_minutes_violation: "超过每日可安排时长",
-    planning_exact_start_violation: "不符合指定的准确开始时间",
-    planning_dependency_order_violation: "违反任务依赖顺序",
-    plan_item_locked: "该时间块已固定，请先解锁",
-    task_version_changed: "任务在计划创建后发生了变化",
-    schedule_in_past: "不能把任务安排在过去",
-  };
-  return labels[code] ?? code.replaceAll("_", " ");
 }
 
 export function PriorityRanker({
@@ -128,6 +114,21 @@ export function PriorityRanker({
   const ids = orderedItems.map((item) => item.task_id as string);
   const interactionId = interaction?.id;
   const interactionType = interaction?.type;
+  const refreshAfterConflict = async () => {
+    setStalePlan(true);
+    setRefreshingPlan(true);
+    setError("计划刚刚更新，正在载入最新版本…");
+    try {
+      await onRefreshPlan();
+      setError("");
+      setStalePlan(false);
+      setMessage("计划刚刚更新，已载入最新版本。请检查后继续。");
+    } catch {
+      setError("计划刚刚更新，最新状态暂时无法载入。可以重试同步。");
+    } finally {
+      setRefreshingPlan(false);
+    }
+  };
 
   const rankingAnnouncements: Announcements = {
     onDragStart: ({ active }) => {
@@ -175,11 +176,10 @@ export function PriorityRanker({
         idempotency_key: createIdempotencyKey(),
       });
       if (!result.accepted || !result.plan) {
-        setError(result.detail ?? "计划顺序没有更新。");
+        setError("计划顺序没有更新，请检查当前安排后再试。");
         if (result.plan) {
           queryClient.setQueryData(["interaction", plan.id, interaction.type], result.interaction);
-          queryClient.setQueryData<InteractionArtifact | undefined>(["interaction", plan.id, "priority_ranking"], (current) => current ? { ...current, plan_version: result.plan?.version ?? current.plan_version } : current);
-          queryClient.setQueryData<InteractionArtifact | undefined>(["interaction", plan.id, "plan_timeline_edit"], (current) => current ? { ...current, plan_version: result.plan?.version ?? current.plan_version } : current);
+          void queryClient.invalidateQueries({ queryKey: ["interaction", plan.id] });
           onPlanChange(result.plan);
         }
         if (dragged) {
@@ -188,15 +188,17 @@ export function PriorityRanker({
         return;
       }
       queryClient.setQueryData(["interaction", plan.id, interaction.type], result.interaction);
-      queryClient.setQueryData<InteractionArtifact | undefined>(["interaction", plan.id, "priority_ranking"], (current) => current ? { ...current, plan_version: result.plan?.version ?? current.plan_version } : current);
-      queryClient.setQueryData<InteractionArtifact | undefined>(["interaction", plan.id, "plan_timeline_edit"], (current) => current ? { ...current, plan_version: result.plan?.version ?? current.plan_version } : current);
+      void queryClient.invalidateQueries({ queryKey: ["interaction", plan.id] });
       onPlanChange(result.plan);
       setMessage("已更新本次计划顺序；任务的永久优先级没有更改。");
       setStartedAt(null);
       window.requestAnimationFrame(() => document.getElementById(`priority-handle-${focusTaskId ?? orderedTaskIds[0]}`)?.focus());
     } catch (caught) {
-      setError(interactionError(caught));
-      setStalePlan(caught instanceof ApiError && caught.status === 409);
+      if (caught instanceof ApiError && caught.status === 409) {
+        void refreshAfterConflict();
+      } else {
+        setError(interactionError(caught));
+      }
     }
   };
 
@@ -258,7 +260,7 @@ export function PriorityRanker({
         </DndContext>
       ) : <p role="status" className="mt-3 text-xs text-slate-400">正在恢复可交互顺序…</p>}
       {message && <p role="status" className="mt-3 text-xs text-emerald-200">{message}</p>}
-      {error && <div role="alert" className="mt-3 rounded-lg border border-amber-300/20 p-3 text-xs text-amber-100"><p>{error}</p>{stalePlan && <button type="button" disabled={refreshingPlan} onClick={() => { setRefreshingPlan(true); void onRefreshPlan().then(() => { setError(""); setStalePlan(false); }).catch(() => setError("最新计划暂时无法载入，请重试。")).finally(() => setRefreshingPlan(false)); }} className="mt-2 min-h-10 underline disabled:opacity-50">{refreshingPlan ? "正在同步…" : "同步最新计划"}</button>}</div>}
+      {error && <div role="alert" className="mt-3 rounded-lg border border-amber-300/20 p-3 text-xs text-amber-100"><p>{error}</p>{stalePlan && <button type="button" disabled={refreshingPlan} onClick={() => void refreshAfterConflict()} className="mt-2 min-h-11 underline disabled:opacity-50">{refreshingPlan ? "正在同步…" : "重试同步"}</button>}</div>}
     </section>
   );
 }
@@ -329,6 +331,21 @@ export function InteractivePlanTimeline({
   const queryClient = useQueryClient();
   const interactionId = interaction?.id;
   const interactionType = interaction?.type;
+  const refreshAfterConflict = async () => {
+    setStalePlan(true);
+    setRefreshingPlan(true);
+    setError("计划刚刚更新，正在载入最新版本…");
+    try {
+      await onRefreshPlan();
+      setError("");
+      setStalePlan(false);
+      setMessage("计划刚刚更新，已载入最新版本。请检查后继续。");
+    } catch {
+      setError("计划刚刚更新，最新状态暂时无法载入。可以重试同步。");
+    } finally {
+      setRefreshingPlan(false);
+    }
+  };
   useEffect(() => {
     if (focusOnMount) regionRef.current?.focus();
   }, [focusOnMount]);
@@ -408,22 +425,20 @@ export function InteractivePlanTimeline({
         idempotency_key: createIdempotencyKey(),
       });
       if (!result.accepted || !result.plan) {
-        setError(result.detail ?? "后端没有接受这次计划调整。");
+        setError("这次时间调整没有保存。");
         setReasonCodes(result.reason_codes);
         setConflicts(result.conflicts);
         setCandidate(result.candidate ? { taskId, ...result.candidate } : null);
         if (result.plan) {
           queryClient.setQueryData(["interaction", plan.id, interaction.type], result.interaction);
-          queryClient.setQueryData<InteractionArtifact | undefined>(["interaction", plan.id, "priority_ranking"], (current) => current ? { ...current, plan_version: result.plan?.version ?? current.plan_version } : current);
-          queryClient.setQueryData<InteractionArtifact | undefined>(["interaction", plan.id, "plan_timeline_edit"], (current) => current ? { ...current, plan_version: result.plan?.version ?? current.plan_version } : current);
+          void queryClient.invalidateQueries({ queryKey: ["interaction", plan.id] });
           onPlanChange(result.plan);
         }
         if (isDrag) sendTelemetry({ event_type: "invalid_drop", interaction_type: interaction.type, drag_count: dragCount + 1, invalid_drop_count: 1 });
         return false;
       }
       queryClient.setQueryData(["interaction", plan.id, interaction.type], result.interaction);
-      queryClient.setQueryData<InteractionArtifact | undefined>(["interaction", plan.id, "priority_ranking"], (current) => current ? { ...current, plan_version: result.plan?.version ?? current.plan_version } : current);
-      queryClient.setQueryData<InteractionArtifact | undefined>(["interaction", plan.id, "plan_timeline_edit"], (current) => current ? { ...current, plan_version: result.plan?.version ?? current.plan_version } : current);
+      void queryClient.invalidateQueries({ queryKey: ["interaction", plan.id] });
       onPlanChange(result.plan);
       const previous = visibleItems.find((item) => item.task_id === taskId);
       const next = planTaskItems(result.plan).find((item) => item.task_id === taskId);
@@ -443,8 +458,11 @@ export function InteractivePlanTimeline({
       window.requestAnimationFrame(() => oldHandle?.focus());
       return true;
     } catch (caught) {
-      setError(interactionError(caught));
-      setStalePlan(caught instanceof ApiError && caught.status === 409);
+      if (caught instanceof ApiError && caught.status === 409) {
+        void refreshAfterConflict();
+      } else {
+        setError(interactionError(caught));
+      }
       return false;
     }
   };
@@ -535,16 +553,10 @@ export function InteractivePlanTimeline({
       {error && (
         <div role="alert" className="mt-3 rounded-lg border border-amber-300/25 bg-amber-300/5 p-3 text-xs text-amber-100">
           <p>{error}</p>
-          {reasonCodes.map((code) => <p key={code} className="mt-1">原因：{reasonLabel(code)}</p>)}
-          {conflicts.map((conflict, index) => (
-            <p key={`${conflict.kind}-${index}`} className="mt-1">
-              {conflict.label}：{formatTimeInUserTimezone(conflict.start_at, timezone)}–{formatTimeInUserTimezone(conflict.end_at, timezone)}
-            </p>
-          ))}
-          {candidate && <button type="button" onClick={submitCandidate} className="mt-3 min-h-11 rounded-lg bg-cyan-200 px-3 font-semibold text-slate-950">使用推荐时间 {formatTimeInUserTimezone(candidate.start_at, timezone)}–{formatTimeInUserTimezone(candidate.end_at, timezone)}</button>}
-          {stalePlan && <button type="button" disabled={refreshingPlan} onClick={() => { setRefreshingPlan(true); void onRefreshPlan().then(() => { setError(""); setStalePlan(false); }).catch(() => setError("最新计划暂时无法载入，请重试。")).finally(() => setRefreshingPlan(false)); }} className="mt-3 min-h-10 underline disabled:opacity-50">{refreshingPlan ? "正在同步…" : "同步最新计划"}</button>}
+          {stalePlan && <button type="button" disabled={refreshingPlan} onClick={() => void refreshAfterConflict()} className="mt-3 min-h-11 underline disabled:opacity-50">{refreshingPlan ? "正在同步…" : "重试同步"}</button>}
         </div>
       )}
+      {(reasonCodes.length > 0 || conflicts.length > 0 || candidate) && <ConflictResolver timezone={timezone} reasonCodes={reasonCodes} conflicts={conflicts} candidate={candidate} onUseCandidate={submitCandidate} />}
       {plan.status !== "draft" && <p className="mt-3 text-xs text-slate-400">此计划已不再是草案，交互编辑已关闭。</p>}
     </section>
   );

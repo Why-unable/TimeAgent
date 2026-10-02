@@ -112,6 +112,72 @@ def test_priority_ranking_submission_updates_only_the_plan_order() -> None:
         assert task.planned_end_at is None
 
 
+def test_stale_plan_interaction_returns_conflict_and_can_be_reopened() -> None:
+    user = get_user_model().objects.create_user(username="interaction-api-stale")
+    UserPreferenceService.update_for_user(user, {"timezone": "UTC"})
+    tasks = [
+        TaskService.create_task(
+            CreateTaskCommand(user=user, title=f"Stale task {index}", estimated_minutes=30)
+        )
+        for index in range(2)
+    ]
+    now = datetime.now(UTC)
+    plan = PlanningService.propose_schedule_plan(
+        user=user,
+        task_ids=[task.pk for task in tasks],
+        range_start=now + timedelta(days=1),
+        range_end=now + timedelta(days=3),
+        strategy="plan_tasks_only",
+        now=now,
+    )
+    client = APIClient()
+    client.force_authenticate(user=user)
+    ranking = client.post(
+        "/api/v1/interactions/",
+        {"type": "priority_ranking", "plan_id": str(plan.pk)},
+        format="json",
+    )
+    timeline = client.post(
+        "/api/v1/interactions/",
+        {"type": "plan_timeline_edit", "plan_id": str(plan.pk)},
+        format="json",
+    )
+    assert ranking.status_code == timeline.status_code == 200
+
+    updated = client.post(
+        f"/api/v1/interactions/{ranking.data['id']}/submit/",
+        {
+            "expected_version": ranking.data["version"],
+            "action": "reorder",
+            "values": {"ordered_task_ids": [str(task.pk) for task in reversed(tasks)]},
+            "idempotency_key": str(uuid4()),
+        },
+        format="json",
+    )
+    stale_submission = client.post(
+        f"/api/v1/interactions/{timeline.data['id']}/submit/",
+        {
+            "expected_version": timeline.data["version"],
+            "action": "edit",
+            "values": {"items": []},
+            "idempotency_key": str(uuid4()),
+        },
+        format="json",
+    )
+    reopened = client.post(
+        "/api/v1/interactions/",
+        {"type": "plan_timeline_edit", "plan_id": str(plan.pk)},
+        format="json",
+    )
+
+    assert updated.status_code == 200, updated.data
+    assert stale_submission.status_code == 409, stale_submission.data
+    assert reopened.status_code == 200, reopened.data
+    assert reopened.data["status"] == InteractionStatus.PENDING
+    assert reopened.data["plan_version"] == updated.data["plan"]["version"]
+    assert reopened.data["id"] != timeline.data["id"]
+
+
 def test_completion_api_creates_recoverable_feedback_artifact() -> None:
     user = get_user_model().objects.create_user(username="interaction-api-completion")
     task = TaskService.create_task(

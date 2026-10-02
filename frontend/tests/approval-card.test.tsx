@@ -111,6 +111,49 @@ describe("ApprovalCard", () => {
     expect(screen.getByRole("button", { name: "确认并应用" })).toBeInTheDocument();
   });
 
+  it("gives plan application failures a safe refresh-and-check recovery", () => {
+    const failedPlanProposal: ActionProposal = {
+      ...proposal,
+      action_type: "apply_schedule_plan",
+      status: "failed",
+      error: "Schedule plan invalid: schedule_conflict",
+      action_payload: { plan_id: "44444444-4444-4444-8444-444444444444" },
+      display_context: { allowed_decisions: ["approve", "reject"] },
+    };
+
+    render(<ApprovalCard proposal={failedPlanProposal} onDecision={vi.fn()} />);
+
+    expect(screen.getByText("计划应用结果暂时无法确认。请先刷新并核对最新日程，再决定是否重新提交。")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "打开这份计划核对" })).toHaveAttribute(
+      "href",
+      "/planning?plan_id=44444444-4444-4444-8444-444444444444",
+    );
+    expect(screen.queryByText(/正式日程没有被修改/)).not.toBeInTheDocument();
+  });
+
+  it("keeps a refreshed plan pending and asks for another review", async () => {
+    const refreshedProposal: ActionProposal = {
+      ...proposal,
+      action_type: "apply_schedule_plan",
+      display_context: {
+        ...proposal.display_context,
+        review_complete: true,
+        review_items: [{ title: "报告", detail: "计划安排时间" }],
+        review_notice: "计划在提出审批后已有更新。已载入当前版本，请重新核对后再次确认。",
+      },
+    };
+    const onDecision = vi.fn().mockResolvedValue({
+      proposal: refreshedProposal,
+      resume_queued: false,
+    });
+    render(<ApprovalCard proposal={refreshedProposal} onDecision={onDecision} />);
+
+    await userEvent.click(screen.getByRole("button", { name: "确认并应用" }));
+
+    expect(screen.getByText("计划在提出审批后已有更新。已载入当前版本，请重新核对后再次确认。")).toBeInTheDocument();
+    expect(screen.getByText("计划内容已有更新，审批仍待处理；请核对上方最新预览。")).toBeInTheDocument();
+  });
+
   it("exposes edit entry points for the approved task and reminder policies", () => {
     const editableProposals: ActionProposal[] = [
       {

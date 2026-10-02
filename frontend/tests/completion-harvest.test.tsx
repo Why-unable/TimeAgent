@@ -151,7 +151,8 @@ describe("CompletionHarvest", () => {
     expect(await screen.findByText("计划时长：60 分钟")).toBeInTheDocument();
     expect(screen.getByText("实际投入：75 分钟")).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "比预计久" }));
-    await userEvent.selectOptions(screen.getByLabelText("原因（可选）"), "more_complex");
+    await userEvent.click(screen.getByRole("button", { name: "补充原因（可选）" }));
+    await userEvent.selectOptions(screen.getByLabelText("补充原因（可选）"), "more_complex");
     await userEvent.click(screen.getByRole("button", { name: "记录反馈" }));
 
     expect(await screen.findByText(/最近 5 个类似任务样本/)).toBeInTheDocument();

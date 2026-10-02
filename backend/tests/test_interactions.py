@@ -5,6 +5,7 @@ from uuid import uuid4
 
 import pytest
 from django.contrib.auth import get_user_model
+from django.contrib.auth.models import User
 
 from apps.agents.context import RuntimeContext
 from apps.agents.tools.planning_tools import request_plan_interaction
@@ -17,7 +18,11 @@ from apps.interactions.models import (
     InteractionType,
 )
 from apps.interactions.serializers import InteractionTelemetrySerializer
-from apps.interactions.services import InteractionArtifactService
+from apps.interactions.services import (
+    InteractionArtifactService,
+    InteractionConflictError,
+)
+from apps.planning.models import SchedulePlan
 from apps.planning.services import PlanningService
 from apps.preferences.services import UserPreferenceService
 from apps.tasks.models import Task, TaskStatus
@@ -30,7 +35,7 @@ NOW = datetime(2026, 10, 2, 12, tzinfo=UTC)
 PLAN_START = datetime(2026, 10, 5, 9, tzinfo=UTC)
 
 
-def _make_user(username: str):
+def _make_user(username: str) -> User:
     user = get_user_model().objects.create_user(username=username)
     UserPreferenceService.update_for_user(
         user,
@@ -39,7 +44,7 @@ def _make_user(username: str):
     return user
 
 
-def _make_plan(user, task_titles: tuple[str, ...]):
+def _make_plan(user: User, task_titles: tuple[str, ...]) -> tuple[list[Task], SchedulePlan]:
     tasks = [
         TaskService.create_task(CreateTaskCommand(user=user, title=title, estimated_minutes=60))
         for title in task_titles
@@ -123,6 +128,60 @@ def test_agent_requests_typed_plan_interaction_through_application_service() -> 
     assert artifact.type == InteractionType.PRIORITY_RANKING
     assert artifact.allowed_actions == ["reorder", "dismiss"]
     assert result["status"] == InteractionStatus.PENDING
+
+
+def test_plan_edit_marks_sibling_interaction_stale_and_requires_a_fresh_artifact() -> None:
+    user = _make_user("interaction-stale-sibling")
+    tasks, plan = _make_plan(user, ("Write paper", "Review Redis"))
+    ranking = InteractionArtifactService.ensure(
+        user=user,
+        interaction_type=InteractionType.PRIORITY_RANKING,
+        plan_id=plan.pk,
+        now=NOW,
+    )
+    timeline = InteractionArtifactService.ensure(
+        user=user,
+        interaction_type=InteractionType.PLAN_TIMELINE_EDIT,
+        plan_id=plan.pk,
+        now=NOW,
+    )
+
+    result = InteractionArtifactService.submit(
+        user=user,
+        interaction_id=ranking.pk,
+        expected_version=ranking.version,
+        action="reorder",
+        values={"ordered_task_ids": [str(task.pk) for task in reversed(tasks)]},
+        idempotency_key="rank-stales-timeline-001",
+        now=NOW,
+    )
+
+    timeline.refresh_from_db()
+    assert result.accepted is True
+    assert result.plan is not None
+    updated_plan = result.plan
+    assert timeline.status == InteractionStatus.STALE
+    assert timeline.plan_version == plan.version
+    with pytest.raises(InteractionConflictError, match="no longer pending"):
+        InteractionArtifactService.submit(
+            user=user,
+            interaction_id=timeline.pk,
+            expected_version=timeline.version,
+            action="edit",
+            values={"items": []},
+            idempotency_key="stale-timeline-submit-001",
+            now=NOW,
+        )
+
+    refreshed = InteractionArtifactService.ensure(
+        user=user,
+        interaction_type=InteractionType.PLAN_TIMELINE_EDIT,
+        plan_id=plan.pk,
+        now=NOW,
+    )
+    assert refreshed.pk != timeline.pk
+    assert refreshed.status == InteractionStatus.PENDING
+    assert refreshed.plan_version == updated_plan.version
 
 
 def test_rejected_timeline_edit_returns_authoritative_conflict_and_candidate() -> None:
@@ -259,23 +318,33 @@ def test_plan_edit_idempotency_replay_returns_current_plan() -> None:
         plan_id=plan.pk,
         now=NOW,
     )
-    request = {
-        "user": user,
-        "interaction_id": interaction.pk,
-        "expected_version": interaction.version,
-        "action": "reorder",
-        "values": {"ordered_task_ids": [str(task.pk) for task in tasks]},
-        "idempotency_key": "rank-replay-001",
-        "now": NOW,
-    }
-
-    first = InteractionArtifactService.submit(**request)
-    replay = InteractionArtifactService.submit(**request)
+    ordered_task_ids = [str(task.pk) for task in tasks]
+    first = InteractionArtifactService.submit(
+        user=user,
+        interaction_id=interaction.pk,
+        expected_version=interaction.version,
+        action="reorder",
+        values={"ordered_task_ids": ordered_task_ids},
+        idempotency_key="rank-replay-001",
+        now=NOW,
+    )
+    replay = InteractionArtifactService.submit(
+        user=user,
+        interaction_id=interaction.pk,
+        expected_version=interaction.version,
+        action="reorder",
+        values={"ordered_task_ids": ordered_task_ids},
+        idempotency_key="rank-replay-001",
+        now=NOW,
+    )
 
     assert first.accepted is True
     assert replay.replayed is True
+    assert first.plan is not None
     assert replay.plan is not None
-    assert replay.plan.version == first.plan.version
+    first_plan = first.plan
+    replay_plan = replay.plan
+    assert replay_plan.version == first_plan.version
     assert (
         InteractionSubmission.objects.filter(user=user, idempotency_key="rank-replay-001").count()
         == 1

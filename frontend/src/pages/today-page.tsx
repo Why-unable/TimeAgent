@@ -269,24 +269,24 @@ function MobileNextAction({
       <div className="mt-3 flex flex-wrap gap-2">
         {event ? (
           <>
-            <Link to="/calendar" className="inline-flex min-h-9 items-center gap-2 rounded-lg border border-teal-200 bg-white px-3 py-2 text-xs font-medium text-teal-700 hover:border-teal-300">
+            <Link to="/calendar" className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-teal-200 bg-white px-3 py-2 text-xs font-medium text-teal-700 hover:border-teal-300">
               查看日程
             </Link>
-            <Link to="/chat" className="inline-flex min-h-9 items-center gap-1 rounded-lg px-3 py-2 text-xs font-medium text-teal-700 hover:bg-teal-100">
+            <Link to="/chat" className="inline-flex min-h-11 items-center gap-1 rounded-lg px-3 py-2 text-xs font-medium text-teal-700 hover:bg-teal-100">
               <Pencil size={14} /> 调整安排
             </Link>
           </>
         ) : (
           <>
             {!taskIsActive && (
-              <Button size="sm" onClick={() => onStart(task!.id)} disabled={starting}>
+              <Button size="md" onClick={() => onStart(task!.id)} disabled={starting}>
                 <Play size={14} /> 开始
               </Button>
             )}
-            <Button variant="secondary" size="sm" onClick={() => onComplete(task!.id)} disabled={completing}>
+            <Button variant="secondary" size="md" onClick={() => onComplete(task!.id)} disabled={completing}>
               <CheckCircle2 size={14} /> 完成
             </Button>
-            <Link to="/tasks" className="inline-flex min-h-9 items-center gap-1 rounded-lg px-3 py-2 text-xs font-medium text-teal-700 hover:bg-teal-100">
+            <Link to="/tasks" className="inline-flex min-h-11 items-center gap-1 rounded-lg px-3 py-2 text-xs font-medium text-teal-700 hover:bg-teal-100">
               <Pencil size={14} /> 调整任务
             </Link>
           </>
@@ -679,7 +679,7 @@ export function TodayPage() {
                   aria-label={`完成任务：${task.title}`}
                   disabled={completeTask.isPending}
                   onClick={() => complete(task.id)}
-                  className="shrink-0 rounded-lg p-2 text-emerald-300 hover:bg-emerald-400/10 disabled:opacity-50"
+                  className="min-h-11 min-w-11 shrink-0 rounded-lg p-2 text-emerald-300 hover:bg-emerald-400/10 disabled:opacity-50"
                 >
                   <CircleCheck size={19} />
                 </button>

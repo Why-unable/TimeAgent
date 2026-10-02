@@ -34,6 +34,7 @@ from apps.conversations.models import AgentRunStatus
 from apps.conversations.services import AgentRunService, ConversationService, StartRunCommand
 from apps.events.models import CalendarEvent, CalendarEventStatus
 from apps.events.services import CreateEventCommand, EventService, UpdateEventCommand
+from apps.planning.services import PlanningService
 from apps.preferences.services import UserPreferenceService
 from apps.preferences.snapshots import PlanningPreferencesSnapshot
 from apps.reminders.models import ReminderStatus
@@ -1187,6 +1188,80 @@ def test_approval_rebases_stale_event_version_and_requires_a_second_confirmation
     assert not replayed_refresh.resume_ready
     assert replayed_refresh.proposal.status == ActionProposalStatus.AWAITING_APPROVAL
     assert replayed_refresh.proposal.version == first_decision.proposal.version
+
+    second_decision = ActionProposalService.decide(
+        user=user,
+        proposal_id=proposal.pk,
+        expected_version=first_decision.proposal.version,
+        decision="approve",
+        decision_idempotency_key=uuid4(),
+    )
+    assert second_decision.resume_ready
+    assert second_decision.proposal.status == ActionProposalStatus.APPROVED
+
+
+@pytest.mark.django_db
+def test_approval_of_changed_schedule_plan_requires_a_second_confirmation() -> None:
+    user = User.objects.create_user(username="proposal-stale-schedule-plan")
+    tasks = [
+        TaskService.create_task(
+            CreateTaskCommand(user=user, title=title, estimated_minutes=30)
+        )
+        for title in ("Write report", "Review report")
+    ]
+    now = timezone.now()
+    plan = PlanningService.propose_schedule_plan(
+        user=user,
+        task_ids=[task.pk for task in tasks],
+        range_start=now + timedelta(hours=1),
+        range_end=now + timedelta(days=10),
+        strategy="plan_tasks_only",
+        now=now,
+    )
+    run, _, _ = _setup_run(user)
+    proposal = ActionProposalService.create_from_interrupt(
+        run=run,
+        interrupt_value={
+            "action_requests": [
+                {
+                    "name": "apply_schedule_plan",
+                    "args": {"plan_id": str(plan.pk), "expected_version": plan.version},
+                }
+            ],
+            "review_configs": [
+                {
+                    "action_name": "apply_schedule_plan",
+                    "allowed_decisions": ["approve", "reject"],
+                }
+            ],
+        },
+    )[0]
+    assert proposal.display_context["stale_targets"] == []
+
+    updated_plan = PlanningService.edit_schedule_plan(
+        user=user,
+        plan_id=plan.pk,
+        expected_version=plan.version,
+        edits=[],
+        ordered_task_ids=[task.pk for task in reversed(tasks)],
+        now=now,
+    )
+    first_decision = ActionProposalService.decide(
+        user=user,
+        proposal_id=proposal.pk,
+        expected_version=proposal.version,
+        decision="approve",
+        decision_idempotency_key=uuid4(),
+    )
+
+    assert not first_decision.resume_ready
+    assert first_decision.proposal.status == ActionProposalStatus.AWAITING_APPROVAL
+    assert first_decision.proposal.version == proposal.version + 1
+    assert first_decision.proposal.action_payload["expected_version"] == updated_plan.version
+    assert first_decision.proposal.display_context["stale_targets"] == [
+        {"expected_version": plan.version, "current_version": updated_plan.version}
+    ]
+    assert "提出审批后已有更新" in first_decision.proposal.display_context["review_notice"]
 
     second_decision = ActionProposalService.decide(
         user=user,

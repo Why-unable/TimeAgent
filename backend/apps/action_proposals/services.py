@@ -22,6 +22,7 @@ from apps.events.services import EventService
 from apps.events.temporal_services import EventTemporalResolutionService
 from apps.planning.adaptive import AdaptivePlanningService
 from apps.planning.automation import AutomationPolicyService
+from apps.planning.models import SchedulePlanStatus
 from apps.planning.services import PlanningService
 from apps.reminders.services import ReminderService
 from apps.tasks.services import TaskService
@@ -127,7 +128,7 @@ def _refresh_target_versions(
         return None
 
     refreshed_args = dict(args)
-    if tool_name == "update_event":
+    if tool_name in {"update_event", "apply_schedule_plan"}:
         current_version = stale_targets[0].get("current_version")
         if isinstance(current_version, int):
             refreshed_args["expected_version"] = current_version
@@ -432,6 +433,23 @@ class ActionProposalService:
                 result["action_summary"] = "将应用已保存的任务计划；计划详情暂不可用。"
                 result["review_complete"] = False
             else:
+                expected_version = args.get("expected_version")
+                result["stale_targets"] = (
+                    [
+                        {
+                            "expected_version": expected_version,
+                            "current_version": plan.version,
+                        }
+                    ]
+                    if expected_version != plan.version
+                    else []
+                )
+                if plan.status != SchedulePlanStatus.DRAFT:
+                    result["review_notice"] = (
+                        "这份计划已不再是可应用的草案，请重新生成后再提交审批。"
+                    )
+                elif plan.expires_at <= timezone.now():
+                    result["review_notice"] = "这份计划已过期，请重新生成后再提交审批。"
                 plan_items = [
                     item
                     for item in plan.items
@@ -452,7 +470,27 @@ class ActionProposalService:
                         task_title = "任务详情暂不可用"
                         task_details_complete = False
                     state = str(item.get("state", "placed"))
-                    detail = "计划安排时间" if state == "placed" else "计划暂未安排时间"
+                    if state == "placed":
+                        detail = "计划安排时间"
+                    else:
+                        reason_labels = {
+                            "deadline_before_range": "截止时间早于计划范围",
+                            "planning_decision_window_empty": "指定条件下没有可安排时间",
+                            "planning_predecessor_unavailable": "前置任务尚未安排",
+                            "exact_start_outside_allowed_window": "指定时间超出可安排时段",
+                            "exact_start_unavailable": "指定时间与现有安排冲突",
+                            "insufficient_free_capacity": "当前可用时间不足",
+                            "task_planning_locked": "任务当前已锁定",
+                        }
+                        raw_reasons = item.get("reason_codes")
+                        labels = []
+                        if isinstance(raw_reasons, list):
+                            labels = [
+                                reason_labels[code]
+                                for code in raw_reasons
+                                if isinstance(code, str) and code in reason_labels
+                            ]
+                        detail = " · ".join(labels) or "计划暂未安排时间"
                     previews.append(
                         ActionProposalService._review_item(
                             title=task_title,
@@ -476,7 +514,10 @@ class ActionProposalService:
                         ),
                         "review_items": previews,
                         "review_complete": (
-                            task_details_complete and len(previews) == len(plan_items)
+                            task_details_complete
+                            and len(previews) == len(plan_items)
+                            and plan.status == SchedulePlanStatus.DRAFT
+                            and plan.expires_at > timezone.now()
                         ),
                     }
                 )
@@ -1528,7 +1569,9 @@ class ActionProposalService:
             )
             if refreshed_payload is not None:
                 refreshed_display_context["review_notice"] = (
-                    "这项日程在提出审批后已有更新。已载入最新安排，请重新核对后再次确认。"
+                    "计划在提出审批后已有更新。已载入当前版本，请重新核对后再次确认。"
+                    if proposal.action_type == "apply_schedule_plan"
+                    else "这项日程在提出审批后已有更新。已载入最新安排，请重新核对后再次确认。"
                 )
                 return keep_pending_for_review(
                     refreshed_display_context,

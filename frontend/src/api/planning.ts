@@ -56,13 +56,6 @@ export function getSchedulePlan(planId: string) {
   return apiRequest<SchedulePlan>(`/api/v1/planning/plans/${planId}/`);
 }
 
-export function applySchedulePlan(planId: string, input: SchedulePlanApply) {
-  return apiRequest<SchedulePlan>(`/api/v1/planning/plans/${planId}/apply/`, {
-    method: "POST",
-    body: JSON.stringify(input),
-  });
-}
-
 export function compareSchedulePlans(input: SchedulePlanCompare) {
   return apiRequest<SchedulePlanComparison>("/api/v1/planning/plans/compare/", {
     method: "POST",

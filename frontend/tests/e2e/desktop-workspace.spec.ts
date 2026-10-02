@@ -360,7 +360,6 @@ test.describe("desktop workspace", () => {
       created_at: "2026-07-30T01:00:00Z",
       updated_at: "2026-07-30T01:00:00Z",
     };
-    let applied = false;
     let generatedRangeStart = "";
     await page.route("**/api/v1/tasks/", (route) => route.fulfill({ json: [task] }));
     await page.route("**/api/v1/planning/automation-policies/", (route) => route.fulfill({ json: [] }));
@@ -384,11 +383,6 @@ test.describe("desktop workspace", () => {
       }
       return route.continue();
     });
-    await page.route("**/api/v1/planning/plans/*/apply/", (route) => {
-      applied = true;
-      return route.fulfill({ status: 200, json: { id: "41111111-1111-4111-8111-111111111111", strategy: "plan_tasks_only", status: "applied", version: 2, created_at: "2026-07-30T01:00:00Z", applied_at: "2026-07-30T01:01:00Z", items: [] } });
-    });
-
     await page.goto("/planning");
     await page.getByRole("button", { name: "高级规划设置" }).click();
     await expect(page.getByRole("checkbox", { name: /准备周会材料/ })).toBeChecked();
@@ -404,8 +398,13 @@ test.describe("desktop workspace", () => {
       await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
       await expect(page.getByText("准备周会材料").first()).toBeVisible();
     }
-    await page.getByRole("button", { name: "应用计划" }).click();
-    await expect(page.getByText("计划已应用。", { exact: true })).toBeVisible();
-    expect(applied).toBe(true);
+    let directApplyCalled = false;
+    await page.route("**/api/v1/planning/plans/*/apply/", async (route) => {
+      directApplyCalled = true;
+      await route.fulfill({ status: 500, json: { detail: "Unexpected direct apply" } });
+    });
+    await page.getByRole("button", { name: "提交应用审批" }).click();
+    await expect(page).toHaveURL(/\/chat(?:\/[0-9a-f-]+)?(?:\?.*)?$/);
+    expect(directApplyCalled).toBe(false);
   });
 });

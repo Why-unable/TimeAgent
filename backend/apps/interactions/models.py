@@ -23,6 +23,7 @@ class InteractionStatus(models.TextChoices):
     COMPLETED = "completed", "Completed"
     ABANDONED = "abandoned", "Abandoned"
     EXPIRED = "expired", "Expired"
+    STALE = "stale", "Stale"
 
 
 class InteractionArtifact(models.Model):

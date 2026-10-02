@@ -1,5 +1,5 @@
 import { CheckCircle2, Sparkles } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 import type { InteractionArtifact } from "../../api/interactions";
@@ -68,9 +68,12 @@ export function CompletionHarvest({
     ? (interaction.payload.completion_feedback as Record<string, unknown>).reason ?? ""
     : ""));
   const [celebrate, setCelebrate] = useState(false);
+  const [reasonOpen, setReasonOpen] = useState(false);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [startedAt, setStartedAt] = useState<number | null>(null);
+  const feedbackStatusRef = useRef<HTMLParagraphElement>(null);
+  const wasFeedbackSaved = useRef(false);
   const feedbackSaved = Boolean(interaction.payload.completion_feedback);
   const plannedMinutes = useMemo(() => {
     const current = task.data;
@@ -99,6 +102,19 @@ export function CompletionHarvest({
     }
   }, [autoFocus, initialInteraction.id]);
 
+  useEffect(() => {
+    if (feedbackSaved && !wasFeedbackSaved.current) {
+      window.requestAnimationFrame(() => feedbackStatusRef.current?.focus());
+    }
+    wasFeedbackSaved.current = feedbackSaved;
+  }, [feedbackSaved]);
+
+  useEffect(() => {
+    if (!celebrate) return;
+    const timer = window.setTimeout(() => setCelebrate(false), 700);
+    return () => window.clearTimeout(timer);
+  }, [celebrate]);
+
   const begin = () => {
     if (startedAt) return startedAt;
     const now = Date.now();
@@ -124,6 +140,7 @@ export function CompletionHarvest({
       if (!result.accepted) throw new Error(result.detail ?? "反馈未能保存。");
       setInteraction(result.interaction);
       setMessage("反馈已记录，任务完成状态没有改变。");
+      setCelebrate(true);
       await client.invalidateQueries({ queryKey: ["duration-recommendation", taskId] });
       setStartedAt(null);
     } catch (caught) {
@@ -162,10 +179,6 @@ export function CompletionHarvest({
             <p className="mt-1 text-xs text-slate-400">这是可选反馈；任务已经完成，可以跳过。</p>
           </div>
         </div>
-        <label className="flex min-h-11 shrink-0 items-center gap-2 text-xs text-slate-400">
-          <input type="checkbox" checked={celebrate} onChange={(event) => setCelebrate(event.target.checked)} />
-          轻量动画
-        </label>
       </div>
 
       <div className="mt-4 grid gap-2 text-sm sm:grid-cols-2">
@@ -192,8 +205,9 @@ export function CompletionHarvest({
               ))}
             </div>
           </fieldset>
-          <label className="mt-3 block text-sm text-slate-300">
-            原因（可选）
+          <button type="button" aria-expanded={reasonOpen} onClick={() => setReasonOpen((open) => !open)} className="mt-3 min-h-11 rounded-lg px-2 text-sm text-slate-400 underline underline-offset-4">{reasonOpen ? "收起原因选项" : reason ? "修改原因（可选）" : "补充原因（可选）"}</button>
+          {reasonOpen || reason ? <label className="mt-2 block text-sm text-slate-300">
+            补充原因（可选）
             <select value={reason} onChange={(event) => { begin(); setReason(event.target.value); }} className="mt-1 min-h-11 w-full rounded-lg border border-white/10 bg-slate-900 px-3">
               <option value="">不填写</option>
               <option value="interrupted">被打断</option>
@@ -202,7 +216,7 @@ export function CompletionHarvest({
               <option value="waiting">等待他人</option>
               <option value="other">其他</option>
             </select>
-          </label>
+          </label> : null}
           <div className="mt-4 flex flex-wrap gap-2">
             <button type="button" onClick={submitFeedback} className="min-h-11 rounded-xl bg-emerald-300 px-4 font-semibold text-slate-950">记录反馈</button>
             <button type="button" onClick={dismiss} className="min-h-11 rounded-xl border border-white/10 px-4 text-sm text-slate-300">跳过</button>
@@ -210,7 +224,7 @@ export function CompletionHarvest({
         </>
       ) : (
         <>
-          <p role="status" className="mt-4 text-sm text-emerald-200">
+          <p ref={feedbackStatusRef} tabIndex={-1} role="status" className="mt-4 rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-emerald-200 text-sm text-emerald-200">
             已记录：{rating === "faster" ? "比预计快" : rating === "longer" ? "比预计久" : "差不多"}{reason ? ` · ${reasonText(reason)}` : ""}
           </p>
           {showMemorySuggestion && recommendationData && (
@@ -288,7 +302,7 @@ export function MemorySuggestionCard({
       <p className="mt-2 text-sm text-slate-200">
         建议以后为这类任务预留 {recommendation.recommended_minutes} 分钟（比当前估时{delta > 0 ? "长" : "短"}约 {Math.abs(delta)}%）。是否更新后续估时偏好？
       </p>
-      <p className="mt-1 text-xs text-slate-400">只有你选择“更新偏好”后，Time Memory 才会记录这项调整。</p>
+      <p className="mt-1 text-xs text-slate-400">只有你选择“更新偏好”后，才会保存这项估时调整。</p>
       {interaction?.status === "pending" ? (
         <div className="mt-3 flex flex-wrap gap-2">
           <button type="button" disabled={!interaction} onClick={() => decide(true)} className="min-h-11 rounded-lg bg-cyan-200 px-3 text-sm font-semibold text-slate-950 disabled:opacity-50">更新偏好</button>
