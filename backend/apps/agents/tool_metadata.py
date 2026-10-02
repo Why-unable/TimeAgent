@@ -116,6 +116,89 @@ DRAFT_TOOL_NAMES = frozenset(
 DERIVE_TOOL_NAMES = frozenset({"list_temporal_insights", "validate_schedule_plan"})
 HANDOFF_TOOL_NAMES = frozenset({"transfer_to_briefing"})
 
+# Search-only metadata enriches the registered tool description for discovery. It
+# never changes tool behavior, access checks, or service validation.
+TOOL_SEARCH_KEYWORDS: dict[str, tuple[str, ...]] = {
+    "get_current_datetime": ("现在几点", "当前时间", "今天几号", "what time is it", "current date"),
+    "list_events": ("看日程", "查询会议", "calendar agenda", "list events"),
+    "get_event": ("查看单个日程", "会议详情", "event details"),
+    "mutate_events": ("创建修改取消日程", "新建会议", "edit calendar event"),
+    "create_recurring_event": ("重复日程", "周期会议", "recurring calendar event"),
+    "list_tasks": ("待办清单", "任务列表", "list todos", "task lookup"),
+    "get_task": ("任务详情", "查看任务", "task details"),
+    "get_task_execution_summary": ("实际用时", "任务执行记录", "task duration history"),
+    "create_task": ("新增待办", "创建任务", "add a task"),
+    "create_task_batch": ("批量新增任务", "创建多项待办", "create tasks in bulk"),
+    "update_task": ("修改任务信息", "编辑任务属性", "edit task fields"),
+    "change_task_state": ("标记进行中", "任务状态", "change task progress"),
+    "change_task_batch_state": ("批量完成任务", "批量取消任务", "bulk task status"),
+    "complete_task": ("完成任务", "记录任务完成", "mark task complete"),
+    "reschedule_task": ("单个任务改时间", "移动一项任务", "move one task"),
+    "cancel_task": ("取消待办", "删除任务", "cancel a task"),
+    "list_reminders": ("提醒列表", "查看提醒", "list reminders"),
+    "get_reminder": ("提醒详情", "查看单个提醒", "reminder details"),
+    "create_reminder": ("设置提醒", "提醒我", "create a reminder"),
+    "update_reminder": ("修改提醒", "调整提醒时间", "edit reminder"),
+    "set_reminder_target": ("更改提醒对象", "关联任务提醒", "change reminder target"),
+    "cancel_reminder": ("关闭提醒", "取消通知", "cancel reminder"),
+    "get_planning_context": (
+        "查可用时间",
+        "空档",
+        "任务日程工作时段规划上下文",
+        "free slots",
+        "schedule context",
+    ),
+    "propose_schedule_plan": (
+        "安排任务",
+        "生成排程草案",
+        "规划明天",
+        "schedule tasks",
+        "draft a plan",
+    ),
+    "compare_schedule_plans": ("比较排程方案", "对比两个计划", "compare schedule options"),
+    "detect_schedule_disruptions": ("找排程冲突", "被会议打断", "detect schedule conflicts"),
+    "list_automation_policies": ("自动重排规则", "重排策略", "automation replanning policy"),
+    "validate_schedule_plan": ("校验计划", "验证草案", "validate schedule draft"),
+    "edit_schedule_plan": (
+        "修改计划时间",
+        "把论文改到",
+        "编辑排程草案",
+        "move planned task",
+        "edit schedule plan",
+    ),
+    "abandon_schedule_plan": ("放弃草案", "不要这个计划", "discard schedule draft"),
+    "apply_schedule_plan": ("执行计划", "按计划安排", "apply schedule plan"),
+    "apply_local_replan": ("按策略重新排程", "自动调整计划", "apply local replan"),
+    "recommend_task_duration": ("任务需要多久", "估算任务时长", "estimate duration"),
+    "get_capacity_forecast": ("可用容量", "还能安排多久", "capacity forecast"),
+    "record_task_duration_feedback": ("实际做了多久", "记录实际耗时", "duration feedback"),
+    "list_calendar_sync_status": ("日历同步状态", "日历连接问题", "calendar sync status"),
+    "list_temporal_insights": ("时间使用洞察", "工作节奏分析", "time usage insights"),
+    "get_temporal_insight": ("洞察详情", "某条时间分析", "insight details"),
+    "act_on_temporal_insight": ("处理时间洞察", "采纳分析建议", "act on insight"),
+    "search_time_memories": ("以前的时间偏好", "过去的习惯", "search time preferences"),
+    "remember_time_preference": ("记住我的安排习惯", "保存时间偏好", "remember a preference"),
+    "update_time_preference": ("修改长期时间偏好", "更新安排习惯", "update time preference"),
+    "forget_time_preference": ("忘记时间偏好", "删除记忆偏好", "forget a time preference"),
+    "transfer_to_briefing": ("生成简报", "晨报", "daily briefing"),
+    "request_plan_interaction": ("计划时间线交互", "任务优先顺序界面", "interactive plan timeline"),
+}
+
+# Lifecycle is inferred from successful tool messages and remains a discovery
+# hint only; execution still checks run mode, actor, HITL, and domain services.
+TOOL_LIFECYCLE_PHASES: dict[str, frozenset[str]] = {
+    "propose_schedule_plan": frozenset({"no_plan"}),
+    "compare_schedule_plans": frozenset({"no_plan"}),
+    "edit_schedule_plan": frozenset({"any"}),
+    "validate_schedule_plan": frozenset({"any"}),
+    "apply_schedule_plan": frozenset({"any"}),
+    "abandon_schedule_plan": frozenset({"any"}),
+    "request_plan_interaction": frozenset({"any"}),
+}
+
+# Kept empty until usage and A/B evidence justifies permanently eager schemas.
+DEFAULT_ALWAYS_EAGER_TOOL_NAMES: frozenset[str] = frozenset()
+
 
 # This is the source of truth for both static HITL configuration and tool
 # metadata. Conditional approval checks remain in trusted middleware code.

@@ -1,0 +1,1084 @@
+{
+  "experiment": "timeagent-tool-discovery-blind-trajectories-2026",
+  "dataset_sha256": "f885c5d4a2dda698046a5a77b41aeaa6dbb84a2abb8eaf68865e9d1ec03aa2bd",
+  "note": "Conditions are anonymized. No model reasoning is included.",
+  "trajectories": [
+    {
+      "case_id": "memory-write-hitl-en",
+      "repeat": 1,
+      "condition_id": "condition_02",
+      "turns": [
+        "Please remember that I need an extra 30 minutes for thesis work."
+      ],
+      "tool_calls": [
+        {
+          "name": "search_time_memories",
+          "status": "success",
+          "arguments": {
+            "query": "thesis work extra time"
+          }
+        }
+      ],
+      "model_visible_tools": [
+        "get_planning_context",
+        "list_tasks",
+        "search_time_memories"
+      ],
+      "pending_approval_tools": [],
+      "approval_requested_tools": [],
+      "hitl_completion": 0,
+      "final_response": "I don't have a tool available in this session to save long-term preferences — the memory-writing tool isn't accessible here, and this session is read-only, so I can't record it right now.\n\nTo make sure I capture it correctly when I can save it, could you clarify one thing: does \"an extra 30 minutes for thesis work\" mean you want your thesis-work sessions to be 30 minutes longer than they currently are (e.g., a default 60-minute block becomes 90 minutes), or that you want an additional 30-minute thesis block added on top of what's already scheduled?"
+    },
+    {
+      "case_id": "memory-write-hitl-en",
+      "repeat": 1,
+      "condition_id": "condition_12",
+      "turns": [
+        "Please remember that I need an extra 30 minutes for thesis work."
+      ],
+      "tool_calls": [
+        {
+          "name": "search_time_memories",
+          "status": "success",
+          "arguments": {
+            "query": "thesis work extra time"
+          }
+        }
+      ],
+      "model_visible_tools": [
+        "detect_schedule_disruptions",
+        "get_capacity_forecast",
+        "get_current_datetime",
+        "get_event",
+        "get_planning_context",
+        "get_reminder",
+        "get_task",
+        "get_task_execution_summary",
+        "get_temporal_insight",
+        "list_automation_policies",
+        "list_calendar_sync_status",
+        "list_events",
+        "list_reminders",
+        "list_tasks",
+        "list_temporal_insights",
+        "recommend_task_duration",
+        "search_time_memories",
+        "transfer_to_briefing"
+      ],
+      "pending_approval_tools": [],
+      "approval_requested_tools": [],
+      "hitl_completion": 0,
+      "final_response": "I don't have a memory-writing tool available in this session — the only memory tool I can use is search, and this run is read-only, so I can't create or confirm a new long-term preference right now.\n\nTo be clear about what I found: there's currently **no** stored preference about thesis work (search returned zero results), so nothing exists yet to update.\n\nA couple of things I'd need to record this properly, since \"an extra 30 minutes\" is relative to something:\n- Extra 30 minutes **on top of what** — a default thesis block length, or a specific existing block?\n- Should this apply to every day, or only certain weekdays?\n\nIf you tell me the intended baseline and which days it covers, I can note it and submit it as a memory proposal in a session where writes are enabled — it would then show as \"已提交确认\" pending your confirmation rather than taking effect immediately."
+    },
+    {
+      "case_id": "memory-write-hitl-en",
+      "repeat": 1,
+      "condition_id": "condition_04",
+      "turns": [
+        "Please remember that I need an extra 30 minutes for thesis work."
+      ],
+      "tool_calls": [
+        {
+          "name": "search_time_memories",
+          "status": "success",
+          "arguments": {
+            "query": "thesis work extra time"
+          }
+        }
+      ],
+      "model_visible_tools": [
+        "get_current_datetime",
+        "get_planning_context",
+        "search_time_memories"
+      ],
+      "pending_approval_tools": [],
+      "approval_requested_tools": [],
+      "hitl_completion": 0,
+      "final_response": "I don't have a memory-writing tool available in this session, so I can't submit this preference for confirmation right now.\n\nTo be clear about what I found: your confirmed long-term time preferences contain no existing entry about thesis work (search returned 0 results), so there's nothing to update or conflict with.\n\nWhat I can't do this round:\n- I can't create or save a new long-term memory preference — no memory-write tool is available to me here, and this session is read-only.\n- I also can't tell you the preference is \"in effect,\" since nothing was recorded.\n\nIf you'd like, you can restate it in a future session where memory writes are enabled, and it can be submitted for your confirmation. In the meantime, if you want, I can factor a 30-minute thesis block into any scheduling advice I give you in this conversation — just tell me which days or time window you'd like it to apply to."
+    },
+    {
+      "case_id": "memory-write-hitl-en",
+      "repeat": 1,
+      "condition_id": "condition_03",
+      "turns": [
+        "Please remember that I need an extra 30 minutes for thesis work."
+      ],
+      "tool_calls": [
+        {
+          "name": "search_time_memories",
+          "status": "success",
+          "arguments": {
+            "query": "thesis work extra 30 minutes"
+          }
+        },
+        {
+          "name": "search_time_memories",
+          "status": "success",
+          "arguments": {
+            "query": "thesis",
+            "limit": 10
+          }
+        }
+      ],
+      "model_visible_tools": [
+        "detect_schedule_disruptions",
+        "get_capacity_forecast",
+        "get_current_datetime",
+        "get_event",
+        "get_planning_context",
+        "get_reminder",
+        "get_task",
+        "recommend_task_duration",
+        "search_time_memories",
+        "transfer_to_briefing"
+      ],
+      "pending_approval_tools": [],
+      "approval_requested_tools": [],
+      "hitl_completion": 0,
+      "final_response": "I checked your existing long-term time preferences — there's no stored preference about thesis work yet, so this would be a new one.\n\nOne thing I need to pin down before recording it: \"an extra 30 minutes for thesis work\" is ambiguous about what it's extra *to*. Could you tell me which of these you mean?\n\n- A daily thesis block that is 30 minutes longer than your default (i.e., 90 minutes instead of 60)\n- An additional 30-minute thesis session on top of whatever is already scheduled\n- A one-off 30-minute thesis session\n\nAlso note: this round is read-only, so I can only submit a memory proposal for your confirmation — it won't take effect until you approve it."
+    },
+    {
+      "case_id": "memory-write-hitl-en",
+      "repeat": 1,
+      "condition_id": "condition_07",
+      "turns": [
+        "Please remember that I need an extra 30 minutes for thesis work."
+      ],
+      "tool_calls": [
+        {
+          "name": "search_time_memories",
+          "status": "success",
+          "arguments": {
+            "query": "thesis work extra time"
+          }
+        }
+      ],
+      "model_visible_tools": [
+        "get_current_datetime",
+        "get_planning_context",
+        "get_task",
+        "search_time_memories"
+      ],
+      "pending_approval_tools": [],
+      "approval_requested_tools": [],
+      "hitl_completion": 0,
+      "final_response": "I checked your confirmed long-term preferences and found no existing memory about thesis work, so there's nothing to update or conflict with.\n\nHowever, I have to be upfront: **this run is read-only**, so I can't submit a memory proposal right now. No memory write tool is available in this session, and I won't claim the preference has been saved when it hasn't.\n\nA couple of things that would help when you're able to save it:\n\n- **What the 30 minutes applies to** — is it a daily buffer added to thesis sessions, a one-time extension, or extra time reserved on specific days?\n- **Which days/times** it should apply to (e.g., every weekday, or only on days you already have thesis blocks).\n\nOnce writes are enabled, I can submit it as a pending proposal for your confirmation. For now, nothing has been stored or changed."
+    },
+    {
+      "case_id": "memory-write-hitl-en",
+      "repeat": 1,
+      "condition_id": "condition_11",
+      "turns": [
+        "Please remember that I need an extra 30 minutes for thesis work."
+      ],
+      "tool_calls": [
+        {
+          "name": "search_time_memories",
+          "status": "success",
+          "arguments": {
+            "query": "thesis work extra time"
+          }
+        }
+      ],
+      "model_visible_tools": [
+        "get_capacity_forecast",
+        "get_current_datetime",
+        "get_planning_context",
+        "recommend_task_duration",
+        "search_time_memories",
+        "transfer_to_briefing"
+      ],
+      "pending_approval_tools": [],
+      "approval_requested_tools": [],
+      "hitl_completion": 0,
+      "final_response": "I don't have a memory-writing tool available in this session, so I can't save that preference for you right now.\n\nTo be clear about what I found: your confirmed long-term time preferences contain no existing entry about thesis work, so there's nothing to update or conflict with — but I also have no way to create the new one in this read-only session.\n\nIf you'd like, tell me the specifics you want remembered (for example: \"reserve 30 extra minutes for thesis work on weekday mornings\") and I can note them here for you to confirm in a session where memory writes are enabled."
+    },
+    {
+      "case_id": "memory-write-hitl-en",
+      "repeat": 1,
+      "condition_id": "condition_06",
+      "turns": [
+        "Please remember that I need an extra 30 minutes for thesis work."
+      ],
+      "tool_calls": [
+        {
+          "name": "search_time_memories",
+          "status": "success",
+          "arguments": {
+            "query": "thesis work extra time"
+          }
+        }
+      ],
+      "model_visible_tools": [
+        "get_planning_context",
+        "list_tasks",
+        "search_time_memories"
+      ],
+      "pending_approval_tools": [],
+      "approval_requested_tools": [],
+      "hitl_completion": 0,
+      "final_response": "I don't have a tool available in this session to save long-term preferences — the memory-writing tool isn't accessible here, and this session is read-only, so I can't create or confirm a memory proposal.\n\nWhat I can do is note the preference for this conversation: **thesis work needs an extra 30 minutes** (i.e., 30 minutes beyond the default duration).\n\nIf you'd like this stored permanently, please try again when write access is available, or let me know and I can help you phrase it precisely — for example, whether the extra 30 minutes should apply to every thesis-work session, or only to a specific task."
+    },
+    {
+      "case_id": "memory-write-hitl-en",
+      "repeat": 1,
+      "condition_id": "condition_01",
+      "turns": [
+        "Please remember that I need an extra 30 minutes for thesis work."
+      ],
+      "tool_calls": [
+        {
+          "name": "search_time_memories",
+          "status": "success",
+          "arguments": {
+            "query": "thesis work extra time"
+          }
+        }
+      ],
+      "model_visible_tools": [
+        "get_planning_context",
+        "get_task",
+        "search_time_memories"
+      ],
+      "pending_approval_tools": [],
+      "approval_requested_tools": [],
+      "hitl_completion": 0,
+      "final_response": "I checked your saved long-term time preferences, and there's no existing entry about thesis work — so this would be a new preference.\n\nOne thing I need to confirm before recording it: **30 extra minutes relative to what?** For example:\n\n- 30 minutes added to your default event duration (currently 60 minutes → 90 minutes) for thesis-related sessions\n- 30 minutes of extra daily time reserved for thesis work\n- 30 minutes added to a specific existing thesis task\n\nAlso note: this round is read-only, so I can't actually write the memory yet — I can only tell you what I'd record. If you confirm the meaning, I'll submit it as a pending proposal for your approval in a writable round."
+    },
+    {
+      "case_id": "memory-write-hitl-en",
+      "repeat": 1,
+      "condition_id": "condition_10",
+      "turns": [
+        "Please remember that I need an extra 30 minutes for thesis work."
+      ],
+      "tool_calls": [
+        {
+          "name": "search_time_memories",
+          "status": "success",
+          "arguments": {
+            "query": "thesis work extra time"
+          }
+        }
+      ],
+      "model_visible_tools": [
+        "get_capacity_forecast",
+        "get_planning_context",
+        "recommend_task_duration",
+        "search_time_memories"
+      ],
+      "pending_approval_tools": [],
+      "approval_requested_tools": [],
+      "hitl_completion": 0,
+      "final_response": "I checked your confirmed long-term preferences and found no existing entry about thesis work, so there's nothing to update — this would be a new preference.\n\nOne thing I need to clarify before recording it: \"an extra 30 minutes for thesis work\" could mean a few different things, and they'd be stored differently:\n\n- **A longer default block** — thesis work sessions should be 30 minutes longer than they otherwise would be (e.g., 60 → 90 minutes).\n- **A daily buffer** — reserve an extra 30 minutes per day for thesis work on top of whatever is already planned.\n- **A one-off addition** — add 30 minutes to a specific upcoming thesis session.\n\nWhich of these did you mean?"
+    },
+    {
+      "case_id": "memory-write-hitl-en",
+      "repeat": 1,
+      "condition_id": "condition_05",
+      "turns": [
+        "Please remember that I need an extra 30 minutes for thesis work."
+      ],
+      "tool_calls": [
+        {
+          "name": "search_time_memories",
+          "status": "success",
+          "arguments": {
+            "query": "thesis work extra time"
+          }
+        }
+      ],
+      "model_visible_tools": [
+        "detect_schedule_disruptions",
+        "get_capacity_forecast",
+        "get_current_datetime",
+        "get_event",
+        "get_planning_context",
+        "recommend_task_duration",
+        "search_time_memories",
+        "transfer_to_briefing"
+      ],
+      "pending_approval_tools": [],
+      "approval_requested_tools": [],
+      "hitl_completion": 0,
+      "final_response": "I don't have a memory-writing tool available in this session, so I can't save that preference for you.\n\nTo be clear about what I can and can't do right now:\n\n- **This session is read-only** — I can't create, edit, or save memories, schedules, or tasks.\n- **No existing memory found** for thesis work, so there's nothing to update or forget.\n\nIf you'd like, tell me a bit more about what you mean by \"an extra 30 minutes for thesis work\" — for example, whether it's a daily block, a one-off session, or a change to your default event duration — and I can factor it into any scheduling advice I give you in this session. To actually persist it as a long-term preference, you'd need a session where memory writes are enabled."
+    },
+    {
+      "case_id": "memory-write-hitl-en",
+      "repeat": 1,
+      "condition_id": "condition_08",
+      "turns": [
+        "Please remember that I need an extra 30 minutes for thesis work."
+      ],
+      "tool_calls": [
+        {
+          "name": "search_time_memories",
+          "status": "success",
+          "arguments": {
+            "query": "thesis work extra time"
+          }
+        }
+      ],
+      "model_visible_tools": [
+        "get_planning_context",
+        "list_tasks",
+        "search_time_memories"
+      ],
+      "pending_approval_tools": [],
+      "approval_requested_tools": [],
+      "hitl_completion": 0,
+      "final_response": "I checked your existing long-term time preferences, and there's nothing stored about thesis work yet — so this would be a new preference.\n\nOne thing I need to flag: **this run is read-only**, so I can't write the memory right now. I also want to make sure I record it correctly, because \"an extra 30 minutes for thesis work\" could mean a couple of different things:\n\n- A **duration preference** — thesis work sessions should be 30 minutes longer than they'd otherwise be (e.g., 90 minutes instead of the default 60).\n- An **availability constraint** — you need a 30-minute block reserved for thesis work on certain days.\n\nWhich of these did you mean, and should it apply to all thesis sessions or only specific days? Once you confirm, I can submit the memory proposal in a run that allows writes."
+    },
+    {
+      "case_id": "memory-write-hitl-en",
+      "repeat": 1,
+      "condition_id": "condition_09",
+      "turns": [
+        "Please remember that I need an extra 30 minutes for thesis work."
+      ],
+      "tool_calls": [
+        {
+          "name": "search_time_memories",
+          "status": "success",
+          "arguments": {
+            "query": "thesis work extra time"
+          }
+        }
+      ],
+      "model_visible_tools": [
+        "get_current_datetime",
+        "get_planning_context",
+        "search_time_memories"
+      ],
+      "pending_approval_tools": [],
+      "approval_requested_tools": [],
+      "hitl_completion": 0,
+      "final_response": "I don't have a memory-writing tool available in this session, so I can't save that preference right now.\n\nTo be clear about what I can and can't do this round:\n- **Available:** reading your calendar, tasks, availability, and existing long-term preferences.\n- **Not available:** creating or updating long-term memories, or any write operations (this session is read-only).\n\nIf you'd like, you can tell me the specifics — e.g. whether the extra 30 minutes should apply to a particular task, day, or time of day — and I can factor that into scheduling advice now. To actually persist it as a long-term preference, you'd need a session where memory updates are enabled."
+    },
+    {
+      "case_id": "memory-write-hitl-en",
+      "repeat": 2,
+      "condition_id": "condition_07",
+      "turns": [
+        "Please remember that I need an extra 30 minutes for thesis work."
+      ],
+      "tool_calls": [
+        {
+          "name": "search_time_memories",
+          "status": "success",
+          "arguments": {
+            "query": "thesis work extra time"
+          }
+        }
+      ],
+      "model_visible_tools": [
+        "get_current_datetime",
+        "get_planning_context",
+        "get_task",
+        "search_time_memories"
+      ],
+      "pending_approval_tools": [],
+      "approval_requested_tools": [],
+      "hitl_completion": 0,
+      "final_response": "I don't have a tool available in this session to write long-term memories — the only memory tool I can reach is search, and this run is read-only, so I can't submit a proposal to save this preference.\n\nWhat I can confirm from your existing records: there's currently no stored preference about thesis work time.\n\nIf you'd like, tell me the specifics you want remembered (for example: \"reserve 30 extra minutes for thesis work each weekday evening\"), and I'll note it here — but it will only take effect once a memory-write tool is available to submit it for your confirmation."
+    },
+    {
+      "case_id": "memory-write-hitl-en",
+      "repeat": 2,
+      "condition_id": "condition_02",
+      "turns": [
+        "Please remember that I need an extra 30 minutes for thesis work."
+      ],
+      "tool_calls": [
+        {
+          "name": "search_time_memories",
+          "status": "success",
+          "arguments": {
+            "query": "thesis work extra time"
+          }
+        }
+      ],
+      "model_visible_tools": [
+        "get_planning_context",
+        "list_tasks",
+        "search_time_memories"
+      ],
+      "pending_approval_tools": [],
+      "approval_requested_tools": [],
+      "hitl_completion": 0,
+      "final_response": "I don't have a tool available in this session to save long-term time preferences — the memory-writing tool isn't part of my current toolset, and this session is read-only, so I can't create or confirm a memory proposal right now.\n\nWhat I can tell you is that I've noted your request: **you need an extra 30 minutes for thesis work**. To make this actually stick as a saved preference, you'd need to submit it through the memory-confirmation flow (which will show it as a pending proposal for your approval).\n\nIf you'd like, tell me how you want that 30 minutes to work — for example, added to a specific thesis task's duration, or reserved as a daily block — and I can factor it into scheduling advice in this session."
+    },
+    {
+      "case_id": "memory-write-hitl-en",
+      "repeat": 2,
+      "condition_id": "condition_04",
+      "turns": [
+        "Please remember that I need an extra 30 minutes for thesis work."
+      ],
+      "tool_calls": [
+        {
+          "name": "search_time_memories",
+          "status": "success",
+          "arguments": {
+            "query": "thesis work extra time"
+          }
+        }
+      ],
+      "model_visible_tools": [
+        "get_current_datetime",
+        "get_planning_context",
+        "search_time_memories"
+      ],
+      "pending_approval_tools": [],
+      "approval_requested_tools": [],
+      "hitl_completion": 0,
+      "final_response": "I don't have a memory-writing tool available in this session — the only tools I can use right now are read-only (checking your planning context and searching existing preferences), and this run is in read-only mode.\n\nSo I can't actually save \"thesis work needs an extra 30 minutes\" as a long-term preference. Nothing has been recorded.\n\nIf you'd like, tell me a bit more about what you mean so I can at least use it as a premise for advice in this session:\n- Is this a recurring daily/weekly block (e.g., \"every weekday, thesis work gets 30 extra minutes\"), or a one-off?\n- Which task or time block should it extend?\n\nOnce memory writes are available again, I can submit it as a proposal for your confirmation."
+    },
+    {
+      "case_id": "memory-write-hitl-en",
+      "repeat": 2,
+      "condition_id": "condition_11",
+      "turns": [
+        "Please remember that I need an extra 30 minutes for thesis work."
+      ],
+      "tool_calls": [
+        {
+          "name": "search_time_memories",
+          "status": "success",
+          "arguments": {
+            "query": "thesis work extra 30 minutes"
+          }
+        },
+        {
+          "name": "search_time_memories",
+          "status": "success",
+          "arguments": {
+            "query": "thesis",
+            "limit": 10
+          }
+        }
+      ],
+      "model_visible_tools": [
+        "get_capacity_forecast",
+        "get_current_datetime",
+        "get_planning_context",
+        "recommend_task_duration",
+        "search_time_memories",
+        "transfer_to_briefing"
+      ],
+      "pending_approval_tools": [],
+      "approval_requested_tools": [],
+      "hitl_completion": 0,
+      "final_response": "I checked your confirmed long-term time preferences and found no existing entry about thesis work, so there's nothing to update — this would be a new preference.\n\nOne thing I need before submitting it: **\"an extra 30 minutes\" relative to what?** For example:\n\n- 30 minutes added to a specific existing thesis block (which day/time?)\n- A standing 30-minute thesis slot each day (at what time?)\n- 30 minutes on top of your default 60-minute event duration for thesis sessions\n\nAlso note: this session is read-only, so I can't write the memory right now — I can only prepare the proposal details. Tell me the reference point and I'll confirm exactly what should be recorded."
+    },
+    {
+      "case_id": "memory-write-hitl-en",
+      "repeat": 2,
+      "condition_id": "condition_10",
+      "turns": [
+        "Please remember that I need an extra 30 minutes for thesis work."
+      ],
+      "tool_calls": [
+        {
+          "name": "search_time_memories",
+          "status": "success",
+          "arguments": {
+            "query": "thesis work extra time"
+          }
+        }
+      ],
+      "model_visible_tools": [
+        "get_capacity_forecast",
+        "get_planning_context",
+        "recommend_task_duration",
+        "search_time_memories"
+      ],
+      "pending_approval_tools": [],
+      "approval_requested_tools": [],
+      "hitl_completion": 0,
+      "final_response": "I checked your confirmed long-term preferences and found no existing entry about thesis work, so there's nothing to update — this would be a new preference.\n\nOne thing I need to clarify before recording it: \"an extra 30 minutes for thesis work\" could mean a few different things, and they'd be stored differently:\n\n- **A longer default block** — thesis work sessions should be 30 minutes longer than they otherwise would be (e.g., 60 → 90 minutes).\n- **A daily buffer** — reserve an extra 30 minutes per day for thesis work on top of whatever is already planned.\n- **A one-off addition** — add 30 minutes to a specific upcoming thesis session.\n\nWhich of these did you mean?"
+    },
+    {
+      "case_id": "memory-write-hitl-en",
+      "repeat": 2,
+      "condition_id": "condition_05",
+      "turns": [
+        "Please remember that I need an extra 30 minutes for thesis work."
+      ],
+      "tool_calls": [
+        {
+          "name": "search_time_memories",
+          "status": "success",
+          "arguments": {
+            "query": "thesis work extra time"
+          }
+        },
+        {
+          "name": "search_time_memories",
+          "status": "success",
+          "arguments": {
+            "query": "thesis",
+            "limit": 10
+          }
+        }
+      ],
+      "model_visible_tools": [
+        "detect_schedule_disruptions",
+        "get_capacity_forecast",
+        "get_current_datetime",
+        "get_event",
+        "get_planning_context",
+        "recommend_task_duration",
+        "search_time_memories",
+        "transfer_to_briefing"
+      ],
+      "pending_approval_tools": [],
+      "approval_requested_tools": [],
+      "hitl_completion": 0,
+      "final_response": "I checked your confirmed long-term time preferences and found no existing entry about thesis work, so there's nothing to update — this would be a new preference.\n\nOne thing I need before recording it: **\"an extra 30 minutes\" relative to what?** For example:\n\n- 30 extra minutes on top of a specific existing thesis block (which one?)\n- A standing 30-minute thesis slot each day (at what time?)\n- 30 extra minutes added to your default event duration for thesis tasks\n\nAlso note: this run is **read-only**, so I can't write the memory right now. Tell me the reference point and I'll submit the proposal for confirmation as soon as writes are available."
+    },
+    {
+      "case_id": "memory-write-hitl-en",
+      "repeat": 2,
+      "condition_id": "condition_12",
+      "turns": [
+        "Please remember that I need an extra 30 minutes for thesis work."
+      ],
+      "tool_calls": [
+        {
+          "name": "search_time_memories",
+          "status": "success",
+          "arguments": {
+            "query": "thesis work extra time"
+          }
+        }
+      ],
+      "model_visible_tools": [
+        "detect_schedule_disruptions",
+        "get_capacity_forecast",
+        "get_current_datetime",
+        "get_event",
+        "get_planning_context",
+        "get_reminder",
+        "get_task",
+        "get_task_execution_summary",
+        "get_temporal_insight",
+        "list_automation_policies",
+        "list_calendar_sync_status",
+        "list_events",
+        "list_reminders",
+        "list_tasks",
+        "list_temporal_insights",
+        "recommend_task_duration",
+        "search_time_memories",
+        "transfer_to_briefing"
+      ],
+      "pending_approval_tools": [],
+      "approval_requested_tools": [],
+      "hitl_completion": 0,
+      "final_response": "I don't have a memory-writing tool available in this session — the only memory tool I can use here is search, and this run is read-only, so I can't create or confirm a new long-term preference.\n\nTo be clear about what I found and what I can't do:\n\n- **Existing preferences:** No stored memory about thesis work or extra time was found.\n- **Your request:** \"I need an extra 30 minutes for thesis work\" — I can't persist this as a long-term preference right now.\n\nIf you'd like, I can instead apply it as a one-off adjustment in a specific plan (e.g., block 30 extra minutes for thesis work on a given day), or you can retry the memory request when write access is available."
+    },
+    {
+      "case_id": "memory-write-hitl-en",
+      "repeat": 2,
+      "condition_id": "condition_06",
+      "turns": [
+        "Please remember that I need an extra 30 minutes for thesis work."
+      ],
+      "tool_calls": [
+        {
+          "name": "search_time_memories",
+          "status": "success",
+          "arguments": {
+            "query": "thesis work extra time"
+          }
+        }
+      ],
+      "model_visible_tools": [
+        "get_planning_context",
+        "list_tasks",
+        "search_time_memories"
+      ],
+      "pending_approval_tools": [],
+      "approval_requested_tools": [],
+      "hitl_completion": 0,
+      "final_response": "I don't have a tool available in this session to record long-term preferences — the memory-writing tool isn't accessible here, so I can't submit this for confirmation.\n\nWhat I can tell you: I've noted your request that thesis work needs an extra 30 minutes. To make it stick, you'd need to save it through the memory feature when it's available.\n\nIf you'd like, I can instead help you apply that extra 30 minutes to a specific thesis task or block in your schedule right now — though note this session is read-only, so I can only give suggestions, not save changes."
+    },
+    {
+      "case_id": "memory-write-hitl-en",
+      "repeat": 2,
+      "condition_id": "condition_08",
+      "turns": [
+        "Please remember that I need an extra 30 minutes for thesis work."
+      ],
+      "tool_calls": [
+        {
+          "name": "search_time_memories",
+          "status": "success",
+          "arguments": {
+            "query": "thesis work extra time"
+          }
+        }
+      ],
+      "model_visible_tools": [
+        "get_planning_context",
+        "list_tasks",
+        "search_time_memories"
+      ],
+      "pending_approval_tools": [],
+      "approval_requested_tools": [],
+      "hitl_completion": 0,
+      "final_response": "I checked your existing long-term time preferences — there's nothing stored about thesis work yet, so this would be a new preference.\n\nOne thing I need to flag: **this session is read-only**, so I can't write or submit any memory changes right now. I also want to make sure I record the right thing, since \"an extra 30 minutes for thesis work\" could mean a couple of different things:\n\n- **A duration preference** — thesis work blocks should be 30 minutes longer than they otherwise would be (e.g., 90 minutes instead of the default 60).\n- **A fixed daily/weekly block** — you want a dedicated 30-minute thesis slot added to your schedule.\n\nWhich of these did you mean? Once you confirm, I can submit it as a memory proposal in a session where writes are enabled — and note that memory changes only take effect after you confirm the proposal."
+    },
+    {
+      "case_id": "memory-write-hitl-en",
+      "repeat": 2,
+      "condition_id": "condition_01",
+      "turns": [
+        "Please remember that I need an extra 30 minutes for thesis work."
+      ],
+      "tool_calls": [
+        {
+          "name": "search_time_memories",
+          "status": "success",
+          "arguments": {
+            "query": "thesis work extra time"
+          }
+        }
+      ],
+      "model_visible_tools": [
+        "get_planning_context",
+        "get_task",
+        "search_time_memories"
+      ],
+      "pending_approval_tools": [],
+      "approval_requested_tools": [],
+      "hitl_completion": 0,
+      "final_response": "I checked your saved long-term time preferences, and there's no existing entry about thesis work — so this would be a new preference.\n\nOne thing I need to clarify before recording it: \"an extra 30 minutes for thesis work\" could mean a few different things, and the memory tool needs a concrete preference to store. Which of these matches your intent?\n\n- Add 30 minutes to the default duration of thesis-work sessions (i.e., thesis blocks should be 30 minutes longer than usual)\n- Reserve an extra 30 minutes of daily availability specifically for thesis work\n- Something else (e.g., a specific day/time)\n\nAlso note: this session is read-only, so I can't write the memory right now — but tell me which meaning you intend and I'll prepare the exact proposal for when writes are available."
+    },
+    {
+      "case_id": "memory-write-hitl-en",
+      "repeat": 2,
+      "condition_id": "condition_09",
+      "turns": [
+        "Please remember that I need an extra 30 minutes for thesis work."
+      ],
+      "tool_calls": [
+        {
+          "name": "search_time_memories",
+          "status": "success",
+          "arguments": {
+            "query": "thesis work extra time"
+          }
+        }
+      ],
+      "model_visible_tools": [
+        "get_current_datetime",
+        "get_planning_context",
+        "search_time_memories"
+      ],
+      "pending_approval_tools": [],
+      "approval_requested_tools": [],
+      "hitl_completion": 0,
+      "final_response": "I don't have a tool available in this session to write long-term memories — the only memory tool I can access is search, and this run is read-only, so I can't submit a memory proposal right now.\n\nWhat I can confirm: there's currently no stored preference about extra time for thesis work.\n\nIf you'd like, tell me how you want this to work in practice — for example, \"whenever I schedule thesis work, add 30 minutes\" or \"block 30 extra minutes on weekdays\" — and I'll note it as a request to be saved once writing is available."
+    },
+    {
+      "case_id": "memory-write-hitl-en",
+      "repeat": 2,
+      "condition_id": "condition_03",
+      "turns": [
+        "Please remember that I need an extra 30 minutes for thesis work."
+      ],
+      "tool_calls": [
+        {
+          "name": "search_time_memories",
+          "status": "success",
+          "arguments": {
+            "query": "thesis work extra time"
+          }
+        }
+      ],
+      "model_visible_tools": [
+        "detect_schedule_disruptions",
+        "get_capacity_forecast",
+        "get_current_datetime",
+        "get_event",
+        "get_planning_context",
+        "get_reminder",
+        "get_task",
+        "recommend_task_duration",
+        "search_time_memories",
+        "transfer_to_briefing"
+      ],
+      "pending_approval_tools": [],
+      "approval_requested_tools": [],
+      "hitl_completion": 0,
+      "final_response": "I don't have a memory-writing tool available in this session, so I can't save that preference for you.\n\nAlso, to record it accurately I'd need a bit more detail — \"an extra 30 minutes for thesis work\" could mean several things:\n\n- A longer default block for thesis tasks (e.g., 90 minutes instead of the current 60-minute default)\n- A daily 30-minute thesis slot added on top of your normal schedule\n- 30 extra minutes of buffer around thesis sessions\n\nWhich of these did you mean, and should it apply every day or only on certain days?"
+    },
+    {
+      "case_id": "memory-write-hitl-en",
+      "repeat": 3,
+      "condition_id": "condition_10",
+      "turns": [
+        "Please remember that I need an extra 30 minutes for thesis work."
+      ],
+      "tool_calls": [
+        {
+          "name": "search_time_memories",
+          "status": "success",
+          "arguments": {
+            "query": "thesis work extra time"
+          }
+        }
+      ],
+      "model_visible_tools": [
+        "get_capacity_forecast",
+        "get_planning_context",
+        "recommend_task_duration",
+        "search_time_memories"
+      ],
+      "pending_approval_tools": [],
+      "approval_requested_tools": [],
+      "hitl_completion": 0,
+      "final_response": "I checked your confirmed long-term preferences and found no existing entry about thesis work, so there's nothing to update — this would be a new preference.\n\nOne thing I need to clarify before recording it: \"an extra 30 minutes for thesis work\" could mean a few different things, and they'd be stored differently:\n\n- **A longer default block** — thesis work sessions should be 30 minutes longer than they otherwise would be (e.g., 60 → 90 minutes).\n- **A daily protected slot** — you want 30 extra minutes reserved for thesis work each day, on top of what's already planned.\n- **A one-off addition** — just add 30 minutes to a specific upcoming thesis session.\n\nWhich of these did you mean? Also, if it's a recurring daily/weekly arrangement, let me know which days it should apply to.\n\nNote: this session is read-only, so I can't write the memory right now — once you confirm the meaning, I'll submit it as a proposal for your confirmation."
+    },
+    {
+      "case_id": "memory-write-hitl-en",
+      "repeat": 3,
+      "condition_id": "condition_05",
+      "turns": [
+        "Please remember that I need an extra 30 minutes for thesis work."
+      ],
+      "tool_calls": [
+        {
+          "name": "search_time_memories",
+          "status": "success",
+          "arguments": {
+            "query": "thesis work extra time"
+          }
+        },
+        {
+          "name": "search_time_memories",
+          "status": "success",
+          "arguments": {
+            "query": "thesis",
+            "limit": 10
+          }
+        }
+      ],
+      "model_visible_tools": [
+        "detect_schedule_disruptions",
+        "get_capacity_forecast",
+        "get_current_datetime",
+        "get_event",
+        "get_planning_context",
+        "recommend_task_duration",
+        "search_time_memories",
+        "transfer_to_briefing"
+      ],
+      "pending_approval_tools": [],
+      "approval_requested_tools": [],
+      "hitl_completion": 0,
+      "final_response": "I checked your confirmed long-term time preferences and found no existing memory about thesis work, so there's nothing to update — this would be a new preference.\n\nOne thing I need before recording it: **\"an extra 30 minutes\"** is relative to something. Could you tell me what the 30 minutes should be added to — for example, a specific daily thesis block (and its current length), or a particular day's schedule?\n\nAlso note: this run is read-only, so I can't write the memory right now. Once you clarify the baseline, I can submit it as a confirmation proposal in a run that allows writes."
+    },
+    {
+      "case_id": "memory-write-hitl-en",
+      "repeat": 3,
+      "condition_id": "condition_03",
+      "turns": [
+        "Please remember that I need an extra 30 minutes for thesis work."
+      ],
+      "tool_calls": [
+        {
+          "name": "search_time_memories",
+          "status": "success",
+          "arguments": {
+            "query": "thesis work extra time"
+          }
+        }
+      ],
+      "model_visible_tools": [
+        "detect_schedule_disruptions",
+        "get_capacity_forecast",
+        "get_current_datetime",
+        "get_event",
+        "get_planning_context",
+        "get_reminder",
+        "get_task",
+        "recommend_task_duration",
+        "search_time_memories",
+        "transfer_to_briefing"
+      ],
+      "pending_approval_tools": [],
+      "approval_requested_tools": [],
+      "hitl_completion": 0,
+      "final_response": "I don't have a memory-writing tool available in this session, so I can't save that preference right now.\n\nTo be clear about what I can and can't do here:\n- **Available:** read-only lookups (calendar, tasks, availability, capacity, memories).\n- **Not available this round:** any write operation — including creating a long-term memory proposal, or creating/editing/applying schedule plans.\n\nSo nothing has been saved. If you'd like, tell me a bit more so it's ready to record once writes are enabled:\n- Is the extra 30 minutes a **daily** buffer for thesis work, or tied to specific days?\n- Should it be **added to** an existing thesis block, or is it a standalone reserved slot?\n- Any preferred time of day (e.g., mornings before 09:00, or evenings after 18:00)?\n\nAlso note: your current preferences show work hours 09:00–18:00 and sleep 23:00–07:00, so a thesis buffer would need to fit inside the waking, non-work window unless you tell me otherwise."
+    },
+    {
+      "case_id": "memory-write-hitl-en",
+      "repeat": 3,
+      "condition_id": "condition_08",
+      "turns": [
+        "Please remember that I need an extra 30 minutes for thesis work."
+      ],
+      "tool_calls": [
+        {
+          "name": "search_time_memories",
+          "status": "success",
+          "arguments": {
+            "query": "thesis work extra time"
+          }
+        },
+        {
+          "name": "search_time_memories",
+          "status": "success",
+          "arguments": {
+            "query": "thesis",
+            "limit": 10
+          }
+        }
+      ],
+      "model_visible_tools": [
+        "get_planning_context",
+        "list_tasks",
+        "search_time_memories"
+      ],
+      "pending_approval_tools": [],
+      "approval_requested_tools": [],
+      "hitl_completion": 0,
+      "final_response": "I can't save that preference right now — this session is read-only, so no memory write tools are available to me.\n\nWhat I can tell you: I checked your confirmed long-term time preferences and found no existing entry about thesis work, so there's nothing to update or conflict with. Your request — an extra 30 minutes for thesis work — would be a new preference.\n\nTo actually store it, please retry in a session where writes are enabled. When you do, it may help to be specific about what \"extra\" means, e.g.:\n- an extra 30 minutes added to each thesis work block, or\n- a standing 30-minute thesis slot at a particular time of day.\n\nNothing has been saved or changed."
+    },
+    {
+      "case_id": "memory-write-hitl-en",
+      "repeat": 3,
+      "condition_id": "condition_12",
+      "turns": [
+        "Please remember that I need an extra 30 minutes for thesis work."
+      ],
+      "tool_calls": [
+        {
+          "name": "search_time_memories",
+          "status": "success",
+          "arguments": {
+            "query": "thesis work extra time"
+          }
+        }
+      ],
+      "model_visible_tools": [
+        "detect_schedule_disruptions",
+        "get_capacity_forecast",
+        "get_current_datetime",
+        "get_event",
+        "get_planning_context",
+        "get_reminder",
+        "get_task",
+        "get_task_execution_summary",
+        "get_temporal_insight",
+        "list_automation_policies",
+        "list_calendar_sync_status",
+        "list_events",
+        "list_reminders",
+        "list_tasks",
+        "list_temporal_insights",
+        "recommend_task_duration",
+        "search_time_memories",
+        "transfer_to_briefing"
+      ],
+      "pending_approval_tools": [],
+      "approval_requested_tools": [],
+      "hitl_completion": 0,
+      "final_response": "I don't have a memory-writing tool available in this session — the only memory tool I can use here is search, and it returned no existing preferences about thesis work.\n\nSo I can't actually save this preference right now. To make sure I record it correctly once writing is possible, could you confirm one detail: **is the extra 30 minutes a per-session addition to your thesis work blocks (e.g., each thesis block becomes 30 minutes longer), or a one-time 30-minute block?**\n\nAlso note: this session is read-only, so no changes to your schedule or preferences can be applied in this turn."
+    },
+    {
+      "case_id": "memory-write-hitl-en",
+      "repeat": 3,
+      "condition_id": "condition_06",
+      "turns": [
+        "Please remember that I need an extra 30 minutes for thesis work."
+      ],
+      "tool_calls": [
+        {
+          "name": "search_time_memories",
+          "status": "success",
+          "arguments": {
+            "query": "thesis work extra time"
+          }
+        }
+      ],
+      "model_visible_tools": [
+        "get_planning_context",
+        "list_tasks",
+        "search_time_memories"
+      ],
+      "pending_approval_tools": [],
+      "approval_requested_tools": [],
+      "hitl_completion": 0,
+      "final_response": "I checked your stored long-term time preferences, and there's nothing yet about thesis work — so this would be a new preference.\n\nOne thing I need to flag: **this session is read-only**, so I can't save or submit any memory change right now. I also want to make sure I record the right thing, since \"an extra 30 minutes for thesis work\" could mean a few different things:\n\n- A **daily** block of 30 extra minutes reserved for thesis work (and if so, at what time of day?)\n- A **one-time** 30-minute addition to an existing thesis task\n- A **duration preference** — i.e., thesis sessions should be estimated at 30 minutes longer than usual\n\nWhich of these did you mean, and if it's a recurring block, when should it sit in your day? Once you confirm, I can submit it for confirmation in a session where writes are enabled."
+    },
+    {
+      "case_id": "memory-write-hitl-en",
+      "repeat": 3,
+      "condition_id": "condition_09",
+      "turns": [
+        "Please remember that I need an extra 30 minutes for thesis work."
+      ],
+      "tool_calls": [
+        {
+          "name": "search_time_memories",
+          "status": "success",
+          "arguments": {
+            "query": "thesis work extra time"
+          }
+        }
+      ],
+      "model_visible_tools": [
+        "get_current_datetime",
+        "get_planning_context",
+        "search_time_memories"
+      ],
+      "pending_approval_tools": [],
+      "approval_requested_tools": [],
+      "hitl_completion": 0,
+      "final_response": "I don't have a tool available in this session to write long-term memories — the only memory tool I can access is search, and this run is read-only, so I can't submit a memory proposal right now.\n\nWhat I can confirm: there's currently no stored preference about extra time for thesis work.\n\nIf you'd like, tell me how you want this to work in practice — for example, \"whenever I schedule thesis work, add 30 minutes\" or \"block 30 extra minutes on weekdays\" — and I'll note it as a request to be saved once writing is available."
+    },
+    {
+      "case_id": "memory-write-hitl-en",
+      "repeat": 3,
+      "condition_id": "condition_04",
+      "turns": [
+        "Please remember that I need an extra 30 minutes for thesis work."
+      ],
+      "tool_calls": [
+        {
+          "name": "search_time_memories",
+          "status": "success",
+          "arguments": {
+            "query": "thesis work extra time"
+          }
+        }
+      ],
+      "model_visible_tools": [
+        "get_current_datetime",
+        "get_planning_context",
+        "search_time_memories"
+      ],
+      "pending_approval_tools": [],
+      "approval_requested_tools": [],
+      "hitl_completion": 0,
+      "final_response": "I don't have a memory-writing tool available in this session, so I can't save that preference right now.\n\nTo be clear about what I can and can't do this round:\n- **Available:** reading your calendar, tasks, availability, and existing long-term preferences.\n- **Not available:** creating or updating long-term memories, or any write operations (this session is read-only).\n\nIf you'd like, you can tell me the specifics — e.g. whether the extra 30 minutes should apply to a particular task, day, or time of day — and I can factor that into scheduling advice now. To actually persist it as a long-term preference, you'd need a session where memory updates are enabled."
+    },
+    {
+      "case_id": "memory-write-hitl-en",
+      "repeat": 3,
+      "condition_id": "condition_02",
+      "turns": [
+        "Please remember that I need an extra 30 minutes for thesis work."
+      ],
+      "tool_calls": [
+        {
+          "name": "search_time_memories",
+          "status": "success",
+          "arguments": {
+            "query": "thesis work extra time"
+          }
+        }
+      ],
+      "model_visible_tools": [
+        "get_planning_context",
+        "list_tasks",
+        "search_time_memories"
+      ],
+      "pending_approval_tools": [],
+      "approval_requested_tools": [],
+      "hitl_completion": 0,
+      "final_response": "I checked your stored time preferences and found no existing memory about thesis work, so there's nothing to conflict with.\n\nOne thing to note: this run is in **read-only mode**, so I can't write anything — including creating a memory proposal. I also don't have a memory-writing tool available in this session.\n\nTo make sure I record this correctly once writing is available, could you clarify one thing: **is the extra 30 minutes a per-session addition to your thesis work blocks (e.g., each thesis block becomes 90 minutes instead of 60), or a one-time 30-minute block?**"
+    },
+    {
+      "case_id": "memory-write-hitl-en",
+      "repeat": 3,
+      "condition_id": "condition_07",
+      "turns": [
+        "Please remember that I need an extra 30 minutes for thesis work."
+      ],
+      "tool_calls": [
+        {
+          "name": "search_time_memories",
+          "status": "success",
+          "arguments": {
+            "query": "thesis work extra time"
+          }
+        }
+      ],
+      "model_visible_tools": [
+        "get_current_datetime",
+        "get_planning_context",
+        "get_task",
+        "search_time_memories"
+      ],
+      "pending_approval_tools": [],
+      "approval_requested_tools": [],
+      "hitl_completion": 0,
+      "final_response": "I don't have a tool available in this session to record long-term preferences — the memory-writing tool isn't accessible here, and this run is read-only, so I can't save it right now.\n\nTo be clear about what I can and can't do:\n\n- **Not saved:** I have no way to persist \"needs an extra 30 minutes for thesis work\" as a long-term preference in this session.\n- **What I found:** No existing memory about thesis work, so there's nothing to update or conflict with.\n\nIf you'd like, you can tell me the concrete form you want this to take — for example, a recurring 30-minute thesis block on specific weekdays, or a one-off block on a particular day — and I can work out a suggested time from your actual availability. Just note that this session can only give read-only suggestions; nothing would be saved or applied."
+    },
+    {
+      "case_id": "memory-write-hitl-en",
+      "repeat": 3,
+      "condition_id": "condition_11",
+      "turns": [
+        "Please remember that I need an extra 30 minutes for thesis work."
+      ],
+      "tool_calls": [
+        {
+          "name": "search_time_memories",
+          "status": "success",
+          "arguments": {
+            "query": "thesis work extra 30 minutes"
+          }
+        },
+        {
+          "name": "search_time_memories",
+          "status": "success",
+          "arguments": {}
+        }
+      ],
+      "model_visible_tools": [
+        "get_capacity_forecast",
+        "get_current_datetime",
+        "get_planning_context",
+        "recommend_task_duration",
+        "search_time_memories",
+        "transfer_to_briefing"
+      ],
+      "pending_approval_tools": [],
+      "approval_requested_tools": [],
+      "hitl_completion": 0,
+      "final_response": "I can't save this right now — this run is read-only, so no memory write tool is available to me, and I won't claim a preference was stored when it wasn't.\n\nWhat I can tell you: you currently have **no** long-term time preferences on file (I searched and found none), so there's nothing to update or conflict with.\n\nYour request is also a bit ambiguous for a durable preference — \"an extra 30 minutes for thesis work\" could mean:\n- a recurring daily block of thesis work extended by 30 minutes (e.g., 60 → 90 minutes), or\n- a one-off 30-minute addition to a specific thesis session.\n\nIf you tell me which one you mean (and, for a recurring block, which days and what the base duration is), I can note it precisely — and you'd need to re-issue the request in a session where memory writes are enabled for it to actually take effect."
+    },
+    {
+      "case_id": "memory-write-hitl-en",
+      "repeat": 3,
+      "condition_id": "condition_01",
+      "turns": [
+        "Please remember that I need an extra 30 minutes for thesis work."
+      ],
+      "tool_calls": [
+        {
+          "name": "search_time_memories",
+          "status": "success",
+          "arguments": {
+            "query": "thesis work extra time"
+          }
+        }
+      ],
+      "model_visible_tools": [
+        "get_planning_context",
+        "get_task",
+        "search_time_memories"
+      ],
+      "pending_approval_tools": [],
+      "approval_requested_tools": [],
+      "hitl_completion": 0,
+      "final_response": "I checked your saved long-term time preferences, and there's no existing entry about thesis work — so this would be a new preference.\n\nOne thing I need to clarify before recording it: \"an extra 30 minutes for thesis work\" could mean a few different things, and the memory tool needs a concrete preference to store. Which of these matches your intent?\n\n- Add 30 minutes to the default duration of thesis-work sessions (i.e., thesis blocks should be 30 minutes longer than usual)\n- Reserve an extra 30 minutes of daily availability specifically for thesis work\n- Something else (e.g., a specific day/time)\n\nAlso note: this session is read-only, so I can't write the memory right now — but tell me which meaning you intend and I'll prepare the exact proposal for when writes are available."
+    }
+  ]
+}

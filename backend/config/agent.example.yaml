@@ -76,3 +76,11 @@ middleware:
     enabled: true
     trigger_messages: 24
     keep_messages: 12
+
+tool_discovery:
+  strategy: regex_pack
+  lexical_top_k: 8
+  candidate_top_k: 10
+  selector_max_tools: 6
+  selector_model: null
+  always_include: []

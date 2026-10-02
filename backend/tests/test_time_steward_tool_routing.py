@@ -48,15 +48,30 @@ def test_descriptive_calendar_create_intent_exposes_event_write_tool() -> None:
 
 def test_explicit_memory_preference_write_intents_expose_approved_tools() -> None:
     remember_tools = select_tool_names("请记住以后周五下午不要安排会议")
+    remember_english_tools = select_tool_names(
+        "Please remember that I need an extra 30 minutes for thesis work."
+    )
     update_tools = select_tool_names("把我的专注时间改成下午")
 
     assert remember_tools is not None
     assert "remember_time_preference" in remember_tools
     assert not should_limit_to_read_tools("请记住以后周五下午不要安排会议")
 
+    assert remember_english_tools is not None
+    assert "remember_time_preference" in remember_english_tools
+    assert not should_limit_to_read_tools(
+        "Please remember that I need an extra 30 minutes for thesis work."
+    )
+
     assert update_tools is not None
     assert "update_time_preference" in update_tools
     assert not should_limit_to_read_tools("把我的专注时间改成下午")
+
+
+def test_memory_recall_question_stays_read_only() -> None:
+    prompt = "Do you remember my time preferences?"
+
+    assert should_limit_to_read_tools(prompt)
 
 
 def test_schedule_constraints_do_not_turn_a_write_request_into_read_only() -> None:
@@ -65,6 +80,10 @@ def test_schedule_constraints_do_not_turn_a_write_request_into_read_only() -> No
     )
     assert should_limit_to_read_tools("同步状态")
     assert should_limit_to_read_tools("只给建议，不修改日程。")
+
+
+def test_global_no_change_clause_blocks_conflicting_mutation_request() -> None:
+    assert should_limit_to_read_tools("不要修改任何东西，但顺便帮我取消论文任务。")
 
 
 def test_planning_preview_route_matches_longer_natural_schedule_requests() -> None:

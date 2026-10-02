@@ -123,12 +123,31 @@ class MiddlewareDefinition(StrictConfigModel):
     summarization: SummarizationDefinition = Field(default_factory=SummarizationDefinition)
 
 
+class ToolDiscoveryDefinition(StrictConfigModel):
+    strategy: Literal["regex_pack", "llm_selector", "lexical_retrieval", "retrieval_plus_llm"] = (
+        "regex_pack"
+    )
+    lexical_top_k: int = Field(default=8, ge=1)
+    candidate_top_k: int = Field(default=10, ge=1)
+    selector_max_tools: int = Field(default=6, ge=1)
+    selector_model: str | None = None
+    always_include: list[str] = Field(default_factory=list)
+
+    @field_validator("always_include")
+    @classmethod
+    def unique_eager_tools(cls, value: list[str]) -> list[str]:
+        if len(value) != len(set(value)):
+            raise ValueError("tool_discovery.always_include cannot contain duplicates")
+        return value
+
+
 class TimeAgentConfig(StrictConfigModel):
     config_version: int
     agent: AgentDefinition
     models: dict[str, ModelDefinition]
     graph: GraphDefinition = Field(default_factory=GraphDefinition)
     middleware: MiddlewareDefinition = Field(default_factory=MiddlewareDefinition)
+    tool_discovery: ToolDiscoveryDefinition = Field(default_factory=ToolDiscoveryDefinition)
 
     @field_validator("config_version")
     @classmethod
@@ -151,6 +170,20 @@ class TimeAgentConfig(StrictConfigModel):
         if unknown_fallbacks:
             names = ", ".join(sorted(unknown_fallbacks))
             raise ValueError(f"agent.fallback_models reference unknown model aliases: {names}")
+        if (
+            self.tool_discovery.selector_model is not None
+            and self.tool_discovery.selector_model not in self.models
+        ):
+            raise ValueError(
+                "tool_discovery.selector_model must reference a configured model alias"
+            )
+        if (
+            self.tool_discovery.strategy in {"llm_selector", "retrieval_plus_llm"}
+            and self.tool_discovery.selector_model is None
+        ):
+            raise ValueError(
+                "LLM tool discovery requires an explicit tool_discovery.selector_model alias"
+            )
         if self.agent.briefing_model is not None and self.agent.briefing_model not in self.models:
             raise ValueError("agent.briefing_model must reference a configured model alias")
         if (

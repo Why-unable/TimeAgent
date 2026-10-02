@@ -1,0 +1,969 @@
+{
+  "experiment": "timeagent-tool-discovery-blind-trajectories-2026",
+  "dataset_sha256": "f885c5d4a2dda698046a5a77b41aeaa6dbb84a2abb8eaf68865e9d1ec03aa2bd",
+  "note": "Conditions are anonymized. No model reasoning is included.",
+  "trajectories": [
+    {
+      "case_id": "memory-write-hitl-en",
+      "repeat": 1,
+      "condition_id": "condition_02",
+      "turns": [
+        "Please remember that I need an extra 30 minutes for thesis work."
+      ],
+      "tool_calls": [],
+      "final_response": "",
+      "run_error_type": "AssertionError"
+    },
+    {
+      "case_id": "memory-write-hitl-en",
+      "repeat": 1,
+      "condition_id": "condition_12",
+      "turns": [
+        "Please remember that I need an extra 30 minutes for thesis work."
+      ],
+      "tool_calls": [
+        {
+          "name": "search_time_memories",
+          "status": "success",
+          "arguments": {
+            "query": "thesis work extra time"
+          }
+        },
+        {
+          "name": "remember_time_preference",
+          "status": "success",
+          "arguments": {
+            "category": "scheduling_preference",
+            "key": "thesis_work_extra_minutes",
+            "value": {
+              "extra_minutes": 30,
+              "applies_to": "thesis work",
+              "note": "User needs an extra 30 minutes for thesis work"
+            }
+          }
+        }
+      ],
+      "model_visible_tools": [
+        "act_on_temporal_insight",
+        "forget_time_preference",
+        "get_capacity_forecast",
+        "get_task_execution_summary",
+        "get_temporal_insight",
+        "list_temporal_insights",
+        "recommend_task_duration",
+        "record_task_duration_feedback",
+        "remember_time_preference",
+        "search_time_memories",
+        "update_time_preference"
+      ],
+      "pending_approval_tools": [],
+      "approval_requested_tools": [
+        "remember_time_preference"
+      ],
+      "hitl_completion": 1,
+      "final_response": "已记住：论文工作（thesis work）需要额外 30 分钟。\n\n这条偏好已生效，之后为论文相关任务安排时间时会多预留 30 分钟。如需修改或删除，随时告诉我。"
+    },
+    {
+      "case_id": "memory-write-hitl-en",
+      "repeat": 1,
+      "condition_id": "condition_04",
+      "turns": [
+        "Please remember that I need an extra 30 minutes for thesis work."
+      ],
+      "tool_calls": [],
+      "final_response": "",
+      "run_error_type": "AssertionError"
+    },
+    {
+      "case_id": "memory-write-hitl-en",
+      "repeat": 1,
+      "condition_id": "condition_03",
+      "turns": [
+        "Please remember that I need an extra 30 minutes for thesis work."
+      ],
+      "tool_calls": [
+        {
+          "name": "search_time_memories",
+          "status": "success",
+          "arguments": {
+            "query": "thesis work duration extra time"
+          }
+        },
+        {
+          "name": "remember_time_preference",
+          "status": "success",
+          "arguments": {
+            "category": "scheduling_preference",
+            "key": "thesis_work_extra_minutes",
+            "value": {
+              "extra_minutes": 30,
+              "applies_to": "thesis work",
+              "note": "需要为论文工作额外预留 30 分钟"
+            }
+          }
+        }
+      ],
+      "model_visible_tools": [
+        "create_recurring_event",
+        "create_task",
+        "edit_schedule_plan",
+        "get_planning_context",
+        "propose_schedule_plan",
+        "recommend_task_duration",
+        "remember_time_preference",
+        "request_plan_interaction",
+        "search_time_memories",
+        "set_reminder_target"
+      ],
+      "pending_approval_tools": [],
+      "approval_requested_tools": [
+        "remember_time_preference"
+      ],
+      "hitl_completion": 1,
+      "final_response": "已记住：为论文工作额外预留 30 分钟（Asia/Shanghai 时区，长期偏好）。之后安排论文相关任务时，我会按此多留 30 分钟。如需修改或删除，随时告诉我。"
+    },
+    {
+      "case_id": "memory-write-hitl-en",
+      "repeat": 1,
+      "condition_id": "condition_07",
+      "turns": [
+        "Please remember that I need an extra 30 minutes for thesis work."
+      ],
+      "tool_calls": [],
+      "final_response": "",
+      "run_error_type": "AssertionError"
+    },
+    {
+      "case_id": "memory-write-hitl-en",
+      "repeat": 1,
+      "condition_id": "condition_11",
+      "turns": [
+        "Please remember that I need an extra 30 minutes for thesis work."
+      ],
+      "tool_calls": [
+        {
+          "name": "remember_time_preference",
+          "status": "success",
+          "arguments": {
+            "category": "scheduling_preference",
+            "key": "thesis_work_extra_time",
+            "value": {
+              "extra_minutes": 30,
+              "applies_to": "thesis work",
+              "note": "User needs an extra 30 minutes for thesis work"
+            }
+          }
+        }
+      ],
+      "model_visible_tools": [
+        "create_task",
+        "edit_schedule_plan",
+        "get_planning_context",
+        "recommend_task_duration",
+        "remember_time_preference",
+        "set_reminder_target"
+      ],
+      "pending_approval_tools": [],
+      "approval_requested_tools": [
+        "remember_time_preference"
+      ],
+      "hitl_completion": 1,
+      "final_response": "已记住：**论文工作额外需要 30 分钟**（已生效，可撤销）。\n\n之后为论文相关任务安排时间时，我会按此偏好多预留 30 分钟。"
+    },
+    {
+      "case_id": "memory-write-hitl-en",
+      "repeat": 1,
+      "condition_id": "condition_06",
+      "turns": [
+        "Please remember that I need an extra 30 minutes for thesis work."
+      ],
+      "tool_calls": [
+        {
+          "name": "search_time_memories",
+          "status": "success",
+          "arguments": {
+            "query": "thesis work extra time"
+          }
+        }
+      ],
+      "model_visible_tools": [
+        "remember_time_preference",
+        "search_time_memories"
+      ],
+      "pending_approval_tools": [],
+      "approval_requested_tools": [],
+      "hitl_completion": 0,
+      "final_response": "I didn't find any existing memory about thesis work, so this would be a new preference. Before I save it, I want to make sure I record it correctly — \"an extra 30 minutes for thesis work\" could mean a few different things:\n\n- A daily block of 30 extra minutes reserved for thesis work (on top of whatever is already scheduled)\n- A 30-minute buffer added to each thesis work session\n- Something else specific\n\nCould you clarify which one you mean, and whether it should apply every day or only on certain days?"
+    },
+    {
+      "case_id": "memory-write-hitl-en",
+      "repeat": 1,
+      "condition_id": "condition_01",
+      "turns": [
+        "Please remember that I need an extra 30 minutes for thesis work."
+      ],
+      "tool_calls": [],
+      "final_response": "",
+      "run_error_type": "AssertionError"
+    },
+    {
+      "case_id": "memory-write-hitl-en",
+      "repeat": 1,
+      "condition_id": "condition_10",
+      "turns": [
+        "Please remember that I need an extra 30 minutes for thesis work."
+      ],
+      "tool_calls": [
+        {
+          "name": "remember_time_preference",
+          "status": "success",
+          "arguments": {
+            "category": "scheduling_preference",
+            "key": "thesis_work_extra_time",
+            "value": {
+              "extra_minutes": 30,
+              "applies_to": "thesis work",
+              "note": "User needs an extra 30 minutes for thesis work"
+            }
+          }
+        }
+      ],
+      "model_visible_tools": [
+        "create_task",
+        "edit_schedule_plan",
+        "get_planning_context",
+        "remember_time_preference"
+      ],
+      "pending_approval_tools": [],
+      "approval_requested_tools": [
+        "remember_time_preference"
+      ],
+      "hitl_completion": 1,
+      "final_response": "已记住：论文工作（thesis work）需要额外 30 分钟。\n\n之后为论文相关任务安排时间时，我会按此偏好预留额外 30 分钟。如需修改或删除这条偏好，随时告诉我。"
+    },
+    {
+      "case_id": "memory-write-hitl-en",
+      "repeat": 1,
+      "condition_id": "condition_05",
+      "turns": [
+        "Please remember that I need an extra 30 minutes for thesis work."
+      ],
+      "tool_calls": [
+        {
+          "name": "search_time_memories",
+          "status": "success",
+          "arguments": {
+            "query": "thesis work extra 30 minutes"
+          }
+        },
+        {
+          "name": "remember_time_preference",
+          "status": "success",
+          "arguments": {
+            "category": "scheduling_preference",
+            "key": "thesis_work_extra_time",
+            "value": {
+              "extra_minutes": 30,
+              "applies_to": "thesis work",
+              "note": "用户需要为论文工作额外预留 30 分钟"
+            }
+          }
+        }
+      ],
+      "model_visible_tools": [
+        "create_task",
+        "edit_schedule_plan",
+        "get_planning_context",
+        "propose_schedule_plan",
+        "recommend_task_duration",
+        "remember_time_preference",
+        "search_time_memories",
+        "set_reminder_target"
+      ],
+      "pending_approval_tools": [],
+      "approval_requested_tools": [
+        "remember_time_preference"
+      ],
+      "hitl_completion": 1,
+      "final_response": "已记住：**论文工作额外预留 30 分钟**（类别：排程偏好）。\n\n这条偏好已生效，之后为论文相关任务安排时间时会多留 30 分钟。如果之后想修改或删除，随时告诉我。"
+    },
+    {
+      "case_id": "memory-write-hitl-en",
+      "repeat": 1,
+      "condition_id": "condition_08",
+      "turns": [
+        "Please remember that I need an extra 30 minutes for thesis work."
+      ],
+      "tool_calls": [
+        {
+          "name": "search_time_memories",
+          "status": "success",
+          "arguments": {
+            "query": "thesis work duration extra time"
+          }
+        },
+        {
+          "name": "remember_time_preference",
+          "status": "success",
+          "arguments": {
+            "category": "scheduling_preference",
+            "key": "thesis_work_extra_duration",
+            "value": {
+              "extra_minutes": 30,
+              "applies_to": "thesis work",
+              "note": "User needs an extra 30 minutes for thesis work"
+            }
+          }
+        }
+      ],
+      "model_visible_tools": [
+        "remember_time_preference",
+        "search_time_memories"
+      ],
+      "pending_approval_tools": [],
+      "approval_requested_tools": [
+        "remember_time_preference"
+      ],
+      "hitl_completion": 1,
+      "final_response": "已记住：论文工作额外需要 30 分钟。\n\n这条偏好已生效（可撤销）。之后为论文相关任务安排时间时，我会按此额外预留 30 分钟。"
+    },
+    {
+      "case_id": "memory-write-hitl-en",
+      "repeat": 1,
+      "condition_id": "condition_09",
+      "turns": [
+        "Please remember that I need an extra 30 minutes for thesis work."
+      ],
+      "tool_calls": [],
+      "final_response": "",
+      "run_error_type": "AssertionError"
+    },
+    {
+      "case_id": "memory-write-hitl-en",
+      "repeat": 2,
+      "condition_id": "condition_07",
+      "turns": [
+        "Please remember that I need an extra 30 minutes for thesis work."
+      ],
+      "tool_calls": [],
+      "final_response": "",
+      "run_error_type": "AssertionError"
+    },
+    {
+      "case_id": "memory-write-hitl-en",
+      "repeat": 2,
+      "condition_id": "condition_02",
+      "turns": [
+        "Please remember that I need an extra 30 minutes for thesis work."
+      ],
+      "tool_calls": [],
+      "final_response": "",
+      "run_error_type": "AssertionError"
+    },
+    {
+      "case_id": "memory-write-hitl-en",
+      "repeat": 2,
+      "condition_id": "condition_04",
+      "turns": [
+        "Please remember that I need an extra 30 minutes for thesis work."
+      ],
+      "tool_calls": [],
+      "final_response": "",
+      "run_error_type": "AssertionError"
+    },
+    {
+      "case_id": "memory-write-hitl-en",
+      "repeat": 2,
+      "condition_id": "condition_11",
+      "turns": [
+        "Please remember that I need an extra 30 minutes for thesis work."
+      ],
+      "tool_calls": [
+        {
+          "name": "remember_time_preference",
+          "status": "success",
+          "arguments": {
+            "category": "scheduling_preference",
+            "key": "thesis_work_extra_time",
+            "value": {
+              "extra_minutes": 30,
+              "applies_to": "thesis work",
+              "note": "User needs an extra 30 minutes for thesis work"
+            }
+          }
+        }
+      ],
+      "model_visible_tools": [
+        "create_task",
+        "edit_schedule_plan",
+        "get_planning_context",
+        "recommend_task_duration",
+        "remember_time_preference",
+        "set_reminder_target"
+      ],
+      "pending_approval_tools": [],
+      "approval_requested_tools": [
+        "remember_time_preference"
+      ],
+      "hitl_completion": 1,
+      "final_response": "已记住：论文工作额外需要 30 分钟。之后为论文相关任务安排时间时，我会把这 30 分钟一并计入。"
+    },
+    {
+      "case_id": "memory-write-hitl-en",
+      "repeat": 2,
+      "condition_id": "condition_10",
+      "turns": [
+        "Please remember that I need an extra 30 minutes for thesis work."
+      ],
+      "tool_calls": [
+        {
+          "name": "remember_time_preference",
+          "status": "success",
+          "arguments": {
+            "category": "scheduling_preference",
+            "key": "thesis_work_extra_time",
+            "value": {
+              "extra_minutes": 30,
+              "applies_to": "thesis work",
+              "note": "User needs an extra 30 minutes for thesis work"
+            }
+          }
+        }
+      ],
+      "model_visible_tools": [
+        "create_task",
+        "edit_schedule_plan",
+        "get_planning_context",
+        "remember_time_preference"
+      ],
+      "pending_approval_tools": [],
+      "approval_requested_tools": [
+        "remember_time_preference"
+      ],
+      "hitl_completion": 1,
+      "final_response": "已记住：你在做论文相关工作时需要额外 30 分钟。\n\n这条偏好已生效（可撤销）。之后为论文任务安排时间时，我会按此考虑。"
+    },
+    {
+      "case_id": "memory-write-hitl-en",
+      "repeat": 2,
+      "condition_id": "condition_05",
+      "turns": [
+        "Please remember that I need an extra 30 minutes for thesis work."
+      ],
+      "tool_calls": [
+        {
+          "name": "search_time_memories",
+          "status": "success",
+          "arguments": {
+            "query": "thesis work extra time"
+          }
+        },
+        {
+          "name": "search_time_memories",
+          "status": "success",
+          "arguments": {
+            "query": "thesis",
+            "limit": 10
+          }
+        }
+      ],
+      "model_visible_tools": [
+        "create_task",
+        "edit_schedule_plan",
+        "get_planning_context",
+        "propose_schedule_plan",
+        "recommend_task_duration",
+        "remember_time_preference",
+        "search_time_memories",
+        "set_reminder_target"
+      ],
+      "pending_approval_tools": [],
+      "approval_requested_tools": [],
+      "hitl_completion": 0,
+      "final_response": "I don't have any existing thesis-related preference on file, so I want to make sure I record this the way you mean it. \"An extra 30 minutes for thesis work\" could mean a few different things:\n\n- A **default duration** for thesis tasks: 30 minutes longer than usual (i.e., 90 minutes instead of the default 60)\n- A **daily time block** of 30 extra minutes reserved for thesis work\n- A **buffer** added after thesis sessions\n\nWhich of these did you mean?"
+    },
+    {
+      "case_id": "memory-write-hitl-en",
+      "repeat": 2,
+      "condition_id": "condition_12",
+      "turns": [
+        "Please remember that I need an extra 30 minutes for thesis work."
+      ],
+      "tool_calls": [
+        {
+          "name": "search_time_memories",
+          "status": "success",
+          "arguments": {
+            "query": "thesis work duration extra 30 minutes"
+          }
+        },
+        {
+          "name": "search_time_memories",
+          "status": "success",
+          "arguments": {
+            "query": "thesis",
+            "limit": 10
+          }
+        },
+        {
+          "name": "search_time_memories",
+          "status": "success",
+          "arguments": {
+            "query": "",
+            "limit": 10
+          }
+        }
+      ],
+      "model_visible_tools": [
+        "act_on_temporal_insight",
+        "forget_time_preference",
+        "get_capacity_forecast",
+        "get_task_execution_summary",
+        "get_temporal_insight",
+        "list_temporal_insights",
+        "recommend_task_duration",
+        "record_task_duration_feedback",
+        "remember_time_preference",
+        "search_time_memories",
+        "update_time_preference"
+      ],
+      "pending_approval_tools": [],
+      "approval_requested_tools": [],
+      "hitl_completion": 0,
+      "final_response": "I don't have any existing time preferences stored, so this would be a new one. Before I record it, I want to make sure I capture it the way you mean:\n\n- **\"Extra 30 minutes for thesis work\"** — is this a preference that thesis work blocks should be **30 minutes longer** than the default (i.e., 90 minutes instead of the default 60), or that you want a **separate 30-minute thesis slot** added on top of your normal schedule?\n\nAlso, should this apply to all days, or only certain weekdays?\n\nOnce you confirm, I'll submit it as a scheduling preference for your approval."
+    },
+    {
+      "case_id": "memory-write-hitl-en",
+      "repeat": 2,
+      "condition_id": "condition_06",
+      "turns": [
+        "Please remember that I need an extra 30 minutes for thesis work."
+      ],
+      "tool_calls": [
+        {
+          "name": "search_time_memories",
+          "status": "success",
+          "arguments": {
+            "query": "thesis work extra time"
+          }
+        }
+      ],
+      "model_visible_tools": [
+        "remember_time_preference",
+        "search_time_memories"
+      ],
+      "pending_approval_tools": [],
+      "approval_requested_tools": [],
+      "hitl_completion": 0,
+      "final_response": "I didn't find any existing preference about thesis work, so this would be a new entry. Before I save it, I want to make sure I record it correctly — \"an extra 30 minutes for thesis work\" could mean a few different things.\n\nCould you clarify what the extra 30 minutes should apply to?\n\n- **A daily buffer** — e.g., reserve 30 extra minutes each day for thesis work on top of whatever is already scheduled\n- **A longer default block** — e.g., thesis sessions should be 30 minutes longer than the default duration\n- **A one-off addition** — e.g., add 30 minutes to a specific thesis session\n\nOnce you tell me which one (and, if relevant, which days it applies to), I'll save it as a long-term preference."
+    },
+    {
+      "case_id": "memory-write-hitl-en",
+      "repeat": 2,
+      "condition_id": "condition_08",
+      "turns": [
+        "Please remember that I need an extra 30 minutes for thesis work."
+      ],
+      "tool_calls": [
+        {
+          "name": "search_time_memories",
+          "status": "success",
+          "arguments": {
+            "query": "thesis work extra time"
+          }
+        }
+      ],
+      "model_visible_tools": [
+        "remember_time_preference",
+        "search_time_memories"
+      ],
+      "pending_approval_tools": [],
+      "approval_requested_tools": [],
+      "hitl_completion": 0,
+      "final_response": "I didn't find any existing preference about thesis work, so this would be a new one. Before I save it, I want to make sure I record it correctly — \"an extra 30 minutes for thesis work\" could mean a few different things:\n\n- A daily block of 30 extra minutes reserved for thesis work (on top of whatever is already scheduled)\n- A 30-minute buffer added to each thesis work session\n- Something else specific\n\nCould you clarify which you mean, and whether it should apply every day or only on certain days?"
+    },
+    {
+      "case_id": "memory-write-hitl-en",
+      "repeat": 2,
+      "condition_id": "condition_01",
+      "turns": [
+        "Please remember that I need an extra 30 minutes for thesis work."
+      ],
+      "tool_calls": [],
+      "final_response": "",
+      "run_error_type": "AssertionError"
+    },
+    {
+      "case_id": "memory-write-hitl-en",
+      "repeat": 2,
+      "condition_id": "condition_09",
+      "turns": [
+        "Please remember that I need an extra 30 minutes for thesis work."
+      ],
+      "tool_calls": [],
+      "final_response": "",
+      "run_error_type": "AssertionError"
+    },
+    {
+      "case_id": "memory-write-hitl-en",
+      "repeat": 2,
+      "condition_id": "condition_03",
+      "turns": [
+        "Please remember that I need an extra 30 minutes for thesis work."
+      ],
+      "tool_calls": [
+        {
+          "name": "search_time_memories",
+          "status": "success",
+          "arguments": {
+            "query": "thesis work extra 30 minutes"
+          }
+        },
+        {
+          "name": "remember_time_preference",
+          "status": "success",
+          "arguments": {
+            "category": "scheduling_preference",
+            "key": "thesis_work_extra_minutes",
+            "value": {
+              "extra_minutes": 30,
+              "applies_to": "thesis work",
+              "note": "用户需要为论文工作额外预留 30 分钟"
+            }
+          }
+        }
+      ],
+      "model_visible_tools": [
+        "create_recurring_event",
+        "create_task",
+        "edit_schedule_plan",
+        "get_planning_context",
+        "propose_schedule_plan",
+        "recommend_task_duration",
+        "remember_time_preference",
+        "request_plan_interaction",
+        "search_time_memories",
+        "set_reminder_target"
+      ],
+      "pending_approval_tools": [],
+      "approval_requested_tools": [
+        "remember_time_preference"
+      ],
+      "hitl_completion": 1,
+      "final_response": "已记住：为论文工作额外预留 30 分钟（偏好已生效，可撤销）。\n\n如果你希望这条偏好更具体（例如只针对某个论文任务、或指定在一天中的哪个时段加这 30 分钟），告诉我即可调整。"
+    },
+    {
+      "case_id": "memory-write-hitl-en",
+      "repeat": 3,
+      "condition_id": "condition_10",
+      "turns": [
+        "Please remember that I need an extra 30 minutes for thesis work."
+      ],
+      "tool_calls": [
+        {
+          "name": "remember_time_preference",
+          "status": "success",
+          "arguments": {
+            "category": "scheduling_preference",
+            "key": "thesis_work_extra_time",
+            "value": {
+              "extra_minutes": 30,
+              "applies_to": "thesis work",
+              "note": "User needs an extra 30 minutes for thesis work"
+            }
+          }
+        }
+      ],
+      "model_visible_tools": [
+        "create_task",
+        "edit_schedule_plan",
+        "get_planning_context",
+        "remember_time_preference"
+      ],
+      "pending_approval_tools": [],
+      "approval_requested_tools": [
+        "remember_time_preference"
+      ],
+      "hitl_completion": 1,
+      "final_response": "已记住：论文工作（thesis work）需要额外 30 分钟。之后为论文相关任务安排时间时，我会按这个偏好预留额外时长。"
+    },
+    {
+      "case_id": "memory-write-hitl-en",
+      "repeat": 3,
+      "condition_id": "condition_05",
+      "turns": [
+        "Please remember that I need an extra 30 minutes for thesis work."
+      ],
+      "tool_calls": [
+        {
+          "name": "search_time_memories",
+          "status": "success",
+          "arguments": {
+            "query": "thesis work duration extra 30 minutes"
+          }
+        },
+        {
+          "name": "remember_time_preference",
+          "status": "success",
+          "arguments": {
+            "category": "scheduling_preference",
+            "key": "thesis_work_extra_duration",
+            "value": {
+              "extra_minutes": 30,
+              "applies_to": "thesis work",
+              "note": "用户需要为论文工作额外预留 30 分钟"
+            }
+          }
+        }
+      ],
+      "model_visible_tools": [
+        "create_task",
+        "edit_schedule_plan",
+        "get_planning_context",
+        "propose_schedule_plan",
+        "recommend_task_duration",
+        "remember_time_preference",
+        "search_time_memories",
+        "set_reminder_target"
+      ],
+      "pending_approval_tools": [],
+      "approval_requested_tools": [
+        "remember_time_preference"
+      ],
+      "hitl_completion": 1,
+      "final_response": "已记住：**论文工作额外预留 30 分钟**（scheduling_preference）。\n\n这条偏好已生效，之后为论文相关任务安排时间时会多留 30 分钟。如果之后想调整或删除，随时告诉我。"
+    },
+    {
+      "case_id": "memory-write-hitl-en",
+      "repeat": 3,
+      "condition_id": "condition_03",
+      "turns": [
+        "Please remember that I need an extra 30 minutes for thesis work."
+      ],
+      "tool_calls": [
+        {
+          "name": "search_time_memories",
+          "status": "success",
+          "arguments": {
+            "query": "thesis work extra 30 minutes"
+          }
+        }
+      ],
+      "model_visible_tools": [
+        "create_recurring_event",
+        "create_task",
+        "edit_schedule_plan",
+        "get_planning_context",
+        "propose_schedule_plan",
+        "recommend_task_duration",
+        "remember_time_preference",
+        "request_plan_interaction",
+        "search_time_memories",
+        "set_reminder_target"
+      ],
+      "pending_approval_tools": [],
+      "approval_requested_tools": [],
+      "hitl_completion": 0,
+      "final_response": "I don't have any existing memory about thesis work, so I'd be recording this as a new preference. Before I do, I want to make sure I capture it correctly — \"an extra 30 minutes for thesis work\" could mean a few different things:\n\n- A default duration: thesis work sessions should be 30 minutes longer than usual (e.g., 90 minutes instead of the default 60)\n- A daily buffer: reserve an extra 30 minutes each day for thesis work\n- Something else specific to a particular task or schedule\n\nWhich of these did you mean?"
+    },
+    {
+      "case_id": "memory-write-hitl-en",
+      "repeat": 3,
+      "condition_id": "condition_08",
+      "turns": [
+        "Please remember that I need an extra 30 minutes for thesis work."
+      ],
+      "tool_calls": [
+        {
+          "name": "search_time_memories",
+          "status": "success",
+          "arguments": {
+            "query": "thesis work duration extra time"
+          }
+        }
+      ],
+      "model_visible_tools": [
+        "remember_time_preference",
+        "search_time_memories"
+      ],
+      "pending_approval_tools": [],
+      "approval_requested_tools": [],
+      "hitl_completion": 0,
+      "final_response": "I don't have any existing thesis-related preference on file, so this would be a new one. Before I save it, I want to make sure I record it correctly — \"an extra 30 minutes for thesis work\" could mean a few different things:\n\n- **A longer default block for thesis tasks** — e.g. thesis work sessions should be 90 minutes instead of the standard 60.\n- **A daily protected slot** — e.g. 30 extra minutes reserved for thesis work each day.\n- **A buffer after thesis sessions** — e.g. 30 minutes of extra time following thesis work.\n\nWhich of these did you mean? Once you confirm, I'll save it as a long-term preference (you'll get a confirmation step before it takes effect)."
+    },
+    {
+      "case_id": "memory-write-hitl-en",
+      "repeat": 3,
+      "condition_id": "condition_12",
+      "turns": [
+        "Please remember that I need an extra 30 minutes for thesis work."
+      ],
+      "tool_calls": [
+        {
+          "name": "search_time_memories",
+          "status": "success",
+          "arguments": {
+            "query": "thesis work duration"
+          }
+        },
+        {
+          "name": "search_time_memories",
+          "status": "success",
+          "arguments": {
+            "query": "thesis",
+            "limit": 10
+          }
+        },
+        {
+          "name": "remember_time_preference",
+          "status": "success",
+          "arguments": {
+            "category": "scheduling_preference",
+            "key": "thesis_work_extra_time",
+            "value": {
+              "extra_minutes": 30,
+              "applies_to": "thesis work",
+              "note": "需要为论文工作额外预留 30 分钟"
+            }
+          }
+        }
+      ],
+      "model_visible_tools": [
+        "act_on_temporal_insight",
+        "forget_time_preference",
+        "get_capacity_forecast",
+        "get_task_execution_summary",
+        "get_temporal_insight",
+        "list_temporal_insights",
+        "recommend_task_duration",
+        "record_task_duration_feedback",
+        "remember_time_preference",
+        "search_time_memories",
+        "update_time_preference"
+      ],
+      "pending_approval_tools": [],
+      "approval_requested_tools": [
+        "remember_time_preference"
+      ],
+      "hitl_completion": 1,
+      "final_response": "已记住：**论文工作额外预留 30 分钟**（分类：排程偏好）。\n\n这条偏好已生效，之后为论文相关任务安排时间时会多留 30 分钟。如果之后想调整或删除，告诉我即可。"
+    },
+    {
+      "case_id": "memory-write-hitl-en",
+      "repeat": 3,
+      "condition_id": "condition_06",
+      "turns": [
+        "Please remember that I need an extra 30 minutes for thesis work."
+      ],
+      "tool_calls": [
+        {
+          "name": "search_time_memories",
+          "status": "success",
+          "arguments": {
+            "query": "thesis work extra time"
+          }
+        }
+      ],
+      "model_visible_tools": [
+        "remember_time_preference",
+        "search_time_memories"
+      ],
+      "pending_approval_tools": [],
+      "approval_requested_tools": [],
+      "hitl_completion": 0,
+      "final_response": "I didn't find any existing preference about thesis work, so this would be a new entry. Before I save it, I want to make sure I record it correctly — \"an extra 30 minutes for thesis work\" could mean a few different things.\n\nCould you clarify what the extra 30 minutes should apply to? For example:\n- A daily block of thesis work that should be 30 minutes longer than the default (i.e., 90 minutes instead of 60)\n- An additional 30-minute thesis session added on top of your normal schedule\n- Something else\n\nAlso, should this apply every day, or only on certain days?"
+    },
+    {
+      "case_id": "memory-write-hitl-en",
+      "repeat": 3,
+      "condition_id": "condition_09",
+      "turns": [
+        "Please remember that I need an extra 30 minutes for thesis work."
+      ],
+      "tool_calls": [],
+      "final_response": "",
+      "run_error_type": "AssertionError"
+    },
+    {
+      "case_id": "memory-write-hitl-en",
+      "repeat": 3,
+      "condition_id": "condition_04",
+      "turns": [
+        "Please remember that I need an extra 30 minutes for thesis work."
+      ],
+      "tool_calls": [],
+      "final_response": "",
+      "run_error_type": "AssertionError"
+    },
+    {
+      "case_id": "memory-write-hitl-en",
+      "repeat": 3,
+      "condition_id": "condition_02",
+      "turns": [
+        "Please remember that I need an extra 30 minutes for thesis work."
+      ],
+      "tool_calls": [],
+      "final_response": "",
+      "run_error_type": "AssertionError"
+    },
+    {
+      "case_id": "memory-write-hitl-en",
+      "repeat": 3,
+      "condition_id": "condition_07",
+      "turns": [
+        "Please remember that I need an extra 30 minutes for thesis work."
+      ],
+      "tool_calls": [],
+      "final_response": "",
+      "run_error_type": "AssertionError"
+    },
+    {
+      "case_id": "memory-write-hitl-en",
+      "repeat": 3,
+      "condition_id": "condition_11",
+      "turns": [
+        "Please remember that I need an extra 30 minutes for thesis work."
+      ],
+      "tool_calls": [
+        {
+          "name": "remember_time_preference",
+          "status": "success",
+          "arguments": {
+            "category": "scheduling_preference",
+            "key": "thesis_work_extra_time",
+            "value": {
+              "extra_minutes": 30,
+              "applies_to": "thesis work",
+              "note": "User needs an extra 30 minutes for thesis work"
+            }
+          }
+        }
+      ],
+      "model_visible_tools": [
+        "create_task",
+        "edit_schedule_plan",
+        "get_planning_context",
+        "recommend_task_duration",
+        "remember_time_preference",
+        "set_reminder_target"
+      ],
+      "pending_approval_tools": [],
+      "approval_requested_tools": [
+        "remember_time_preference"
+      ],
+      "hitl_completion": 1,
+      "final_response": "已记住：论文工作额外需要 30 分钟。之后为论文相关任务安排时间时，我会按此偏好预留额外时长。"
+    },
+    {
+      "case_id": "memory-write-hitl-en",
+      "repeat": 3,
+      "condition_id": "condition_01",
+      "turns": [
+        "Please remember that I need an extra 30 minutes for thesis work."
+      ],
+      "tool_calls": [],
+      "final_response": "",
+      "run_error_type": "AssertionError"
+    }
+  ]
+}

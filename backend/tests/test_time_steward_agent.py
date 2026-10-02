@@ -32,7 +32,7 @@ from apps.agents.middleware import (
     ToolPolicyMiddleware,
     _hitl_when,
     _planning_review_phase_active,
-    _policy_recovery_requested,
+    _policy_recovery_tool_names,
     build_time_steward_middleware,
     resolve_tool_policy,
 )
@@ -1023,7 +1023,7 @@ def test_compact_planning_surface_hides_broad_reads_but_recovers_explicitly() ->
     assert isinstance(denied, ToolMessage)
     assert json.loads(str(denied.content))["code"] == "tool_surface_mismatch"
     assert not called
-    assert _policy_recovery_requested([denied], compact)
+    assert _policy_recovery_tool_names([denied], compact) == frozenset({"list_tasks"})
 
     explicit_create = context(
         user,
@@ -1160,7 +1160,7 @@ def test_explicit_plan_interaction_request_exposes_only_the_interaction_tool() -
     }.intersection(decision.visible_tools)
 
 
-def test_plan_review_phase_requires_a_successful_draft_in_the_current_turn() -> None:
+def test_plan_review_phase_tracks_draft_only_within_current_turn() -> None:
     user_turn = HumanMessage(content="帮我安排下周任务")
     proposal = ToolMessage(
         content=json.dumps({"plan_id": str(uuid4())}),
@@ -1177,6 +1177,14 @@ def test_plan_review_phase_requires_a_successful_draft_in_the_current_turn() -> 
     assert not _planning_review_phase_active([proposal, user_turn])
     assert not _planning_review_phase_active([user_turn, failed_proposal])
     assert _planning_review_phase_active([user_turn, proposal])
+    applied = ToolMessage(
+        content=json.dumps({"plan_id": str(uuid4())}),
+        name="apply_schedule_plan",
+        tool_call_id="apply-call",
+        status="success",
+    )
+    assert not _planning_review_phase_active([proposal, user_turn, applied])
+    assert not _planning_review_phase_active([proposal, user_turn, applied, user_turn])
 
 
 @pytest.mark.django_db(transaction=True)
@@ -1232,17 +1240,18 @@ def test_real_agent_blocks_hidden_write_without_explicit_write_intent() -> None:
     )
     agent = build_time_steward_agent(model=model)
 
-    recovery_results: list[tuple[int, bool]] = []
+    recovery_results: list[tuple[int, frozenset[str]]] = []
+    original_recovery = _policy_recovery_tool_names
 
-    def observe_recovery(messages: Sequence[BaseMessage], decision: Any) -> bool:
-        recovered = _policy_recovery_requested(messages, decision)
+    def observe_recovery(messages: Sequence[BaseMessage], decision: Any) -> frozenset[str]:
+        recovered = original_recovery(messages, decision)
         recovery_results.append((len(messages), recovered))
         return recovered
 
     with (
         patch("apps.agents.tools.task_tools.TaskService.create_task") as create_task,
         patch(
-            "apps.agents.middleware._policy_recovery_requested",
+            "apps.agents.middleware._policy_recovery_tool_names",
             side_effect=observe_recovery,
         ),
     ):
@@ -1261,7 +1270,7 @@ def test_real_agent_blocks_hidden_write_without_explicit_write_intent() -> None:
     decision = resolve_tool_policy(context(user, input_message="同步状态"))
     assert denied.name not in decision.visible_tools
     assert denied.name not in decision.hard_allowed_tools
-    assert not _policy_recovery_requested([denied], decision)
+    assert not _policy_recovery_tool_names([denied], decision)
     create_task.assert_not_called()
     assert model.bound_tool_surfaces[0] == ["list_calendar_sync_status"]
     assert "create_task" not in model.bound_tool_surfaces[1], recovery_results

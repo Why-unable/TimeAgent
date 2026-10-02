@@ -2,13 +2,18 @@ from typing import Any
 
 from django.core.exceptions import ImproperlyConfigured
 from langchain.chat_models import init_chat_model
+from langchain_core.callbacks.base import Callbacks
 from langchain_core.language_models.chat_models import BaseChatModel
 from pydantic import SecretStr
 
 from apps.agents.configuration import get_agent_config
 
 
-def build_chat_model(model_name: str | None = None) -> BaseChatModel:
+def build_chat_model(
+    model_name: str | None = None,
+    *,
+    callbacks: Callbacks | None = None,
+) -> BaseChatModel:
     definition = get_agent_config().selected_model(model_name)
     api_key = definition.api_key.get_secret_value().strip()
     if not api_key:
@@ -24,6 +29,8 @@ def build_chat_model(model_name: str | None = None) -> BaseChatModel:
     }
     if definition.stream_usage is not None:
         common_kwargs["stream_usage"] = definition.stream_usage
+    if callbacks is not None:
+        common_kwargs["callbacks"] = callbacks
     if definition.provider == "openai_compatible":
         extra_body = dict(definition.extra_body)
         if definition.enable_thinking is not None:

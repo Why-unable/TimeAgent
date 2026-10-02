@@ -11,6 +11,7 @@ from django.db import transaction
 from langchain.agents.middleware import (
     AgentMiddleware,
     HumanInTheLoopMiddleware,
+    LLMToolSelectorMiddleware,
     ModelCallLimitMiddleware,
     ModelFallbackMiddleware,
     ModelRequest,
@@ -32,15 +33,22 @@ from langchain_core.messages import (
     ToolMessage,
 )
 from langchain_core.tools import BaseTool
+from langchain_openai.chat_models import ChatOpenAI
 
 from apps.action_proposals.risk_policy import hitl_interrupt_policy, policy_for_tool
 from apps.action_proposals.services import ActionProposalService
 from apps.agents.configuration import get_agent_config
 from apps.agents.context import RuntimeContext
 from apps.agents.state import AppState
+from apps.agents.tool_discovery import (
+    ToolDiscoverySettings,
+    resolve_tool_discovery_settings,
+    select_discovery_candidates,
+)
 from apps.agents.tool_routing import (
     has_explicit_task_record_mutation,
     is_multi_task_schedule_request,
+    is_sensitive_or_cross_user_request,
     select_tool_names,
     should_limit_to_read_tools,
 )
@@ -60,6 +68,7 @@ from common.time import to_user_timezone
 
 PROMPT_PATH = Path(__file__).with_name("prompts") / "time_steward.md"
 BASE_SYSTEM_PROMPT = PROMPT_PATH.read_text(encoding="utf-8").strip()
+SELECTED_TOOL_SURFACE_METADATA_KEY = "timeagent_selected_tool_surface"
 HANDOFF_NAMES = frozenset(tool.name for tool in HANDOFF_TOOLS)
 COMPACT_PLANNING_TASK_WRITE_TOOLS = frozenset(
     {
@@ -119,36 +128,39 @@ class ToolPolicyDecision:
     reason_codes: tuple[str, ...]
 
 
-def resolve_tool_policy(
+@dataclass(frozen=True, slots=True)
+class RequestPolicyDecision:
+    """Deterministic per-request execution candidate set; discovery cannot widen it."""
+
+    hard_allowed_tools: frozenset[str]
+    reason_codes: tuple[str, ...]
+
+
+def resolve_request_policy(
     context: RuntimeContext,
     *,
     input_message: str | None = None,
-    compact_planning_surface: bool = False,
-    planning_review_phase_active: bool = False,
-) -> ToolPolicyDecision:
-    """Resolve execution authorization separately from the model's compact tool surface."""
+) -> RequestPolicyDecision:
+    """Resolve actor, read/write intent, sensitive requests, and safety limits."""
+
+    if context.actor is None:
+        return RequestPolicyDecision(frozenset(), ("missing_actor",))
+
+    message = context.input_message or input_message or ""
+    if is_sensitive_or_cross_user_request(message):
+        return RequestPolicyDecision(frozenset(), ("sensitive_request",))
 
     reasons: list[str] = []
-    if context.actor is None:
-        return ToolPolicyDecision(frozenset(), frozenset(), ("missing_actor",))
-
     allowed_modes = {"read"} if context.read_only else {"read", "write"}
     hard_allowed = frozenset(
         name for name, spec in TOOL_SPECS.items() if spec.run_modes.intersection(allowed_modes)
     )
     if context.read_only:
         reasons.append("runtime_read_only")
-
-    policy_message = context.input_message or input_message or ""
-    selected_names = select_tool_names(policy_message)
-    if selected_names == frozenset():
-        # The sensitive/cross-user classifier intentionally yields no tools.
-        return ToolPolicyDecision(frozenset(), frozenset(), ("sensitive_request",))
-
-    if is_multi_task_schedule_request(policy_message):
+    if is_multi_task_schedule_request(message):
         hard_allowed = hard_allowed - {"reschedule_task"}
         reasons.append("multi_task_reschedule_blocked")
-    if should_limit_to_read_tools(policy_message):
+    if should_limit_to_read_tools(message):
         hard_allowed = frozenset(
             name for name in hard_allowed if "read" in TOOL_SPECS[name].run_modes
         )
@@ -165,10 +177,63 @@ def resolve_tool_policy(
             "forget_time_preference",
         }
         reasons.append("memory_write_disabled")
+    return RequestPolicyDecision(frozenset(hard_allowed), tuple(reasons))
 
-    visible = hard_allowed if selected_names is None else hard_allowed.intersection(selected_names)
+
+def resolve_tool_policy(
+    context: RuntimeContext,
+    *,
+    input_message: str | None = None,
+    compact_planning_surface: bool = False,
+    planning_review_phase_active: bool = False,
+    planning_lifecycle_phase: str | None = None,
+    discovery_settings: ToolDiscoverySettings | None = None,
+) -> ToolPolicyDecision:
+    """Resolve execution authorization separately from the model's compact tool surface."""
+
+    settings = discovery_settings or ToolDiscoverySettings()
+    policy_message = context.input_message or input_message or ""
+    request_policy = resolve_request_policy(context, input_message=policy_message)
+    if not request_policy.hard_allowed_tools:
+        return ToolPolicyDecision(
+            frozenset(), frozenset(), request_policy.reason_codes or ("no_allowed_tools",)
+        )
+    hard_allowed = request_policy.hard_allowed_tools
+    reasons = list(request_policy.reason_codes)
+    selected_names = select_tool_names(policy_message)
+
+    if settings.strategy == "regex_pack":
+        visible = (
+            hard_allowed if selected_names is None else hard_allowed.intersection(selected_names)
+        )
+    else:
+        phase = planning_lifecycle_phase or (
+            "awaiting_apply" if planning_review_phase_active else "no_plan"
+        )
+        lifecycle_visible = frozenset(
+            name
+            for name in hard_allowed
+            if "any" in TOOL_SPECS[name].lifecycle_phases
+            or phase in TOOL_SPECS[name].lifecycle_phases
+        )
+        discovery = select_discovery_candidates(
+            policy_message,
+            tool_specs=TOOL_SPECS,
+            hard_allowed_names=hard_allowed,
+            lifecycle_visible_names=lifecycle_visible,
+            settings=settings,
+            fallback_names=(
+                hard_allowed
+                if selected_names is None
+                else hard_allowed.intersection(selected_names)
+            ),
+        )
+        visible = discovery.selected_tools
+        if discovery.fallback_reason:
+            reasons.append(f"discovery_fallback:{discovery.fallback_reason}")
     if (
-        compact_planning_surface
+        settings.strategy == "regex_pack"
+        and compact_planning_surface
         and selected_names is not None
         and "get_planning_context" in selected_names
     ):
@@ -186,7 +251,8 @@ def resolve_tool_policy(
             )
         )
     if (
-        compact_planning_surface
+        settings.strategy == "regex_pack"
+        and compact_planning_surface
         and planning_review_phase_active
         and selected_names is not None
         and "get_planning_context" in selected_names
@@ -204,24 +270,26 @@ def resolve_tool_policy(
     )
 
 
-def _policy_recovery_requested(
+def _policy_recovery_tool_names(
     messages: Sequence[BaseMessage], decision: ToolPolicyDecision
-) -> bool:
+) -> frozenset[str]:
+    """Return only policy-allowed tools denied by the immediately preceding tool batch."""
+
+    if not messages or not isinstance(messages[-1], ToolMessage):
+        return frozenset()
+    recoverable: set[str] = set()
     for message in reversed(messages):
-        if not isinstance(message, ToolMessage) or message.status != "error":
-            continue
-        if (
-            message.name not in decision.hard_allowed_tools
-            or message.name in decision.visible_tools
-        ):
+        if not isinstance(message, ToolMessage):
+            break
+        if message.status != "error" or message.name not in decision.hard_allowed_tools:
             continue
         try:
             payload = json.loads(str(message.content))
         except (TypeError, ValueError):
             continue
         if isinstance(payload, dict) and payload.get("code") == "tool_surface_mismatch":
-            return True
-    return False
+            recoverable.add(message.name)
+    return frozenset(recoverable)
 
 
 def _state_messages(state: Any) -> list[BaseMessage]:
@@ -247,19 +315,47 @@ def _latest_human_text(messages: Sequence[BaseMessage]) -> str:
     return ""
 
 
-def _planning_review_phase_active(messages: Sequence[BaseMessage]) -> bool:
-    """Detect a current-turn draft so the compact surface exposes lifecycle actions only."""
+def _selected_tool_surface(messages: Sequence[BaseMessage]) -> frozenset[str] | None:
+    """Read the exact model-visible tools captured for the latest tool-call response."""
 
+    for message in reversed(messages):
+        if not isinstance(message, AIMessage) or not message.tool_calls:
+            continue
+        names = message.response_metadata.get(SELECTED_TOOL_SURFACE_METADATA_KEY)
+        if isinstance(names, list) and all(isinstance(name, str) for name in names):
+            return frozenset(names)
+        return None
+    return None
+
+
+def _planning_lifecycle_phase(messages: Sequence[BaseMessage]) -> str:
+    """Infer a bounded plan lifecycle hint from successful tool results in conversation state."""
+    bounded_messages = messages[-64:]
     latest_user_index = next(
         (
             index
-            for index in range(len(messages) - 1, -1, -1)
-            if isinstance(messages[index], HumanMessage)
+            for index in range(len(bounded_messages) - 1, -1, -1)
+            if isinstance(bounded_messages[index], HumanMessage)
         ),
         -1,
     )
+    turn_messages = bounded_messages[latest_user_index + 1 :]
+    completed_call_ids = {
+        str(message.tool_call_id) for message in turn_messages if isinstance(message, ToolMessage)
+    }
+    for message in reversed(turn_messages):
+        if not isinstance(message, AIMessage):
+            continue
+        if any(
+            call.get("name") == "apply_schedule_plan"
+            and str(call.get("id", "")) not in completed_call_ids
+            for call in message.tool_calls
+        ):
+            return "awaiting_hitl"
+
     last_plan_action = ""
-    for message in messages[latest_user_index + 1 :]:
+    last_plan_action_index = -1
+    for index, message in enumerate(turn_messages):
         if not isinstance(message, ToolMessage) or message.status == "error":
             continue
         if message.name not in PLANNING_REVIEW_ACTIONS:
@@ -282,12 +378,44 @@ def _planning_review_phase_active(messages: Sequence[BaseMessage]) -> bool:
             )
         if has_plan:
             last_plan_action = message.name
-    return last_plan_action in {
-        "propose_schedule_plan",
-        "compare_schedule_plans",
-        "request_plan_interaction",
-        "edit_schedule_plan",
-        "validate_schedule_plan",
+            last_plan_action_index = index
+
+    action_in_current_turn = last_plan_action_index >= 0
+    if last_plan_action in {"propose_schedule_plan", "compare_schedule_plans"}:
+        return "draft_created"
+    if last_plan_action in {"request_plan_interaction", "edit_schedule_plan"}:
+        return "plan_editing"
+    if last_plan_action == "validate_schedule_plan":
+        return "awaiting_apply"
+    if last_plan_action == "apply_schedule_plan":
+        return "applied" if action_in_current_turn else "no_plan"
+    if last_plan_action == "abandon_schedule_plan":
+        return "no_plan"
+    if any(
+        isinstance(message, ToolMessage)
+        and message.status != "error"
+        and message.name == "record_task_duration_feedback"
+        for message in turn_messages
+    ):
+        return "completion_feedback"
+    if any(
+        isinstance(message, ToolMessage)
+        and message.status != "error"
+        and message.name in (COMPACT_PLANNING_TASK_WRITE_TOOLS | {"complete_task"})
+        for message in turn_messages
+    ):
+        return "task_execution"
+    return "no_plan"
+
+
+def _planning_review_phase_active(messages: Sequence[BaseMessage]) -> bool:
+    """Compatibility helper for callers that only need the active-draft condition."""
+
+    return _planning_lifecycle_phase(messages) in {
+        "draft_created",
+        "plan_editing",
+        "awaiting_apply",
+        "awaiting_hitl",
     }
 
 
@@ -296,6 +424,7 @@ def _tool_policy_denial(
     context: RuntimeContext,
     *,
     compact_planning_surface: bool = False,
+    discovery_settings: ToolDiscoverySettings | None = None,
 ) -> ToolMessage | None:
     name = str(request.tool_call.get("name", ""))
     state_messages = _state_messages(getattr(request, "state", None))
@@ -304,11 +433,17 @@ def _tool_policy_denial(
         input_message=_latest_human_text(state_messages),
         compact_planning_surface=compact_planning_surface,
         planning_review_phase_active=_planning_review_phase_active(state_messages),
+        planning_lifecycle_phase=_planning_lifecycle_phase(state_messages),
+        discovery_settings=discovery_settings,
     )
-    if name in decision.hard_allowed_tools and (
-        name in decision.visible_tools or _policy_recovery_requested(state_messages, decision)
-    ):
-        return None
+    selected_surface = _selected_tool_surface(state_messages)
+    recovery_names = _policy_recovery_tool_names(state_messages, decision)
+    if name in decision.hard_allowed_tools:
+        if selected_surface is not None:
+            if name in selected_surface:
+                return None
+        elif name in decision.visible_tools or name in recovery_names:
+            return None
 
     if name not in TOOL_SPECS:
         code, recovery = "unknown_tool", "choose_an_available_tool_or_answer"
@@ -411,6 +546,7 @@ def _hitl_when(
     tool_name: str,
     *,
     compact_planning_surface: bool = False,
+    discovery_settings: ToolDiscoverySettings | None = None,
 ) -> Callable[[ToolCallRequest], bool]:
     """Resolve calendar review policy from trusted per-run preferences."""
 
@@ -418,15 +554,20 @@ def _hitl_when(
         context = request.runtime.context
         if not isinstance(context, RuntimeContext):
             return True
+        messages = _state_messages(getattr(request, "state", None))
         policy = resolve_tool_policy(
             context,
-            input_message=_latest_human_text(_state_messages(getattr(request, "state", None))),
+            input_message=_latest_human_text(messages),
             compact_planning_surface=compact_planning_surface,
-            planning_review_phase_active=_planning_review_phase_active(
-                _state_messages(getattr(request, "state", None))
-            ),
+            planning_review_phase_active=_planning_review_phase_active(messages),
+            planning_lifecycle_phase=_planning_lifecycle_phase(messages),
+            discovery_settings=discovery_settings,
         )
-        if tool_name not in policy.hard_allowed_tools or tool_name not in policy.visible_tools:
+        selected_surface = _selected_tool_surface(messages)
+        authorized_surface = (
+            selected_surface if selected_surface is not None else policy.visible_tools
+        )
+        if tool_name not in policy.hard_allowed_tools or tool_name not in authorized_surface:
             return False
         preferences = context.planning_preferences
         if tool_name in {
@@ -675,8 +816,14 @@ class TemporalContextMiddleware(AgentMiddleware[AppState, RuntimeContext, Any]):
 class ToolPolicyMiddleware(AgentMiddleware[AppState, RuntimeContext, Any]):
     """Enforce execution authorization and select a recoverable model-facing tool surface."""
 
-    def __init__(self, *, compact_planning_surface: bool = False) -> None:
+    def __init__(
+        self,
+        *,
+        compact_planning_surface: bool = False,
+        discovery_settings: ToolDiscoverySettings | None = None,
+    ) -> None:
         self.compact_planning_surface = compact_planning_surface
+        self.discovery_settings = discovery_settings or ToolDiscoverySettings()
 
     def _request(self, request: ModelRequest[RuntimeContext]) -> ModelRequest[RuntimeContext]:
         context = request.runtime.context
@@ -686,21 +833,34 @@ class ToolPolicyMiddleware(AgentMiddleware[AppState, RuntimeContext, Any]):
             input_message=_latest_human_text(messages),
             compact_planning_surface=self.compact_planning_surface,
             planning_review_phase_active=_planning_review_phase_active(messages),
+            planning_lifecycle_phase=_planning_lifecycle_phase(messages),
+            discovery_settings=self.discovery_settings,
         )
         recovery_messages = _state_messages(getattr(request, "state", None))
         if not recovery_messages:
             recovery_messages = list(getattr(request, "messages", ()))
-        visible_names = (
-            decision.hard_allowed_tools
-            if _policy_recovery_requested(recovery_messages, decision)
-            else decision.visible_tools
-        )
+        recovery_names = _policy_recovery_tool_names(recovery_messages, decision)
+        visible_names = decision.visible_tools.union(recovery_names)
         tools: list[BaseTool | dict[str, Any]] = [
             tool
             for tool in getattr(request, "tools", [])
             if isinstance(tool, BaseTool) and tool.name in visible_names
         ]
         return request.override(tools=tools)
+
+    def wrap_model_call(
+        self,
+        request: ModelRequest[RuntimeContext],
+        handler: Callable[[ModelRequest[RuntimeContext]], ModelResponse],
+    ) -> ModelResponse:
+        return handler(self._request(request))
+
+    async def awrap_model_call(
+        self,
+        request: ModelRequest[RuntimeContext],
+        handler: Callable[[ModelRequest[RuntimeContext]], Awaitable[ModelResponse]],
+    ) -> ModelResponse:
+        return await handler(self._request(request))
 
     def wrap_tool_call(
         self,
@@ -719,6 +879,7 @@ class ToolPolicyMiddleware(AgentMiddleware[AppState, RuntimeContext, Any]):
             request,
             context,
             compact_planning_surface=self.compact_planning_surface,
+            discovery_settings=self.discovery_settings,
         )
         return denied if denied is not None else handler(request)
 
@@ -739,22 +900,86 @@ class ToolPolicyMiddleware(AgentMiddleware[AppState, RuntimeContext, Any]):
             request,
             context,
             compact_planning_surface=self.compact_planning_surface,
+            discovery_settings=self.discovery_settings,
         )
         return denied if denied is not None else await handler(request)
+
+
+class SelectedToolSurfaceMiddleware(AgentMiddleware[AppState, RuntimeContext, Any]):
+    """Record the final post-selector schema and preserve eager tools after selection."""
+
+    def __init__(
+        self,
+        *,
+        discovery_settings: ToolDiscoverySettings,
+        compact_planning_surface: bool = False,
+    ) -> None:
+        self.discovery_settings = discovery_settings
+        self.compact_planning_surface = compact_planning_surface
+
+    def _with_eager_tools(
+        self, request: ModelRequest[RuntimeContext]
+    ) -> ModelRequest[RuntimeContext]:
+        context = request.runtime.context
+        if not isinstance(context, RuntimeContext):
+            return request
+        messages = list(request.messages)
+        decision = resolve_tool_policy(
+            context,
+            input_message=_latest_human_text(messages),
+            compact_planning_surface=self.compact_planning_surface,
+            planning_review_phase_active=_planning_review_phase_active(messages),
+            planning_lifecycle_phase=_planning_lifecycle_phase(messages),
+            discovery_settings=self.discovery_settings,
+        )
+        eager_names = set(self.discovery_settings.always_include)
+        eager_names.update(name for name, spec in TOOL_SPECS.items() if spec.always_eager)
+        safe_eager_names = eager_names.intersection(
+            decision.hard_allowed_tools,
+            decision.visible_tools,
+        )
+        if not safe_eager_names:
+            return request
+        tools = list(request.tools)
+        existing_names = {tool.name for tool in tools if isinstance(tool, BaseTool)}
+        tools.extend(TOOL_SPECS[name].tool for name in sorted(safe_eager_names - existing_names))
+        return request.override(tools=tools)
+
+    @staticmethod
+    def _annotate_surface(response: Any, request: ModelRequest[RuntimeContext]) -> Any:
+        names = sorted(tool.name for tool in request.tools if isinstance(tool, BaseTool))
+
+        def annotate(message: BaseMessage) -> BaseMessage:
+            if not isinstance(message, AIMessage):
+                return message
+            metadata = dict(message.response_metadata)
+            metadata[SELECTED_TOOL_SURFACE_METADATA_KEY] = names
+            return message.model_copy(update={"response_metadata": metadata})
+
+        if isinstance(response, AIMessage):
+            return annotate(response)
+        if isinstance(response, ModelResponse):
+            return ModelResponse(
+                result=[annotate(message) for message in response.result],
+                structured_response=response.structured_response,
+            )
+        return response
 
     def wrap_model_call(
         self,
         request: ModelRequest[RuntimeContext],
-        handler: Callable[[ModelRequest[RuntimeContext]], ModelResponse],
-    ) -> ModelResponse:
-        return handler(self._request(request))
+        handler: Callable[[ModelRequest[RuntimeContext]], ModelResponse[Any]],
+    ) -> Any:
+        surfaced_request = self._with_eager_tools(request)
+        return self._annotate_surface(handler(surfaced_request), surfaced_request)
 
     async def awrap_model_call(
         self,
         request: ModelRequest[RuntimeContext],
-        handler: Callable[[ModelRequest[RuntimeContext]], Awaitable[ModelResponse]],
-    ) -> ModelResponse:
-        return await handler(self._request(request))
+        handler: Callable[[ModelRequest[RuntimeContext]], Awaitable[ModelResponse[Any]]],
+    ) -> Any:
+        surfaced_request = self._with_eager_tools(request)
+        return self._annotate_surface(await handler(surfaced_request), surfaced_request)
 
 
 class ToolAuditMiddleware(AgentMiddleware[AppState, RuntimeContext, Any]):
@@ -993,14 +1218,36 @@ def recoverable_tool_error(exc: Exception, request: ToolCallRequest) -> str | No
     return None
 
 
+class _FunctionCallingStructuredOutputAdapter:
+    """Apply the configured tool-based structured-output mode to selector schemas."""
+
+    def __init__(self, model: BaseChatModel) -> None:
+        self._model = model
+
+    def with_structured_output(self, schema: Any, **kwargs: Any) -> Any:
+        kwargs.setdefault("method", "function_calling")
+        return self._model.with_structured_output(schema, **kwargs)
+
+    def __getattr__(self, name: str) -> Any:
+        return getattr(self._model, name)
+
+
 def build_time_steward_middleware(
     model: BaseChatModel,
     *,
     fallback_models: list[BaseChatModel] | None = None,
     temporal_context_enabled: bool = True,
     compact_planning_surface: bool = False,
+    discovery_settings: ToolDiscoverySettings | None = None,
+    selector_model: BaseChatModel | None = None,
 ) -> list[Any]:
     config = get_agent_config().middleware
+    settings = resolve_tool_discovery_settings(discovery_settings)
+    unknown_eager = set(settings.always_include) - TOOL_SPECS.keys()
+    if unknown_eager:
+        raise ValueError(
+            f"tool_discovery.always_include names unknown tools: {sorted(unknown_eager)}"
+        )
     read_only_retry_tools: list[BaseTool | str] = list(RETRY_SAFE_TOOLS)
     middleware: list[Any] = [
         runtime_system_prompt,
@@ -1011,12 +1258,20 @@ def build_time_steward_middleware(
     middleware.extend(
         [
             UntrustedToolDataMiddleware(),
-            ToolPolicyMiddleware(compact_planning_surface=compact_planning_surface),
+            ToolPolicyMiddleware(
+                compact_planning_surface=compact_planning_surface,
+                discovery_settings=settings,
+            ),
+        ]
+    )
+    middleware.extend(
+        [
             HumanInTheLoopMiddleware(
                 interrupt_on=hitl_interrupt_policy(
                     when=lambda name: _hitl_when(
                         name,
                         compact_planning_surface=compact_planning_surface,
+                        discovery_settings=settings,
                     )
                 )
             ),
@@ -1033,12 +1288,39 @@ def build_time_steward_middleware(
     )
     if fallback_models:
         middleware.append(ModelFallbackMiddleware(*fallback_models))
+    middleware.append(
+        ModelRetryMiddleware(
+            max_retries=config.model_retry_limit,
+            on_failure="error",
+        )
+    )
+    if settings.strategy in {"llm_selector", "retrieval_plus_llm"}:
+        if selector_model is None and settings.selector_model_alias is None:
+            raise ValueError("LLM tool discovery requires an explicitly configured selector model")
+        selector = LLMToolSelectorMiddleware(
+            model=selector_model or model,
+            max_tools=settings.selector_max_tools,
+        )
+        effective_selector_model = selector.model
+        selector_alias = settings.selector_model_alias or get_agent_config().agent.default_model
+        selector_definition = get_agent_config().selected_model(selector_alias)
+        if (
+            isinstance(effective_selector_model, ChatOpenAI)
+            and selector_definition.structured_output_strategy == "tool"
+        ):
+            # LangChain's selector calls with_structured_output(schema) without a method
+            # override. DeepSeek-compatible ChatOpenAI adapters need function calling
+            # when their configured structured-output strategy is tool-based.
+            selector.model = _FunctionCallingStructuredOutputAdapter(effective_selector_model)
+        middleware.append(selector)
+    middleware.append(
+        SelectedToolSurfaceMiddleware(
+            discovery_settings=settings,
+            compact_planning_surface=compact_planning_surface,
+        )
+    )
     middleware.extend(
         [
-            ModelRetryMiddleware(
-                max_retries=config.model_retry_limit,
-                on_failure="error",
-            ),
             ToolRetryMiddleware(
                 max_retries=config.tool_retry_limit,
                 tools=read_only_retry_tools,

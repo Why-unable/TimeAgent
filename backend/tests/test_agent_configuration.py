@@ -16,6 +16,7 @@ def write_config(
     default_model: str = "primary",
     fallback_models: str = "[]",
     extra_models: str = "",
+    extra_tool_discovery: str = "",
 ) -> None:
     path.write_text(
         f"""
@@ -42,6 +43,7 @@ middleware:
     enabled: true
     trigger_messages: 10
     keep_messages: 4
+{extra_tool_discovery}
 """.strip(),
         encoding="utf-8",
     )
@@ -82,6 +84,17 @@ def test_invalid_version_and_unknown_default_model_fail_at_startup(tmp_path: Pat
     write_config(missing_fallback, fallback_models="[missing]")
     with pytest.raises(ImproperlyConfigured, match="fallback_models"):
         load_agent_config(missing_fallback)
+
+    missing_selector = tmp_path / "missing-selector.yaml"
+    write_config(
+        missing_selector,
+        extra_tool_discovery="""
+tool_discovery:
+  strategy: llm_selector
+""".strip(),
+    )
+    with pytest.raises(ImproperlyConfigured, match="explicit tool_discovery.selector_model"):
+        load_agent_config(missing_selector)
 
 
 def test_model_factory_uses_selected_validated_definition(
@@ -171,9 +184,7 @@ def test_model_factory_maps_thinking_toggle_to_provider_extra_body(
         with patch("apps.agents.model.init_chat_model") as init_model:
             init_model.return_value = MagicMock(spec=BaseChatModel)
             build_chat_model()
-        assert init_model.call_args.kwargs["extra_body"] == {
-            "thinking": {"type": "disabled"}
-        }
+        assert init_model.call_args.kwargs["extra_body"] == {"thinking": {"type": "disabled"}}
     finally:
         get_agent_config.cache_clear()
 
@@ -238,6 +249,27 @@ def test_model_factory_builds_fallbacks_in_configured_order(
             "secondary-model",
             "tertiary-model",
         ]
+    finally:
+        get_agent_config.cache_clear()
+
+
+def test_model_factory_forwards_selector_usage_callbacks(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    path = tmp_path / "agent.yaml"
+    write_config(path)
+    monkeypatch.setenv("TEST_AGENT_API_KEY", "secret-value")
+    monkeypatch.setenv("TIME_AGENT_CONFIG_PATH", str(path))
+    get_agent_config.cache_clear()
+    callback = MagicMock()
+    try:
+        with patch(
+            "apps.agents.model.init_chat_model",
+            return_value=MagicMock(spec=BaseChatModel),
+        ) as init_model:
+            build_chat_model(callbacks=[callback])
+        assert init_model.call_args.kwargs["callbacks"] == [callback]
     finally:
         get_agent_config.cache_clear()
 

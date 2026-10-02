@@ -8,11 +8,14 @@ from typing import Literal
 from langchain_core.tools import BaseTool
 
 from apps.agents.tool_metadata import (
+    DEFAULT_ALWAYS_EAGER_TOOL_NAMES,
     DERIVE_TOOL_NAMES,
     DRAFT_TOOL_NAMES,
     HANDOFF_TOOL_NAMES,
     HITL_POLICY_METADATA,
     PACK_TOOL_NAMES,
+    TOOL_LIFECYCLE_PHASES,
+    TOOL_SEARCH_KEYWORDS,
     ToolEffect,
 )
 
@@ -30,6 +33,10 @@ class ToolSpec:
     retry_safe: bool
     audit_risk_level: Literal["read", "low", "high"]
     idempotency: Literal["none", "tool_call_audit"]
+    searchable: bool
+    always_eager: bool
+    search_keywords: tuple[str, ...]
+    lifecycle_phases: frozenset[str]
 
 
 def build_tool_manifest(
@@ -57,6 +64,13 @@ def build_tool_manifest(
     stale_policies = HITL_POLICY_METADATA.keys() - sources.keys()
     if stale_policies:
         raise ValueError(f"HITL policy references unregistered tools: {sorted(stale_policies)}")
+    stale_search_keywords = TOOL_SEARCH_KEYWORDS.keys() - sources.keys()
+    stale_lifecycle = TOOL_LIFECYCLE_PHASES.keys() - sources.keys()
+    if stale_search_keywords or stale_lifecycle:
+        raise ValueError(
+            "Tool discovery metadata references unregistered tools: "
+            f"keywords={sorted(stale_search_keywords)}, lifecycle={sorted(stale_lifecycle)}"
+        )
 
     manifest: list[ToolSpec] = []
     for name, (tool, domain, source_mode) in sources.items():
@@ -94,6 +108,10 @@ def build_tool_manifest(
                 idempotency=(
                     "tool_call_audit" if effect in {"derive", "draft", "business_write"} else "none"
                 ),
+                searchable=True,
+                always_eager=name in DEFAULT_ALWAYS_EAGER_TOOL_NAMES,
+                search_keywords=TOOL_SEARCH_KEYWORDS.get(name, ()),
+                lifecycle_phases=TOOL_LIFECYCLE_PHASES.get(name, frozenset({"any"})),
             )
         )
     return tuple(manifest)

@@ -31,7 +31,8 @@ _PACK_INTENTS: dict[str, tuple[str, ...]] = {
         r"(?:任务|待办|事项|工作|项目).{0,20}(?:安排|排程|排期|排入|排到|规划|分散)|"
         r"(?:安排|排程|排期|规划).{0,16}(?:任务|待办|事项|工作|项目|日程|阶段)|"
         r"(?:本周|下周|未来几周|接下来几周).{0,16}(?:安排|分散|排程|排期)|"
-        r"\bschedule\s+(?:(?:two|three|four|several|multiple|some|\d+)\s+)?tasks?\b|\bplanning\b",
+        r"\bschedule\s+(?:(?:these|all|some)\s+)?"
+        r"(?:(?:two|three|four|several|multiple|some|\d+)\s+)?tasks?\b|\bplanning\b",
     ),
     "plan_comparison": (
         r"(?:比较|对比|权衡).{0,16}(?:排程|方案|安排|计划)|"
@@ -61,7 +62,8 @@ _PACK_INTENTS: dict[str, tuple[str, ...]] = {
         r"(?:能|可以|是否能|是否可以).{0,8}(?:塞进|放进|安排进|放下|挤进)|"
         r"估时.{0,8}(?:太短|偏短|过长|太长|准确|不准确)|(?:太短|偏短|过长|太长|准确|不准确).{0,8}估时|"
         r"estimate.{0,20}(?:too short|too long|accurate|inaccurate)|"
-        r"\b(?:insights?|duration estimate|capacity forecast|fit(?: into)? (?:today|this week)|"
+        r"\b(?:insights?|remember|memorize|forget|time preferences?|work habits?|"
+        r"duration estimate|capacity forecast|fit(?: into)? (?:today|this week)|"
         r"can it fit|will it fit)\b",
     ),
     "integrations": (
@@ -80,6 +82,12 @@ _STRICT_READ_ONLY_INTENT = re.compile(
     r"\bread.only\b|\bno changes?\b",
     re.IGNORECASE,
 )
+_NO_CHANGES_ANYTHING_INTENT = re.compile(
+    r"(?:不要|不做|不得|do not|don't)\s*(?:(?:进行|做|make)\s*)?"
+    r"(?:任何\s*)?(?:修改|变更|改动|操作|changes?|modifications?)"
+    r"\s*(?:任何(?:东西|内容|事情)?|anything(?: at all)?)?",
+    re.IGNORECASE,
+)
 _QUERY_ONLY_INTENT = re.compile(
     r"看看|看一下|查看|查询|列出|告诉我|是什么|有哪些|有什么|有啥|什么是|为什么|为何|哪里|"
     r"是否|有没有|吗[？?]|\?|\b(?:show|list|check|explain|what is|how many)\b",
@@ -91,9 +99,18 @@ _EXPLICIT_WRITE_INTENT = re.compile(
     r"(?:估时|时长建议).{0,8}(?:太短|偏短|过长|太长|准确|不准确)|"
     r"(?:太短|偏短|过长|太长|准确|不准确).{0,8}(?:估时|时长建议)|"
     r"estimate.{0,20}(?:too short|too long|accurate|inaccurate)|"
-    r"\b(?:create|add|set|save|change|move|reschedule|cancel|delete|apply)\b",
+    r"\b(?:create|add|set|save|change|move|reschedule|cancel|delete|apply)\b|"
+    r"\bschedule\s+(?:(?:these|all|some)\s+)?"
+    r"(?:(?:two|three|four|several|multiple|some|\d+)\s+)?tasks?\b",
     re.IGNORECASE,
 )
+_EXPLICIT_MEMORY_WRITE_INTENT = re.compile(
+    r"\b(?:please\s+)?(?:remember|memorize)\s+(?:that|my|this)\b|"
+    r"\b(?:please\s+)?(?:forget|save|store|update|change|delete)\s+(?:my|the)\s+"
+    r"(?:(?:time|schedule|work|planning)\s+)?(?:preferences?|habits?|routines?|memories)\b",
+    re.IGNORECASE,
+)
+_MEMORY_LOOKUP_QUESTION = re.compile(r"\b(?:do|did)\s+you\s+(?:remember|forget)\b", re.IGNORECASE)
 _SENSITIVE_OR_CROSS_USER_REQUEST = re.compile(
     r"系统提示词|system prompt|其他用户|他人的|别人的|\bother users?\b|someone else(?:'s)?|"
     r"原始聊天|原始记忆|内部字段|raw conversations?|"
@@ -270,6 +287,12 @@ def select_tool_names(message: str) -> frozenset[str] | None:
     return frozenset(selected)
 
 
+def is_sensitive_or_cross_user_request(message: str) -> bool:
+    """Deterministically identify requests that must receive no business tools."""
+
+    return bool(_SENSITIVE_OR_CROSS_USER_REQUEST.search(message.strip()))
+
+
 def should_limit_to_read_tools(message: str) -> bool:
     if is_explicit_plan_interaction_request(message):
         return False
@@ -277,9 +300,14 @@ def should_limit_to_read_tools(message: str) -> bool:
         return True
     if _STRICT_READ_ONLY_INTENT.search(message):
         return True
+    if _NO_CHANGES_ANYTHING_INTENT.search(message):
+        return True
     if _has_constraint_driven_schedule_intent(message):
         return False
-    has_positive_write = _has_positive_intent(_EXPLICIT_WRITE_INTENT, message)
+    has_positive_write = _has_positive_intent(_EXPLICIT_WRITE_INTENT, message) or (
+        not _MEMORY_LOOKUP_QUESTION.search(message)
+        and _EXPLICIT_MEMORY_WRITE_INTENT.search(message) is not None
+    )
     if _READ_ONLY_INTENT.search(message) and not has_positive_write:
         return True
     if not has_positive_write:
