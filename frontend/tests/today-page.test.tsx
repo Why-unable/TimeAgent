@@ -189,7 +189,7 @@ describe("TodayPage", () => {
     expect(await screen.findByRole("heading", { name: "今天" })).toBeInTheDocument();
     expect(screen.getByText(/2026年7月20日/)).toBeInTheDocument();
     expect(screen.getAllByText("项目会议").length).toBeGreaterThanOrEqual(2);
-    expect(screen.getAllByText("计划写作").length).toBeGreaterThanOrEqual(2);
+    expect(screen.getAllByText("计划写作")).toHaveLength(2); // responsive mobile and desktop surfaces
     expect(screen.getAllByText("今日交付").length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText("补交周报").length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText("提交前提醒").length).toBeGreaterThanOrEqual(1);
@@ -198,7 +198,10 @@ describe("TodayPage", () => {
     expect(screen.getByText("Asia/Shanghai", { exact: false })).toBeInTheDocument();
     expect(screen.getAllByRole("region", { name: "今日执行面板" })).toHaveLength(2);
     expect(screen.getAllByRole("link", { name: "查看日程" })[0]).toHaveAttribute("href", "/calendar");
-    expect(screen.getAllByRole("link", { name: "调整安排" })[0]).toHaveAttribute("href", "/chat");
+    const eventChatLink = screen.getAllByRole("link", { name: "调整安排" })[0];
+    expect(eventChatLink).toHaveAttribute("href", expect.stringContaining("auto_send=1"));
+    expect(new URL(eventChatLink.getAttribute("href") as string, "http://localhost").searchParams.get("prompt"))
+      .toContain(`event_id=${event.id}`);
   });
 
   it("offers start, complete, and adjust actions for the next task", async () => {
@@ -241,8 +244,11 @@ describe("TodayPage", () => {
 
     expect(await screen.findAllByRole("region", { name: "今日执行面板" })).toHaveLength(2);
     expect(screen.getAllByRole("button", { name: `开始任务：${baseTask.title}` })).toHaveLength(2);
-    expect(screen.getAllByRole("button", { name: `完成任务：${baseTask.title}` }).length).toBeGreaterThanOrEqual(2);
+    expect(screen.getAllByRole("button", { name: `完成任务：${baseTask.title}` })).toHaveLength(2); // mobile and desktop only
     expect(screen.getAllByRole("link", { name: `查看任务：${baseTask.title}` })[0]).toHaveAttribute("href", "/tasks");
+    const taskChatLink = screen.getAllByRole("link", { name: `让助理协助调整任务：${baseTask.title}` })[0];
+    expect(new URL(taskChatLink.getAttribute("href") as string, "http://localhost").searchParams.get("prompt"))
+      .toContain(`task_id=${baseTask.id}`);
 
     await userEvent.click(screen.getAllByRole("button", { name: `开始任务：${baseTask.title}` })[0]);
     await waitFor(() => expect(signalUrl).toContain(`/tasks/${baseTask.id}/execution-signals/`));

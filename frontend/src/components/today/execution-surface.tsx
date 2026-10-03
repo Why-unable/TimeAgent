@@ -22,6 +22,11 @@ function executionTime(item: TodayExecutionItem, timezone: string) {
   return "待安排时间";
 }
 
+function chatIntentLink(prompt: string) {
+  const query = new URLSearchParams({ auto_send: "1", prompt });
+  return `/chat?${query.toString()}`;
+}
+
 function ExecutionItemCard({
   item,
   timezone,
@@ -39,7 +44,7 @@ function ExecutionItemCard({
   const inProgress = item.status === "in_progress";
   return (
     <article className="flex min-w-0 items-center justify-between gap-3 rounded-xl border border-white/10 bg-slate-950/55 p-3">
-      <div className="min-w-0">
+      <div className="min-w-0 flex-1">
         <p className="truncate text-sm font-medium text-slate-100">{item.title}</p>
         <p className="mt-1 text-xs text-slate-400">
           {item.kind === "event" ? "日程 · " : inProgress ? "进行中 · " : "任务 · "}
@@ -75,6 +80,13 @@ function ExecutionItemCard({
           >
             任务
           </Link>
+          <Link
+            to={chatIntentLink(`请先核对任务「${item.title}」(task_id=${item.id})的当前状态和关联计划，再帮我评估如何调整后续安排。不要更改永久优先级，也不要未经我确认就应用正式日程。`)}
+            aria-label={`让助理协助调整任务：${item.title}`}
+            className="inline-flex min-h-11 items-center rounded-lg px-2 text-xs font-medium text-cyan-200 hover:bg-cyan-300/10"
+          >
+            调整
+          </Link>
         </div>
       )}
       {item.kind === "event" && (
@@ -82,7 +94,10 @@ function ExecutionItemCard({
           <Link to="/calendar" className="inline-flex min-h-11 items-center rounded-lg px-3 text-xs font-medium text-cyan-200 hover:bg-cyan-300/10">
             查看日程
           </Link>
-          <Link to="/chat" className="inline-flex min-h-11 items-center rounded-lg px-3 text-xs font-medium text-slate-300 hover:bg-white/5">
+          <Link
+            to={chatIntentLink(`请检查日程「${item.title}」(event_id=${item.id}, ${item.start_at ?? "未记录开始时间"} 至 ${item.end_at ?? "未记录结束时间"}, 用户时区 ${timezone})周围的任务安排，并说明有哪些调整选择。先不要修改或应用。`)}
+            className="inline-flex min-h-11 items-center rounded-lg px-3 text-xs font-medium text-slate-300 hover:bg-white/5"
+          >
             调整安排
           </Link>
         </div>
@@ -160,7 +175,7 @@ export function TodayExecutionSurface({
 }) {
   const common = { timezone, onComplete, onStart, busy };
   return (
-    <section aria-label="今日执行面板" className="grid gap-3 xl:grid-cols-3">
+    <section aria-label="今日执行面板" className="grid gap-3 2xl:grid-cols-3">
       <ExecutionSection
         {...common}
         title="现在"

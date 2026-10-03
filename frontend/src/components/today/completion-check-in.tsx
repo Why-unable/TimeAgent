@@ -89,7 +89,7 @@ export function CompletionHarvest({
     : null;
 
   useEffect(() => {
-    setInteraction(initialInteraction);
+    setInteraction((current) => initialInteraction.version > current.version ? initialInteraction : current);
   }, [initialInteraction]);
 
   useEffect(() => {
@@ -199,7 +199,7 @@ export function CompletionHarvest({
                 ["about_right", "差不多"],
                 ["longer", "比预计久"],
               ] as const).map(([value, label]) => (
-                <button key={value} type="button" aria-pressed={rating === value} onClick={() => { begin(); setRating(value); setError(""); }} className={`min-h-12 rounded-xl border px-2 text-sm ${rating === value ? "border-emerald-200 bg-emerald-300/15 text-emerald-100" : "border-white/10 text-slate-300 hover:bg-white/5"}`}>
+              <button key={value} type="button" aria-pressed={rating === value} onClick={() => { begin(); setRating(value); setError(""); }} className={`min-h-12 rounded-xl border px-2 text-sm ${rating === value ? "border-emerald-200 bg-emerald-300/15 text-emerald-100" : "border-white/10 text-slate-300 hover:bg-white/5"}`}>
                   {label}
                 </button>
               ))}

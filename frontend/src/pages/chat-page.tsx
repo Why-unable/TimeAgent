@@ -22,7 +22,7 @@ import {
   useRef,
   useState,
 } from "react";
-import { useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 
 import {
   cancelAgentRun,
@@ -196,12 +196,22 @@ function SchedulePlanArtifactCard({
 
   return (
     <section aria-label="Agent 计划预览" className="w-full rounded-xl border border-cyan-200/20 bg-slate-950/70 p-4 shadow-sm lg:mx-auto lg:max-w-3xl">
-      <header className="flex items-center justify-between gap-3">
+      <header className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h3 className="text-sm font-semibold text-cyan-100">计划预览</h3>
           {entry.plan && <p className="mt-1 text-xs text-slate-400">{statusLabel[String(entry.plan.status)] ?? "计划"}</p>}
         </div>
-        {entry.state === "failed" && <button type="button" onClick={onRetry} className="min-h-10 rounded-lg border border-white/15 px-3 text-xs text-slate-200 hover:bg-white/5">重试加载</button>}
+        <div className="flex flex-wrap items-center gap-2">
+          {entry.state === "loaded" && entry.plan && (
+            <Link
+              to={`/planning?plan_id=${encodeURIComponent(entry.planId)}`}
+              className="inline-flex min-h-11 items-center rounded-lg border border-cyan-200/20 px-3 text-xs font-medium text-cyan-100 hover:bg-cyan-100/5"
+            >
+              在计划页打开
+            </Link>
+          )}
+          {entry.state === "failed" && <button type="button" onClick={onRetry} className="min-h-11 rounded-lg border border-white/15 px-3 text-xs text-slate-200 hover:bg-white/5">重试加载</button>}
+        </div>
       </header>
       {entry.state === "loading" && <p role="status" className="mt-3 text-sm text-slate-400">正在加载计划…</p>}
       {entry.state === "failed" && <p role="alert" className="mt-3 text-sm text-amber-200">暂时无法加载这份计划。你可以重试，或继续在对话里调整。</p>}

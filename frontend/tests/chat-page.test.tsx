@@ -216,6 +216,7 @@ describe("ChatPage", () => {
     renderChatPage(`/chat/${conversation.id}`);
 
     expect(await screen.findByRole("region", { name: "Agent 计划预览" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "在计划页打开" })).toHaveAttribute("href", `/planning?plan_id=${planId}`);
     expect(screen.getByText("论文修改")).toBeInTheDocument();
     expect(screen.getByText("计划草案")).toBeInTheDocument();
     expect(await screen.findByRole("region", { name: "本次计划优先顺序" })).toBeInTheDocument();

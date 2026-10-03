@@ -3,7 +3,6 @@ import {
   ArrowRight,
   Bell,
   CheckCircle2,
-  CircleCheck,
   Clock3,
   Flag,
   Ban,
@@ -18,7 +17,6 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import type { InteractionArtifact } from "../api/interactions";
 import { ensureInteraction, listPendingInteractions } from "../api/interactions";
 import type { CalendarEvent } from "../api/events";
-import type { Task } from "../api/tasks";
 import type { TodaySummary } from "../api/today";
 import { useActOnTemporalInsight, useTemporalInsights } from "../features/insights/hooks";
 import { MobileSectionHeader } from "../components/mobile/mobile-section-header";
@@ -28,7 +26,6 @@ import { TodayExecutionSurface } from "../components/today/execution-surface";
 import {
   formatCountdown,
   getNextEventLabel,
-  getPendingTasks,
   getTimeline,
   type TimelineEntry,
 } from "../features/today/derive";
@@ -37,7 +34,6 @@ import { interactionComponentRegistry } from "../components/planning/interaction
 import { useRecordTaskExecutionSignal } from "../features/tasks/hooks";
 import {
   formatDateKey,
-  formatInUserTimezone,
   formatTimeInUserTimezone,
 } from "../utils/datetime";
 import { PageHeader } from "../components/ui/primitives";
@@ -53,65 +49,6 @@ function readCompletionFeedbackRetryIds(): string[] {
   } catch {
     return [];
   }
-}
-
-function TaskList({
-  title,
-  tasks,
-  timezone,
-  tone,
-  onComplete,
-  completing,
-}: {
-  title: string;
-  tasks: Task[];
-  timezone: string;
-  tone: "cyan" | "amber" | "red";
-  onComplete: (taskId: string) => void;
-  completing: boolean;
-}) {
-  const tones = {
-    cyan: "border-cyan-300/20 bg-cyan-300/5 text-cyan-200",
-    amber: "border-amber-300/20 bg-amber-300/5 text-amber-100",
-    red: "border-red-400/20 bg-red-400/5 text-red-100",
-  };
-  return (
-    <section className={`rounded-2xl border p-5 ${tones[tone]}`}>
-      <div className="flex items-center justify-between gap-3">
-        <h3 className="font-semibold">{title}</h3>
-        <span className="rounded-full bg-slate-950/50 px-3 py-1 text-xs">{tasks.length} 项</span>
-      </div>
-      <div className="mt-4 space-y-3">
-        {tasks.length === 0 && <p className="text-sm opacity-60">暂无任务</p>}
-        {tasks.map((task) => (
-          <article
-            key={task.id}
-            className="flex items-start justify-between gap-3 rounded-xl bg-slate-950/50 p-4"
-          >
-            <div className="min-w-0">
-              <h4 className="font-medium text-slate-100">{task.title}</h4>
-              <p className="mt-1 text-xs opacity-70">
-                {task.due_at
-                  ? `截止 ${formatInUserTimezone(task.due_at, timezone)}`
-                  : task.planned_start_at
-                    ? `计划 ${formatTimeInUserTimezone(task.planned_start_at, timezone)}`
-                    : "未设置时间"}
-              </p>
-            </div>
-            <button
-              type="button"
-              aria-label={`完成任务：${task.title}`}
-              disabled={completing}
-              onClick={() => onComplete(task.id)}
-              className="shrink-0 rounded-lg p-2 text-emerald-300 hover:bg-emerald-400/10 disabled:opacity-50"
-            >
-              <CircleCheck size={19} />
-            </button>
-          </article>
-        ))}
-      </div>
-    </section>
-  );
 }
 
 function NextEventCard({
@@ -329,7 +266,6 @@ export function TodayPage() {
   const CompletionRenderer = interactionComponentRegistry.task_completion;
   const timeline = getTimeline(data);
   const taskCount = data.unfinished_tasks.length;
-  const pendingTasks = getPendingTasks(data);
   const isEmptyDay = timeline.length === 0
     && taskCount === 0
     && data.completed_tasks.length === 0
@@ -568,63 +504,6 @@ export function TodayPage() {
                     </button>
                   </div>
                 </div>
-              </article>
-            ))}
-          </div>
-        </section>
-      )}
-
-      {/* Desktop task columns */}
-      <div className="mt-5 hidden gap-5 lg:grid lg:grid-cols-3">
-        <TaskList
-          title="今日计划任务"
-          tasks={data.planned_tasks}
-          timezone={data.timezone}
-          tone="cyan"
-          onComplete={complete}
-          completing={completeTask.isPending}
-        />
-        <TaskList
-          title="今日截止任务"
-          tasks={data.due_tasks}
-          timezone={data.timezone}
-          tone="amber"
-          onComplete={complete}
-          completing={completeTask.isPending}
-        />
-        <TaskList
-          title="已逾期任务"
-          tasks={data.overdue_tasks}
-          timezone={data.timezone}
-          tone="red"
-          onComplete={complete}
-          completing={completeTask.isPending}
-        />
-      </div>
-
-      {/* Mobile pending tasks */}
-      {pendingTasks.length > 0 && (
-        <section className="mt-5 rounded-2xl border border-white/10 bg-slate-900 p-4 lg:hidden">
-          <MobileSectionHeader title="待处理任务" meta={`${pendingTasks.length} 项`} />
-          <div className="mt-3 space-y-2">
-            {pendingTasks.slice(0, 4).map((task) => (
-              <article
-                key={task.id}
-                className="flex items-center justify-between gap-3 rounded-xl bg-slate-950/60 px-3 py-3"
-              >
-                <div className="min-w-0">
-                  <p className="truncate text-base font-medium text-slate-100">{task.title}</p>
-                  <p className="mt-1 text-xs text-slate-500">{task.project || "任务"}</p>
-                </div>
-                <button
-                  type="button"
-                  aria-label={`完成任务：${task.title}`}
-                  disabled={completeTask.isPending}
-                  onClick={() => complete(task.id)}
-                  className="min-h-11 min-w-11 shrink-0 rounded-lg p-2 text-emerald-300 hover:bg-emerald-400/10 disabled:opacity-50"
-                >
-                  <CircleCheck size={19} />
-                </button>
               </article>
             ))}
           </div>

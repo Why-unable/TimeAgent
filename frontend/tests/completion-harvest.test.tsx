@@ -171,6 +171,47 @@ describe("CompletionHarvest", () => {
     expect(onClose).toHaveBeenCalledOnce();
   });
 
+  it("keeps a saved feedback version when a parent rerenders with a stale interaction", async () => {
+    const original = completionInteraction();
+    const feedbackSaved = completionInteraction({
+      version: 2,
+      payload: { completion_feedback: { rating: "about_right" } },
+    });
+    vi.mocked(submitInteraction).mockResolvedValue({
+      accepted: true,
+      detail: null,
+      interaction: feedbackSaved,
+      plan: null,
+      reason_codes: [],
+      conflicts: [],
+      candidate: null,
+      replayed: false,
+    });
+    vi.mocked(ensureInteraction).mockRejectedValue(new Error("No memory suggestion in this test."));
+
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const view = render(
+      <QueryClientProvider client={client}>
+        <CompletionHarvest interaction={original} onClose={vi.fn()} />
+      </QueryClientProvider>,
+    );
+    await userEvent.click(await screen.findByRole("button", { name: "差不多" }));
+    await userEvent.click(screen.getByRole("button", { name: "记录反馈" }));
+    expect(await screen.findByText("已记录：差不多")).toBeInTheDocument();
+
+    view.rerender(
+      <QueryClientProvider client={client}>
+        <CompletionHarvest
+          interaction={{ ...original, updated_at: "2026-07-20T10:01:00Z" }}
+          onClose={vi.fn()}
+        />
+      </QueryClientProvider>,
+    );
+
+    expect(await screen.findByText("已记录：差不多")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "记录反馈" })).not.toBeInTheDocument();
+  });
+
   it("allows the user to skip without filling feedback fields", async () => {
     const original = completionInteraction();
     const onClose = vi.fn();

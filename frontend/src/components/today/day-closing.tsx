@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { ArrowRight, Check, ChevronDown, Sprout } from "lucide-react";
 
 import type { Task } from "../../api/tasks";
-import type { SchedulePlan } from "../../api/planning";
+import { getSchedulePlan, type SchedulePlan } from "../../api/planning";
 import { useAbandonSchedulePlan, useCreateSchedulePlan } from "../../features/planning/hooks";
 import { formatDateKey, toUtcISOString } from "../../utils/datetime";
 
@@ -13,6 +13,41 @@ const TaskEditor = lazy(async () => {
 });
 
 type PlanItem = { kind?: string; state?: string; task_id?: string; reason_codes?: string[] };
+type SavedClosingState = {
+  selectedTaskIds: string[];
+  fingerprint: string | null;
+  operationId: string | null;
+  planId: string | null;
+};
+
+function closingStorageKey(date: string, timezone: string) {
+  return `time-agent:day-closing:v1:${date}:${timezone}`;
+}
+
+function readClosingState(key: string): SavedClosingState | null {
+  try {
+    const value = window.sessionStorage.getItem(key);
+    if (!value) return null;
+    const parsed = JSON.parse(value) as Partial<SavedClosingState>;
+    if (!Array.isArray(parsed.selectedTaskIds) || !parsed.selectedTaskIds.every((id) => typeof id === "string")) return null;
+    return {
+      selectedTaskIds: parsed.selectedTaskIds,
+      fingerprint: typeof parsed.fingerprint === "string" ? parsed.fingerprint : null,
+      operationId: typeof parsed.operationId === "string" ? parsed.operationId : null,
+      planId: typeof parsed.planId === "string" ? parsed.planId : null,
+    };
+  } catch {
+    return null;
+  }
+}
+
+function saveClosingState(key: string, state: SavedClosingState) {
+  try {
+    window.sessionStorage.setItem(key, JSON.stringify(state));
+  } catch {
+    // Keep the in-memory operation id when storage is unavailable in a WebView.
+  }
+}
 
 function createOperationId() {
   if (globalThis.crypto?.randomUUID) return globalThis.crypto.randomUUID();
@@ -62,22 +97,57 @@ export function DayClosing({
   const operationRef = useRef<{ fingerprint: string; id: string } | null>(null);
   const tomorrow = addDateDays(date, 1);
   const afterTomorrow = addDateDays(date, 2);
+  const storageKey = closingStorageKey(date, timezone);
+  const availableTaskIds = useRef(new Set(unfinishedTasks.map((task) => task.id)));
+  availableTaskIds.current = new Set(unfinishedTasks.map((task) => task.id));
   const selected = new Set(selectedTaskIds);
 
   useEffect(() => {
-    setSelectedTaskIds([]);
+    let active = true;
+    const saved = readClosingState(storageKey);
+    const restoredTaskIds = (saved?.selectedTaskIds ?? []).filter((id) => availableTaskIds.current.has(id));
+    setSelectedTaskIds(restoredTaskIds);
     setCreatedPlan(null);
     setDraftAbandoned(false);
     setKeptUnplaced(false);
     setTaskEditsSaved(false);
     setEditingTask(null);
-    operationRef.current = null;
-  }, [date, timezone]);
+    operationRef.current = saved?.operationId && saved.fingerprint
+      ? { fingerprint: saved.fingerprint, id: saved.operationId }
+      : null;
+    setOpen(restoredTaskIds.length > 0 || Boolean(saved?.planId));
+    if (saved?.planId) {
+      void getSchedulePlan(saved.planId).then((plan) => {
+        if (!active) return;
+        if (plan.status === "draft") {
+          setCreatedPlan(plan);
+        } else {
+          operationRef.current = null;
+          saveClosingState(storageKey, {
+            selectedTaskIds: restoredTaskIds,
+            fingerprint: null,
+            operationId: null,
+            planId: null,
+          });
+        }
+      }).catch(() => {
+        // Keep the selection and operation id so retry remains idempotent.
+      });
+    }
+    return () => { active = false; };
+  }, [storageKey]);
 
   const toggleTask = (taskId: string) => {
-    setSelectedTaskIds((current) => current.includes(taskId)
-      ? current.filter((id) => id !== taskId)
-      : [...current, taskId]);
+    const nextSelection = selectedTaskIds.includes(taskId)
+      ? selectedTaskIds.filter((id) => id !== taskId)
+      : [...selectedTaskIds, taskId];
+    setSelectedTaskIds(nextSelection);
+    saveClosingState(storageKey, {
+      selectedTaskIds: nextSelection,
+      fingerprint: null,
+      operationId: null,
+      planId: null,
+    });
     setCreatedPlan(null);
     setDraftAbandoned(false);
     setKeptUnplaced(false);
@@ -88,13 +158,20 @@ export function DayClosing({
   const createTomorrowDraft = () => {
     if (selectedTaskIds.length === 0) return;
     const taskIds = [...selectedTaskIds].sort();
-    const fingerprint = `${tomorrow}:${taskIds.join(",")}`;
+    const fingerprint = `${tomorrow}:${timezone}:${taskIds.join(",")}`;
     if (operationRef.current?.fingerprint !== fingerprint) {
       operationRef.current = { fingerprint, id: createOperationId() };
     }
+    const operationId = operationRef.current.id;
+    saveClosingState(storageKey, {
+      selectedTaskIds: taskIds,
+      fingerprint,
+      operationId,
+      planId: null,
+    });
     createPlan.mutate({
       task_ids: taskIds,
-      operation_id: operationRef.current.id,
+      operation_id: operationId,
       range_start: toUtcISOString(`${tomorrow}T00:00`, timezone),
       range_end: toUtcISOString(`${afterTomorrow}T00:00`, timezone),
       strategy: "plan_tasks_only",
@@ -104,6 +181,12 @@ export function DayClosing({
         setCreatedPlan(plan);
         setKeptUnplaced(false);
         setTaskEditsSaved(false);
+        saveClosingState(storageKey, {
+          selectedTaskIds: taskIds,
+          fingerprint,
+          operationId,
+          planId: plan.id,
+        });
       },
     });
   };
@@ -121,11 +204,18 @@ export function DayClosing({
       input: { expected_version: createdPlan.version ?? 1 },
     }, {
       onSuccess: () => {
-        setSelectedTaskIds((current) => current.filter((id) => !unplacedIds.has(id)));
+        const nextSelection = selectedTaskIds.filter((id) => !unplacedIds.has(id));
+        setSelectedTaskIds(nextSelection);
         setCreatedPlan(null);
         setDraftAbandoned(true);
         setKeptUnplaced(false);
         operationRef.current = null;
+        saveClosingState(storageKey, {
+          selectedTaskIds: nextSelection,
+          fingerprint: null,
+          operationId: null,
+          planId: null,
+        });
         setOpen(true);
       },
     });
@@ -144,6 +234,12 @@ export function DayClosing({
         setKeptUnplaced(false);
         setTaskEditsSaved(false);
         operationRef.current = null;
+        saveClosingState(storageKey, {
+          selectedTaskIds: [],
+          fingerprint: null,
+          operationId: null,
+          planId: null,
+        });
         setOpen(true);
       },
     });
@@ -161,6 +257,12 @@ export function DayClosing({
         setKeptUnplaced(false);
         setTaskEditsSaved(false);
         operationRef.current = null;
+        saveClosingState(storageKey, {
+          selectedTaskIds,
+          fingerprint: null,
+          operationId: null,
+          planId: null,
+        });
         setEditingTask(task);
       },
     });

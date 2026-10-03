@@ -1,7 +1,7 @@
 # TimeAgent V4 Iteration 2 — Daily Loop Productization
 
 Date: 2026-10-03
-Branch: `codex/agent-ux-v3-interactive-loop
+Branch: `codex/agent-ux-v3-interactive-loop`
 Scope: Morning Brief, Today Now / Next / Later, Day Closing → Tomorrow Draft, explicit overload handling, Harvest visual treatment, and the real-Agent Apply rejection gate. Production is out of scope.
 
 ## Product behavior
@@ -49,7 +49,7 @@ The Planning page continues to route Apply through the existing AgentRun → Act
 - OpenAPI JSON and generated frontend TypeScript were regenerated for the Today and schedule-plan contracts. Generation succeeded with one enum naming warning.
 - A repository-wide `ruff format --check .` reports 41 existing formatting differences in unrelated files. Changed files pass the scoped check.
 
-### Isolated staging resul
+### Isolated staging results
 
 Compose project `time-agent-v3-staging` received the current branch images; migration `planning.0007_scheduleplan_operation_id_and_more` applied to its isolated database. GHCR returned TLS timeouts during backend image builds, so the staging-only build used the locally cached `uv:0.11.1` image; dependency installation remained locked with `uv sync --frozen`, and no repository Docker configuration changed. The dedicated real-Agent browser suite passed **2/2** on `127.0.0.1:7081`:
 
