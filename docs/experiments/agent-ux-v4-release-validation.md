@@ -92,8 +92,17 @@ The production build succeeds but reports a **600.40 kB minified / 184.38 kB gzi
 - Physical screen reader and Android WebView/device validation were not available; automated Playwright mobile is not device conformance evidence.
 - Main entry remains above the bundle warning threshold.
 - 30 pre-existing mypy findings remain.
-- Production was not deployed, tagged, or modified.
+- Production was not deployed or modified during the initial V4 validation. The later RC checkpoint and production acceptance are recorded in §16.
 
 ## 15. Release recommendation
 
-**READY_WITH_KNOWN_LIMITATIONS** — the automated and staging gates pass. The continuous one-day human/Agent journey, matched human UX study, physical assistive technology and Android checks remain outstanding. Bundle size and the pre-existing type/format baselines also remain open. This is a merge recommendation only; the feature branch is pushed separately, with no merge, tag, or production deployment.
+**READY_WITH_KNOWN_LIMITATIONS** — the automated and staging gates pass. The continuous one-day human/Agent journey, matched human UX study, physical assistive technology and Android checks remain outstanding. Bundle size and the pre-existing type/format baselines also remain open. This recommendation supports merging the candidate, but does not approve production deployment. See §16 for the post-merge production acceptance result.
+
+## 16. Post-merge production acceptance — 2026-10-03
+
+- **Merge and checkpoint:** the feature branch was fast-forward merged and pushed to `main` at `e74abd3`. Annotated tag `agent-ux-v4-rc.1` points to that documentation-only checkpoint; the validated application code remains `32db32f`.
+- **Production baseline:** the local production gateway is `127.0.0.1:7080`; its running Django image is revision `467edfe` (`sha256:dea75aaffbd77bcfc6bb2a2211581ba0c9996771190de5d625b77a2325790997`) and frontend image is revision `e364c89` (`sha256:b21c5db42687428257bfe74a3cab67907f405ee8a338992c8caf2d21edba739e`). No running production container was restarted.
+- **Live smoke:** local and public `/health/ready` returned HTTP 200 with database and Redis `ok`; public `/api/v1/auth/options/` returned HTTP 200; the public response included `Strict-Transport-Security: max-age=2592000`.
+- **Candidate Django preflight:** the candidate image built successfully and was retained locally as `time-agent-django:e74abd3`; the default image tag was restored to the currently deployed production image. `manage.py check --deploy` exited successfully with one OpenAPI enum-name warning and three reverse-proxy/HSTS policy warnings. The production database migration plan contains five unapplied migrations (`interactions.0001`–`0004` and `planning.0007`); `makemigrations --check --dry-run` reported no model drift. No migration was applied.
+- **Release gate:** Django system check, backend tests (**697 passed, 3 skipped**), Ruff, frontend tests (**174 passed**), frontend lint, and frontend production build passed. The build retains its 600.40 kB entry-chunk warning. `uv run mypy .` failed with **30 findings across 7 files**, matching the recorded baseline. The composite `make release-gate` could not run on this Windows host because `make` is unavailable; its checks were run individually, and the type-check failure blocks the sequence. The required real-model release evaluation was not run.
+- **Disposition:** production deployment acceptance is **BLOCKED** by the failed type-check gate and incomplete full release gate. No production backup, migration, container restart, or deployment was performed. The current production revision remains in service. Run the full release gate successfully before scheduling a production update.
