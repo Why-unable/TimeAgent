@@ -6,11 +6,12 @@ import math
 import random
 import re
 import threading
+from collections.abc import Sequence
 from datetime import UTC, datetime
 from datetime import time as local_time
 from pathlib import Path
 from time import perf_counter
-from typing import Any
+from typing import Any, Literal, TypedDict
 from uuid import UUID, uuid4
 from zoneinfo import ZoneInfo
 
@@ -85,12 +86,20 @@ _SENSITIVE_ARGUMENT_KEYS = frozenset(
 )
 
 
+class SelectorUsageEvent(TypedDict):
+    status: Literal["completed", "failed"]
+    input_tokens: int | None
+    output_tokens: int | None
+    total_tokens: int | None
+    duration_ms: int | None
+
+
 class SelectorUsageCallback(BaseCallbackHandler):
     """Capture aggregate selector usage only; never store prompts or responses."""
 
     def __init__(self) -> None:
         self._started_at: dict[str, float] = {}
-        self._events: list[dict[str, int | str | None]] = []
+        self._events: list[SelectorUsageEvent] = []
         self._lock = threading.Lock()
 
     def on_chat_model_start(
@@ -195,34 +204,30 @@ class SelectorUsageCallback(BaseCallbackHandler):
         with self._lock:
             events = list(self._events[start_index:])
         completed = [event for event in events if event["status"] == "completed"]
-        durations = [
-            int(event["duration_ms"])
-            for event in events
-            if isinstance(event.get("duration_ms"), int)
-        ]
-        token_complete = [
-            event
-            for event in completed
-            if isinstance(event.get("input_tokens"), int)
-            and isinstance(event.get("output_tokens"), int)
-            and isinstance(event.get("total_tokens"), int)
-        ]
+        durations = [event["duration_ms"] for event in events if event["duration_ms"] is not None]
+        token_complete: list[tuple[int, int, int]] = []
+        for event in completed:
+            input_tokens = event["input_tokens"]
+            output_tokens = event["output_tokens"]
+            total_tokens = event["total_tokens"]
+            if input_tokens is not None and output_tokens is not None and total_tokens is not None:
+                token_complete.append((input_tokens, output_tokens, total_tokens))
         return {
             "call_count": len(events),
             "completed_call_count": len(completed),
             "failed_call_count": len(events) - len(completed),
             "input_tokens": (
-                sum(int(event["input_tokens"]) for event in token_complete)
+                sum(tokens[0] for tokens in token_complete)
                 if token_complete and len(token_complete) == len(events)
                 else (0 if not events else None)
             ),
             "output_tokens": (
-                sum(int(event["output_tokens"]) for event in token_complete)
+                sum(tokens[1] for tokens in token_complete)
                 if token_complete and len(token_complete) == len(events)
                 else (0 if not events else None)
             ),
             "total_tokens": (
-                sum(int(event["total_tokens"]) for event in token_complete)
+                sum(tokens[2] for tokens in token_complete)
                 if token_complete and len(token_complete) == len(events)
                 else (0 if not events else None)
             ),
@@ -660,7 +665,8 @@ class Command(BaseCommand):
         ]
         labels = [f"condition_{index:02d}" for index in range(1, len(variants) + 1)]
         random.Random(7032026).shuffle(labels)
-        return variants, dict(zip((item["id"] for item in variants), labels, strict=True))
+        variant_ids = [variant_id for variant_id, _ in definitions]
+        return variants, dict(zip(variant_ids, labels, strict=True))
 
     @staticmethod
     def _seed_trial(case: dict[str, Any], dataset: dict[str, Any]) -> tuple[User, dict[str, Any]]:
@@ -1049,7 +1055,15 @@ class Command(BaseCommand):
         )
 
         def sum_known(key: str) -> int | None:
-            values = [int(row[key]) for row in completed if row[key] is not None]
+            values: list[int] = []
+            for row in completed:
+                value = row.get(key)
+                if isinstance(value, bool):
+                    return None
+                if isinstance(value, int):
+                    values.append(value)
+                elif value is not None:
+                    return None
             return sum(values) if rows and len(values) == len(rows) else None
 
         token_complete_count = sum(
@@ -1215,23 +1229,30 @@ class Command(BaseCommand):
         selector_output_tokens: object,
         prices: dict[str, float | None],
     ) -> float | None:
-        needed = (
-            input_tokens,
-            output_tokens,
-            selector_input_tokens,
-            selector_output_tokens,
-            prices.get("model_input"),
-            prices.get("model_output"),
-            prices.get("selector_input"),
-            prices.get("selector_output"),
-        )
-        if not all(isinstance(value, int | float) for value in needed):
+        if not isinstance(input_tokens, int | float):
+            return None
+        if not isinstance(output_tokens, int | float):
+            return None
+        if not isinstance(selector_input_tokens, int | float):
+            return None
+        if not isinstance(selector_output_tokens, int | float):
+            return None
+        model_input = prices.get("model_input")
+        model_output = prices.get("model_output")
+        selector_input = prices.get("selector_input")
+        selector_output = prices.get("selector_output")
+        if (
+            model_input is None
+            or model_output is None
+            or selector_input is None
+            or selector_output is None
+        ):
             return None
         cost = (
-            float(input_tokens) * float(prices["model_input"])
-            + float(output_tokens) * float(prices["model_output"])
-            + float(selector_input_tokens) * float(prices["selector_input"])
-            + float(selector_output_tokens) * float(prices["selector_output"])
+            float(input_tokens) * model_input
+            + float(output_tokens) * model_output
+            + float(selector_input_tokens) * selector_input
+            + float(selector_output_tokens) * selector_output
         ) / 1_000_000
         return round(cost, 8)
 
@@ -1641,7 +1662,7 @@ def _safe_arguments(value: Any) -> dict[str, Any]:
     return {str(key): sanitize(item, str(key)) for key, item in value.items()}
 
 
-def _percentile(values: list[int | float], quantile: float) -> float | None:
+def _percentile(values: Sequence[int | float], quantile: float) -> float | None:
     if not values:
         return None
     ordered = sorted(float(value) for value in values)

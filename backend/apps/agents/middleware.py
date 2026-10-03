@@ -1337,7 +1337,11 @@ def build_time_steward_middleware(
             # LangChain's selector calls with_structured_output(schema) without a method
             # override. DeepSeek-compatible ChatOpenAI adapters need function calling
             # when their configured structured-output strategy is tool-based.
-            selector.model = _FunctionCallingStructuredOutputAdapter(effective_selector_model)
+            # The adapter is a transparent proxy for BaseChatModel's selector interface;
+            # LangChain's annotation does not account for this supported wrapper.
+            selector.model = cast(
+                BaseChatModel, _FunctionCallingStructuredOutputAdapter(effective_selector_model)
+            )
         middleware.append(selector)
     middleware.append(
         SelectedToolSurfaceMiddleware(

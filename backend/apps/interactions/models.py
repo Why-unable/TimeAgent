@@ -104,16 +104,30 @@ class InteractionArtifact(models.Model):
             not isinstance(action, str) for action in self.allowed_actions
         ):
             raise ValidationError({"allowed_actions": "allowed_actions must be a string list"})
-        if self.plan_id and self.plan.user_id != self.user_id:
-            raise ValidationError({"plan": "Plan must belong to the interaction user"})
-        if self.task_id and self.task.user_id != self.user_id:
-            raise ValidationError({"task": "Task must belong to the interaction user"})
-        if self.conversation_id and self.conversation.user_id != self.user_id:
-            raise ValidationError(
-                {"conversation": "Conversation must belong to the interaction user"}
-            )
-        if self.agent_run_id and self.agent_run.conversation.user_id != self.user_id:
-            raise ValidationError({"agent_run": "Agent run must belong to the interaction user"})
+        if self.plan_id:
+            plan = self.plan
+            if plan is None or plan.user_id != self.user_id:
+                raise ValidationError({"plan": "Plan must belong to the interaction user"})
+        if self.task_id:
+            task = self.task
+            if task is None or task.user_id != self.user_id:
+                raise ValidationError({"task": "Task must belong to the interaction user"})
+        if self.conversation_id:
+            conversation = self.conversation
+            if conversation is None or conversation.user_id != self.user_id:
+                raise ValidationError(
+                    {"conversation": "Conversation must belong to the interaction user"}
+                )
+        if self.agent_run_id:
+            agent_run = self.agent_run
+            if (
+                agent_run is None
+                or agent_run.conversation_id is None
+                or agent_run.conversation.user_id != self.user_id
+            ):
+                raise ValidationError(
+                    {"agent_run": "Agent run must belong to the interaction user"}
+                )
 
 
 class InteractionSubmission(models.Model):

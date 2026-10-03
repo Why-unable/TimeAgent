@@ -91,8 +91,10 @@ class InteractionSubmitView(APIView):
             return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
         plan = result.plan
         if plan is None and result.interaction.plan_id:
-            result.interaction.plan.refresh_from_db()
-            plan = result.interaction.plan
+            interaction_plan = result.interaction.plan
+            if interaction_plan is not None:
+                interaction_plan.refresh_from_db()
+                plan = interaction_plan
         return Response(
             {
                 "accepted": result.accepted,

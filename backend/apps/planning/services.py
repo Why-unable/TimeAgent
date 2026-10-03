@@ -1503,8 +1503,8 @@ class PlanningService:
                 elif item.get("task_id"):
                     by_task[str(item["task_id"])].append(item)
             reordered: list[dict[str, object]] = []
-            for order, task_id in enumerate(ordered_task_ids):
-                task_items = by_task[str(task_id)]
+            for order, ordered_task_id in enumerate(ordered_task_ids):
+                task_items = by_task[str(ordered_task_id)]
                 for item in task_items:
                     item["planning_order"] = order
                 reordered.extend(task_items)
@@ -1604,7 +1604,7 @@ class PlanningService:
                 and end_at > start_at
             ):
                 start_utc, end_utc = to_utc(start_at), to_utc(end_at)
-                edited_item = next(
+                edited_item: dict[str, object] = next(
                     (
                         item
                         for item in attempted.items
@@ -1613,12 +1613,14 @@ class PlanningService:
                     ),
                     {},
                 )
-                reserved_start = start_utc - timedelta(
-                    minutes=int(edited_item.get("buffer_before_minutes", 0))
-                )
-                reserved_end = end_utc + timedelta(
-                    minutes=int(edited_item.get("buffer_after_minutes", 0))
-                )
+                before_value = edited_item.get("buffer_before_minutes", 0)
+                after_value = edited_item.get("buffer_after_minutes", 0)
+                if isinstance(before_value, bool) or not isinstance(before_value, (int, str)):
+                    raise ValueError("Plan item buffers must be integers")
+                if isinstance(after_value, bool) or not isinstance(after_value, (int, str)):
+                    raise ValueError("Plan item buffers must be integers")
+                reserved_start = start_utc - timedelta(minutes=int(before_value))
+                reserved_end = end_utc + timedelta(minutes=int(after_value))
                 event_rows = CalendarEvent.objects.filter(
                     user=user,
                     start_at__lt=reserved_end,

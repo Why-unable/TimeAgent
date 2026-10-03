@@ -123,7 +123,7 @@ def test_lexical_retrieval_ranks_chinese_exact_time_edit() -> None:
     assert ranked[0] == "edit_schedule_plan"
 
 
-def test_function_calling_adapter_preserves_builtin_selector_schema():
+def test_function_calling_adapter_preserves_builtin_selector_schema() -> None:
     seen: dict[str, Any] = {}
 
     class Target:
@@ -416,7 +416,10 @@ def test_policy_recovery_exposes_only_immediately_mismatched_allowed_tool() -> N
     recovered = ToolPolicyMiddleware(discovery_settings=settings)._request(
         cast(Any, OverridableRequest())
     )
-    recovered_names = {tool.name for tool in recovered.tools}
+    recovered_names = {
+        tool.name if isinstance(tool, BaseTool) else str(tool.get("name", ""))
+        for tool in recovered.tools
+    }
 
     assert recovered_names == decision.visible_tools.union({denied_name})
     assert len(recovered_names) < len(decision.hard_allowed_tools)

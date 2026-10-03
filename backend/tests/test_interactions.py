@@ -1,11 +1,13 @@
 from datetime import UTC, datetime, time, timedelta
 from types import SimpleNamespace
+from typing import cast
 from unittest.mock import patch
 from uuid import uuid4
 
 import pytest
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import User
+from langchain_core.tools import StructuredTool
 
 from apps.agents.context import RuntimeContext
 from apps.agents.tools.planning_tools import request_plan_interaction
@@ -116,7 +118,9 @@ def test_agent_requests_typed_plan_interaction_through_application_service() -> 
         )
     )
 
-    result = request_plan_interaction.func(
+    request_plan_tool = cast(StructuredTool, request_plan_interaction)
+    assert request_plan_tool.func is not None
+    result = request_plan_tool.func(
         plan_id=plan.pk,
         interaction_type="priority_ranking",
         runtime=runtime,
