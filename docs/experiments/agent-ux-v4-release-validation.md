@@ -2,7 +2,7 @@
 
 Date: 2026-10-03
 Branch: `codex/agent-ux-v3-interactive-loop`
-Candidate commit: `0344242` plus the uncommitted changes in this validation turn
+Candidate commit: `32db32f`
 Production deployment: out of scope; isolated staging only (`127.0.0.1:7081`).
 
 ## 1. Frozen feature scope
