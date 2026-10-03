@@ -5,6 +5,7 @@ from apps.planning.models import SchedulePlan
 
 class SchedulePlanCreateSerializer(serializers.Serializer[dict[str, object]]):
     task_ids = serializers.ListField(child=serializers.UUIDField(), allow_empty=False)
+    operation_id = serializers.UUIDField(required=False)
     range_start = serializers.DateTimeField()
     range_end = serializers.DateTimeField()
     strategy = serializers.ChoiceField(choices=["plan_tasks_only", "create_linked_event_blocks"])

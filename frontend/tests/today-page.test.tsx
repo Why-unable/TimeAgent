@@ -71,6 +71,8 @@ const summary = {
   planned_tasks: [baseTask],
   due_tasks: [dueTask],
   overdue_tasks: [overdueTask],
+  unfinished_tasks: [baseTask, dueTask, overdueTask],
+  completed_tasks: [],
   pending_reminders: [
     {
       id: "51111111-1111-4111-8111-111111111111",
@@ -112,6 +114,21 @@ const summary = {
   ],
   next_event: event,
   minutes_until_next_event: 60,
+  execution_now: [],
+  execution_next: [{
+    kind: "event",
+    id: event.id,
+    title: event.title,
+    start_at: event.start_at,
+    end_at: event.end_at,
+    status: null,
+    due_at: null,
+  }],
+  execution_later: [
+    { kind: "task", id: baseTask.id, title: baseTask.title, start_at: baseTask.planned_start_at, end_at: baseTask.planned_end_at, status: "pending", due_at: null },
+    { kind: "task", id: overdueTask.id, title: overdueTask.title, start_at: null, end_at: null, status: "pending", due_at: overdueTask.due_at },
+    { kind: "task", id: dueTask.id, title: dueTask.title, start_at: null, end_at: null, status: "pending", due_at: dueTask.due_at },
+  ],
 };
 
 function renderPage() {
@@ -142,10 +159,15 @@ describe("TodayPage", () => {
       planned_tasks: [],
       due_tasks: [],
       overdue_tasks: [],
+      unfinished_tasks: [],
+      completed_tasks: [],
       pending_reminders: [],
       conflicts: [],
       next_event: null,
       minutes_until_next_event: null,
+      execution_now: [],
+      execution_next: [],
+      execution_later: [],
     };
     vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify(emptySummary))));
 
@@ -174,9 +196,9 @@ describe("TodayPage", () => {
     expect(screen.getByText("1 小时后")).toBeInTheDocument();
     expect(screen.getByText("项目会议 与 计划写作")).toBeInTheDocument();
     expect(screen.getByText("Asia/Shanghai", { exact: false })).toBeInTheDocument();
-    expect(screen.getByText("下一步行动")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "查看日程" })).toHaveAttribute("href", "/calendar");
-    expect(screen.getByRole("link", { name: /调整安排/ })).toHaveAttribute("href", "/chat");
+    expect(screen.getAllByRole("region", { name: "今日执行面板" })).toHaveLength(2);
+    expect(screen.getAllByRole("link", { name: "查看日程" })[0]).toHaveAttribute("href", "/calendar");
+    expect(screen.getAllByRole("link", { name: "调整安排" })[0]).toHaveAttribute("href", "/chat");
   });
 
   it("offers start, complete, and adjust actions for the next task", async () => {
@@ -191,6 +213,17 @@ describe("TodayPage", () => {
       conflicts: [],
       next_event: null,
       minutes_until_next_event: null,
+      execution_now: [],
+      execution_next: [{
+        kind: "task",
+        id: baseTask.id,
+        title: baseTask.title,
+        start_at: baseTask.planned_start_at,
+        end_at: baseTask.planned_end_at,
+        status: "pending",
+        due_at: null,
+      }],
+      execution_later: [],
     };
     vi.stubGlobal(
       "fetch",
@@ -206,12 +239,12 @@ describe("TodayPage", () => {
 
     renderPage();
 
-    expect(await screen.findByText("下一步行动")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /开始/ })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /^完成$/ })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /调整任务/ })).toHaveAttribute("href", "/tasks");
+    expect(await screen.findAllByRole("region", { name: "今日执行面板" })).toHaveLength(2);
+    expect(screen.getAllByRole("button", { name: `开始任务：${baseTask.title}` })).toHaveLength(2);
+    expect(screen.getAllByRole("button", { name: `完成任务：${baseTask.title}` }).length).toBeGreaterThanOrEqual(2);
+    expect(screen.getAllByRole("link", { name: `查看任务：${baseTask.title}` })[0]).toHaveAttribute("href", "/tasks");
 
-    await userEvent.click(screen.getByRole("button", { name: /开始/ }));
+    await userEvent.click(screen.getAllByRole("button", { name: `开始任务：${baseTask.title}` })[0]);
     await waitFor(() => expect(signalUrl).toContain(`/tasks/${baseTask.id}/execution-signals/`));
   });
 

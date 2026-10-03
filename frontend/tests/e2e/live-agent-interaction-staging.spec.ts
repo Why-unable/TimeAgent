@@ -18,7 +18,14 @@ type TaskRecord = {
   planned_start_at?: string | null;
   planned_end_at?: string | null;
 };
-type PlanItem = { task_id?: string; kind?: string; state?: string; planning_order?: number };
+type PlanItem = {
+  task_id?: string;
+  kind?: string;
+  state?: string;
+  planning_order?: number;
+  start_at?: string;
+  end_at?: string;
+};
 type SchedulePlan = { id: string; status: string; version: number; items: PlanItem[] };
 type TodaySummary = { planned_tasks: Array<{ id: string }> };
 
@@ -227,4 +234,155 @@ test("Agent-requested priority interaction opens across runs and saves a plan-on
   const todayAfterAgentPastEdit = await getJson<TodaySummary>(page, "/api/v1/today/");
   expect(todayAfterAgentPastEdit.planned_tasks.filter((task) => fixtureIds.has(task.id)))
     .toEqual(todayBeforePastEdit.planned_tasks.filter((task) => fixtureIds.has(task.id)));
+});
+
+test("real Agent apply rejection preserves task schedule after a calendar conflict appears", async ({ page }) => {
+  test.setTimeout(12 * 60_000);
+  await page.addInitScript(() => {
+    window.localStorage.setItem("time-agent:onboarding:1:v1", "completed");
+  });
+
+  await page.goto("/login");
+  await page.getByLabel("邮箱").fill(email as string);
+  await page.getByLabel("密码").fill(password as string);
+  await page.getByRole("button", { name: "登录", exact: true }).last().click();
+  await expect(page).toHaveURL(/\/today$/);
+  const onboarding = page.getByRole("dialog", { name: "欢迎使用 Time Agent" });
+  if (await onboarding.isVisible().catch(() => false)) {
+    await onboarding.getByRole("button", { name: "暂时跳过" }).click();
+  }
+
+  const suffix = crypto.randomUUID().slice(0, 8);
+  const title = "V4 staging apply rejection " + suffix;
+  const planDate = nextShanghaiWeekday();
+  const dueAt = planDate + "T23:45";
+  await page.goto("/tasks");
+  await page.getByRole("button", { name: "新建任务" }).click();
+  await page.getByLabel("任务标题").fill(title);
+  await page.getByLabel("项目").fill("V4 real Agent apply rejection regression");
+  await page.getByLabel("预计时长（分钟）").fill("30");
+  await page.getByLabel(/截止时间 due_at/).fill(localInput(dueAt));
+  await page.getByRole("button", { name: "创建任务" }).click();
+  await expect(page.getByRole("heading", { name: title })).toBeVisible();
+
+  const task = (await getJson<TaskRecord[]>(page, "/api/v1/tasks/")).find((candidate) => candidate.title === title);
+  expect(task).toBeTruthy();
+  const taskId = (task as TaskRecord).id;
+  const todayBefore = await getJson<TodaySummary>(page, "/api/v1/today/");
+  let conflictEventId: string | undefined;
+
+  try {
+  await page.goto("/chat");
+  const composer = page.locator("#chat-message");
+  const send = async (message: string) => {
+    await expect(composer).toBeEnabled({ timeout: 240_000 });
+    await composer.fill(message);
+    await page.getByRole("button", { name: "发送消息" }).click();
+  };
+  await send(
+    `请先通过任务列表按标题查找现有任务「${title}」，然后只为它创建 ${planDate}（Asia/Shanghai）的 30 分钟计划草案。不要应用。`,
+  );
+  await expect(page).toHaveURL(/\/chat\/[0-9a-f-]+$/);
+  const conversationId = new URL(page.url()).pathname.split("/").at(-1) as string;
+  await expect(page.getByRole("region", { name: "Agent 计划预览" })).toBeVisible({ timeout: 240_000 });
+  await expect(composer).toBeEnabled({ timeout: 240_000 });
+  await expect.poll(async () => (await latestConversationPlan(page, conversationId))?.id, { timeout: 180_000 })
+    .toBeTruthy();
+  const plan = await latestConversationPlan(page, conversationId);
+  expect(plan?.status).toBe("draft");
+  const item = plan?.items.find((candidate) => candidate.task_id === taskId && candidate.state === "placed");
+  expect(item?.start_at).toBeTruthy();
+  expect(item?.end_at).toBeTruthy();
+
+  await send(`请将计划 ${plan?.id} 当前版本提交正式应用审批，等待我在页面上确认。`);
+  const approval = page.locator("article").filter({ hasText: "需要你确认" }).last();
+  await expect(approval).toBeVisible({ timeout: 240_000 });
+  await expect(approval.getByRole("button", { name: "确认并应用" })).toBeEnabled();
+
+  const event = await page.evaluate(async (conflict) => {
+    const csrf = document.cookie
+      .split(";")
+      .map((cookie) => cookie.trim())
+      .find((cookie) => cookie.startsWith("csrftoken="))
+      ?.slice("csrftoken=".length);
+    const response = await fetch("/api/v1/events/", {
+      method: "POST",
+      credentials: "same-origin",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+        ...(csrf ? { "X-CSRFToken": decodeURIComponent(csrf) } : {}),
+      },
+      body: JSON.stringify(conflict),
+    });
+    return { status: response.status, body: await response.json() as { id?: string } };
+  }, {
+    title: "V4 staging conflict " + suffix,
+    start_at: item?.start_at,
+    end_at: item?.end_at,
+    timezone: "Asia/Shanghai",
+  });
+  conflictEventId = event.body.id;
+  expect(event.status).toBe(201);
+  expect(event.body.id).toBeTruthy();
+
+  await approval.getByRole("button", { name: "确认并应用" }).click();
+  await expect.poll(async () => {
+    const proposals = await getJson<Array<{ action_type: string; conversation_id: string; status: string }>>(
+      page,
+      "/api/v1/action-proposals/",
+    );
+    return proposals.find((proposal) => (
+      proposal.conversation_id === conversationId && proposal.action_type === "apply_schedule_plan"
+    ))?.status;
+  }, { timeout: 240_000 }).toBe("failed");
+
+  await expect(approval.getByRole("alert")).toContainText("这次计划应用没有成功");
+  await expect(approval.getByRole("link", { name: "打开这份计划核对" })).toHaveAttribute(
+    "href",
+    `/planning?plan_id=${plan?.id}`,
+  );
+  await expect(composer).toBeEnabled({ timeout: 240_000 });
+
+  const failedPlan = await getJson<SchedulePlan>(page, "/api/v1/planning/plans/" + plan?.id + "/");
+  expect(failedPlan.status).toBe("invalidated");
+  const unchangedTask = await getJson<TaskRecord>(page, "/api/v1/tasks/" + taskId + "/");
+  expect(unchangedTask.planned_start_at ?? null).toBeNull();
+  expect(unchangedTask.planned_end_at ?? null).toBeNull();
+  const todayAfter = await getJson<TodaySummary>(page, "/api/v1/today/");
+  expect(todayAfter.planned_tasks.filter((candidate) => candidate.id === taskId))
+    .toEqual(todayBefore.planned_tasks.filter((candidate) => candidate.id === taskId));
+
+  } finally {
+    if (conflictEventId) {
+    await page.evaluate(async (eventId) => {
+      const csrf = document.cookie
+        .split(";")
+        .map((cookie) => cookie.trim())
+        .find((cookie) => cookie.startsWith("csrftoken="))
+        ?.slice("csrftoken=".length);
+      await fetch(`/api/v1/events/${eventId}/?expected_version=1`, {
+        method: "DELETE",
+        credentials: "same-origin",
+        headers: csrf ? { "X-CSRFToken": decodeURIComponent(csrf) } : {},
+      });
+    }, conflictEventId);
+    }
+    await page.evaluate(async (id) => {
+      const csrf = document.cookie
+        .split(";")
+        .map((cookie) => cookie.trim())
+        .find((cookie) => cookie.startsWith("csrftoken="))
+        ?.slice("csrftoken=".length);
+      await fetch(`/api/v1/tasks/${id}/`, {
+        method: "PATCH",
+        credentials: "same-origin",
+        headers: {
+          "Content-Type": "application/json",
+          ...(csrf ? { "X-CSRFToken": decodeURIComponent(csrf) } : {}),
+        },
+        body: JSON.stringify({ planned_start_at: null, planned_end_at: null }),
+      });
+    }, taskId).catch(() => undefined);
+  }
 });

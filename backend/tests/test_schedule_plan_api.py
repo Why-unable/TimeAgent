@@ -2,12 +2,14 @@ from collections.abc import Iterator
 from contextlib import contextmanager
 from datetime import UTC, datetime, timedelta
 from unittest.mock import patch
+from uuid import uuid4
 
 import pytest
 from django.contrib.auth.models import User
 from django.test import Client
 from langgraph.store.memory import InMemoryStore
 
+from apps.planning.models import SchedulePlan
 from apps.planning.services import PlanningService
 from apps.tasks.services import CreateTaskCommand, TaskService
 
@@ -107,3 +109,36 @@ def test_schedule_plan_api_supports_comparison_and_local_regeneration() -> None:
     )
     assert regenerated.status_code == 200
     assert regenerated.json()["version"] == 2
+
+
+def test_schedule_plan_creation_is_idempotent_for_the_same_operation() -> None:
+    user = User.objects.create_user("plan-api-idempotency")
+    task = TaskService.create_task(
+        CreateTaskCommand(user=user, title="Carry over", estimated_minutes=30)
+    )
+    client = Client()
+    client.force_login(user)
+    operation_id = str(uuid4())
+    payload = {
+        "task_ids": [str(task.pk)],
+        "operation_id": operation_id,
+        "range_start": "2026-11-12T00:00:00Z",
+        "range_end": "2026-11-13T00:00:00Z",
+        "strategy": "plan_tasks_only",
+    }
+
+    first = client.post("/api/v1/planning/plans/", data=payload, content_type="application/json")
+    replay = client.post("/api/v1/planning/plans/", data=payload, content_type="application/json")
+
+    assert first.status_code == 201
+    assert replay.status_code == 201
+    assert replay.json()["id"] == first.json()["id"]
+    assert SchedulePlan.objects.filter(user=user, operation_id=operation_id).count() == 1
+
+    conflicting_retry = client.post(
+        "/api/v1/planning/plans/",
+        data={**payload, "range_end": "2026-11-14T00:00:00Z"},
+        content_type="application/json",
+    )
+    assert conflicting_retry.status_code == 400
+    assert SchedulePlan.objects.filter(user=user, operation_id=operation_id).count() == 1

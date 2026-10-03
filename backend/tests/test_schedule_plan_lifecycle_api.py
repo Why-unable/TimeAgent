@@ -107,20 +107,24 @@ def test_plan_edit_apply_task_detail_and_today_keep_one_time_instant() -> None:
         )
     assert planned.status_code == 201
     plan = planned.json()
-    edited = client.post(
-        f"/api/v1/planning/plans/{plan['id']}/edit/",
-        data={
-            "expected_version": plan["version"],
-            "items": [
-                {
-                    "task_id": str(task.pk),
-                    "start_at": "2026-10-05T22:30:00+08:00",
-                    "end_at": "2026-10-05T23:00:00+08:00",
-                }
-            ],
-        },
-        content_type="application/json",
-    )
+    with patch(
+        "apps.planning.services.timezone.now",
+        return_value=plan_created_at + timedelta(minutes=1),
+    ):
+        edited = client.post(
+            f"/api/v1/planning/plans/{plan['id']}/edit/",
+            data={
+                "expected_version": plan["version"],
+                "items": [
+                    {
+                        "task_id": str(task.pk),
+                        "start_at": "2026-10-05T22:30:00+08:00",
+                        "end_at": "2026-10-05T23:00:00+08:00",
+                    }
+                ],
+            },
+            content_type="application/json",
+        )
     assert edited.status_code == 200
     edited_plan = edited.json()
     plan_item = next(item for item in edited_plan["items"] if item.get("task_id"))
@@ -143,9 +147,7 @@ def test_plan_edit_apply_task_detail_and_today_keep_one_time_instant() -> None:
         user=user,
         plan_id=plan["id"],
         expected_version=edited_plan["version"],
-        now=datetime.fromisoformat(
-            edited_plan["expires_at"].replace("Z", "+00:00")
-        )
+        now=datetime.fromisoformat(edited_plan["expires_at"].replace("Z", "+00:00"))
         - timedelta(seconds=1),
     )
     assert applied.status == "applied"

@@ -1019,6 +1019,12 @@ class ToolAuditMiddleware(AgentMiddleware[AppState, RuntimeContext, Any]):
         return result
 
     @staticmethod
+    def _returned_tool_error(result: Any, tool_name: str) -> Exception | None:
+        if isinstance(result, ToolMessage) and result.status == "error":
+            return RuntimeError(f"Tool {tool_name} returned an error: {result.content}")
+        return None
+
+    @staticmethod
     def _begin(
         request: ToolCallRequest,
         context: RuntimeContext,
@@ -1148,6 +1154,16 @@ class ToolAuditMiddleware(AgentMiddleware[AppState, RuntimeContext, Any]):
         try:
             with transaction.atomic():
                 result = handler(request)
+                returned_error = self._returned_tool_error(result, audit.tool_name)
+                if returned_error is not None:
+                    ToolAuditService.fail(audit, returned_error)
+                    ActionProposalService.mark_failed(
+                        run_id=context.agent_run_id or "",
+                        tool_call_id=tool_call_id,
+                        error=returned_error,
+                    )
+                    self._append_event(audit, "tool.failed", tool_call_id)
+                    return result
                 ToolAuditService.complete(audit, self._json_result(result))
                 ActionProposalService.mark_executed(
                     run_id=context.agent_run_id or "",
@@ -1184,6 +1200,16 @@ class ToolAuditMiddleware(AgentMiddleware[AppState, RuntimeContext, Any]):
             raise RuntimeError("This tool call is already running")
         try:
             result = await handler(request)
+            returned_error = self._returned_tool_error(result, audit.tool_name)
+            if returned_error is not None:
+                await sync_to_async(ToolAuditService.fail)(audit, returned_error)
+                await sync_to_async(ActionProposalService.mark_failed)(
+                    run_id=context.agent_run_id or "",
+                    tool_call_id=tool_call_id,
+                    error=returned_error,
+                )
+                await sync_to_async(self._append_event)(audit, "tool.failed", tool_call_id)
+                return result
             await sync_to_async(ToolAuditService.complete)(audit, self._json_result(result))
             await sync_to_async(ActionProposalService.mark_executed)(
                 run_id=context.agent_run_id or "",

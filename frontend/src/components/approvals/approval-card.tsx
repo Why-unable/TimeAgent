@@ -894,7 +894,7 @@ export function ApprovalCard({ proposal, timezone = "Asia/Shanghai", busy = fals
       {proposal.error && proposal.action_type !== "apply_schedule_plan" && <p role="alert" className="mt-3 text-sm text-red-300">这项操作暂时没有完成，请重试或稍后再试。</p>}
       {(proposal.error || proposal.status === "failed") && proposal.action_type === "apply_schedule_plan" && (
         <div role="alert" className="mt-3 rounded-lg border border-amber-300/30 bg-amber-300/5 p-3 text-sm text-amber-100">
-          <p>计划应用结果暂时无法确认。请先刷新并核对最新日程，再决定是否重新提交。</p>
+          <p>这次计划应用没有成功。请核对计划状态和任务时间，再决定是否调整并重新提交。</p>
           <a
             href={typeof proposal.action_payload.plan_id === "string"
               ? `/planning?plan_id=${encodeURIComponent(proposal.action_payload.plan_id)}`

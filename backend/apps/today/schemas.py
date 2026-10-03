@@ -31,6 +31,17 @@ class ScheduleConflict:
 
 
 @dataclass(frozen=True, slots=True)
+class TodayExecutionItem:
+    kind: ScheduleItemKind
+    id: UUID
+    title: str
+    start_at: datetime | None
+    end_at: datetime | None
+    status: str | None = None
+    due_at: datetime | None = None
+
+
+@dataclass(frozen=True, slots=True)
 class TodaySummary:
     date: date
     timezone: str
@@ -41,7 +52,12 @@ class TodaySummary:
     planned_tasks: list[Task]
     due_tasks: list[Task]
     overdue_tasks: list[Task]
+    unfinished_tasks: list[Task]
+    completed_tasks: list[Task]
     pending_reminders: list[Reminder]
     conflicts: list[ScheduleConflict]
     next_event: CalendarEvent | None
     minutes_until_next_event: int | None
+    execution_now: list[TodayExecutionItem]
+    execution_next: list[TodayExecutionItem]
+    execution_later: list[TodayExecutionItem]

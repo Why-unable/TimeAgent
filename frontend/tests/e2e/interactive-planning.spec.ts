@@ -139,9 +139,15 @@ async function installApi(page: Page) {
     if (path === "/api/v1/today/") return route.fulfill({ json: {
       date: "2026-10-02", timezone: "Asia/Shanghai", generated_at: "2026-10-02T00:00:00Z",
       day_start_at: "2026-10-01T16:00:00Z", day_end_at: "2026-10-02T16:00:00Z",
-      events: [], planned_tasks: [], due_tasks: [completionTask], overdue_tasks: [], pending_reminders: [],
+      events: [], planned_tasks: [], due_tasks: [completionTask], overdue_tasks: [],
+      unfinished_tasks: [completionTask], completed_tasks: [], pending_reminders: [],
       conflicts: [], next_event: null, minutes_until_next_event: null,
+      execution_now: [], execution_next: [], execution_later: [{
+        kind: "task", id: paperId, title: completionTask.title, start_at: null, end_at: null,
+        status: "pending", due_at: completionTask.due_at,
+      }],
     } });
+    if (path === "/api/v1/briefings/runs/" && method === "GET") return route.fulfill({ json: [] });
     if (path === "/api/v1/tasks/" && method === "GET") return route.fulfill({ json: tasks });
     if (path === `/api/v1/tasks/${paperId}/complete/` && method === "POST") {
       completionRequestCount += 1;

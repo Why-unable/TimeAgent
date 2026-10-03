@@ -123,7 +123,7 @@ describe("ApprovalCard", () => {
 
     render(<ApprovalCard proposal={failedPlanProposal} onDecision={vi.fn()} />);
 
-    expect(screen.getByText("计划应用结果暂时无法确认。请先刷新并核对最新日程，再决定是否重新提交。")).toBeInTheDocument();
+    expect(screen.getByText("这次计划应用没有成功。请核对计划状态和任务时间，再决定是否调整并重新提交。")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "打开这份计划核对" })).toHaveAttribute(
       "href",
       "/planning?plan_id=44444444-4444-4444-8444-444444444444",

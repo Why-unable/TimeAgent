@@ -5182,9 +5182,8 @@
                     },
                     "max_moves_per_run": {
                         "type": "integer",
-                        "maximum": 9223372036854775807,
-                        "minimum": 1,
-                        "format": "int64"
+                        "maximum": 32767,
+                        "minimum": 1
                     },
                     "requires_approval": {
                         "type": "boolean"
@@ -5231,9 +5230,8 @@
                     },
                     "max_moves_per_run": {
                         "type": "integer",
-                        "maximum": 9223372036854775807,
-                        "minimum": 1,
-                        "format": "int64"
+                        "maximum": 32767,
+                        "minimum": 1
                     },
                     "requires_approval": {
                         "type": "boolean"
@@ -5570,9 +5568,8 @@
                     },
                     "version": {
                         "type": "integer",
-                        "maximum": 9223372036854775807,
-                        "minimum": 1,
-                        "format": "int64"
+                        "maximum": 2147483647,
+                        "minimum": 1
                     },
                     "created_at": {
                         "type": "string",
@@ -6738,9 +6735,8 @@
                     },
                     "plan_version": {
                         "type": "integer",
-                        "maximum": 9223372036854775807,
+                        "maximum": 2147483647,
                         "minimum": 0,
-                        "format": "int64",
                         "nullable": true
                     },
                     "task_id": {
@@ -6762,9 +6758,8 @@
                     },
                     "version": {
                         "type": "integer",
-                        "maximum": 9223372036854775807,
-                        "minimum": 0,
-                        "format": "int64"
+                        "maximum": 2147483647,
+                        "minimum": 0
                     },
                     "created_at": {
                         "type": "string",
@@ -6946,6 +6941,14 @@
                 ],
                 "type": "string",
                 "description": "* `priority_ranking` - Priority ranking\n* `plan_timeline_edit` - Plan timeline edit\n* `task_completion` - Task completion feedback\n* `memory_suggestion` - Memory suggestion"
+            },
+            "KindDc5Enum": {
+                "enum": [
+                    "event",
+                    "task"
+                ],
+                "type": "string",
+                "description": "* `event` - event\n* `task` - task"
             },
             "LaunchBriefing": {
                 "type": "object",
@@ -7558,9 +7561,8 @@
                     },
                     "max_moves_per_run": {
                         "type": "integer",
-                        "maximum": 9223372036854775807,
-                        "minimum": 1,
-                        "format": "int64"
+                        "maximum": 32767,
+                        "minimum": 1
                     },
                     "requires_approval": {
                         "type": "boolean"
@@ -7803,9 +7805,8 @@
                     },
                     "default_event_duration_minutes": {
                         "type": "integer",
-                        "maximum": 9223372036854775807,
-                        "minimum": 0,
-                        "format": "int64"
+                        "maximum": 32767,
+                        "minimum": 0
                     },
                     "preferred_focus_periods": {},
                     "default_reminder_offsets": {},
@@ -7816,9 +7817,8 @@
                     "weather_location_data": {},
                     "weather_forecast_days": {
                         "type": "integer",
-                        "maximum": 9223372036854775807,
-                        "minimum": 0,
-                        "format": "int64"
+                        "maximum": 32767,
+                        "minimum": 0
                     },
                     "require_event_creation_approval": {
                         "type": "boolean"
@@ -7856,15 +7856,13 @@
                     },
                     "insight_daily_notification_limit": {
                         "type": "integer",
-                        "maximum": 9223372036854775807,
-                        "minimum": 0,
-                        "format": "int64"
+                        "maximum": 32767,
+                        "minimum": 0
                     },
                     "insight_cooldown_minutes": {
                         "type": "integer",
-                        "maximum": 9223372036854775807,
-                        "minimum": 0,
-                        "format": "int64"
+                        "maximum": 32767,
+                        "minimum": 0
                     },
                     "disabled_insight_kinds": {},
                     "updated_at": {
@@ -8113,9 +8111,8 @@
                     },
                     "offset_minutes": {
                         "type": "integer",
-                        "maximum": 9223372036854775807,
+                        "maximum": 2147483647,
                         "minimum": 0,
-                        "format": "int64",
                         "nullable": true
                     },
                     "title": {
@@ -8152,9 +8149,8 @@
                     },
                     "retry_count": {
                         "type": "integer",
-                        "maximum": 9223372036854775807,
-                        "minimum": 0,
-                        "format": "int64"
+                        "maximum": 32767,
+                        "minimum": 0
                     },
                     "failure_reason": {
                         "type": "string"
@@ -8346,7 +8342,7 @@
                 "type": "object",
                 "properties": {
                     "kind": {
-                        "$ref": "#/components/schemas/ScheduleItemKindEnum"
+                        "$ref": "#/components/schemas/KindDc5Enum"
                     },
                     "id": {
                         "type": "string",
@@ -8372,14 +8368,6 @@
                     "title"
                 ]
             },
-            "ScheduleItemKindEnum": {
-                "enum": [
-                    "event",
-                    "task"
-                ],
-                "type": "string",
-                "description": "* `event` - event\n* `task` - task"
-            },
             "SchedulePlan": {
                 "type": "object",
                 "properties": {
@@ -8400,9 +8388,8 @@
                     },
                     "version": {
                         "type": "integer",
-                        "maximum": 9223372036854775807,
-                        "minimum": 1,
-                        "format": "int64"
+                        "maximum": 2147483647,
+                        "minimum": 1
                     },
                     "created_at": {
                         "type": "string",
@@ -8542,6 +8529,10 @@
                             "type": "string",
                             "format": "uuid"
                         }
+                    },
+                    "operation_id": {
+                        "type": "string",
+                        "format": "uuid"
                     },
                     "range_start": {
                         "type": "string",
@@ -8824,9 +8815,8 @@
                     },
                     "estimated_minutes": {
                         "type": "integer",
-                        "maximum": 9223372036854775807,
+                        "maximum": 2147483647,
                         "minimum": 1,
-                        "format": "int64",
                         "nullable": true
                     },
                     "buffer_before_minutes": {
@@ -9179,6 +9169,49 @@
                     "refresh_status"
                 ]
             },
+            "TodayExecutionItem": {
+                "type": "object",
+                "properties": {
+                    "kind": {
+                        "$ref": "#/components/schemas/KindDc5Enum"
+                    },
+                    "id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "title": {
+                        "type": "string"
+                    },
+                    "start_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "nullable": true
+                    },
+                    "end_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "nullable": true
+                    },
+                    "status": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "due_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "nullable": true
+                    }
+                },
+                "required": [
+                    "due_at",
+                    "end_at",
+                    "id",
+                    "kind",
+                    "start_at",
+                    "status",
+                    "title"
+                ]
+            },
             "TodaySummary": {
                 "type": "object",
                 "properties": {
@@ -9225,6 +9258,18 @@
                             "$ref": "#/components/schemas/Task"
                         }
                     },
+                    "unfinished_tasks": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/Task"
+                        }
+                    },
+                    "completed_tasks": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/Task"
+                        }
+                    },
                     "pending_reminders": {
                         "type": "array",
                         "items": {
@@ -9249,22 +9294,45 @@
                         "type": "integer",
                         "minimum": 0,
                         "nullable": true
+                    },
+                    "execution_now": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/TodayExecutionItem"
+                        }
+                    },
+                    "execution_next": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/TodayExecutionItem"
+                        }
+                    },
+                    "execution_later": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/TodayExecutionItem"
+                        }
                     }
                 },
                 "required": [
+                    "completed_tasks",
                     "conflicts",
                     "date",
                     "day_end_at",
                     "day_start_at",
                     "due_tasks",
                     "events",
+                    "execution_later",
+                    "execution_next",
+                    "execution_now",
                     "generated_at",
                     "minutes_until_next_event",
                     "next_event",
                     "overdue_tasks",
                     "pending_reminders",
                     "planned_tasks",
-                    "timezone"
+                    "timezone",
+                    "unfinished_tasks"
                 ]
             },
             "UserPreference": {
@@ -9295,9 +9363,8 @@
                     },
                     "default_event_duration_minutes": {
                         "type": "integer",
-                        "maximum": 9223372036854775807,
-                        "minimum": 0,
-                        "format": "int64"
+                        "maximum": 32767,
+                        "minimum": 0
                     },
                     "preferred_focus_periods": {},
                     "default_reminder_offsets": {},
@@ -9308,9 +9375,8 @@
                     "weather_location_data": {},
                     "weather_forecast_days": {
                         "type": "integer",
-                        "maximum": 9223372036854775807,
-                        "minimum": 0,
-                        "format": "int64"
+                        "maximum": 32767,
+                        "minimum": 0
                     },
                     "require_event_creation_approval": {
                         "type": "boolean"
@@ -9348,15 +9414,13 @@
                     },
                     "insight_daily_notification_limit": {
                         "type": "integer",
-                        "maximum": 9223372036854775807,
-                        "minimum": 0,
-                        "format": "int64"
+                        "maximum": 32767,
+                        "minimum": 0
                     },
                     "insight_cooldown_minutes": {
                         "type": "integer",
-                        "maximum": 9223372036854775807,
-                        "minimum": 0,
-                        "format": "int64"
+                        "maximum": 32767,
+                        "minimum": 0
                     },
                     "disabled_insight_kinds": {},
                     "updated_at": {

@@ -2,7 +2,7 @@
 
 Date: 2026-10-03
 Branch: `codex/agent-ux-v3-interactive-loop`
-Scope: V4 UX audit and prioritized P0 implementation; no Agent Harness or Tool Discovery redesign.
+Scope: V4 UX audit, P0 interaction hardening, and Iteration 2 Daily Loop Productization; no Agent Harness or Tool Discovery redesign.
 
 ## Current UX Audit
 
@@ -59,6 +59,14 @@ This first-pass audit traces the current UI and backend interaction paths before
 - Identified P0 implementation order: stale interaction invalidation, deterministic conflict resolution presentation, apply-failure recovery, compact plan diff review, and progressive completion feedback.
 - Baseline counts above are source-derived minimum path estimates. There is no matched user-study or reliable journey-level denominator, so they are not presented as measured outcomes.
 
+### Iteration 2 — Daily Loop Productization — 2026-10-03
+
+- Added a server-owned Now / Next / Later execution surface, with completed and unfinished task summaries from `TodayService`; the browser does not reclassify schedule items.
+- Added a user-triggered Morning Brief entry that starts the existing Briefing Workflow directly, plus Day Closing with a Tomorrow plan draft, local-time boundaries, and an idempotent operation ID.
+- Added an explicit overload decision when tasks do not fit the selected day: keep the unplaced work in the draft, adjust the draft manually, revise a task's estimate or buffers before replanning, or remove unplaced items and select again. Revising task inputs first abandons the old draft; no task is silently shortened, deferred, completed, or deleted.
+- Added a real-Agent staging Apply-rejection journey. The first run exposed a status bug: a recoverable `ToolMessage(status="error")` was being recorded as completed/executed. Tool audit and ActionProposal now record it as failed while returning the error to the Agent; the user-facing recovery message and unchanged Task/Today facts are asserted in staging.
+- The product behavior and release evidence are recorded in [Iteration 2 — Daily Loop Productization](agent-ux-v4-iteration-2-daily-loop.md) and [ADR 0037](../decisions/0037-daily-loop-tomorrow-draft-and-execution-surface.md).
+
 ## Product Interaction Language
 
 The implemented hierarchy keeps the user's decision in front and exposes internal details only when they help recovery:
@@ -78,7 +86,9 @@ The source-level journey estimates above remain the baseline. The same scripted 
 
 Existing: `PlanPreview`, `InteractivePlanTimeline`, `PriorityRanker`, `ApprovalCard`, `CompletionHarvest`, `MemorySuggestionCard`, and the Interaction Component Registry.
 
-Planned P0: `PlanDiffReview` and `ConflictResolver` as focused components; add interaction stale state at the existing artifact boundary rather than introducing another persistence layer.
+Implemented P0: `PlanDiffReview` and `ConflictResolver` as focused components; stale state remains at the existing artifact boundary rather than introducing another persistence layer.
+
+Implemented in Iteration 2: `MorningBrief`, `ExecutionSurface`, and Day Closing with an explicit overload decision. The Day Closing flow reuses the Task Editor for user-selected estimate or buffer changes and the existing Planning draft/apply boundary.
 
 Rejected for this iteration: a full fruit-game animation system, a second Agent/Planner abstraction, and client-computed availability candidates. These do not address the highest correctness gaps and would add new cognitive or architectural cost.
 
@@ -101,7 +111,7 @@ Rejected for this iteration: a full fruit-game animation system, a second Agent/
 
 ## P1 decision
 
-The audit explicitly considered the overload decision, Day Closing → Tomorrow Draft, and a consistent Today execution surface. They are deferred from this P0 iteration. The immediate release-blocking work was stale-write prevention and safe HITL application; adding new daily-loop flows would require separate product decisions and a reliable journey telemetry denominator. Today has a 44px minimum for the affected interactive targets, but this iteration does not claim to add a full Now/Next/Later execution model, overload flow, or Day Closing flow. These are recorded for a separate iteration rather than represented as completed.
+The overload decision, Day Closing → Tomorrow Draft, and consistent Today execution surface were deferred from the original P0 pass and have now been implemented in Iteration 2. Explicit task estimates and buffers can be changed through the existing Task Editor after the current draft is abandoned; the user then generates a fresh draft. Alternative global strategies such as deadline-first versus focus-first remain deferred because Planning does not yet persist those trade-offs for review. A matched user study remains necessary before claiming that the new journey reduces effort.
 
 ## Accessibility, mobile, real-browser results, and remaining work
 
@@ -116,3 +126,13 @@ The audit explicitly considered the overload decision, Day Closing → Tomorrow 
 - Production has not been modified. No production deployment or release tag is part of this iteration.
 
 The remaining validation limitation is the missing matched human UX study and physical screen-reader session. These are recorded as unmeasured rather than inferred from automation.
+
+### Iteration 2 verification — 2026-10-03
+
+- Backend: full `uv run pytest -q` — **697 passed, 3 skipped, 1 warning**. Ruff lint passed. All 13 changed backend files passed `ruff format --check`; `manage.py check` and `makemigrations --check --dry-run --settings=config.settings.test` passed.
+- Type checking: `uv run mypy .` remains at **30 findings across the same 7 existing files** recorded by the baseline audit. No new mypy findings were introduced in this iteration; the changed Today serializer was kept on its existing typed enum-value pattern.
+- Frontend: **34 files / 167 tests passed**, ESLint passed, and the production build passed. Main chunk: **599.45 kB minified / 184.09 kB gzip**; Vite's existing >500 kB warning remains. The Task Editor used by overload recovery is lazy-loaded.
+- Contract: OpenAPI JSON and generated TypeScript were regenerated for the Today and schedule-plan API changes. Generation succeeded with one enum naming warning; no schema mismatch was reported.
+- Staging: Compose project `time-agent-v3-staging` received the current Django, Celery, and frontend images. Migration `planning.0007_scheduleplan_operation_id_and_more` applied to the isolated staging database. GHCR returned TLS timeouts during backend image builds, so the staging-only build used the locally cached `uv:0.11.1` image; dependency installation remained locked with `uv sync --frozen`, and no repository Docker configuration changed. The restricted real-Agent browser suite passed **2/2**: priority interaction persisted as plan-only state, and a late calendar conflict caused Apply rejection, an invalidated draft, unchanged Task/Today schedule facts, and clear Approval UI recovery. Production was not modified.
+- `uv run ruff format --check .` reports 41 pre-existing formatting differences in unrelated repository files; none were reformatted as part of this work. Changed backend files pass the scoped format check.
+- Automated results establish technical behavior only. Matched human UX evaluation, physical screen-reader testing, and production deployment remain unmeasured/out of scope.

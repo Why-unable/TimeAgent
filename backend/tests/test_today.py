@@ -11,6 +11,8 @@ from apps.events.models import CalendarEventStatus
 from apps.events.services import CreateEventCommand, EventService
 from apps.preferences.services import UserPreferenceService
 from apps.reminders.services import CreateReminderCommand, ReminderService
+from apps.tasks.execution_services import RecordExecutionSignalCommand, TaskExecutionSignalService
+from apps.tasks.models import TaskExecutionSignalType
 from apps.tasks.services import CreateTaskCommand, TaskService
 from apps.today.schemas import ScheduleItemKind
 from apps.today.services import TodayService
@@ -78,6 +80,24 @@ def test_today_summary_uses_user_timezone_and_builds_all_buckets() -> None:
     overdue = TaskService.create_task(
         CreateTaskCommand(user=user, title="历史逾期", due_at=local_datetime(19, 18))
     )
+    missed = TaskService.create_task(
+        CreateTaskCommand(
+            user=user,
+            title="错过计划时段",
+            planned_start_at=local_datetime(20, 8),
+            planned_end_at=local_datetime(20, 8, 30),
+        )
+    )
+    in_progress = TaskService.create_task(CreateTaskCommand(user=user, title="正在写作"))
+    TaskExecutionSignalService.record(
+        RecordExecutionSignalCommand(
+            user=user,
+            task_id=in_progress.pk,
+            signal_type=TaskExecutionSignalType.STARTED,
+            occurred_at=local_datetime(20, 11),
+            idempotency_key="today-in-progress-start",
+        )
+    )
     completed = TaskService.create_task(
         CreateTaskCommand(user=user, title="已完成旧任务", due_at=local_datetime(19, 17))
     )
@@ -100,13 +120,26 @@ def test_today_summary_uses_user_timezone_and_builds_all_buckets() -> None:
     assert summary.day_start_at == datetime(2026, 7, 19, 16, tzinfo=UTC)
     assert summary.day_end_at == datetime(2026, 7, 20, 16, tzinfo=UTC)
     assert [event.title for event in summary.events] == ["上午复盘", "下一个会议"]
-    assert summary.planned_tasks == [planned]
+    assert summary.planned_tasks == [missed, planned]
     assert summary.due_tasks == [due]
     assert summary.overdue_tasks == [overdue]
+    assert summary.completed_tasks == [completed]
     assert [reminder.title for reminder in summary.pending_reminders] == ["下午提醒"]
     assert summary.next_event is not None
     assert summary.next_event.title == "下一个会议"
     assert summary.minutes_until_next_event == 60
+    assert [(item.kind, item.id, item.title) for item in summary.execution_now] == [
+        (ScheduleItemKind.TASK, in_progress.pk, "正在写作")
+    ]
+    assert [(item.kind, item.title) for item in summary.execution_next] == [
+        (ScheduleItemKind.EVENT, "下一个会议")
+    ]
+    assert [(item.kind, item.title) for item in summary.execution_later] == [
+        (ScheduleItemKind.TASK, "历史逾期"),
+        (ScheduleItemKind.TASK, "错过计划时段"),
+        (ScheduleItemKind.TASK, "计划写作"),
+        (ScheduleItemKind.TASK, "今日截止"),
+    ]
     assert len(summary.conflicts) == 1
     conflict = summary.conflicts[0]
     assert {conflict.first.kind, conflict.second.kind} == {
@@ -150,7 +183,10 @@ def test_today_api_requires_authentication_and_returns_structured_summary() -> N
     assert body["planned_tasks"] == []
     assert body["due_tasks"] == []
     assert body["overdue_tasks"] == []
+    assert body["completed_tasks"] == []
     assert body["pending_reminders"] == []
     assert body["conflicts"] == []
     assert body["next_event"]["title"] == "接口会议"
     assert body["minutes_until_next_event"] == 60
+    assert [item["title"] for item in body["execution_next"]] == ["接口会议"]
+    assert body["execution_now"] == []

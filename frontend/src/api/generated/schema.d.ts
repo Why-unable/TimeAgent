@@ -1662,7 +1662,6 @@ export interface components {
             name: string;
             enabled?: boolean;
             allow_task_reschedule?: boolean;
-            /** Format: int64 */
             max_moves_per_run?: number;
             requires_approval?: boolean;
             readonly authorized_task_ids: string[];
@@ -1675,7 +1674,6 @@ export interface components {
             name: string;
             enabled?: boolean;
             allow_task_reschedule?: boolean;
-            /** Format: int64 */
             max_moves_per_run?: number;
             requires_approval?: boolean;
             authorized_task_ids?: string[];
@@ -1779,7 +1777,6 @@ export interface components {
             recurrence_rule?: string;
             source?: string;
             created_by?: number | null;
-            /** Format: int64 */
             version?: number;
             /** Format: date-time */
             readonly created_at: string;
@@ -2161,7 +2158,6 @@ export interface components {
             agent_run_id: string | null;
             /** Format: uuid */
             plan_id: string | null;
-            /** Format: int64 */
             plan_version?: number | null;
             /** Format: uuid */
             task_id: string | null;
@@ -2171,7 +2167,6 @@ export interface components {
             status?: components["schemas"]["InteractionStatusEnum"];
             /** Format: date-time */
             expires_at?: string;
-            /** Format: int64 */
             version?: number;
             /** Format: date-time */
             readonly created_at: string;
@@ -2232,6 +2227,12 @@ export interface components {
          * @enum {string}
          */
         InteractionTypeEnum: "priority_ranking" | "plan_timeline_edit" | "task_completion" | "memory_suggestion";
+        /**
+         * @description * `event` - event
+         *     * `task` - task
+         * @enum {string}
+         */
+        KindDc5Enum: "event" | "task";
         LaunchBriefing: {
             /** Format: uuid */
             definition_id?: string | null;
@@ -2437,7 +2438,6 @@ export interface components {
             name?: string;
             enabled?: boolean;
             allow_task_reschedule?: boolean;
-            /** Format: int64 */
             max_moves_per_run?: number;
             requires_approval?: boolean;
             authorized_task_ids?: string[];
@@ -2520,13 +2520,11 @@ export interface components {
             sleep_start?: string;
             /** Format: time */
             sleep_end?: string;
-            /** Format: int64 */
             default_event_duration_minutes?: number;
             preferred_focus_periods?: unknown;
             default_reminder_offsets?: unknown;
             weather_location?: string;
             weather_location_data?: unknown;
-            /** Format: int64 */
             weather_forecast_days?: number;
             require_event_creation_approval?: boolean;
             require_event_cancellation_approval?: boolean;
@@ -2542,9 +2540,7 @@ export interface components {
             time_memory_allow_generation?: boolean;
             time_memory_allow_context_injection?: boolean;
             proactive_insights_enabled?: boolean;
-            /** Format: int64 */
             insight_daily_notification_limit?: number;
-            /** Format: int64 */
             insight_cooldown_minutes?: number;
             disabled_insight_kinds?: unknown;
             /** Format: date-time */
@@ -2623,7 +2619,6 @@ export interface components {
             /** Format: uuid */
             target_id?: string | null;
             schedule_anchor?: components["schemas"]["ScheduleAnchorEnum"] | components["schemas"]["BlankEnum"];
-            /** Format: int64 */
             offset_minutes?: number | null;
             title: string;
             /** Format: date-time */
@@ -2636,7 +2631,6 @@ export interface components {
             queued_at?: string | null;
             /** Format: date-time */
             sent_at?: string | null;
-            /** Format: int64 */
             retry_count?: number;
             failure_reason?: string;
             /** Format: date-time */
@@ -2716,7 +2710,7 @@ export interface components {
             reason_codes: string[];
         };
         ScheduleItem: {
-            kind: components["schemas"]["ScheduleItemKindEnum"];
+            kind: components["schemas"]["KindDc5Enum"];
             /** Format: uuid */
             id: string;
             title: string;
@@ -2725,12 +2719,6 @@ export interface components {
             /** Format: date-time */
             end_at: string;
         };
-        /**
-         * @description * `event` - event
-         *     * `task` - task
-         * @enum {string}
-         */
-        ScheduleItemKindEnum: "event" | "task";
         SchedulePlan: {
             /** Format: uuid */
             readonly id: string;
@@ -2739,7 +2727,6 @@ export interface components {
             constraints_snapshot?: unknown;
             decision_profile_snapshot?: unknown;
             status?: components["schemas"]["SchedulePlanStatusEnum"];
-            /** Format: int64 */
             version?: number;
             /** Format: date-time */
             readonly created_at: string;
@@ -2781,6 +2768,8 @@ export interface components {
         };
         SchedulePlanCreate: {
             task_ids: string[];
+            /** Format: uuid */
+            operation_id?: string;
             /** Format: date-time */
             range_start: string;
             /** Format: date-time */
@@ -2889,7 +2878,6 @@ export interface components {
             priority?: components["schemas"]["PriorityEnum"];
             /** Format: date-time */
             due_at?: string | null;
-            /** Format: int64 */
             estimated_minutes?: number | null;
             buffer_before_minutes?: number;
             buffer_after_minutes?: number;
@@ -3011,6 +2999,19 @@ export interface components {
             last_completed_at: string | null;
             last_error: string;
         };
+        TodayExecutionItem: {
+            kind: components["schemas"]["KindDc5Enum"];
+            /** Format: uuid */
+            id: string;
+            title: string;
+            /** Format: date-time */
+            start_at: string | null;
+            /** Format: date-time */
+            end_at: string | null;
+            status: string | null;
+            /** Format: date-time */
+            due_at: string | null;
+        };
         TodaySummary: {
             /** Format: date */
             date: string;
@@ -3025,10 +3026,15 @@ export interface components {
             planned_tasks: components["schemas"]["Task"][];
             due_tasks: components["schemas"]["Task"][];
             overdue_tasks: components["schemas"]["Task"][];
+            unfinished_tasks: components["schemas"]["Task"][];
+            completed_tasks: components["schemas"]["Task"][];
             pending_reminders: components["schemas"]["Reminder"][];
             conflicts: components["schemas"]["ScheduleConflict"][];
             next_event: components["schemas"]["CalendarEvent"] | null;
             minutes_until_next_event: number | null;
+            execution_now: components["schemas"]["TodayExecutionItem"][];
+            execution_next: components["schemas"]["TodayExecutionItem"][];
+            execution_later: components["schemas"]["TodayExecutionItem"][];
         };
         UserPreference: {
             timezone?: string;
@@ -3041,13 +3047,11 @@ export interface components {
             sleep_start?: string;
             /** Format: time */
             sleep_end?: string;
-            /** Format: int64 */
             default_event_duration_minutes?: number;
             preferred_focus_periods?: unknown;
             default_reminder_offsets?: unknown;
             weather_location?: string;
             weather_location_data?: unknown;
-            /** Format: int64 */
             weather_forecast_days?: number;
             require_event_creation_approval?: boolean;
             require_event_cancellation_approval?: boolean;
@@ -3063,9 +3067,7 @@ export interface components {
             time_memory_allow_generation?: boolean;
             time_memory_allow_context_injection?: boolean;
             proactive_insights_enabled?: boolean;
-            /** Format: int64 */
             insight_daily_notification_limit?: number;
-            /** Format: int64 */
             insight_cooldown_minutes?: number;
             disabled_insight_kinds?: unknown;
             /** Format: date-time */

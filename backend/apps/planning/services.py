@@ -359,6 +359,7 @@ class PlanningService:
         *,
         user: User,
         task_ids: Sequence[UUID],
+        operation_id: UUID | None = None,
         range_start: datetime,
         range_end: datetime,
         strategy: str,
@@ -370,6 +371,9 @@ class PlanningService:
         decision_profile_snapshot: dict[str, object] | None = None,
         now: datetime | None = None,
     ) -> SchedulePlan:
+        PlanningService._ensure_persisted_user(user)
+        if operation_id is not None:
+            lock_user_schedule_writes(user)
         if strategy not in {"plan_tasks_only", "create_linked_event_blocks"}:
             raise ValueError("Unsupported planning strategy")
         if not task_ids or len(set(task_ids)) != len(task_ids):
@@ -394,6 +398,24 @@ class PlanningService:
             ordering=ordering,
             task_decisions=decisions,
         )
+        constraints_snapshot = PlanningService._constraints_snapshot(
+            user=user,
+            task_ids=task_ids,
+            range_start=range_start_utc,
+            range_end=range_end_utc,
+            strategy=strategy,
+            ordering=ordering,
+            allowed_weekdays=weekdays,
+            max_daily_minutes=max_daily_minutes,
+            daily_worktime_overrides=windows,
+            task_decisions=decisions,
+        )
+        if operation_id is not None:
+            existing = SchedulePlan.objects.filter(user=user, operation_id=operation_id).first()
+            if existing is not None:
+                if existing.constraints_snapshot != constraints_snapshot:
+                    raise ValueError("operation_id already belongs to a different plan request")
+                return existing
         items = PlanningService._build_plan_items(
             user=user,
             tasks=tasks,
@@ -421,20 +443,10 @@ class PlanningService:
         )
         plan = SchedulePlan.objects.create(
             user=user,
+            operation_id=operation_id,
             strategy=strategy,
             items=items,
-            constraints_snapshot=PlanningService._constraints_snapshot(
-                user=user,
-                task_ids=task_ids,
-                range_start=range_start_utc,
-                range_end=range_end_utc,
-                strategy=strategy,
-                ordering=ordering,
-                allowed_weekdays=weekdays,
-                max_daily_minutes=max_daily_minutes,
-                daily_worktime_overrides=windows,
-                task_decisions=decisions,
-            ),
+            constraints_snapshot=constraints_snapshot,
             decision_profile_snapshot=decision_profile_snapshot
             or {"status": "unavailable", "reason": "decision_profile_not_provided"},
             expires_at=anchor + timedelta(seconds=settings.SCHEDULE_PLAN_TTL_SECONDS),

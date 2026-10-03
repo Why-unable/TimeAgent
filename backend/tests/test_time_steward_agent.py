@@ -1,6 +1,6 @@
 import json
 from collections.abc import Callable, Mapping, Sequence
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from io import StringIO
 from pathlib import Path
 from types import SimpleNamespace
@@ -12,6 +12,7 @@ import pytest
 from django.contrib.auth.models import User
 from django.core.management import call_command
 from django.test import override_settings
+from django.utils import timezone
 from langchain.agents.middleware import ModelRequest, ToolCallRequest
 from langchain_core.callbacks.manager import CallbackManagerForLLMRun
 from langchain_core.language_models.chat_models import BaseChatModel
@@ -22,6 +23,7 @@ from langchain_core.tools import BaseTool
 from langgraph.store.memory import InMemoryStore
 from pydantic import BaseModel, ValidationError
 
+from apps.action_proposals.models import ActionProposal, ActionProposalStatus
 from apps.action_proposals.risk_policy import HIGH_RISK_TOOL_POLICIES
 from apps.agents.agents.time_steward import build_time_steward_agent
 from apps.agents.context import RuntimeContext
@@ -687,6 +689,67 @@ def test_tool_failure_is_audited_and_emitted() -> None:
 
     audit = ToolCallAudit.objects.get(tool_call_id="create-task-failure")
     assert audit.status == ToolCallStatus.FAILED
+    assert list(run.events.values_list("event_type", flat=True)) == [
+        "agent.started",
+        "tool.started",
+        "tool.failed",
+    ]
+
+
+@pytest.mark.django_db
+def test_returned_tool_error_marks_audit_and_approval_failed() -> None:
+    user = User.objects.create_user(username="returned-tool-error")
+    conversation = ConversationService.create(user=user)
+    run = AgentRunService.start(
+        StartRunCommand(
+            conversation=conversation,
+            operation_id=uuid4(),
+            request_id="request-returned-tool-error",
+            message="提交计划审批",
+        )
+    )
+    run = AgentRunService.mark_running(run)
+    proposal = ActionProposal.objects.create(
+        user=user,
+        conversation=conversation,
+        agent_run=run,
+        tool_call_id="apply-plan-error",
+        original_request=run.input_message,
+        action_type="apply_schedule_plan",
+        action_payload={"plan_id": str(uuid4()), "expected_version": 1},
+        original_payload={"plan_id": str(uuid4()), "expected_version": 1},
+        status=ActionProposalStatus.APPROVED,
+        expires_at=timezone.now() + timedelta(hours=1),
+        idempotency_key=f"{run.pk}:apply-plan-error",
+    )
+    request = cast(
+        ToolCallRequest,
+        SimpleNamespace(
+            runtime=SimpleNamespace(context=context(user, agent_run_id=str(run.pk))),
+            tool_call={
+                "name": "apply_schedule_plan",
+                "args": proposal.action_payload,
+                "id": proposal.tool_call_id,
+                "type": "tool_call",
+            },
+        ),
+    )
+    error_message = ToolMessage(
+        content="Tool apply_schedule_plan could not complete: schedule_conflict",
+        tool_call_id=proposal.tool_call_id,
+        name="apply_schedule_plan",
+        status="error",
+    )
+
+    result = ToolAuditMiddleware().wrap_tool_call(request, lambda _request: error_message)
+
+    proposal.refresh_from_db()
+    audit = ToolCallAudit.objects.get(tool_call_id=proposal.tool_call_id)
+    assert result is error_message
+    assert audit.status == ToolCallStatus.FAILED
+    assert "schedule_conflict" in audit.error
+    assert proposal.status == ActionProposalStatus.FAILED
+    assert "schedule_conflict" in proposal.error
     assert list(run.events.values_list("event_type", flat=True)) == [
         "agent.started",
         "tool.started",

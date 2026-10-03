@@ -32,6 +32,7 @@ test.beforeEach(async ({ page }) => {
       },
     }),
   );
+  await page.route("**/api/v1/briefings/runs/", (route) => route.fulfill({ json: [] }));
 });
 
 test("redirects an unauthenticated visitor to the login page", async ({ page }) => {
@@ -462,10 +463,15 @@ test("renders the Today workspace from the summary API", async ({ page }) => {
         planned_tasks: [],
         due_tasks: [],
         overdue_tasks: [],
+        unfinished_tasks: [],
+        completed_tasks: [],
         pending_reminders: [],
         conflicts: [],
         next_event: null,
         minutes_until_next_event: null,
+        execution_now: [],
+        execution_next: [],
+        execution_later: [],
       },
     });
   });

@@ -40,10 +40,23 @@ const todaySummary = {
   planned_tasks: [],
   due_tasks: [],
   overdue_tasks: [],
+  unfinished_tasks: [],
+  completed_tasks: [],
   pending_reminders: [],
   conflicts: [],
   next_event: null,
   minutes_until_next_event: null,
+  execution_now: [],
+  execution_next: [{
+    kind: "event",
+    id: "event-1",
+    title: "产品复盘",
+    start_at: "2026-07-31T02:00:00Z",
+    end_at: "2026-07-31T03:00:00Z",
+    status: null,
+    due_at: null,
+  }],
+  execution_later: [],
 };
 
 test.beforeEach(async ({ page }) => {
@@ -62,6 +75,7 @@ test.beforeEach(async ({ page }) => {
   );
   await page.route("**/api/v1/preferences/me/", (route) => route.fulfill({ json: preference }));
   await page.route("**/api/v1/today/", (route) => route.fulfill({ json: todaySummary }));
+  await page.route("**/api/v1/briefings/runs/", (route) => route.fulfill({ json: [] }));
   await page.route("**/api/v1/tasks/**", (route) => route.fulfill({ json: [] }));
   await page.route("**/api/v1/events/**", (route) => route.fulfill({ json: [] }));
   await page.route("**/api/v1/reminders/**", (route) => route.fulfill({ json: [] }));

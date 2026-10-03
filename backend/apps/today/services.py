@@ -12,6 +12,7 @@ from apps.today.schemas import (
     ScheduleConflict,
     ScheduleItem,
     ScheduleItemKind,
+    TodayExecutionItem,
     TodaySummary,
 )
 from common.temporal_context import TemporalContextSnapshot
@@ -65,8 +66,27 @@ class TodayService:
                 due_at__lt=day_end,
             ).order_by("due_at", "id")
         )
-        overdue_tasks = list(
-            active_tasks.filter(due_at__lt=day_start).order_by("due_at", "id")
+        overdue_tasks = list(active_tasks.filter(due_at__lt=day_start).order_by("due_at", "id"))
+        in_progress_tasks = list(
+            Task.objects.filter(user=user, status=TaskStatus.IN_PROGRESS).order_by(
+                "actual_started_at", "id"
+            )
+        )
+        unfinished_by_id = {
+            task.pk: task
+            for task in [*planned_tasks, *due_tasks, *overdue_tasks, *in_progress_tasks]
+        }
+        unfinished_tasks = sorted(
+            unfinished_by_id.values(),
+            key=lambda task: (task.due_at or day_end, task.title, str(task.pk)),
+        )
+        completed_tasks = list(
+            Task.objects.filter(
+                user=user,
+                status=TaskStatus.COMPLETED,
+                completed_at__gte=day_start,
+                completed_at__lt=day_end,
+            ).order_by("completed_at", "id")
         )
         pending_reminders = list(
             Reminder.objects.filter(
@@ -83,6 +103,14 @@ class TodayService:
             if next_event is not None
             else None
         )
+        execution_now, execution_next, execution_later = TodayService._execution_surface(
+            events=events,
+            planned_tasks=planned_tasks,
+            due_tasks=due_tasks,
+            overdue_tasks=overdue_tasks,
+            in_progress_tasks=in_progress_tasks,
+            current_at=generated_at,
+        )
 
         return TodaySummary(
             date=local_date,
@@ -94,11 +122,126 @@ class TodayService:
             planned_tasks=planned_tasks,
             due_tasks=due_tasks,
             overdue_tasks=overdue_tasks,
+            unfinished_tasks=unfinished_tasks,
+            completed_tasks=completed_tasks,
             pending_reminders=pending_reminders,
             conflicts=conflicts,
             next_event=next_event,
             minutes_until_next_event=minutes_until_next_event,
+            execution_now=execution_now,
+            execution_next=execution_next,
+            execution_later=execution_later,
         )
+
+    @staticmethod
+    def _execution_surface(
+        *,
+        events: list[CalendarEvent],
+        planned_tasks: list[Task],
+        due_tasks: list[Task],
+        overdue_tasks: list[Task],
+        in_progress_tasks: list[Task],
+        current_at: datetime,
+    ) -> tuple[list[TodayExecutionItem], list[TodayExecutionItem], list[TodayExecutionItem]]:
+        scheduled: list[TodayExecutionItem] = [
+            TodayExecutionItem(
+                kind=ScheduleItemKind.EVENT,
+                id=event.pk,
+                title=event.title,
+                start_at=event.start_at,
+                end_at=event.end_at,
+                status=None,
+            )
+            for event in events
+        ]
+        scheduled.extend(
+            TodayExecutionItem(
+                kind=ScheduleItemKind.TASK,
+                id=task.pk,
+                title=task.title,
+                start_at=task.planned_start_at,
+                end_at=task.planned_end_at,
+                status=task.status,
+                due_at=task.due_at,
+            )
+            for task in planned_tasks
+            if task.planned_start_at is not None and task.planned_end_at is not None
+        )
+
+        now_items: dict[tuple[ScheduleItemKind, object], TodayExecutionItem] = {
+            (item.kind, item.id): item
+            for item in scheduled
+            if item.start_at is not None
+            and item.end_at is not None
+            and item.start_at <= current_at < item.end_at
+        }
+        in_progress_ids = {task.pk for task in in_progress_tasks}
+        for task in in_progress_tasks:
+            key = (ScheduleItemKind.TASK, task.pk)
+            now_items[key] = TodayExecutionItem(
+                kind=ScheduleItemKind.TASK,
+                id=task.pk,
+                title=task.title,
+                start_at=task.actual_started_at,
+                end_at=None,
+                status=task.status,
+                due_at=task.due_at,
+            )
+
+        scheduled_ids = {item.id for item in scheduled if item.kind == ScheduleItemKind.TASK}
+        future = sorted(
+            (
+                item
+                for item in scheduled
+                if item.start_at is not None
+                and item.start_at > current_at
+                and not (item.kind == ScheduleItemKind.TASK and item.id in in_progress_ids)
+            ),
+            key=lambda item: (item.start_at or current_at, str(item.id)),
+        )
+        next_start = future[0].start_at if future else None
+        next_items = [item for item in future if item.start_at == next_start]
+        next_keys = {(item.kind, item.id) for item in next_items}
+        now_keys = set(now_items)
+        later_items = [
+            item
+            for item in future
+            if (item.kind, item.id) not in next_keys and (item.kind, item.id) not in now_keys
+        ]
+        later_items.extend(
+            item
+            for item in scheduled
+            if item.kind == ScheduleItemKind.TASK
+            and item.id not in in_progress_ids
+            and item.start_at is not None
+            and item.end_at is not None
+            and item.end_at <= current_at
+        )
+
+        unscheduled_tasks = sorted(
+            {
+                task.pk: task
+                for task in [*due_tasks, *overdue_tasks]
+                if task.pk not in scheduled_ids and task.pk not in in_progress_ids
+            }.values(),
+            key=lambda task: (task.due_at or current_at, str(task.pk)),
+        )
+        later_items.extend(
+            TodayExecutionItem(
+                kind=ScheduleItemKind.TASK,
+                id=task.pk,
+                title=task.title,
+                start_at=None,
+                end_at=None,
+                status=task.status,
+                due_at=task.due_at,
+            )
+            for task in unscheduled_tasks
+        )
+        later_items.sort(
+            key=lambda item: (item.start_at or item.due_at or current_at, str(item.id))
+        )
+        return list(now_items.values()), next_items, later_items
 
     @staticmethod
     def _detect_conflicts(

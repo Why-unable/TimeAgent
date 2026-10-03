@@ -10,8 +10,6 @@ import {
   Timer,
   MessageSquare,
   Plus,
-  Pencil,
-  Play,
 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
@@ -24,15 +22,16 @@ import type { Task } from "../api/tasks";
 import type { TodaySummary } from "../api/today";
 import { useActOnTemporalInsight, useTemporalInsights } from "../features/insights/hooks";
 import { MobileSectionHeader } from "../components/mobile/mobile-section-header";
+import { DayClosing } from "../components/today/day-closing";
+import { MorningBrief } from "../components/today/morning-brief";
+import { TodayExecutionSurface } from "../components/today/execution-surface";
 import {
-  countPendingTasks,
   formatCountdown,
   getNextEventLabel,
   getPendingTasks,
   getTimeline,
   type TimelineEntry,
 } from "../features/today/derive";
-import { TodayTimeline } from "../features/today/today-timeline";
 import { useCompleteTodayTask, useTodaySummary } from "../features/today/hooks";
 import { interactionComponentRegistry } from "../components/planning/interaction-component-registry";
 import { useRecordTaskExecutionSignal } from "../features/tasks/hooks";
@@ -41,7 +40,7 @@ import {
   formatInUserTimezone,
   formatTimeInUserTimezone,
 } from "../utils/datetime";
-import { Button, PageHeader } from "../components/ui/primitives";
+import { PageHeader } from "../components/ui/primitives";
 
 const COMPLETION_FEEDBACK_RETRY_KEY = "timeagent.completion-feedback-retry.v1";
 
@@ -231,71 +230,6 @@ function TodayEmptyQuickAction() {
   );
 }
 
-function MobileNextAction({
-  event,
-  task,
-  timezone,
-  onComplete,
-  onStart,
-  completing,
-  starting,
-}: {
-  event: CalendarEvent | null;
-  task: Task | null;
-  timezone: string;
-  onComplete: (taskId: string) => void;
-  onStart: (taskId: string) => void;
-  completing: boolean;
-  starting: boolean;
-}) {
-  if (!event && !task) return null;
-  const taskIsActive = task?.status === "in_progress";
-  return (
-    <section className="rounded-2xl border border-teal-200 bg-teal-50 p-4 shadow-[0_12px_30px_-24px_rgba(15,118,110,0.7)] lg:hidden">
-      <div className="flex items-center justify-between gap-3">
-        <p className="text-xs font-semibold uppercase tracking-wide text-teal-700">下一步行动</p>
-        <span className="text-xs text-teal-700/70">{event ? "日程" : "任务"}</span>
-      </div>
-      <h3 className="mt-2 truncate text-lg font-semibold text-slate-900">{event?.title ?? task?.title}</h3>
-      <p className="mt-1 text-sm text-slate-600">
-        {event
-          ? `${formatTimeInUserTimezone(event.start_at, timezone)}–${formatTimeInUserTimezone(event.end_at, timezone)}`
-          : task?.due_at
-            ? `截止 ${formatInUserTimezone(task.due_at, timezone)}`
-            : taskIsActive
-              ? "正在进行"
-              : "尚未开始"}
-      </p>
-      <div className="mt-3 flex flex-wrap gap-2">
-        {event ? (
-          <>
-            <Link to="/calendar" className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-teal-200 bg-white px-3 py-2 text-xs font-medium text-teal-700 hover:border-teal-300">
-              查看日程
-            </Link>
-            <Link to="/chat" className="inline-flex min-h-11 items-center gap-1 rounded-lg px-3 py-2 text-xs font-medium text-teal-700 hover:bg-teal-100">
-              <Pencil size={14} /> 调整安排
-            </Link>
-          </>
-        ) : (
-          <>
-            {!taskIsActive && (
-              <Button size="md" onClick={() => onStart(task!.id)} disabled={starting}>
-                <Play size={14} /> 开始
-              </Button>
-            )}
-            <Button variant="secondary" size="md" onClick={() => onComplete(task!.id)} disabled={completing}>
-              <CheckCircle2 size={14} /> 完成
-            </Button>
-            <Link to="/tasks" className="inline-flex min-h-11 items-center gap-1 rounded-lg px-3 py-2 text-xs font-medium text-teal-700 hover:bg-teal-100">
-              <Pencil size={14} /> 调整任务
-            </Link>
-          </>
-        )}
-      </div>
-    </section>
-  );
-}
-
 export function TodayPage() {
   const queryClient = useQueryClient();
   const [focusInteractionId, setFocusInteractionId] = useState<string | null>(null);
@@ -394,10 +328,12 @@ export function TodayPage() {
   const data = summary.data;
   const CompletionRenderer = interactionComponentRegistry.task_completion;
   const timeline = getTimeline(data);
-  const taskCount = countPendingTasks(data);
+  const taskCount = data.unfinished_tasks.length;
   const pendingTasks = getPendingTasks(data);
-  const isEmptyDay = timeline.length === 0 && taskCount === 0 && data.pending_reminders.length === 0;
-  const nextTask = pendingTasks.find((task) => task.planned_start_at) ?? pendingTasks[0] ?? null;
+  const isEmptyDay = timeline.length === 0
+    && taskCount === 0
+    && data.completed_tasks.length === 0
+    && data.pending_reminders.length === 0;
   const complete = async (taskId: string) => {
     try {
       await completeTask.mutateAsync(taskId);
@@ -452,21 +388,11 @@ export function TodayPage() {
         )}
       />
 
+      <MorningBrief targetDate={data.date} />
+
       {/* Mobile rhythm card */}
       <div className="mt-5 lg:hidden">
         <MobileRhythmCard data={data} timeline={timeline} taskCount={taskCount} />
-      </div>
-
-      <div className="mt-4">
-        <MobileNextAction
-          event={data.next_event}
-          task={data.next_event ? null : nextTask}
-          timezone={data.timezone}
-          onComplete={complete}
-          onStart={(taskId) => startTask.mutate({ taskId, signalType: "started" })}
-          completing={completeTask.isPending}
-          starting={startTask.isPending}
-        />
       </div>
 
       {feedbackRetryTaskIds.length > 0 && (
@@ -516,12 +442,28 @@ export function TodayPage() {
 
       {/* Mobile timeline */}
       <div className="mt-5 lg:hidden">
-        <TodayTimeline timeline={timeline} timezone={data.timezone} compact />
+        <TodayExecutionSurface
+          now={data.execution_now}
+          next={data.execution_next}
+          later={data.execution_later}
+          timezone={data.timezone}
+          onComplete={complete}
+          onStart={(taskId) => startTask.mutate({ taskId, signalType: "started" })}
+          busy={completeTask.isPending || startTask.isPending}
+        />
       </div>
 
       {/* Desktop timeline + right column */}
       <div className="mt-5 hidden gap-5 lg:mt-8 lg:grid lg:grid-cols-[minmax(0,1fr)_340px]">
-        <TodayTimeline timeline={timeline} timezone={data.timezone} />
+        <TodayExecutionSurface
+          now={data.execution_now}
+          next={data.execution_next}
+          later={data.execution_later}
+          timezone={data.timezone}
+          onComplete={complete}
+          onStart={(taskId) => startTask.mutate({ taskId, signalType: "started" })}
+          busy={completeTask.isPending || startTask.isPending}
+        />
         <div className="space-y-5">
           <NextEventCard
             event={data.next_event}
@@ -758,6 +700,13 @@ export function TodayPage() {
           ))}
         </div>
       </section>
+
+      <DayClosing
+        date={data.date}
+        timezone={data.timezone}
+        unfinishedTasks={data.unfinished_tasks}
+        completedTasks={data.completed_tasks}
+      />
 
       {completeTask.isError && (
         <div

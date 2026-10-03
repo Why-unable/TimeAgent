@@ -25,6 +25,7 @@ class SchedulePlan(models.Model):
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    operation_id = models.UUIDField(null=True, blank=True)
     strategy = models.CharField(max_length=32)
     items = models.JSONField(default=list)
     constraints_snapshot = models.JSONField(default=dict)
@@ -44,6 +45,13 @@ class SchedulePlan(models.Model):
     invalidation_reason = models.CharField(max_length=64, blank=True)
 
     class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["user", "operation_id"],
+                condition=models.Q(operation_id__isnull=False),
+                name="schedule_plan_user_operation_uniq",
+            )
+        ]
         indexes = [
             models.Index(
                 fields=["user", "status", "created_at"],

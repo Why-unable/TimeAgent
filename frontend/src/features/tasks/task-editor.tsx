@@ -53,6 +53,7 @@ interface TaskEditorProps {
   task?: Task;
   timezone: string;
   onClose: () => void;
+  onSaved?: () => void;
 }
 
 function initialValues(task: Task | undefined, timezone: string): TaskForm {
@@ -81,7 +82,7 @@ function initialValues(task: Task | undefined, timezone: string): TaskForm {
 const inputClass =
   "mt-2 w-full rounded-xl border border-white/10 bg-slate-950 px-4 py-3 text-slate-100 outline-none focus:border-cyan-300/60";
 
-export function TaskEditor({ task, timezone, onClose }: TaskEditorProps) {
+export function TaskEditor({ task, timezone, onClose, onSaved }: TaskEditorProps) {
   const createMutation = useCreateTask();
   const updateMutation = useUpdateTask();
   const form = useForm<TaskForm>({
@@ -130,9 +131,22 @@ export function TaskEditor({ task, timezone, onClose }: TaskEditorProps) {
         .filter(Boolean),
     };
     if (task) {
-      updateMutation.mutate({ taskId: task.id, input }, { onSuccess: onClose });
+      updateMutation.mutate({
+        taskId: task.id,
+        input,
+      }, {
+        onSuccess: () => {
+          onSaved?.();
+          onClose();
+        },
+      });
     } else {
-      createMutation.mutate(input, { onSuccess: onClose });
+      createMutation.mutate(input, {
+        onSuccess: () => {
+          onSaved?.();
+          onClose();
+        },
+      });
     }
   });
 

@@ -21,6 +21,16 @@ class ScheduleConflictSerializer(serializers.Serializer[object]):
     overlap_end_at = serializers.DateTimeField()
 
 
+class TodayExecutionItemSerializer(serializers.Serializer[object]):
+    kind = serializers.ChoiceField(choices=[item.value for item in ScheduleItemKind])
+    id = serializers.UUIDField()
+    title = serializers.CharField()
+    start_at = serializers.DateTimeField(allow_null=True)
+    end_at = serializers.DateTimeField(allow_null=True)
+    status = serializers.CharField(allow_null=True)
+    due_at = serializers.DateTimeField(allow_null=True)
+
+
 class TodaySummarySerializer(serializers.Serializer[object]):
     date = serializers.DateField()
     timezone = serializers.CharField()
@@ -31,7 +41,12 @@ class TodaySummarySerializer(serializers.Serializer[object]):
     planned_tasks = TaskSerializer(many=True)
     due_tasks = TaskSerializer(many=True)
     overdue_tasks = TaskSerializer(many=True)
+    unfinished_tasks = TaskSerializer(many=True)
+    completed_tasks = TaskSerializer(many=True)
     pending_reminders = ReminderSerializer(many=True)
     conflicts = ScheduleConflictSerializer(many=True)
     next_event = CalendarEventSerializer(allow_null=True)
     minutes_until_next_event = serializers.IntegerField(allow_null=True, min_value=0)
+    execution_now = TodayExecutionItemSerializer(many=True)
+    execution_next = TodayExecutionItemSerializer(many=True)
+    execution_later = TodayExecutionItemSerializer(many=True)

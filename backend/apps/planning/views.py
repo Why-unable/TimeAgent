@@ -40,6 +40,7 @@ class SchedulePlanListView(APIView):
             plan = PlanningService.propose_schedule_plan(
                 user=user,
                 task_ids=data["task_ids"],
+                operation_id=data.get("operation_id"),
                 range_start=data["range_start"],
                 range_end=data["range_end"],
                 strategy=data["strategy"],
