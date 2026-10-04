@@ -28,6 +28,7 @@ import {
 import { ApiError } from "../../api/client";
 import type { SchedulePlan } from "../../api/planning";
 import { formatTimeInUserTimezone, toDateTimeLocalValue, toUtcISOString } from "../../utils/datetime";
+import { Drawer } from "../overlay/drawer";
 import { ConflictResolver } from "./conflict-resolver";
 
 type PlanItem = {
@@ -541,6 +542,8 @@ export function InteractivePlanTimeline({
                   title={title}
                   timezone={timezone}
                   movable={movable}
+                  planError={error}
+                  planMessage={message}
                   onSubmit={(startAt, endAt, locked) => submitEdit(taskId, startAt, endAt, locked)}
                 />
               );
@@ -568,6 +571,8 @@ function TimelineTaskCard({
   title,
   timezone,
   movable,
+  planError,
+  planMessage,
   onSubmit,
 }: {
   taskId: string;
@@ -575,6 +580,8 @@ function TimelineTaskCard({
   title: string;
   timezone: string;
   movable: boolean;
+  planError: string;
+  planMessage: string;
   onSubmit: (startAt: string, endAt: string, locked?: boolean) => Promise<boolean>;
 }) {
   const start = item.start_at;
@@ -585,6 +592,13 @@ function TimelineTaskCard({
   const [startLocal, setStartLocal] = useState(start ? toDateTimeLocalValue(start, timezone) : "");
   const [duration, setDuration] = useState(initialDuration);
   const [formError, setFormError] = useState("");
+  const [mobileEditorOpen, setMobileEditorOpen] = useState(false);
+  const [isMobileViewport, setIsMobileViewport] = useState(() => window.innerWidth < 1024);
+  useEffect(() => {
+    const updateViewport = () => setIsMobileViewport(window.innerWidth < 1024);
+    window.addEventListener("resize", updateViewport);
+    return () => window.removeEventListener("resize", updateViewport);
+  }, []);
   useEffect(() => {
     setStartLocal(start ? toDateTimeLocalValue(start, timezone) : "");
     setDuration(initialDuration);
@@ -629,6 +643,7 @@ function TimelineTaskCard({
       const startAt = toUtcISOString(startLocal, timezone);
       const endAt = new Date(new Date(startAt).getTime() + duration * 60_000).toISOString();
       void onSubmit(startAt, endAt).then((accepted) => {
+        if (accepted) setMobileEditorOpen(false);
         if (!accepted && start && end) {
           setStartLocal(toDateTimeLocalValue(start, timezone));
           setDuration(Math.max(1, Math.round((new Date(end).getTime() - new Date(start).getTime()) / 60_000)));
@@ -688,14 +703,14 @@ function TimelineTaskCard({
         )}
       </div>
       {movable && start && end && item.locked !== true && (
-        <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-[minmax(0,1fr)_120px_auto] sm:items-end">
+        !isMobileViewport && <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-[minmax(0,1fr)_120px_auto] sm:items-end">
           <label className="text-xs text-slate-400">
             开始时间（{timezone}）
-            <input type="datetime-local" value={startLocal} onChange={(event) => setStartLocal(event.target.value)} className="mt-1 min-h-11 w-full rounded-lg border border-white/15 bg-slate-900 px-2 text-sm text-slate-100" />
+            <input aria-label={`开始时间：${title}`} type="datetime-local" value={startLocal} onChange={(event) => setStartLocal(event.target.value)} className="mt-1 min-h-11 w-full rounded-lg border border-white/15 bg-slate-900 px-2 text-sm text-slate-100" />
           </label>
           <label className="text-xs text-slate-400">
             时长（分钟）
-            <input type="number" min={5} max={720} step={5} value={duration} onChange={(event) => setDuration(Math.min(720, Math.max(5, Number(event.target.value) || 5)))} className="mt-1 min-h-11 w-full rounded-lg border border-white/15 bg-slate-900 px-2 text-sm text-slate-100" />
+            <input aria-label={`时长（分钟）：${title}`} type="number" min={5} max={720} step={5} value={duration} onChange={(event) => setDuration(Math.min(720, Math.max(5, Number(event.target.value) || 5)))} className="mt-1 min-h-11 w-full rounded-lg border border-white/15 bg-slate-900 px-2 text-sm text-slate-100" />
           </label>
           <div className="flex gap-2">
             <button type="button" onClick={() => updateStart(-15)} aria-label={`提前 15 分钟：${title}`} className="min-h-11 rounded-lg border border-white/15 px-3 text-xs text-slate-200">−15 分</button>
@@ -704,6 +719,35 @@ function TimelineTaskCard({
           </div>
         </div>
       )}
+      {movable && start && end && item.locked !== true && <>
+        {isMobileViewport && <button type="button" onClick={() => setMobileEditorOpen(true)} className="mt-3 min-h-11 w-full rounded-xl border border-cyan-300/30 px-4 text-sm font-medium text-cyan-100">
+          调整时间
+        </button>}
+        {isMobileViewport && mobileEditorOpen && <Drawer
+          title={`调整时间：${title}`}
+          description={`时间按 ${timezone} 解释。保存后会重新检查计划；计划仍是草案。`}
+          onClose={() => setMobileEditorOpen(false)}
+        >
+          <div className="grid gap-4">
+            <label className="text-sm font-medium text-slate-700">
+              开始时间（{timezone}）
+              <input aria-label={`开始时间：${title}`} type="datetime-local" value={startLocal} onChange={(event) => setStartLocal(event.target.value)} className="mt-2 min-h-12 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-base text-slate-900 outline-none focus-visible:ring-2 focus-visible:ring-teal-700" />
+            </label>
+            <label className="text-sm font-medium text-slate-700">
+              时长（分钟）
+              <input aria-label={`时长（分钟）：${title}`} type="number" min={5} max={720} step={5} value={duration} onChange={(event) => setDuration(Math.min(720, Math.max(5, Number(event.target.value) || 5)))} className="mt-2 min-h-12 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-base text-slate-900 outline-none focus-visible:ring-2 focus-visible:ring-teal-700" />
+            </label>
+            <div className="grid grid-cols-2 gap-2">
+              <button type="button" onClick={() => updateStart(-15)} className="min-h-12 rounded-xl border border-slate-300 px-3 text-sm font-medium text-slate-800">提前 15 分钟</button>
+              <button type="button" onClick={() => updateStart(15)} className="min-h-12 rounded-xl border border-slate-300 px-3 text-sm font-medium text-slate-800">推后 15 分钟</button>
+            </div>
+            {formError && <p role="alert" className="text-sm text-red-800">{formError}</p>}
+            {planError && <p role="alert" className="text-sm text-amber-900">{planError}</p>}
+            {planMessage && <p role="status" className="text-sm text-emerald-800">{planMessage}</p>}
+            <button type="button" onClick={saveTimes} className="min-h-12 w-full rounded-xl bg-teal-700 px-4 text-base font-semibold text-white">保存调整</button>
+          </div>
+        </Drawer>}
+      </>}
       {movable && item.locked === true && <p className="mt-2 text-xs text-slate-500">该时间块已固定；解锁后可调整时间。</p>}
       {!movable && <p className="mt-2 text-xs text-slate-500">分段任务或未安排任务暂不支持直接拖动。</p>}
       {formError && <p role="alert" className="mt-2 text-xs text-amber-200">{formError}</p>}

@@ -130,28 +130,35 @@ function actionReviewItems(value: unknown): ActionReviewItem[] {
 
 function ActionReviewPreview({ items, timezone }: { items: ActionReviewItem[]; timezone: string }) {
   if (!items.length) return null;
+  const visibleItems = items.slice(0, 3);
+  const remainingItems = items.slice(3);
+  const renderItems = (rows: ActionReviewItem[], offset = 0) => rows.map((item, index) => (
+    <li key={`${item.title}-${offset + index}`} className="rounded-lg border border-white/10 bg-slate-950/50 px-3 py-2 text-sm text-slate-200">
+      <p className="font-medium">{item.title}</p>
+      {item.detail && <p className="mt-1 text-slate-300">{item.detail}</p>}
+      {item.start_at && (
+        <p className="mt-1 text-xs text-slate-300">
+          {item.time_label ?? "当前安排"}：{formatInUserTimezone(item.start_at, timezone)}
+          {item.end_at ? ` – ${formatTimeInUserTimezone(item.end_at, timezone)}` : ""}
+        </p>
+      )}
+      {item.due_at && <p className="mt-1 text-xs text-slate-300">截止：{formatInUserTimezone(item.due_at, timezone)}</p>}
+      {item.proposed_start_at && (
+        <p className="mt-1 text-xs font-medium text-cyan-100">
+          {item.proposed_time_label ?? "调整为"}：{formatInUserTimezone(item.proposed_start_at, timezone)}
+          {item.proposed_end_at ? ` – ${formatTimeInUserTimezone(item.proposed_end_at, timezone)}` : ""}
+        </p>
+      )}
+    </li>
+  ));
   return (
-    <ul className="mt-3 space-y-2">
-      {items.map((item, index) => (
-        <li key={`${item.title}-${index}`} className="rounded-lg border border-white/10 bg-slate-950/50 px-3 py-2 text-sm text-slate-200">
-          <p className="font-medium">{item.title}</p>
-          {item.detail && <p className="mt-1 text-slate-300">{item.detail}</p>}
-          {item.start_at && (
-            <p className="mt-1 text-xs text-slate-300">
-              {item.time_label ?? "当前安排"}：{formatInUserTimezone(item.start_at, timezone)}
-              {item.end_at ? ` – ${formatTimeInUserTimezone(item.end_at, timezone)}` : ""}
-            </p>
-          )}
-          {item.due_at && <p className="mt-1 text-xs text-slate-300">截止：{formatInUserTimezone(item.due_at, timezone)}</p>}
-          {item.proposed_start_at && (
-            <p className="mt-1 text-xs font-medium text-cyan-100">
-              {item.proposed_time_label ?? "调整为"}：{formatInUserTimezone(item.proposed_start_at, timezone)}
-              {item.proposed_end_at ? ` – ${formatTimeInUserTimezone(item.proposed_end_at, timezone)}` : ""}
-            </p>
-          )}
-        </li>
-      ))}
-    </ul>
+    <div className="mt-3 space-y-2">
+      <ul className="space-y-2">{renderItems(visibleItems)}</ul>
+      {remainingItems.length > 0 && <details className="rounded-lg border border-white/10 px-3">
+        <summary className="flex min-h-11 cursor-pointer items-center text-sm font-medium text-cyan-100">查看其余 {remainingItems.length} 项</summary>
+        <ul className="space-y-2 pb-3">{renderItems(remainingItems, visibleItems.length)}</ul>
+      </details>}
+    </div>
   );
 }
 
@@ -629,6 +636,8 @@ export function ApprovalCard({ proposal, timezone = "Asia/Shanghai", busy = fals
   const [decisionMessage, setDecisionMessage] = useState("");
   const [hasInvalidTime, setHasInvalidTime] = useState(false);
   const [occurrenceIndex, setOccurrenceIndex] = useState(0);
+  const [editBaseVersion, setEditBaseVersion] = useState(proposal.version);
+  const staleEdit = editing && editBaseVersion !== proposal.version;
   const editorDetailsRef = useRef<HTMLDetailsElement>(null);
   const editorRootRef = useRef<HTMLDivElement>(null);
   const editEntryButtonRef = useRef<HTMLButtonElement>(null);
@@ -701,6 +710,10 @@ export function ApprovalCard({ proposal, timezone = "Asia/Shanghai", busy = fals
   ];
 
   const submitEdit = async () => {
+    if (staleEdit) {
+      setError("审批内容已更新。请取消编辑并重新打开，以载入最新版本。此次修改尚未提交。");
+      return;
+    }
     if (hasInvalidTime || !targetEditorReady) return;
     try {
       const timeError = editedPayloadTimeError(proposal.action_type, editedPayload);
@@ -749,7 +762,10 @@ export function ApprovalCard({ proposal, timezone = "Asia/Shanghai", busy = fals
         const conflictsRemain = Array.isArray(result.proposal.display_context.conflicts)
           && result.proposal.display_context.conflicts.length > 0;
         const refreshedReview = typeof result.proposal.display_context.review_notice === "string";
-        if (refreshedReview) setEditedPayload(resolvedReviewPayload(result.proposal));
+        if (refreshedReview) {
+          setEditedPayload(resolvedReviewPayload(result.proposal));
+          setEditBaseVersion(result.proposal.version);
+        }
         setError(refreshedReview
           ? "日程版本已更新；审批保持待处理，请核对最新安排后再次确认。"
           : conflictsRemain
@@ -873,6 +889,10 @@ export function ApprovalCard({ proposal, timezone = "Asia/Shanghai", busy = fals
         <p className="mt-4 text-xs text-slate-700">拟执行参数</p>
         {editing ? (
           <div className="mt-3">
+            {staleEdit && <div role="alert" className="mb-3 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-950">
+              <p>审批内容已更新。请取消编辑并重新打开，以载入最新版本；旧内容不会提交。</p>
+              <ActionReviewPreview items={reviewItems} timezone={timezone} />
+            </div>}
             <ApprovalEditor
               actionType={proposal.action_type}
               payload={editedPayload}
@@ -927,13 +947,13 @@ export function ApprovalCard({ proposal, timezone = "Asia/Shanghai", busy = fals
         <div className="mt-5">
           {editing ? (
             <div className="flex flex-wrap gap-2">
-              <button type="button" disabled={busy || hasInvalidTime || !targetEditorReady} onClick={submitEdit} className="min-h-11 rounded-lg bg-amber-200 px-4 py-2 text-sm font-medium text-slate-950 disabled:opacity-50">{conflicts.length > 0 ? "重新检查并批准" : "保存修改并批准"}</button>
-              <button type="button" onClick={() => { setEditedPayload(resolvedReviewPayload(proposal)); setError(""); setHasInvalidTime(false); setTargetEditorReady(true); returnFocusToEditEntry.current = true; setEditing(false); }} className="min-h-11 rounded-lg border border-white/10 px-4 py-2 text-sm text-slate-300">取消编辑</button>
+              <button type="button" disabled={busy || hasInvalidTime || !targetEditorReady || staleEdit} onClick={submitEdit} className="min-h-11 rounded-lg bg-amber-200 px-4 py-2 text-sm font-medium text-slate-950 disabled:opacity-50">{conflicts.length > 0 ? "重新检查并批准" : "保存修改并批准"}</button>
+              <button type="button" onClick={() => { setEditedPayload(resolvedReviewPayload(proposal)); setEditBaseVersion(proposal.version); setError(""); setHasInvalidTime(false); setTargetEditorReady(true); returnFocusToEditEntry.current = true; setEditing(false); }} className="min-h-11 rounded-lg border border-white/10 px-4 py-2 text-sm text-slate-300">取消编辑</button>
             </div>
           ) : (
             <div className="flex flex-wrap gap-2">
               {canApprove && <button type="button" disabled={busy} onClick={() => void submitDecision("approve")} className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-emerald-300 px-4 py-2 text-sm font-medium text-slate-950 disabled:opacity-50"><Check size={16} />确认并应用</button>}
-              {canEdit && <button ref={editEntryButtonRef} type="button" disabled={busy} onClick={() => { setEditedPayload(resolvedReviewPayload(proposal)); setTargetEditorReady(proposal.action_type !== "set_reminder_target"); returnFocusToEditEntry.current = false; setEditing(true); }} className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-amber-300/30 px-4 py-2 text-sm text-amber-100 disabled:opacity-50"><Pencil size={16} />{conflicts.length > 0 ? "先调整时间" : "调整后批准"}</button>}
+              {canEdit && <button ref={editEntryButtonRef} type="button" disabled={busy} onClick={() => { setEditedPayload(resolvedReviewPayload(proposal)); setEditBaseVersion(proposal.version); setTargetEditorReady(proposal.action_type !== "set_reminder_target"); returnFocusToEditEntry.current = false; setEditing(true); }} className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-amber-300/30 px-4 py-2 text-sm text-amber-100 disabled:opacity-50"><Pencil size={16} />{conflicts.length > 0 ? "先调整时间" : "调整后批准"}</button>}
               {canReject && <button type="button" disabled={busy} onClick={() => void submitDecision("reject")} className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-red-300/25 px-4 py-2 text-sm text-red-200 disabled:opacity-50"><X size={16} />拒绝</button>}
             </div>
           )}

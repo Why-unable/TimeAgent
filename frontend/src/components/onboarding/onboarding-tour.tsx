@@ -49,14 +49,14 @@ const sharedNavigationSteps: TourStep[] = [
   {
     id: "chat",
     title: "直接告诉助理你的需求",
-    description: "在聊天页用自然语言查询安排、创建日程、整理任务或设置提醒。高风险操作会先要求确认。",
+    description: "在助理页用自然语言查询安排、创建日程、整理任务或设置提醒。高风险操作会先要求确认。",
     anchorId: "nav-chat",
     actionLabel: "打开“聊天”",
   },
   {
     id: "schedule",
-    title: "集中管理日程",
-    description: "这里可以查看日历，并进入任务和提醒管理；最终业务状态以后端数据为准。",
+    title: "集中管理计划",
+    description: "这里可以查看日历，并进入任务与排程管理；提醒可从“我的”或今天页面打开。",
     anchorId: "nav-schedule",
     actionLabel: "打开“日程”",
   },
@@ -72,8 +72,8 @@ const desktopSettingsStep: TourStep = {
 
 const mobileMoreStep: TourStep = {
   id: "more",
-  title: "更多功能都在这里",
-  description: "简报、审批、记忆、通知、账户和应用设置都可以从“更多”进入。",
+  title: "个人服务都在这里",
+  description: "提醒、洞察、简报、审批、记忆、通知、账户和应用设置都可以从“我的”进入。",
   anchorId: "nav-more",
   actionLabel: "打开“更多”",
 };

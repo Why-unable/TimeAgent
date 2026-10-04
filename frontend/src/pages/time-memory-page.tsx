@@ -9,6 +9,7 @@ import {
   Trash2,
 } from "lucide-react";
 import type { ReactNode } from "react";
+import { useState } from "react";
 
 import { parseTimeMemoryProfile } from "../api/time-memory";
 import type { BehaviorWindow } from "../api/time-memory";
@@ -29,16 +30,69 @@ import {
   useSemanticMemories,
   useUndoMemoryProposal,
 } from "../features/preferences/time-memory-hooks";
+import { Drawer } from "../components/overlay/drawer";
 
 const WINDOW_LABELS = { "7d": "最近 7 天", "30d": "最近 30 天", "180d": "最近 180 天" } as const;
 
-function formatDateTime(value: string | null | undefined) {
+function formatDateTime(value: string | null | undefined, timezone: string) {
   if (!value) return "—";
   return new Intl.DateTimeFormat("zh-CN", {
     dateStyle: "medium",
     timeStyle: "short",
+    timeZone: timezone,
   }).format(new Date(value));
 }
+
+const categoryLabels: Record<string, string> = {
+  scheduling_preference: "排程偏好",
+  availability_constraint: "时间约束",
+  location_preference: "地点偏好",
+  notification_preference: "提醒偏好",
+};
+
+const memoryTitles: Record<string, string> = {
+  focus_period: "专注时段",
+  friday_meetings: "周五会议安排",
+  friday_afternoon_unavailable: "周五下午不可安排",
+  usual_office: "常用办公地点",
+  work_location: "工作地点",
+};
+
+const reasonLabels: Record<string, string> = {
+  user_confirmation_required: "这项偏好由系统推断，需要你确认后才会保存。",
+  explicit_confirmation: "请确认是否要长期保存这项偏好。",
+  explicit_low_risk_direct_apply: "这项明确提出的低风险偏好可直接保存。",
+  low_confidence: "系统对这项偏好的判断把握不足。",
+};
+
+function memoryProposalTitle(category: string, key: string) {
+  return memoryTitles[key] ?? categoryLabels[category] ?? "时间偏好";
+}
+
+function memoryValueSummary(value: Record<string, unknown>) {
+  const labels: Record<string, string> = {
+    period: "时段",
+    weekday: "星期",
+    time_range: "时间范围",
+    location: "地点",
+    avoid: "安排方式",
+    unavailable: "可用状态",
+  };
+  const knownValues = Object.entries(value).flatMap(([key, rawValue]) => {
+    const label = labels[key];
+    if (!label || (typeof rawValue !== "string" && typeof rawValue !== "boolean")) return [];
+    const displayValue = typeof rawValue === "boolean"
+      ? key === "unavailable" ? (rawValue ? "不可安排" : "可安排") : (rawValue ? "尽量避开" : "不特别避开")
+      : ({ morning: "上午", afternoon: "下午", evening: "晚上", office: "办公室" }[rawValue] ?? rawValue.slice(0, 80));
+    return [`${label}：${displayValue}`];
+  });
+  return knownValues.length ? knownValues.join(" · ") : "具体内容请在确认前复核。";
+}
+
+type MemoryConfirmation =
+  | { kind: "clear" }
+  | { kind: "place"; id: string; name: string }
+  | { kind: "pattern"; id: string; name: string };
 
 function percent(value: number | null | undefined) {
   if (value === null || value === undefined) return "—";
@@ -80,7 +134,9 @@ export function TimeMemoryPage() {
   const recentProposals = useRecentMemoryProposals();
   const decideProposal = useDecideMemoryProposal();
   const undoProposal = useUndoMemoryProposal();
+  const [confirmation, setConfirmation] = useState<MemoryConfirmation | null>(null);
   const profile = parseTimeMemoryProfile(memory.data?.profile);
+  const timezone = preference.data?.timezone ?? profile?.timezone ?? "Asia/Shanghai";
   const isBusy =
     updatePreference.isPending
     || clearMemory.isPending
@@ -98,18 +154,15 @@ export function TimeMemoryPage() {
   };
 
   const handleClear = () => {
-    if (!window.confirm("确定清空全部时间行为画像吗？清空后会从新的时间点重新积累。")) return;
-    clearMemory.mutate();
+    setConfirmation({ kind: "clear" });
   };
 
   const handleForgetPlace = (placeId: string, name: string) => {
-    if (!window.confirm(`确定从长期记忆中删除“${name}”吗？`)) return;
-    forgetPlace.mutate(placeId);
+    setConfirmation({ kind: "place", id: placeId, name });
   };
 
-  const handleForgetPattern = (patternId: string) => {
-    if (!window.confirm("确定删除这条稳定规律吗？后续重建也会继续排除它。")) return;
-    forgetPattern.mutate(patternId);
+  const handleForgetPattern = (patternId: string, name: string) => {
+    setConfirmation({ kind: "pattern", id: patternId, name });
   };
 
   if (memory.isLoading || preference.isLoading) {
@@ -122,6 +175,7 @@ export function TimeMemoryPage() {
         <h2 className="text-3xl font-semibold">时间行为记忆</h2>
         <div role="alert" className="mt-6 rounded-2xl border border-red-300/20 bg-red-400/10 p-5 text-red-200">
           无法读取记忆画像，请确认已登录后重试。
+          <button type="button" onClick={() => { void memory.refetch(); void preference.refetch(); }} className="mt-3 flex min-h-11 items-center underline underline-offset-2">重试读取</button>
         </div>
       </section>
 
@@ -192,14 +246,15 @@ export function TimeMemoryPage() {
             <h4 className="text-sm font-medium text-amber-200">待确认</h4>
             {proposals.data.map((proposal) => (
               <div key={proposal.id} className="rounded-xl border border-amber-200/20 bg-amber-200/5 p-4">
-                <p className="text-sm text-slate-200">{proposal.key}</p>
-                <p className="mt-1 text-xs leading-5 text-slate-400">{proposal.reason_code}</p>
-                <div className="mt-3 flex gap-2">
+                <p className="text-sm font-medium text-slate-100">{memoryProposalTitle(proposal.category, proposal.key)}</p>
+                <p className="mt-1 text-sm leading-6 text-slate-300">{memoryValueSummary(proposal.value)}</p>
+                <p className="mt-1 text-xs leading-5 text-slate-400">{reasonLabels[proposal.reason_code] ?? "请核对这项偏好是否准确，并确认是否长期保存。"} 置信度 {percent(proposal.confidence)}</p>
+                <div className="mt-3 flex flex-wrap gap-2">
                   <button
                     type="button"
                     disabled={semanticBusy}
                     onClick={() => decideProposal.mutate({ proposalId: proposal.id, approve: true })}
-                    className="rounded-lg border border-emerald-300/30 px-3 py-2 text-xs text-emerald-200 hover:bg-emerald-300/10 disabled:opacity-50"
+                    className="min-h-11 min-w-20 rounded-lg border border-emerald-300/30 px-3 py-2 text-sm text-emerald-200 hover:bg-emerald-300/10 disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-200"
                   >
                     记住
                   </button>
@@ -207,7 +262,7 @@ export function TimeMemoryPage() {
                     type="button"
                     disabled={semanticBusy}
                     onClick={() => decideProposal.mutate({ proposalId: proposal.id, approve: false })}
-                    className="rounded-lg border border-white/15 px-3 py-2 text-xs text-slate-300 hover:bg-white/5 disabled:opacity-50"
+                    className="min-h-11 min-w-20 rounded-lg border border-white/15 px-3 py-2 text-sm text-slate-300 hover:bg-white/5 disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-200"
                   >
                     忽略
                   </button>
@@ -223,9 +278,9 @@ export function TimeMemoryPage() {
               <div key={proposal.id} className="rounded-xl border border-cyan-200/20 bg-cyan-200/5 p-4">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
-                    <p className="text-sm text-slate-200">{proposal.key}</p>
+                    <p className="text-sm text-slate-200">{memoryProposalTitle(proposal.category, proposal.key)}</p>
                     <p className="mt-1 text-xs text-slate-500">
-                      {proposal.status === "undone" ? "已撤销" : "已生效"} · {formatDateTime(proposal.created_at)}
+                      {proposal.status === "undone" ? "已撤销" : "已生效"} · {formatDateTime(proposal.created_at, timezone)}
                     </p>
                   </div>
                   {proposal.can_undo && (
@@ -234,7 +289,7 @@ export function TimeMemoryPage() {
                       title="撤销这次记忆写入"
                       disabled={semanticBusy}
                       onClick={() => undoProposal.mutate(proposal.id)}
-                      className="inline-flex items-center gap-2 rounded-lg border border-cyan-200/25 px-3 py-2 text-xs text-cyan-100 hover:bg-cyan-200/10 disabled:opacity-50"
+                      className="inline-flex min-h-11 min-w-20 items-center justify-center gap-2 rounded-lg border border-cyan-200/25 px-3 py-2 text-sm text-cyan-100 hover:bg-cyan-200/10 disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-200"
                     >
                       <RotateCcw size={14} />
                       撤销
@@ -250,8 +305,9 @@ export function TimeMemoryPage() {
             <h4 className="text-sm font-medium text-slate-300">已确认偏好</h4>
             {semanticMemories.data.map((item) => (
               <div key={item.id} className="rounded-xl border border-white/10 bg-white/[0.03] p-4">
-                <p className="text-sm text-slate-200">{item.key}</p>
-                <p className="mt-1 text-xs text-slate-500">{item.category} · v{item.version}</p>
+                <p className="text-sm text-slate-200">{memoryProposalTitle(item.category, item.key)}</p>
+                <p className="mt-1 text-sm text-slate-300">{memoryValueSummary(item.value)}</p>
+                <p className="mt-1 text-xs text-slate-500">{categoryLabels[item.category] ?? "已确认偏好"} · v{item.version}</p>
               </div>
             ))}
           </div>
@@ -260,9 +316,10 @@ export function TimeMemoryPage() {
         ) : (
           <p className="mt-5 text-sm text-slate-500">目前还没有已确认的语义偏好。</p>
         )}
-        {(proposals.isError || recentProposals.isError || semanticMemories.isError || decideProposal.isError || undoProposal.isError) && (
-          <p role="alert" className="mt-4 text-sm text-red-200">语义记忆暂时无法更新，请稍后重试。</p>
+        {(proposals.isError || recentProposals.isError || semanticMemories.isError) && (
+          <div role="alert" className="mt-4 text-sm text-red-200"><p>语义记忆暂时无法读取。</p><button type="button" onClick={() => { void proposals.refetch(); void recentProposals.refetch(); void semanticMemories.refetch(); }} className="mt-2 inline-flex min-h-11 items-center underline">重试读取</button></div>
         )}
+        {(decideProposal.isError || undoProposal.isError) && <p role="alert" className="mt-4 text-sm text-red-200">语义记忆暂时无法更新，请检查连接后重试。</p>}
       </section>
 
       <section className="rounded-2xl border border-white/10 bg-slate-900 p-5 sm:p-6">
@@ -276,9 +333,11 @@ export function TimeMemoryPage() {
           <span className="text-xs text-slate-500">{decisionProfile.data?.source ?? "读取中"}</span>
         </div>
         {decisionProfile.isError ? (
-          <p role="alert" className="mt-4 text-sm text-red-200">暂时无法读取建议状态。</p>
+          <div role="alert" className="mt-4 text-sm text-red-200"><p>暂时无法读取建议状态。</p><button type="button" onClick={() => void decisionProfile.refetch()} className="mt-2 inline-flex min-h-11 items-center underline">重试读取</button></div>
         ) : decisionProfile.data ? (
-          <div className="mt-4 space-y-4">
+          <details className="mt-4 rounded-xl border border-white/10 px-4">
+            <summary className="flex min-h-12 cursor-pointer items-center text-sm font-medium text-cyan-100">查看建议依据与反馈</summary>
+            <div className="space-y-4 pb-4">
             <div className="grid gap-3 sm:grid-cols-3">
               <StatCard label="建议倍率" value={`${decisionProfile.data.duration_multiplier.toFixed(2)}x`} icon={<CalendarClock size={17} />} />
               <StatCard label="样本量" value={`${decisionProfile.data.sample_count} 个`} icon={<Sparkles size={17} />} />
@@ -317,7 +376,8 @@ export function TimeMemoryPage() {
             </div>
             {recordFeedback.isSuccess && <p role="status" className="text-xs text-emerald-200">反馈已记录。</p>}
             {recordFeedback.isError && <p role="alert" className="text-xs text-red-200">反馈保存失败：{recordFeedback.error.message}</p>}
-          </div>
+            </div>
+          </details>
         ) : (
           <p className="mt-4 text-sm text-slate-500">正在读取建议状态…</p>
         )}
@@ -332,8 +392,8 @@ export function TimeMemoryPage() {
             </p>
           </div>
           <div className="text-right text-xs text-slate-500">
-            <p>最近完成：{formatDateTime(memory.data?.last_completed_at)}</p>
-            {profile && <p className="mt-1">统计截止：{formatDateTime(profile.data_until)}</p>}
+            <p>最近完成：{formatDateTime(memory.data?.last_completed_at, timezone)}</p>
+            {profile && <p className="mt-1">统计截止：{formatDateTime(profile.data_until, timezone)}</p>}
           </div>
         </div>
         {memory.data?.last_error && <p role="alert" className="mt-4 rounded-xl bg-red-400/10 p-3 text-sm text-red-200">{memory.data.last_error}</p>}
@@ -363,13 +423,16 @@ export function TimeMemoryPage() {
                 <p className="mt-1 text-xs text-slate-500">按你的本地时区滚动计算，不是按服务器时区切分。</p>
               </div>
             </div>
-            <div className="mt-5 grid gap-4 lg:grid-cols-3">
+            <details className="mt-5 rounded-xl border border-white/10 px-4">
+              <summary className="flex min-h-12 cursor-pointer items-center text-sm font-medium text-cyan-100">查看统计明细（按 {timezone}）</summary>
+              <div className="grid gap-4 pb-4 lg:grid-cols-3">
               {(["7d", "30d", "180d"] as const).map((windowName) => {
                 const item = profile.behavior_windows[windowName];
                 if (!item) return null;
                 return <BehaviorWindowCard key={windowName} windowName={windowName} item={item} />;
               })}
-            </div>
+              </div>
+            </details>
           </section>
 
           <section className="grid gap-6 lg:grid-cols-2">
@@ -381,7 +444,7 @@ export function TimeMemoryPage() {
                     <p className="mt-1 text-xs leading-5 text-slate-500">{place.event_count} 次 · {place.total_scheduled_hours.toFixed(1)} 小时 · 置信度 {percent(place.confidence)}</p>
                     {place.typical_time_ranges.length > 0 && <p className="mt-1 text-xs text-slate-500">常见时段：{place.typical_time_ranges.join("、")}</p>}
                   </div>
-                  <button type="button" disabled={isBusy} onClick={() => handleForgetPlace(place.place_id, place.name)} className="rounded-lg p-2 text-slate-500 hover:bg-red-400/10 hover:text-red-200 disabled:opacity-50" aria-label={`删除常用地点 ${place.name}`} title="删除这个地点">
+                  <button type="button" disabled={isBusy} onClick={() => handleForgetPlace(place.place_id, place.name)} className="grid min-h-11 min-w-11 shrink-0 place-items-center rounded-lg text-slate-300 hover:bg-red-400/10 hover:text-red-200 disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-200" aria-label={`删除常用地点 ${place.name}`} title="删除这个地点">
                     <Trash2 size={17} />
                   </button>
                 </div>
@@ -398,7 +461,7 @@ export function TimeMemoryPage() {
                     </div>
                     <p className="mt-1 text-xs leading-5 text-slate-500">证据：{pattern.evidence_windows.join("、") || "暂无"} · 置信度 {percent(pattern.confidence)}</p>
                   </div>
-                  <button type="button" disabled={isBusy} onClick={() => handleForgetPattern(pattern.pattern_id)} className="rounded-lg p-2 text-slate-500 hover:bg-red-400/10 hover:text-red-200 disabled:opacity-50" aria-label="删除这条稳定规律" title="删除这条规律">
+                  <button type="button" disabled={isBusy} onClick={() => handleForgetPattern(pattern.pattern_id, pattern.summary)} className="grid min-h-11 min-w-11 shrink-0 place-items-center rounded-lg text-slate-300 hover:bg-red-400/10 hover:text-red-200 disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-200" aria-label="删除这条稳定规律" title="删除这条规律">
                     <Trash2 size={17} />
                   </button>
                 </div>
@@ -409,7 +472,7 @@ export function TimeMemoryPage() {
           <section className="rounded-2xl border border-red-300/20 bg-red-400/5 p-5 sm:p-6">
             <h3 className="font-semibold text-red-100">清除画像</h3>
             <p className="mt-2 text-sm leading-6 text-slate-400">清空当前画像及主动排除记录。你的日程、任务和提醒不会被删除，系统之后会从新的时间点重新积累。</p>
-            <button type="button" disabled={isBusy} onClick={handleClear} className="mt-4 rounded-xl border border-red-300/40 px-4 py-2.5 text-sm font-medium text-red-200 hover:bg-red-400/10 disabled:opacity-50">
+            <button type="button" disabled={isBusy} onClick={handleClear} className="mt-4 min-h-11 rounded-xl border border-red-300/40 px-4 py-2.5 text-sm font-medium text-red-200 hover:bg-red-400/10 disabled:opacity-50">
               {clearMemory.isPending ? "清空中…" : "清空全部画像"}
             </button>
             {clearMemory.isError && <p role="alert" className="mt-3 text-sm text-red-200">清空失败：{clearMemory.error.message}</p>}
@@ -417,15 +480,34 @@ export function TimeMemoryPage() {
           </section>
         </>
       )}
+      {confirmation && <Drawer
+        title={confirmation.kind === "clear" ? "清空时间画像？" : confirmation.kind === "place" ? "删除常用地点？" : "删除稳定规律？"}
+        description={confirmation.kind === "clear"
+          ? "画像和主动排除记录会被清空；日程、任务和提醒不会被删除。系统会从新的时间点重新积累。"
+          : confirmation.kind === "place"
+            ? `将从长期记忆中删除“${confirmation.name}”。`
+            : `将删除“${confirmation.name}”；后续画像重建也会继续排除它。`}
+        onClose={() => setConfirmation(null)}
+      >
+        <div className="mt-5 grid grid-cols-2 gap-3">
+          <button type="button" onClick={() => setConfirmation(null)} className="min-h-12 rounded-xl border border-slate-300 px-4 text-sm font-semibold text-slate-800">返回</button>
+          <button type="button" disabled={isBusy} onClick={() => {
+            const selected = confirmation;
+            if (selected.kind === "clear") clearMemory.mutate(undefined, { onSuccess: () => setConfirmation(null) });
+            if (selected.kind === "place") forgetPlace.mutate(selected.id, { onSuccess: () => setConfirmation(null) });
+            if (selected.kind === "pattern") forgetPattern.mutate(selected.id, { onSuccess: () => setConfirmation(null) });
+          }} className="min-h-12 rounded-xl bg-red-700 px-4 text-sm font-semibold text-white disabled:opacity-50">{confirmation.kind === "clear" ? "确认清空" : "确认删除"}</button>
+        </div>
+      </Drawer>}
     </section>
   );
 }
 
 function MemoryToggle({ checked, disabled, label, description, onChange }: { checked: boolean; disabled: boolean; label: string; description: string; onChange: (value: boolean) => void }) {
   return (
-    <label className={`flex cursor-pointer items-start gap-4 py-4 ${disabled ? "cursor-not-allowed opacity-50" : ""}`}>
+    <label className={`flex min-h-14 cursor-pointer items-start gap-4 py-4 ${disabled ? "cursor-not-allowed opacity-50" : ""}`}>
       <input aria-label={label} type="checkbox" checked={checked} disabled={disabled} onChange={(event) => onChange(event.target.checked)} className="peer sr-only" />
-      <span className="mt-0.5 grid size-5 shrink-0 place-items-center rounded-md border border-white/20 text-slate-950 peer-checked:border-cyan-300 peer-checked:bg-cyan-300">
+      <span className="mt-0.5 grid size-6 shrink-0 place-items-center rounded-md border border-white/40 text-slate-950 peer-checked:border-cyan-300 peer-checked:bg-cyan-300 peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-cyan-200">
         {checked && <Check size={14} strokeWidth={3} />}
       </span>
       <span>

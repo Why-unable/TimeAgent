@@ -87,7 +87,7 @@ describe("ApprovalCard", () => {
     expect(screen.queryByText("future_internal_tool")).not.toBeInTheDocument();
   });
 
-  it("shows every reviewed plan item when a plan contains more than twenty tasks", () => {
+  it("keeps a large review compact and lets the user expand every plan item", async () => {
     const planItems = Array.from({ length: 21 }, (_, index) => ({
       title: `安排任务 ${index + 1}`,
       detail: "计划安排时间",
@@ -107,8 +107,45 @@ describe("ApprovalCard", () => {
 
     render(<ApprovalCard proposal={planProposal} onDecision={vi.fn()} />);
 
-    expect(screen.getByText("安排任务 21")).toBeInTheDocument();
+    expect(screen.getByText("安排任务 1")).toBeInTheDocument();
+    expect(screen.queryByText("安排任务 21")).not.toBeVisible();
+    await userEvent.click(screen.getByText("查看其余 18 项"));
+    expect(screen.getByText("安排任务 21")).toBeVisible();
     expect(screen.getByRole("button", { name: "确认并应用" })).toBeInTheDocument();
+  });
+
+  it("blocks an edited stale version and reopens with the refreshed proposal", async () => {
+    const onDecision = vi.fn().mockResolvedValue(undefined);
+    const firstVersion: ActionProposal = {
+      ...proposal,
+      action_type: "create_task_batch",
+      action_payload: { tasks: [{ title: "初始任务", priority: "medium", estimated_minutes: 60 }] },
+      display_context: { allowed_decisions: ["approve", "edit", "reject"], review_complete: true, review_items: [{ title: "初始任务" }] },
+    };
+    const { rerender } = render(<ApprovalCard proposal={firstVersion} onDecision={onDecision} />);
+
+    await userEvent.click(screen.getByRole("button", { name: "调整后批准" }));
+    fireEvent.change(screen.getByLabelText("任务名称"), { target: { value: "旧版本编辑" } });
+    const refreshed: ActionProposal = {
+      ...firstVersion,
+      version: 2,
+      action_payload: { tasks: [{ title: "最新任务", priority: "high", estimated_minutes: 90 }] },
+      display_context: { ...firstVersion.display_context, review_items: [{ title: "最新任务" }] },
+    };
+    rerender(<ApprovalCard proposal={refreshed} onDecision={onDecision} />);
+
+    expect(screen.getByRole("alert")).toHaveTextContent("旧内容不会提交");
+    expect(screen.getByRole("button", { name: "保存修改并批准" })).toBeDisabled();
+    expect(onDecision).not.toHaveBeenCalled();
+
+    await userEvent.click(screen.getByRole("button", { name: "取消编辑" }));
+    await userEvent.click(screen.getByRole("button", { name: "调整后批准" }));
+    expect(screen.getByLabelText("任务名称")).toHaveValue("最新任务");
+    fireEvent.change(screen.getByLabelText("任务名称"), { target: { value: "重新编辑" } });
+    await userEvent.click(screen.getByRole("button", { name: "保存修改并批准" }));
+    expect(onDecision).toHaveBeenCalledWith("edit", expect.objectContaining({
+      actionPayload: expect.objectContaining({ tasks: [{ title: "重新编辑", priority: "high", estimated_minutes: 90 }] }),
+    }));
   });
 
   it("gives plan application failures a safe refresh-and-check recovery", () => {

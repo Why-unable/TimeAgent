@@ -255,10 +255,10 @@ describe("ChatPage", () => {
     }));
 
     renderChatPage();
-    const empty = await screen.findByRole("heading", { name: "今天需要我帮你安排什么？" });
+    const empty = await screen.findByRole("heading", { name: "今天想先处理哪件事？" });
     expect(empty).toBeInTheDocument();
     expect(screen.getByRole("region", { name: "今日上下文" })).toHaveTextContent("0 个日程");
-    await userEvent.click(screen.getByRole("button", { name: "查询日程" }));
+    await userEvent.click(screen.getByRole("button", { name: "看今天安排" }));
     const composer = screen.getByLabelText("消息") as HTMLTextAreaElement;
     expect(composer.value).toContain("查询");
   });
@@ -423,7 +423,7 @@ describe("ChatPage", () => {
     await screen.findByText(run.input_message);
     await userEvent.click(screen.getAllByRole("button", { name: "新建聊天" })[0]);
 
-    expect(await screen.findByRole("heading", { name: "今天需要我帮你安排什么？" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "今天想先处理哪件事？" })).toBeInTheDocument();
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
     expect(screen.queryByText("The user aborted a request.")).not.toBeInTheDocument();
   });

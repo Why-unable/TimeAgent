@@ -12,7 +12,7 @@ import {
   Sparkles,
   Tag,
 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { getTaskTags, type Task } from "../api/tasks";
 import { useCurrentUserPreference } from "../features/preferences/hooks";
@@ -36,7 +36,7 @@ import { isNativePlatform } from "../platform";
 import { Button, PageHeader } from "../components/ui/primitives";
 
 const primaryFilters: { id: TaskFilter; label: string }[] = [
-  { id: "inbox", label: "Inbox" },
+  { id: "inbox", label: "收件箱" },
   { id: "today", label: "今日任务" },
   { id: "upcoming", label: "即将到期" },
 ];
@@ -72,6 +72,13 @@ export function TasksPage() {
   const [editingTask, setEditingTask] = useState<Task>();
   const [creating, setCreating] = useState(false);
   const [recommendationRequested, setRecommendationRequested] = useState(false);
+  const [completionAnnouncement, setCompletionAnnouncement] = useState("");
+  const filterGroupRef = useRef<HTMLDivElement>(null);
+  const [desktopLayout, setDesktopLayout] = useState(
+    () => typeof window !== "undefined" && typeof window.matchMedia === "function"
+      ? window.matchMedia("(min-width: 1024px)").matches
+      : false,
+  );
   const recommendationRange = useMemo(() => {
     const start = new Date();
     const end = new Date(start.getTime() + 7 * 24 * 60 * 60 * 1000);
@@ -90,6 +97,15 @@ export function TasksPage() {
     });
     return [...groups.entries()];
   }, [visibleTasks]);
+
+  useEffect(() => {
+    if (typeof window.matchMedia !== "function") return undefined;
+    const media = window.matchMedia("(min-width: 1024px)");
+    const sync = () => setDesktopLayout(media.matches);
+    sync();
+    media.addEventListener("change", sync);
+    return () => media.removeEventListener("change", sync);
+  }, []);
 
   const sendDurationFeedback = (action: "accept" | "too_short" | "too_long" | "disable") => {
     const recommendation = durationRecommendation.data;
@@ -123,17 +139,18 @@ export function TasksPage() {
         )}
       />
 
-      <div className="mt-5" aria-label="任务筛选">
+      <div ref={filterGroupRef} tabIndex={-1} className="mt-5 rounded-xl outline-none focus-visible:outline-2 focus-visible:outline-teal-700" role="group" aria-label="任务筛选">
         <div className="flex gap-2 overflow-x-auto pb-1">
           {primaryFilters.map((item) => (
             <button
               type="button"
               key={item.id}
+              aria-pressed={filter === item.id}
               onClick={() => setFilter(item.id)}
-              className={`min-h-10 shrink-0 rounded-full px-4 py-2 text-sm transition ${
+              className={`min-h-11 shrink-0 rounded-full border px-4 py-2 text-sm font-medium transition ${
                 filter === item.id
-                  ? "bg-cyan-300 text-slate-950"
-                  : "border border-white/10 bg-slate-900 text-slate-300 hover:border-cyan-300/30"
+                  ? "border-teal-800 bg-teal-800 text-white ring-2 ring-teal-800 ring-offset-2 mobile-on-brand"
+                  : "border-slate-300 bg-white text-slate-700 hover:border-teal-700"
               }`}
             >
               {item.label}
@@ -141,25 +158,26 @@ export function TasksPage() {
           ))}
         </div>
         <details className="mt-1">
-          <summary className="inline-flex min-h-10 cursor-pointer list-none items-center gap-2 rounded-full border border-white/10 px-3 py-2 text-xs font-medium text-slate-400 transition hover:border-cyan-300/30 hover:text-cyan-200">
+          <summary className="inline-flex min-h-11 cursor-pointer list-none items-center gap-2 rounded-full border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition hover:border-teal-700">
             <Filter size={14} />
             更多筛选
             {overflowFilters.some((item) => item.id === filter) && (
-              <span className="rounded-full bg-cyan-300/15 px-2 py-0.5 text-cyan-200">
+              <span className="rounded-full bg-teal-50 px-2 py-0.5 text-teal-900">
                 {overflowFilters.find((item) => item.id === filter)?.label}
               </span>
             )}
           </summary>
-          <div className="mt-2 flex flex-wrap gap-2 rounded-2xl border border-white/10 bg-slate-900/70 p-3">
+          <div className="mt-2 flex flex-wrap gap-2 rounded-2xl border border-slate-200 bg-white p-3">
             {overflowFilters.map((item) => (
               <button
                 type="button"
                 key={item.id}
+                aria-pressed={filter === item.id}
                 onClick={() => setFilter(item.id)}
-                className={`min-h-10 rounded-full px-3 py-2 text-xs transition ${
+                className={`min-h-11 rounded-full border px-3 py-2 text-sm transition ${
                   filter === item.id
-                    ? "bg-cyan-300 text-slate-950"
-                    : "border border-white/10 bg-slate-900 text-slate-400 hover:border-cyan-300/30"
+                    ? "border-teal-800 bg-teal-800 text-white ring-2 ring-teal-800 ring-offset-2 mobile-on-brand"
+                    : "border-slate-300 bg-white text-slate-700 hover:border-teal-700"
                 }`}
               >
                 {item.label}
@@ -175,23 +193,31 @@ export function TasksPage() {
           无法读取任务，请确认登录状态后重试。
         </div>
       )}
+      {completionAnnouncement && <p className="sr-only" role="status" aria-live="polite">{completionAnnouncement}</p>}
       {!tasks.isPending && !tasks.isError && visibleTasks.length === 0 && <TaskEmptyState />}
 
       <div className="mt-8 space-y-7">
-        <section className="rounded-2xl border border-cyan-300/20 bg-cyan-300/5 p-4 sm:p-5">
-          <div className="flex flex-wrap items-center justify-between gap-3">
+        <details className="rounded-2xl border border-slate-200 bg-white p-4 sm:p-5">
+          <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 rounded-lg text-left">
+            <span>
+              <span className="block font-medium text-slate-900">查找未来空闲时间</span>
+              <span className="mt-1 block text-xs text-slate-600">只查看候选时间，不会自动创建安排</span>
+            </span>
+            <Filter size={18} className="shrink-0 text-teal-800" />
+          </summary>
+          <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
             <div>
-              <h3 className="font-medium text-cyan-100">未来空闲时间</h3>
-              <p className="mt-1 text-xs text-slate-400">按工作时间、日程和已计划任务寻找 30 分钟候选，不会自动创建安排。</p>
+              <h3 className="font-medium text-slate-900">未来空闲时间</h3>
+              <p className="mt-1 text-xs text-slate-600">按工作时间、日程和已计划任务寻找 30 分钟候选。</p>
             </div>
-            <button type="button" onClick={() => setRecommendationRequested(true)} disabled={recommendations.isFetching} className="rounded-lg border border-cyan-300/30 px-3 py-2 text-xs text-cyan-100 hover:bg-cyan-300/10 disabled:opacity-50">
+            <button type="button" onClick={() => setRecommendationRequested(true)} disabled={recommendations.isFetching} className="min-h-11 rounded-lg border border-teal-700 px-3 py-2 text-sm font-medium text-teal-900 hover:bg-teal-50 disabled:opacity-50">
               {recommendations.isFetching ? "查找中…" : "查找候选"}
             </button>
           </div>
           {recommendations.data && (
             <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
               {recommendations.data.slots.map((slot) => (
-                <div key={`${slot.start_at}-${slot.end_at}`} className="rounded-xl bg-slate-950/50 p-3 text-xs text-slate-300">
+                <div key={`${slot.start_at}-${slot.end_at}`} className="rounded-xl bg-slate-50 p-3 text-sm text-slate-800">
                   {formatInUserTimezone(slot.start_at, timezone, locale)} — {formatInUserTimezone(slot.end_at, timezone, locale)}
                 </div>
               ))}
@@ -199,7 +225,7 @@ export function TasksPage() {
             </div>
           )}
           {recommendations.isError && <p role="alert" className="mt-3 text-xs text-red-200">空闲时间推荐暂时不可用。</p>}
-        </section>
+        </details>
         {groupedTasks.map(([project, projectTasks]) => (
           <section key={project}>
             <div className="mb-3 flex items-center gap-3">
@@ -211,11 +237,11 @@ export function TasksPage() {
                 const priority = task.priority ?? "medium";
                 const canComplete = task.status === "pending" || task.status === "in_progress";
                 return (
-                  <article key={task.id} className="rounded-xl border border-white/10 bg-slate-900 p-4">
+              <article key={task.id} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
                     <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                       <div className="min-w-0 w-full flex-1 sm:w-auto">
                         <div className="flex flex-wrap items-center gap-2">
-                          <h4 className={`min-w-0 break-words text-base leading-snug font-medium ${task.status === "completed" ? "text-slate-500 line-through" : "text-white"}`}>
+                          <h4 className={`min-w-0 break-words text-base leading-snug font-medium ${task.status === "completed" ? "text-slate-500 line-through" : "text-slate-900"}`}>
                             {task.title}
                           </h4>
                           <span className={`rounded-full px-2 py-1 text-xs font-medium ${priorityStyles[priority]}`}>
@@ -225,16 +251,16 @@ export function TasksPage() {
                             <span className="rounded-full bg-violet-100 px-2 py-1 text-xs font-medium text-violet-800">进行中</span>
                           )}
                         </div>
-                        {task.description && <p className="mt-2 text-sm text-slate-400">{task.description}</p>}
+                        {task.description && <p className="mt-2 text-sm text-slate-700">{task.description}</p>}
                         <div className="mt-3 flex flex-wrap gap-2 text-xs">
-                          <div className="rounded-lg bg-amber-300/5 px-3 py-2 text-amber-100">
-                            <span className="mr-1 text-[11px] text-amber-300/70">截止时间</span>
+                          <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-amber-950">
+                            <span className="mr-1 text-[11px] font-medium text-amber-900">截止时间</span>
                             {task.due_at
                               ? formatInUserTimezone(task.due_at, timezone, locale)
                               : "未设置"}
                           </div>
-                          <div className="rounded-lg bg-cyan-300/5 px-3 py-2 text-cyan-100">
-                            <span className="mr-1 text-[11px] text-cyan-300/70">计划执行时间</span>
+                          <div className="rounded-lg border border-teal-100 bg-teal-50 px-3 py-2 text-teal-950">
+                            <span className="mr-1 text-[11px] font-medium text-teal-900">计划执行时间</span>
                             {task.planned_start_at && task.planned_end_at
                               ? `${formatInUserTimezone(task.planned_start_at, timezone, locale)} — ${formatInUserTimezone(task.planned_end_at, timezone, locale)}`
                               : "未计划"}
@@ -249,87 +275,52 @@ export function TasksPage() {
                           ))}
                         </div>
                       </div>
-                      <div className="flex w-full flex-wrap items-center justify-end gap-1 sm:w-auto sm:gap-2">
+                      <div className="mt-4 flex w-full flex-wrap items-center gap-2 sm:w-auto">
                         {task.status === "pending" && (
                           <button
                             type="button"
                             aria-label={`开始任务：${task.title}`}
                             disabled={executionMutation.isPending}
-                            onClick={() =>
-                              executionMutation.mutate({ taskId: task.id, signalType: "started" })
-                            }
-                            className="grid size-11 shrink-0 place-items-center rounded-xl p-2 text-cyan-300 hover:bg-cyan-400/10 disabled:opacity-50"
-                          >
-                            <Play size={19} />
-                          </button>
+                            onClick={() => executionMutation.mutate({ taskId: task.id, signalType: "started" })}
+                            className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-teal-700 px-4 text-sm font-semibold text-white hover:bg-teal-800 disabled:opacity-50 mobile-on-brand"
+                          ><Play size={17} />开始</button>
                         )}
                         {task.status === "in_progress" && (
                           <button
                             type="button"
                             aria-label={`暂停任务：${task.title}`}
                             disabled={executionMutation.isPending}
-                            onClick={() =>
-                              executionMutation.mutate({ taskId: task.id, signalType: "paused" })
-                            }
-                            className="grid size-11 shrink-0 place-items-center rounded-xl p-2 text-amber-300 hover:bg-amber-400/10 disabled:opacity-50"
-                          >
-                            <Pause size={19} />
-                          </button>
-                        )}
-                        {canComplete && (
-                          <button
-                            type="button"
-                            aria-label={`跳过任务：${task.title}`}
-                            disabled={executionMutation.isPending}
-                            onClick={() =>
-                              executionMutation.mutate({ taskId: task.id, signalType: "skipped" })
-                            }
-                            className="grid size-11 shrink-0 place-items-center rounded-xl p-2 text-slate-400 hover:bg-white/5 hover:text-white disabled:opacity-50"
-                          >
-                            <SkipForward size={19} />
-                          </button>
+                            onClick={() => executionMutation.mutate({ taskId: task.id, signalType: "paused" })}
+                            className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-teal-700 px-4 text-sm font-semibold text-white hover:bg-teal-800 disabled:opacity-50 mobile-on-brand"
+                          ><Pause size={17} />暂停</button>
                         )}
                         {canComplete && (
                           <button
                             type="button"
                             aria-label={`完成任务：${task.title}`}
                             disabled={completeMutation.isPending}
-                            onClick={() => completeMutation.mutate(task.id)}
-                            className="grid size-11 shrink-0 place-items-center rounded-xl p-2 text-emerald-300 hover:bg-emerald-400/10 disabled:opacity-50"
-                          >
-                            <CircleCheck size={20} />
-                          </button>
+                            onClick={() => completeMutation.mutate(task.id, { onSuccess: () => {
+                              setCompletionAnnouncement(`已完成任务：${task.title}`);
+                              filterGroupRef.current?.focus();
+                            } })}
+                            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-emerald-700 bg-white px-4 text-sm font-semibold text-emerald-900 hover:bg-emerald-50 disabled:opacity-50"
+                          ><CircleCheck size={17} />完成</button>
                         )}
-                        <button
-                          type="button"
-                          aria-label={`编辑任务：${task.title}`}
-                          onClick={() => setEditingTask(task)}
-                          className="grid size-11 shrink-0 place-items-center rounded-xl p-2 text-slate-400 hover:bg-white/5 hover:text-white"
-                        >
-                          <Pencil size={18} />
-                        </button>
-                        <button
-                          type="button"
-                          aria-label={`查看执行摘要：${task.title}`}
-                          onClick={() =>
-                            setExecutionTaskId((current) => (current === task.id ? undefined : task.id))
-                          }
-                          className="grid size-11 shrink-0 place-items-center rounded-xl p-2 text-slate-400 hover:bg-white/5 hover:text-white"
-                        >
-                          <BarChart3 size={18} />
-                        </button>
-                        <button
-                          type="button"
-                          aria-label={`查看估时建议：${task.title}`}
-                          onClick={() =>
-                            setRecommendationTaskId((current) =>
-                              current === task.id ? undefined : task.id
-                            )
-                          }
-                          className="grid size-9 place-items-center rounded-lg p-2 text-slate-400 hover:bg-white/5 hover:text-cyan-200"
-                        >
-                          <Sparkles size={18} />
-                        </button>
+                        {!desktopLayout && <details className="relative w-full">
+                          <summary className="inline-flex min-h-11 cursor-pointer list-none items-center rounded-lg border border-slate-300 bg-white px-3 text-sm font-medium text-slate-700">更多操作</summary>
+                          <div className="mt-2 flex flex-wrap gap-2 rounded-xl border border-slate-200 bg-slate-50 p-2">
+                            {canComplete && <button type="button" aria-label={`跳过任务：${task.title}`} disabled={executionMutation.isPending} onClick={() => executionMutation.mutate({ taskId: task.id, signalType: "skipped" })} className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-800 disabled:opacity-50"><SkipForward size={16} />跳过</button>}
+                            <button type="button" aria-label={`编辑任务：${task.title}`} onClick={() => setEditingTask(task)} className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-800"><Pencil size={16} />编辑</button>
+                            <button type="button" aria-label={`查看执行摘要：${task.title}`} onClick={() => setExecutionTaskId((current) => current === task.id ? undefined : task.id)} className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-800"><BarChart3 size={16} />执行摘要</button>
+                            <button type="button" aria-label={`查看估时建议：${task.title}`} onClick={() => setRecommendationTaskId((current) => current === task.id ? undefined : task.id)} className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-800"><Sparkles size={16} />估时建议</button>
+                          </div>
+                        </details>}
+                        {desktopLayout && <div className="flex flex-wrap gap-1">
+                          {canComplete && <button type="button" aria-label={`跳过任务：${task.title}`} disabled={executionMutation.isPending} onClick={() => executionMutation.mutate({ taskId: task.id, signalType: "skipped" })} className="grid size-11 shrink-0 place-items-center rounded-xl text-slate-600 hover:bg-slate-100 disabled:opacity-50"><SkipForward size={19} /></button>}
+                          <button type="button" aria-label={`编辑任务：${task.title}`} onClick={() => setEditingTask(task)} className="grid size-11 shrink-0 place-items-center rounded-xl text-slate-600 hover:bg-slate-100"><Pencil size={18} /></button>
+                          <button type="button" aria-label={`查看执行摘要：${task.title}`} onClick={() => setExecutionTaskId((current) => current === task.id ? undefined : task.id)} className="grid size-11 shrink-0 place-items-center rounded-xl text-slate-600 hover:bg-slate-100"><BarChart3 size={18} /></button>
+                          <button type="button" aria-label={`查看估时建议：${task.title}`} onClick={() => setRecommendationTaskId((current) => current === task.id ? undefined : task.id)} className="grid size-11 shrink-0 place-items-center rounded-xl text-slate-600 hover:bg-slate-100"><Sparkles size={18} /></button>
+                        </div>}
                       </div>
                     </div>
                     {executionTaskId === task.id && (
@@ -382,10 +373,10 @@ export function TasksPage() {
                               {` · ${durationRecommendation.data.decay_half_life_days} 天半衰期 · 建议有效至 ${new Date(durationRecommendation.data.expires_at).toLocaleDateString()}`}
                             </p>
                             <div className="flex flex-wrap gap-2">
-                              <button type="button" disabled={durationFeedback.isPending} onClick={() => sendDurationFeedback("accept")} className="rounded-lg border border-emerald-300/30 px-3 py-2 text-xs text-emerald-200 disabled:opacity-50">建议准确</button>
-                              <button type="button" disabled={durationFeedback.isPending} onClick={() => sendDurationFeedback("too_short")} className="rounded-lg border border-amber-300/30 px-3 py-2 text-xs text-amber-200 disabled:opacity-50">太短</button>
-                              <button type="button" disabled={durationFeedback.isPending} onClick={() => sendDurationFeedback("too_long")} className="rounded-lg border border-sky-300/30 px-3 py-2 text-xs text-sky-200 disabled:opacity-50">太长</button>
-                              <button type="button" disabled={durationFeedback.isPending} onClick={() => sendDurationFeedback("disable")} className="rounded-lg border border-white/10 px-3 py-2 text-xs text-slate-400 disabled:opacity-50">关闭此类建议</button>
+                              <button type="button" disabled={durationFeedback.isPending} onClick={() => sendDurationFeedback("accept")} className="min-h-11 rounded-lg border border-emerald-700 px-3 py-2 text-sm font-medium text-emerald-900 disabled:opacity-50">建议准确</button>
+                              <button type="button" disabled={durationFeedback.isPending} onClick={() => sendDurationFeedback("too_short")} className="min-h-11 rounded-lg border border-amber-700 px-3 py-2 text-sm font-medium text-amber-950 disabled:opacity-50">太短</button>
+                              <button type="button" disabled={durationFeedback.isPending} onClick={() => sendDurationFeedback("too_long")} className="min-h-11 rounded-lg border border-sky-700 px-3 py-2 text-sm font-medium text-sky-950 disabled:opacity-50">太长</button>
+                              <button type="button" disabled={durationFeedback.isPending} onClick={() => sendDurationFeedback("disable")} className="min-h-11 rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium text-slate-800 disabled:opacity-50">关闭此类建议</button>
                             </div>
                             {durationFeedback.isSuccess && <p role="status" className="text-xs text-emerald-200">估时反馈已记录。</p>}
                             {durationFeedback.isError && <p role="alert" className="text-xs text-red-200">估时反馈保存失败。</p>}

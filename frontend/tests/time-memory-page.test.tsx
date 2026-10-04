@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -154,11 +154,45 @@ describe("TimeMemoryPage", () => {
 
     await user.click(screen.getByLabelText("启用长期时间记忆"));
     await user.click(screen.getByRole("button", { name: "删除常用地点 办公室" }));
+    expect(screen.getByRole("dialog", { name: "删除常用地点？" })).toBeInTheDocument();
+    await user.click(within(screen.getByRole("dialog")).getByRole("button", { name: "确认删除" }));
 
     await waitFor(() => {
       expect(requests.some((request) => request.method === "DELETE" && request.url.includes("places/office"))).toBe(true);
       expect(requests.some((request) => request.method === "PATCH" && request.body?.includes("time_memory_enabled"))).toBe(true);
     });
+  });
+
+  it("requires confirmation before clearing the derived profile", async () => {
+    const requests: Array<{ url: string; method: string }> = [];
+    let cleared = false;
+    vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      const method = init?.method ?? "GET";
+      requests.push({ url, method });
+      if (url.endsWith("/api/v1/preferences/me/")) return new Response(JSON.stringify(preference));
+      if (url.endsWith("/api/v1/time-memory/me/") && method === "DELETE") { cleared = true; return new Response(null, { status: 204 }); }
+      if (url.endsWith("/api/v1/time-memory/me/")) return new Response(JSON.stringify({ profile: cleared ? null : profile, refresh_status: "clean", dirty_at: null, last_completed_at: null, last_error: "" }));
+      if (url.endsWith("/api/v1/time-memory/me/decision-profile/")) return new Response(JSON.stringify({ duration_multiplier: 1, sample_count: 0, confidence: 0, evidence: [], source: "default" }));
+      if (url.endsWith("/api/v1/time-memory/me/semantic/")) return new Response(JSON.stringify([]));
+      if (url.endsWith("/api/v1/time-memory/me/proposals/")) return new Response(JSON.stringify([]));
+      if (url.endsWith("/api/v1/time-memory/me/proposals/recent/")) return new Response(JSON.stringify([]));
+      throw new Error(`Unexpected request: ${method} ${url}`);
+    }));
+    const user = userEvent.setup();
+    renderPage();
+    await screen.findByText("办公室");
+    await user.click(screen.getByRole("button", { name: "清空全部画像" }));
+
+    const confirmation = screen.getByRole("dialog", { name: "清空时间画像？" });
+    expect(confirmation).toHaveTextContent("日程、任务和提醒不会被删除");
+    await user.click(within(confirmation).getByRole("button", { name: "返回" }));
+    expect(requests.some((request) => request.method === "DELETE")).toBe(false);
+
+    await user.click(screen.getByRole("button", { name: "清空全部画像" }));
+    await user.click(within(screen.getByRole("dialog", { name: "清空时间画像？" })).getByRole("button", { name: "确认清空" }));
+    await waitFor(() => expect(requests.some((request) => request.method === "DELETE" && request.url.endsWith("/api/v1/time-memory/me/"))).toBe(true));
+    expect(cleared).toBe(true);
   });
 
   it("shows adaptive planning evidence when a rebuilt profile contains it", async () => {
@@ -214,12 +248,39 @@ describe("TimeMemoryPage", () => {
 
     const user = userEvent.setup();
     renderPage();
-    expect(await screen.findByText("focus_period")).toBeInTheDocument();
+    expect(await screen.findByText("专注时段")).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "撤销" }));
 
     await waitFor(() => {
       expect(requests.some((request) => request.method === "POST" && request.url.endsWith("/proposals/proposal-1/undo/"))).toBe(true);
       expect(screen.getByText(/已撤销/)).toBeInTheDocument();
     });
+  });
+
+  it("shows readable proposal details without exposing machine reason codes", async () => {
+    vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url.endsWith("/api/v1/preferences/me/")) return new Response(JSON.stringify(preference));
+      if (url.endsWith("/api/v1/time-memory/me/")) return new Response(JSON.stringify({ profile, refresh_status: "clean", dirty_at: null, last_completed_at: null, last_error: "" }));
+      if (url.endsWith("/api/v1/time-memory/me/proposals/")) return new Response(JSON.stringify([{
+        id: "proposal-2", operation: "create", category: "scheduling_preference", key: "focus_period",
+        value: { period: "morning" }, confidence: 0.8, reason_code: "user_confirmation_required",
+        policy_reason: "confirmation", status: "pending", source_run_id: null, source_type: "conversation",
+        target_memory_id: null, target_version: null, applied_memory_id: null, applied_memory_version: null,
+        changed_business_state: false, can_undo: false, undone_at: null,
+        created_at: "2026-08-06T00:00:00Z", updated_at: "2026-08-06T00:00:00Z",
+      }]));
+      if (url.endsWith("/api/v1/time-memory/me/proposals/recent/")) return new Response(JSON.stringify([]));
+      if (url.endsWith("/api/v1/time-memory/me/semantic/")) return new Response(JSON.stringify([]));
+      if (url.endsWith("/api/v1/time-memory/me/decision-profile/")) return new Response(JSON.stringify({ duration_multiplier: 1, sample_count: 0, confidence: 0, evidence: [], source: "default" }));
+      throw new Error(`Unexpected request: ${url}`);
+    }));
+
+    renderPage();
+    expect(await screen.findByText("专注时段")).toBeInTheDocument();
+    expect(screen.getByText("时段：上午")).toBeInTheDocument();
+    expect(screen.getByText(/这项偏好由系统推断/)).toBeInTheDocument();
+    expect(screen.queryByText("user_confirmation_required")).not.toBeInTheDocument();
+    expect(screen.getByText(/2026年8月6日.*08:00/)).toBeInTheDocument();
   });
 });

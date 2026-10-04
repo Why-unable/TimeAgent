@@ -20,9 +20,10 @@
 
   /* Mobile design tokens: keep phone screens readable without transform tricks. */
   --mobile-page-gutter: 1.25rem;
-  --mobile-bottom-nav-height: 5.25rem;
+  --mobile-bottom-nav-height: 4rem;
   --mobile-control-height: 3.5rem;
-  --mobile-card-radius: 1.5rem;
+  --mobile-card-radius: 1.25rem;
+  --mobile-sheet-radius: 1.5rem;
 }
 
 @media (max-width: 360px) {
@@ -121,7 +122,13 @@ body::-webkit-scrollbar {
 
   [data-color-scheme="workspace"] [class*="text-slate-400"],
   [data-color-scheme="workspace"] [class*="text-slate-500"] {
-    color: #64748b !important;
+    color: #475569 !important;
+  }
+
+  /* Keep white labels white on saturated primary controls while legacy white
+   * text on remapped slate surfaces uses the dark compatibility color above. */
+  [data-color-scheme="workspace"] .mobile-on-brand {
+    color: #ffffff !important;
   }
 
   /* The original cyan palette was tuned for a navy surface. On white, use a
@@ -156,6 +163,13 @@ body::-webkit-scrollbar {
   [data-color-scheme="workspace"] .ui-button-danger {
     color: #ffffff !important;
   }
+}
+
+/* Overlay scrims use a semantic class so the mobile light-theme compatibility
+ * selectors above cannot turn a translucent dark layer into an opaque white panel. */
+.mobile-overlay-backdrop {
+  background: rgb(15 23 42 / 56%);
+  backdrop-filter: blur(2px);
 }
 
 /* Desktop uses the same calm, bright product language as the installed app,
@@ -289,9 +303,30 @@ body::-webkit-scrollbar {
   }
 }
 
-/* Phone week view follows the familiar course-timetable pattern: a fixed time
- * rail and sufficiently wide day columns that users can horizontally browse.
- * All FullCalendar overrides are scoped under .calendar-shell per §13. */
+/* Keep the mobile month grid edge-to-edge on narrow screens so dates retain
+ * comfortable tap targets. Desktop FullCalendar rules remain scoped below. */
+@media (max-width: 639px) {
+  .mobile-month-calendar {
+    min-width: 0;
+  }
+}
+
+@media (max-width: 400px) {
+  .mobile-month-calendar {
+    margin-inline: calc(-1 * var(--mobile-page-gutter));
+    border-right: 0;
+    border-left: 0;
+    border-radius: 0;
+    padding: 0.5rem;
+  }
+}
+
+@media (max-width: 360px) {
+  .mobile-month-calendar {
+    padding: 0.25rem;
+  }
+}
+
 @media (max-width: 639px) {
   .calendar-shell.calendar-week-layout .fc {
     min-width: 720px;

@@ -259,6 +259,7 @@ async function installApi(page: Page) {
     planEditValues,
     taskMutationMethods: () => taskMutationMethods,
     ensuredInteractionTypes,
+    completionArtifactEnsureRequests: () => ensuredInteractionTypes.filter((type) => type === "task_completion").length,
     interactionSubmitActions,
     makeNextSubmitConflict: () => { nextSubmitConflicts = true; },
     failCompletionArtifactEnsures: (count: number) => { completionArtifactFailures = count; },
@@ -365,16 +366,27 @@ test("supports touch dragging a task into a new priority order", async ({ page }
   await expect(page.getByRole("button", { name: "拖动排序：Redis，当前第 1 项" })).toBeVisible();
 });
 
-test("supports keyboard time adjustment and submits the edited draft to the backend", async ({ page }) => {
+test("supports keyboard time adjustment and submits the edited draft to the backend", async ({ page }, testInfo: TestInfo) => {
   const api = await installApi(page);
   await page.goto("/planning");
   await openDraft(page);
   await page.getByRole("button", { name: "调整时间与时长" }).click();
 
-  const moveLater = page.getByRole("button", { name: "推后 15 分钟：论文" });
+  const mobile = testInfo.project.name === "mobile-chromium";
+  const editor = mobile
+    ? page.getByRole("dialog", { name: "调整时间：论文" })
+    : page.getByRole("region", { name: "可编辑计划时间线" });
+  if (mobile) {
+    const paper = page.getByRole("region", { name: "可编辑计划时间线" }).getByRole("listitem").filter({ hasText: "论文" });
+    await paper.getByRole("button", { name: "调整时间", exact: true }).click();
+  }
+
+  const moveLater = mobile
+    ? editor.getByRole("button", { name: "推后 15 分钟" })
+    : editor.getByRole("button", { name: "推后 15 分钟：论文" });
   await moveLater.focus();
   await page.keyboard.press("Enter");
-  const save = page.getByRole("button", { name: "保存" }).first();
+  const save = mobile ? editor.getByRole("button", { name: "保存调整" }) : editor.getByRole("button", { name: "保存" }).first();
   await save.focus();
   await page.keyboard.press("Enter");
 
@@ -385,6 +397,35 @@ test("supports keyboard time adjustment and submits the edited draft to the back
     end_at: "2026-10-05T10:15:00.000Z",
   });
   await expect(page.getByRole("status").filter({ hasText: "计划仍是草案" })).toBeVisible();
+});
+
+test("uses a mobile sheet to adjust one placed plan item", async ({ page }, testInfo: TestInfo) => {
+  test.skip(testInfo.project.name !== "mobile-chromium", "Mobile plan editing uses the touch-sized adjustment sheet.");
+  await page.setViewportSize({ width: 393, height: 844 });
+  const api = await installApi(page);
+  await page.goto("/planning");
+  await openDraft(page);
+  await page.getByRole("button", { name: "调整时间与时长" }).click();
+
+  const timeline = page.getByRole("region", { name: "可编辑计划时间线" });
+  const paper = timeline.getByRole("listitem").filter({ hasText: "论文" });
+  await paper.getByRole("button", { name: "调整时间", exact: true }).click();
+  const editor = page.getByRole("dialog", { name: "调整时间：论文" });
+  await expect(editor).toBeVisible();
+  await page.screenshot({ path: "../docs/mobile-ui/evidence/iteration-3-planning-edit-393.png" });
+  await page.setViewportSize({ width: 320, height: 800 });
+  await expect(page.locator("body")).toHaveJSProperty("scrollWidth", 320);
+  await page.setViewportSize({ width: 393, height: 844 });
+  await editor.getByRole("button", { name: "推后 15 分钟" }).click();
+  await editor.getByRole("button", { name: "保存调整" }).click();
+
+  await expect.poll(() => api.planEditValues.length).toBe(1);
+  expect(api.planEditValues[0]).toMatchObject({
+    task_id: paperId,
+    start_at: "2026-10-05T09:15:00.000Z",
+    end_at: "2026-10-05T10:15:00.000Z",
+  });
+  await expect(editor).toHaveCount(0);
 });
 
 test("opens only the requested planning interaction and lets the user resume it later", async ({ page }) => {
@@ -409,17 +450,30 @@ test("opens only the requested planning interaction and lets the user resume it 
   expect(api.ensuredInteractionTypes).toEqual(["plan_timeline_edit"]);
 });
 
-test("automatically refreshes the plan after a stale interaction conflict", async ({ page }) => {
+test("automatically refreshes the plan after a stale interaction conflict", async ({ page }, testInfo: TestInfo) => {
   const api = await installApi(page);
   await page.goto("/planning");
   await openDraft(page);
   await page.getByRole("button", { name: "调整时间与时长" }).click();
   api.makeNextSubmitConflict();
 
-  await page.getByRole("button", { name: "保存" }).first().click();
-  await expect(page.getByText("计划刚刚更新，已载入最新版本。请检查后继续。")).toBeVisible();
+  if (testInfo.project.name === "mobile-chromium") {
+    const timeline = page.getByRole("region", { name: "可编辑计划时间线" });
+    const paper = timeline.getByRole("listitem").filter({ hasText: "论文" });
+    await paper.getByRole("button", { name: "调整时间", exact: true }).click();
+    await page.getByRole("dialog", { name: "调整时间：论文" }).getByRole("button", { name: "保存调整" }).click();
+  } else {
+    await page.getByRole("button", { name: "保存" }).first().click();
+  }
   await expect(page.getByRole("button", { name: "重试同步" })).toHaveCount(0);
-  await expect(page.getByRole("region", { name: "可编辑计划时间线" })).toBeVisible();
+  if (testInfo.project.name === "mobile-chromium") {
+    const editor = page.getByRole("dialog", { name: "调整时间：论文" });
+    await expect(editor).toBeVisible();
+    await expect(editor.getByRole("status").filter({ hasText: "计划刚刚更新，已载入最新版本" })).toBeVisible();
+  } else {
+    await expect(page.getByText("计划刚刚更新，已载入最新版本。请检查后继续。")).toBeVisible();
+    await expect(page.getByRole("region", { name: "可编辑计划时间线" })).toBeVisible();
+  }
 });
 
 test("supports pointer dragging a timeline block and submits the edited draft", async ({ page }, testInfo: TestInfo) => {
@@ -476,11 +530,14 @@ test("supports touch dragging a timeline block and submits the edited draft", as
   expect(api.planEditValues[0]).toMatchObject({ start_at: "2026-10-05T09:15:00.000Z" });
 });
 
-test("keeps completion feedback optional, reveals reasons progressively, and respects reduced motion", async ({ page }) => {
+test("keeps completion feedback optional, reveals reasons progressively, and respects reduced motion", async ({ page }, testInfo) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
   await installApi(page);
   await page.goto("/today");
 
+  if (testInfo.project.name === "mobile-chromium") {
+    await page.getByText("稍后 · 1 项").click();
+  }
   await page.getByRole("button", { name: "完成任务：论文" }).first().click();
   const checkIn = page.getByRole("region", { name: "任务完成反馈" });
   await expect(checkIn).toBeVisible();
@@ -504,17 +561,22 @@ test("keeps completion feedback optional, reveals reasons progressively, and res
   await expect.poll(async () => dismissed.evaluate((element) => document.activeElement === element)).toBe(true);
 });
 
-test("recovers a completion feedback card after a temporary service failure and page reload", async ({ page }) => {
+test("recovers a completion feedback card after a temporary service failure and page reload", async ({ page }, testInfo) => {
   const api = await installApi(page);
   api.failCompletionArtifactEnsures(2);
   await page.goto("/today");
+  if (testInfo.project.name === "mobile-chromium") {
+    await page.getByText("稍后 · 1 项").click();
+  }
   await page.getByRole("button", { name: "完成任务：论文" }).first().click();
 
   await expect(page.getByRole("status").filter({ hasText: "反馈卡暂时不可用" })).toBeVisible();
   expect(api.completionRequests()).toBe(1);
+  await expect.poll(() => api.completionArtifactEnsureRequests()).toBe(2);
   await page.reload();
 
-  await expect(page.getByRole("region", { name: "任务完成反馈" })).toBeVisible();
+  await expect.poll(() => api.completionArtifactEnsureRequests()).toBe(3);
+  await expect(page.getByRole("region", { name: "任务完成反馈" })).toBeVisible({ timeout: 15_000 });
   expect(api.completionRequests()).toBe(1);
 });
 

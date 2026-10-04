@@ -44,6 +44,7 @@ function renderPage() {
 
 describe("RemindersPage", () => {
   beforeEach(() => {
+    Object.defineProperty(window, "innerWidth", { configurable: true, value: 1024 });
     vi.spyOn(crypto, "randomUUID").mockReturnValue(
       "22222222-2222-4222-8222-222222222222",
     );
@@ -111,7 +112,7 @@ describe("RemindersPage", () => {
     });
     vi.stubGlobal("fetch", fetchMock);
     renderPage();
-    await screen.findByText("暂无提醒");
+    await screen.findByText(/还没有提醒/);
 
     await userEvent.type(screen.getByLabelText("提醒内容"), "提交 API 报告");
     fireEvent.change(screen.getByLabelText(/提醒时间/), {
@@ -140,7 +141,7 @@ describe("RemindersPage", () => {
     });
     vi.stubGlobal("fetch", fetchMock);
     renderPage();
-    await screen.findByText("暂无提醒");
+    await screen.findByText(/还没有提醒/);
 
     await userEvent.type(screen.getByLabelText("提醒内容"), "调夏令时提醒");
     fireEvent.change(screen.getByLabelText(/提醒时间/), {
@@ -184,5 +185,63 @@ describe("RemindersPage", () => {
     await waitFor(() =>
       expect(deleteUrl).toContain(`/api/v1/reminders/${failedReminder.id}/`),
     );
+  });
+
+  it("opens a focused mobile creation sheet and announces success after saving", async () => {
+    Object.defineProperty(window, "innerWidth", { configurable: true, value: 393 });
+    const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      if (url.includes("preferences")) return new Response(JSON.stringify(preference), { status: 200 });
+      if (init?.method === "POST") return new Response(JSON.stringify(failedReminder), { status: 201 });
+      return new Response(JSON.stringify([]), { status: 200 });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    renderPage();
+    await screen.findByText(/还没有提醒/);
+
+    await userEvent.click(screen.getByRole("button", { name: "打开新建提醒" }));
+    const dialog = screen.getByRole("dialog", { name: "新建提醒" });
+    expect(dialog).toBeInTheDocument();
+    await userEvent.type(screen.getByLabelText("提醒内容"), "项目复盘");
+    fireEvent.change(screen.getByLabelText(/提醒时间/), { target: { value: "2026-07-17T15:00" } });
+    await userEvent.click(screen.getByRole("button", { name: "创建提醒" }));
+
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringContaining("/api/v1/reminders/"),
+      expect.objectContaining({ method: "POST" }),
+    ));
+    await waitFor(() => expect(screen.queryByRole("dialog", { name: "新建提醒" })).not.toBeInTheDocument());
+    expect(screen.getByRole("status")).toHaveTextContent("提醒已创建");
+  });
+
+  it("shows a cancelled-only history instead of a blank list", async () => {
+    const cancelledReminder = { ...failedReminder, status: "cancelled" };
+    vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input);
+      return new Response(JSON.stringify(url.includes("preferences") ? preference : [cancelledReminder]), { status: 200 });
+    }));
+    renderPage();
+    expect(await screen.findByText("已取消的提醒")).toBeInTheDocument();
+    expect(screen.getByText("提交项目报告")).toBeInTheDocument();
+    expect(screen.queryByText(/还没有提醒/)).not.toBeInTheDocument();
+  });
+
+  it("offers a retry when the reminder list request fails", async () => {
+    let listAttempts = 0;
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url.includes("preferences")) return new Response(JSON.stringify(preference), { status: 200 });
+      if (!url.includes("/api/v1/reminders/")) return new Response(JSON.stringify([]), { status: 200 });
+      listAttempts += 1;
+      if (listAttempts === 1) return new Response(JSON.stringify({ detail: "offline" }), { status: 503 });
+      return new Response(JSON.stringify([]), { status: 200 });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    renderPage();
+    const retry = await screen.findByRole("button", { name: "重试读取" });
+    expect(screen.queryByText(/还没有提醒/)).not.toBeInTheDocument();
+    await userEvent.click(retry);
+    expect(await screen.findByText(/还没有提醒/)).toBeInTheDocument();
+    expect(listAttempts).toBe(2);
   });
 });

@@ -165,6 +165,8 @@ describe("TasksPage", () => {
     );
 
     await waitFor(() => expect(completeUrl).toContain(`/tasks/${pendingTask.id}/complete/`));
+    expect(await screen.findByRole("status")).toHaveTextContent("已完成任务：准备发布报告");
+    expect(screen.getByRole("group", { name: "任务筛选" })).toHaveFocus();
   });
 
   it("records an explicit start signal for a pending task", async () => {
@@ -240,10 +242,15 @@ describe("TasksPage", () => {
     );
     renderPage();
 
+    await screen.findByText("准备发布报告");
+    await userEvent.click(screen.getByText("更多操作"));
     await userEvent.click(
       await screen.findByRole("button", { name: "查看估时建议：准备发布报告" }),
     );
     expect(await screen.findByText("建议预留 75 分钟")).toBeInTheDocument();
+    for (const label of ["建议准确", "太短", "太长", "关闭此类建议"]) {
+      expect(screen.getByRole("button", { name: label })).toHaveClass("min-h-11");
+    }
     await userEvent.click(screen.getByRole("button", { name: "太短" }));
     await waitFor(() => expect(feedbackBody).toMatchObject({
       category: "duration_estimate",

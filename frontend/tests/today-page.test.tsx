@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it, vi } from "vitest";
@@ -173,12 +173,8 @@ describe("TodayPage", () => {
 
     renderPage();
 
-    const actions = (await screen.findByText("今天还没有安排")).closest("section");
-    expect(actions).not.toBeNull();
-    const scoped = within(actions as HTMLElement);
-    expect(scoped.getByRole("link", { name: /日程/ })).toHaveAttribute("href", "/calendar");
-    expect(scoped.getByRole("link", { name: /任务/ })).toHaveAttribute("href", "/tasks");
-    expect(scoped.getByRole("link", { name: /帮我安排今天/ })).toHaveAttribute("href", "/chat?prompt=帮我安排今天的任务&auto_send=1");
+    expect(await screen.findByRole("heading", { name: "暂时没有正在进行的安排" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "让助理安排今天" })).toHaveAttribute("href", "/chat?auto_send=1&prompt=%E5%B8%AE%E6%88%91%E5%AE%89%E6%8E%92%E4%BB%8A%E5%A4%A9%E7%9A%84%E4%BB%BB%E5%8A%A1");
   });
 
   it("renders the backend summary without recomputing its business buckets", async () => {
@@ -196,7 +192,8 @@ describe("TodayPage", () => {
     expect(screen.getByText("1 小时后")).toBeInTheDocument();
     expect(screen.getByText("项目会议 与 计划写作")).toBeInTheDocument();
     expect(screen.getByText("Asia/Shanghai", { exact: false })).toBeInTheDocument();
-    expect(screen.getAllByRole("region", { name: "今日执行面板" })).toHaveLength(2);
+    expect(screen.getAllByRole("region", { name: "今日执行面板" })).toHaveLength(1);
+    expect(screen.getByTestId("today-focus")).toHaveTextContent("项目会议");
     expect(screen.getAllByRole("link", { name: "查看日程" })[0]).toHaveAttribute("href", "/calendar");
     const eventChatLink = screen.getAllByRole("link", { name: "调整安排" })[0];
     expect(eventChatLink).toHaveAttribute("href", expect.stringContaining("auto_send=1"));
@@ -242,7 +239,7 @@ describe("TodayPage", () => {
 
     renderPage();
 
-    expect(await screen.findAllByRole("region", { name: "今日执行面板" })).toHaveLength(2);
+    expect(await screen.findAllByRole("region", { name: "今日执行面板" })).toHaveLength(1);
     expect(screen.getAllByRole("button", { name: `开始任务：${baseTask.title}` })).toHaveLength(2);
     expect(screen.getAllByRole("button", { name: `完成任务：${baseTask.title}` })).toHaveLength(2); // mobile and desktop only
     expect(screen.getAllByRole("link", { name: `查看任务：${baseTask.title}` })[0]).toHaveAttribute("href", "/tasks");
@@ -281,11 +278,20 @@ describe("TodayPage", () => {
   });
 
   it("shows an authenticated loading failure", async () => {
-    vi.stubGlobal("fetch", vi.fn(async () => new Response("{}", { status: 403 })));
+    let attempts = 0;
+    vi.stubGlobal("fetch", vi.fn(async () => {
+      attempts += 1;
+      return attempts === 1
+        ? new Response("{}", { status: 403 })
+        : new Response(JSON.stringify(summary));
+    }));
 
     renderPage();
 
-    expect(await screen.findByRole("alert")).toHaveTextContent("无法读取今日工作台");
+    expect(await screen.findByRole("alert")).toHaveTextContent("无法读取今天的安排");
+    await userEvent.click(screen.getByRole("button", { name: "重试" }));
+    expect(await screen.findByTestId("today-focus")).toHaveTextContent("项目会议");
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
 
   it("records explicit false-positive feedback without silently disabling the kind", async () => {

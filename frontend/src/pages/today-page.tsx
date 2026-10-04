@@ -7,8 +7,6 @@ import {
   Flag,
   Ban,
   Timer,
-  MessageSquare,
-  Plus,
 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
@@ -17,17 +15,13 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import type { InteractionArtifact } from "../api/interactions";
 import { ensureInteraction, listPendingInteractions } from "../api/interactions";
 import type { CalendarEvent } from "../api/events";
-import type { TodaySummary } from "../api/today";
 import { useActOnTemporalInsight, useTemporalInsights } from "../features/insights/hooks";
 import { MobileSectionHeader } from "../components/mobile/mobile-section-header";
 import { DayClosing } from "../components/today/day-closing";
 import { MorningBrief } from "../components/today/morning-brief";
-import { TodayExecutionSurface } from "../components/today/execution-surface";
+import { MobileTodayExecutionSurface, TodayExecutionSurface } from "../components/today/execution-surface";
 import {
   formatCountdown,
-  getNextEventLabel,
-  getTimeline,
-  type TimelineEntry,
 } from "../features/today/derive";
 import { useCompleteTodayTask, useTodaySummary } from "../features/today/hooks";
 import { interactionComponentRegistry } from "../components/planning/interaction-component-registry";
@@ -86,82 +80,25 @@ function NextEventCard({
   );
 }
 
-function MobileRhythmCard({
-  data,
-  timeline,
-  taskCount,
-}: {
-  data: TodaySummary;
-  timeline: TimelineEntry[];
-  taskCount: number;
-}) {
-  const empty = timeline.length === 0 && taskCount === 0;
-  const nextLabel = getNextEventLabel(data);
+function TodayTaskProgress({ completed, unfinished }: { completed: number; unfinished: number }) {
+  const total = completed + unfinished;
+  if (total === 0) return null;
+  const progress = Math.round((completed / total) * 100);
   return (
-    <section className="rounded-[var(--mobile-card-radius)] border border-cyan-300/20 bg-gradient-to-br from-slate-800 to-slate-900 p-6 shadow-[0_24px_55px_-34px_rgba(34,211,238,0.65)] lg:hidden">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <p className="text-sm font-medium text-cyan-200">今日节奏</p>
-          <h3 className="mt-2 text-[26px] font-semibold leading-tight text-white">
-            {empty ? "今天很轻松" : "按自己的节奏来"}
-          </h3>
-        </div>
-        <span className="rounded-full bg-cyan-300/10 px-4 py-2 text-sm font-medium text-cyan-100">
-          {timeline.length} 项安排
-        </span>
+    <section aria-label="今日任务进度" className="border-y border-slate-200 py-4">
+      <div className="flex items-center justify-between gap-3">
+        <h2 className="text-sm font-semibold text-slate-800">今日进度</h2>
+        <span className="text-sm text-slate-700">完成 {completed} / {total} 项任务</span>
       </div>
-      <p className="mt-4 text-base text-slate-400">{nextLabel}</p>
-    </section>
-  );
-}
-
-function MobileStatsRow({
-  events,
-  taskCount,
-  reminderCount,
-}: {
-  events: number;
-  taskCount: number;
-  reminderCount: number;
-}) {
-  return (
-    <div className="grid grid-cols-3 gap-3 lg:hidden">
-      <Link
-        to="/calendar"
-        className="flex flex-col items-center rounded-xl border border-white/10 bg-slate-900 px-3 py-3"
+      <div
+        role="progressbar"
+        aria-label="今日任务完成比例"
+        aria-valuemin={0}
+        aria-valuemax={total}
+        aria-valuenow={completed}
+        className="mt-2 h-1.5 overflow-hidden rounded-full bg-slate-200"
       >
-        <span className="text-2xl font-semibold text-white">{events}</span>
-        <span className="mt-1 text-sm text-slate-500">日程</span>
-      </Link>
-      <Link
-        to="/tasks"
-        className="flex flex-col items-center rounded-xl border border-white/10 bg-slate-900 px-3 py-3"
-      >
-        <span className="text-2xl font-semibold text-white">{taskCount}</span>
-        <span className="mt-1 text-sm text-slate-500">任务</span>
-      </Link>
-      <Link
-        to="/reminders"
-        className="flex flex-col items-center rounded-xl border border-white/10 bg-slate-900 px-3 py-3"
-      >
-        <span className="text-2xl font-semibold text-white">{reminderCount}</span>
-        <span className="mt-1 text-sm text-slate-500">提醒</span>
-      </Link>
-    </div>
-  );
-}
-
-function TodayEmptyQuickAction() {
-  return (
-    <section className="rounded-2xl border border-white/10 bg-slate-900 p-4 lg:flex lg:items-center lg:justify-between lg:gap-5">
-      <div><p className="text-sm font-medium text-slate-200">今天还没有安排</p>
-      <p className="mt-1 text-xs text-slate-400">让助理根据你的任务先拟一份计划，再由你决定是否应用。</p></div>
-      <Link to="/chat?prompt=帮我安排今天的任务&auto_send=1" className="mt-3 flex min-h-12 items-center justify-center gap-2 rounded-xl bg-cyan-300 px-3 text-sm font-semibold text-slate-950 lg:mt-0 lg:min-w-52">
-        <MessageSquare size={16} /> 帮我安排今天
-      </Link>
-      <div className="mt-3 flex justify-center gap-4 text-xs text-slate-400 lg:mt-0">
-        <Link to="/calendar" className="inline-flex min-h-10 items-center gap-1"><Plus size={14} />添加日程</Link>
-        <Link to="/tasks" className="inline-flex min-h-10 items-center gap-1"><Plus size={14} />添加任务</Link>
+        <span className="block h-full rounded-full bg-teal-700 transition-[width]" style={{ width: `${progress}%` }} />
       </div>
     </section>
   );
@@ -197,8 +134,9 @@ export function TodayPage() {
     });
   }, []);
 
-  const installCompletionInteraction = useCallback((interaction: InteractionArtifact) => {
+  const installCompletionInteraction = useCallback(async (interaction: InteractionArtifact) => {
     if (interaction.status !== "pending") return;
+    await queryClient.cancelQueries({ queryKey: ["interactions", "task_completion"] });
     setFeedbackDismissed(false);
     setActiveCompletionId(interaction.id);
     setFocusInteractionId(interaction.id);
@@ -249,27 +187,28 @@ export function TodayPage() {
   }, [feedbackDismissed]);
 
   if (summary.isPending) {
-    return <p className="mx-auto max-w-6xl text-slate-400">正在汇总今天的安排…</p>;
+    return <p role="status" className="mx-auto flex min-h-24 max-w-6xl items-center text-sm text-slate-600">正在整理今天的安排…</p>;
   }
   if (summary.isError || !summary.data) {
     return (
       <div
         role="alert"
-        className="mx-auto max-w-6xl rounded-xl border border-amber-400/30 bg-amber-400/10 p-5 text-amber-100"
+        className="mx-auto max-w-6xl border-y border-amber-300 bg-amber-50 py-4 text-amber-950"
       >
-        无法读取今日工作台，请确认登录状态后重试。
+        <p className="text-sm font-medium">无法读取今天的安排。请检查连接后重试。</p>
+        <button
+          type="button"
+          onClick={() => void summary.refetch()}
+          className="mt-3 inline-flex min-h-12 items-center justify-center rounded-xl bg-amber-900 px-4 text-sm font-semibold text-white hover:bg-amber-950"
+        >
+          重试
+        </button>
       </div>
     );
   }
 
   const data = summary.data;
   const CompletionRenderer = interactionComponentRegistry.task_completion;
-  const timeline = getTimeline(data);
-  const taskCount = data.unfinished_tasks.length;
-  const isEmptyDay = timeline.length === 0
-    && taskCount === 0
-    && data.completed_tasks.length === 0
-    && data.pending_reminders.length === 0;
   const complete = async (taskId: string) => {
     try {
       await completeTask.mutateAsync(taskId);
@@ -324,11 +263,8 @@ export function TodayPage() {
         )}
       />
 
-      <MorningBrief targetDate={data.date} />
-
-      {/* Mobile rhythm card */}
-      <div className="mt-5 lg:hidden">
-        <MobileRhythmCard data={data} timeline={timeline} taskCount={taskCount} />
+      <div className="hidden lg:block">
+        <MorningBrief targetDate={data.date} />
       </div>
 
       {feedbackRetryTaskIds.length > 0 && (
@@ -361,24 +297,8 @@ export function TodayPage() {
       )}
       {feedbackDismissed && <p id="today-completion-feedback-dismissed" tabIndex={-1} role="status" className="mt-3 rounded-lg border border-emerald-300/20 bg-emerald-300/5 p-3 text-sm text-emerald-100">任务已完成，可选反馈已关闭。</p>}
 
-      {/* Mobile stats row (own block per §7.3) */}
       <div className="mt-4 lg:hidden">
-        <MobileStatsRow
-          events={data.events.length}
-          taskCount={taskCount}
-          reminderCount={data.pending_reminders.length}
-        />
-      </div>
-
-      {isEmptyDay && (
-        <div className="mt-4">
-          <TodayEmptyQuickAction />
-        </div>
-      )}
-
-      {/* Mobile timeline */}
-      <div className="mt-5 lg:hidden">
-        <TodayExecutionSurface
+        <MobileTodayExecutionSurface
           now={data.execution_now}
           next={data.execution_next}
           later={data.execution_later}
@@ -388,6 +308,18 @@ export function TodayPage() {
           busy={completeTask.isPending || startTask.isPending}
         />
       </div>
+
+      <div className="mt-4 lg:hidden">
+        <TodayTaskProgress completed={data.completed_tasks.length} unfinished={data.unfinished_tasks.length} />
+      </div>
+
+      <details className="group mt-3 border-b border-slate-200 pb-2 lg:hidden">
+        <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 text-sm font-medium text-slate-700">
+          <span>晨间简报</span>
+          <span aria-hidden="true" className="text-slate-500 transition-transform group-open:rotate-180">⌄</span>
+        </summary>
+        <MorningBrief targetDate={data.date} />
+      </details>
 
       {/* Desktop timeline + right column */}
       <div className="mt-5 hidden gap-5 lg:mt-8 lg:grid lg:grid-cols-[minmax(0,1fr)_340px]">

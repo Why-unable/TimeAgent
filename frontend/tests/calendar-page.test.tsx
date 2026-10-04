@@ -180,7 +180,7 @@ describe("CalendarPage", () => {
     await screen.findAllByText("项目会议");
     await userEvent.click(screen.getByRole("button", { name: "打开日期" }));
 
-    expect(screen.getByRole("dialog", { name: "当日日程" })).toBeInTheDocument();
+    expect(screen.getByRole("dialog", { name: /2026年7月20日/ })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "修改" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "删除" })).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "删除" }));

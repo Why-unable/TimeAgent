@@ -16,6 +16,9 @@ import { TimeMemoryPage } from "../pages/time-memory-page";
 const CalendarPage = lazy(() =>
   import("../pages/calendar-page").then((module) => ({ default: module.CalendarPage })),
 );
+const ScheduleHubPage = lazy(() =>
+  import("../pages/schedule-hub-page").then((module) => ({ default: module.ScheduleHubPage })),
+);
 const TasksPage = lazy(() =>
   import("../pages/tasks-page").then((module) => ({ default: module.TasksPage })),
 );
@@ -59,6 +62,7 @@ const router = createBrowserRouter([
           { path: "/today", element: lazyPage(<TodayPage />) },
           { path: "/chat/:conversationId?", element: lazyPage(<ChatPage />) },
           { path: "/calendar", element: lazyPage(<CalendarPage />) },
+          { path: "/schedule", element: lazyPage(<ScheduleHubPage />) },
           { path: "/tasks", element: lazyPage(<TasksPage />) },
           { path: "/planning", element: lazyPage(<PlanningPage />) },
           { path: "/reminders", element: <RemindersPage /> },

@@ -118,6 +118,7 @@ describe("interactive planning controls", () => {
   });
 
   it("supports keyboard time adjustment and resizes through the plan edit API", async () => {
+    Object.defineProperty(window, "innerWidth", { configurable: true, value: 1280 });
     const plan = makePlan();
     const updated = makePlan(2, [
       { task_id: firstTaskId, task_title: "论文", state: "placed", start_at: "2026-07-20T09:15:00Z", end_at: "2026-07-20T10:45:00Z", planned_duration_minutes: 90 },
@@ -147,7 +148,7 @@ describe("interactive planning controls", () => {
     );
 
     await userEvent.click(screen.getByRole("button", { name: "推后 15 分钟：论文" }));
-    const duration = screen.getAllByRole("spinbutton", { name: "时长（分钟）" })[0];
+    const duration = screen.getByRole("spinbutton", { name: "时长（分钟）：论文" });
     fireEvent.change(duration, { target: { value: "90" } });
     await userEvent.click(screen.getAllByRole("button", { name: "保存" })[0]);
     await waitFor(() => expect(submitInteraction).toHaveBeenCalledOnce());

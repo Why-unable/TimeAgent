@@ -47,7 +47,8 @@ const workspaceNavigation: NavigationItem[] = [
     description: "日程、任务与提醒",
     icon: CalendarDays,
     match: (pathname) =>
-      pathname.startsWith("/calendar")
+      pathname.startsWith("/schedule")
+      || pathname.startsWith("/calendar")
       || pathname.startsWith("/tasks")
       || pathname.startsWith("/planning")
       || pathname.startsWith("/reminders"),
@@ -196,7 +197,7 @@ export function AppLayout() {
           </div>
         </div>
       </aside>
-      <main className="min-h-screen px-[var(--mobile-page-gutter)] pb-[calc(var(--mobile-bottom-nav-height)+env(safe-area-inset-bottom)+1rem)] pt-[max(env(safe-area-inset-top),2rem)] lg:ml-72 lg:px-8 lg:pb-12 lg:pt-8 xl:px-12">
+      <main className="min-h-screen overflow-x-clip px-[var(--mobile-page-gutter)] pb-[calc(var(--mobile-bottom-nav-height)+env(safe-area-inset-bottom)+1rem)] pt-[max(env(safe-area-inset-top),2rem)] lg:ml-72 lg:px-8 lg:pb-12 lg:pt-8 xl:px-12">
         {currentUser.data?.is_guest && (
           <div className="mx-auto mb-5 max-w-7xl rounded-2xl border border-amber-300/25 bg-amber-300/10 px-4 py-3 text-sm text-amber-100">
             当前为游客临时空间{guestExpiresAt ? `，数据将在 ${guestExpiresAt} 后自动删除` : ""}。注册账号后可长期保存数据并使用完整通知与记忆功能。

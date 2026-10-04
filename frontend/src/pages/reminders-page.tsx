@@ -1,8 +1,8 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Bell, CircleAlert, Plus, X } from "lucide-react";
-import type { ReactNode } from "react";
-import { useRef, useState } from "react";
-import { useForm } from "react-hook-form";
+import type { FormEventHandler, ReactNode } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useForm, type UseFormReturn } from "react-hook-form";
 import { z } from "zod";
 
 import type { Reminder } from "../api/reminders";
@@ -15,6 +15,7 @@ import {
   useReminders,
 } from "../features/reminders/hooks";
 import { ScheduleWorkspaceTabs } from "../features/workspace/schedule-workspace-tabs";
+import { Drawer } from "../components/overlay/drawer";
 import { formatInUserTimezone, getLocalDateTimeProblem, localDateTimeProblemMessage, toUtcISOString } from "../utils/datetime";
 
 const reminderFormSchema = z
@@ -57,7 +58,7 @@ const statusStyles: Record<NonNullable<Reminder["status"]>, string> = {
 };
 
 const cancellableStatuses = new Set<Reminder["status"]>(["pending", "queued", "failed"]);
-const pendingStatuses = new Set<Reminder["status"]>(["pending", "queued", "sending", "failed"]);
+const pendingStatuses = new Set<Reminder["status"]>(["pending", "queued", "sending"]);
 const SENT_HISTORY_LIMIT = 10;
 const PENDING_PAGE_SIZE = 10;
 
@@ -67,6 +68,10 @@ export function RemindersPage() {
   const createMutation = useCreateReminder();
   const cancelMutation = useCancelReminder();
   const idempotencyKey = useRef(crypto.randomUUID());
+  const [isMobileViewport, setIsMobileViewport] = useState(() => window.innerWidth < 1024);
+  const [createOpen, setCreateOpen] = useState(false);
+  const [createdNotice, setCreatedNotice] = useState("");
+  const [cancelRetryId, setCancelRetryId] = useState<string | null>(null);
   const timezone = preference.data?.timezone ?? "Asia/Shanghai";
   const locale = preference.data?.locale ?? "zh-CN";
   const tasks = useTasks();
@@ -75,8 +80,17 @@ export function RemindersPage() {
     resolver: zodResolver(reminderFormSchema),
     defaultValues: { title: "", trigger_at: "", target_type: "custom", target_id: "" },
   });
+
+  useEffect(() => {
+    const updateViewport = () => setIsMobileViewport(window.innerWidth < 1024);
+    window.addEventListener("resize", updateViewport);
+    return () => window.removeEventListener("resize", updateViewport);
+  }, []);
+
   const [pendingLimit, setPendingLimit] = useState(PENDING_PAGE_SIZE);
   const allReminders = reminders.data ?? [];
+  const failedReminders = allReminders.filter((item) => item.status === "failed");
+  const cancelledReminders = allReminders.filter((item) => item.status === "cancelled");
   const pendingReminders = allReminders.filter((item) => pendingStatuses.has(item.status));
   const historicalReminders = allReminders
     .filter((item) => item.status === "sent" || item.status === "missed")
@@ -105,10 +119,22 @@ export function RemindersPage() {
         onSuccess: () => {
           form.reset();
           idempotencyKey.current = crypto.randomUUID();
+          setCreatedNotice("提醒已创建。定时发送状态会显示在提醒列表中。");
+          setCreateOpen(false);
         },
       },
     );
   });
+
+  const cancelReminderById = (id: string) => {
+    setCancelRetryId(id);
+    cancelMutation.reset();
+    cancelMutation.mutate(id, { onSuccess: () => setCancelRetryId(null) });
+  };
+
+  const createErrorMessage = createMutation.error instanceof Error
+    ? createMutation.error.message
+    : "创建失败，请检查提醒内容和时间后重试。";
 
   return (
     <section className="mx-auto max-w-5xl">
@@ -118,77 +144,77 @@ export function RemindersPage() {
         <Bell className="text-cyan-300" />
         <h2 className="text-3xl font-semibold">提醒</h2>
       </div>
-      <p className="mt-3 hidden text-slate-400 lg:block">创建自定义提醒，并查看确定性投递状态。</p>
-
-      {/* Mobile description + primary action */}
-      <p className="mt-4 text-base text-slate-400 lg:hidden">
-        创建自定义提醒，并查看确定性投递状态。
-      </p>
-      {/* sr-only heading so tests and screen readers can still target 提醒 */}
-      <h2 className="sr-only lg:hidden">提醒</h2>
-
-      <form
-        onSubmit={onSubmit}
-        className="mt-4 grid gap-4 rounded-2xl border border-white/10 bg-slate-900 p-5 lg:mt-8 lg:grid-cols-[minmax(0,1fr)_220px_240px_auto] lg:items-end"
-      >
-        <label>
-          <span className="text-sm text-slate-300">提醒内容</span>
-          <input
-            {...form.register("title")}
-            className="mt-2 w-full rounded-xl border border-white/10 bg-slate-950 px-4 py-3"
-            placeholder="例如：提交项目报告"
-          />
-          {form.formState.errors.title && (
-            <span className="mt-1 block text-sm text-red-300">
-              {form.formState.errors.title.message}
-            </span>
-          )}
-        </label>
-        <label>
-          <span className="text-sm text-slate-300">关联对象（可选）</span>
-          <select {...form.register("target_type")} className="mt-2 w-full rounded-xl border border-white/10 bg-slate-950 px-4 py-3"><option value="custom">不关联</option><option value="task">任务</option><option value="calendar_event">日程</option></select>
-          {form.watch("target_type") !== "custom" && <select {...form.register("target_id")} className="mt-2 w-full rounded-xl border border-white/10 bg-slate-950 px-4 py-3"><option value="">请选择</option>{(form.watch("target_type") === "task" ? tasks.data ?? [] : events.data ?? []).map((item) => <option key={item.id} value={item.id}>{item.title}</option>)}</select>}
-          {form.formState.errors.target_id && <span className="mt-1 block text-sm text-red-300">{form.formState.errors.target_id.message}</span>}
-        </label>
-        <label>
-          <span className="text-sm text-slate-300">提醒时间（{timezone}）</span>
-          <input
-            type="datetime-local"
-            {...form.register("trigger_at")}
-            className="mt-2 w-full rounded-xl border border-white/10 bg-slate-950 px-4 py-3"
-          />
-          {form.formState.errors.trigger_at && (
-            <span className="mt-1 block text-sm text-red-300">
-              {form.formState.errors.trigger_at.message}
-            </span>
-          )}
-        </label>
+      <header className="mt-4 flex items-center justify-between gap-3 lg:hidden">
+        <div>
+          <h2 className="text-2xl font-semibold text-slate-900">提醒</h2>
+          <p className="mt-1 text-sm text-slate-600">时间按 {timezone} 显示。</p>
+        </div>
         <button
-          type="submit"
-          disabled={createMutation.isPending}
-          className="inline-flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl bg-cyan-300 px-5 py-3 text-lg font-semibold text-slate-950 disabled:opacity-50 lg:w-auto lg:rounded-xl lg:text-base"
+          type="button"
+          aria-label="打开新建提醒"
+          onClick={() => {
+            createMutation.reset();
+            form.clearErrors();
+            setCreatedNotice("");
+            setCreateOpen(true);
+          }}
+          className="inline-flex min-h-12 shrink-0 items-center gap-2 rounded-xl bg-teal-700 px-4 text-sm font-semibold text-white"
         >
-          <Plus size={18} />
-          {createMutation.isPending ? "创建中" : "新建提醒"}
+          <Plus size={18} aria-hidden="true" /> 新建提醒
         </button>
-        {createMutation.isError && (
-          <div role="alert" className="text-sm text-red-300 md:col-span-3">
-            创建失败，请检查时间、时区或幂等键后重试。
-          </div>
-        )}
-      </form>
+      </header>
+      {!isMobileViewport && (
+        <ReminderCreateForm
+          form={form}
+          timezone={timezone}
+          tasks={tasks.data ?? []}
+          events={events.data ?? []}
+          pending={createMutation.isPending}
+          error={createMutation.isError ? createErrorMessage : ""}
+          onSubmit={onSubmit}
+          mobile={false}
+        />
+      )}
+      {isMobileViewport && createOpen && (
+        <Drawer
+          title="新建提醒"
+          description={`填写内容和时间；时间按 ${timezone} 解释。`}
+          onClose={() => setCreateOpen(false)}
+        >
+          <ReminderCreateForm
+            form={form}
+            timezone={timezone}
+            tasks={tasks.data ?? []}
+            events={events.data ?? []}
+            pending={createMutation.isPending}
+            error={createMutation.isError ? createErrorMessage : ""}
+            onSubmit={onSubmit}
+            mobile
+          />
+        </Drawer>
+      )}
+      {createdNotice && <p role="status" className="mt-3 text-sm text-emerald-800">{createdNotice}</p>}
 
       <div className="mt-8 space-y-3">
-        {reminders.isPending && <p className="text-slate-400">正在加载提醒…</p>}
+        {reminders.isPending && <p role="status" className="text-sm text-slate-600">正在加载提醒…</p>}
         {reminders.isError && (
-          <div role="alert" className="rounded-xl border border-amber-400/30 bg-amber-400/10 p-4 text-amber-100">
-            无法读取提醒，请先通过 Django Session 登录。
+          <div role="alert" className="rounded-xl border border-amber-300 bg-amber-50 p-4 text-amber-950">
+            <p>暂时无法读取提醒，请检查连接后重试。</p>
+            <button type="button" onClick={() => void reminders.refetch()} className="mt-2 inline-flex min-h-11 items-center underline underline-offset-2">重试读取</button>
           </div>
         )}
-        {allReminders.length === 0 && (
-          <div className="rounded-2xl border border-dashed border-white/10 p-10 text-center text-slate-500">
-            暂无提醒
+        {cancelMutation.isError && cancelRetryId && (
+          <div role="alert" className="rounded-xl border border-red-300 bg-red-50 p-3 text-sm text-red-950">
+            <p>取消提醒失败。它仍保留在列表中，你可以重试。</p>
+            <button type="button" onClick={() => cancelReminderById(cancelRetryId)} className="mt-2 inline-flex min-h-11 items-center underline underline-offset-2">重试取消</button>
           </div>
+        )}
+        {reminders.isSuccess && allReminders.length === 0 && <p className="border-b border-slate-200 py-6 text-sm text-slate-600">还没有提醒。新建一条后，发送状态会显示在这里。</p>}
+        {reminders.isSuccess && allReminders.length > 0 && failedReminders.length === 0 && pendingReminders.length === 0 && historicalReminders.length === 0 && cancelledReminders.length === 0 && <p className="border-b border-slate-200 py-6 text-sm text-slate-600">当前没有可显示的提醒记录。</p>}
+        {failedReminders.length > 0 && (
+          <ReminderSection title="需要处理" count={failedReminders.length} subtitle="发送失败；可取消后重新创建">
+            {failedReminders.map((reminder) => <ReminderCard key={reminder.id} reminder={reminder} timezone={timezone} locale={locale} cancelling={cancelMutation.isPending} onCancel={cancelReminderById} />)}
+          </ReminderSection>
         )}
         {visiblePendingReminders.length > 0 && (
           <ReminderSection title="待发送" count={pendingReminders.length}>
@@ -199,7 +225,7 @@ export function RemindersPage() {
                 timezone={timezone}
                 locale={locale}
                 cancelling={cancelMutation.isPending}
-                onCancel={(id) => cancelMutation.mutate(id)}
+                onCancel={cancelReminderById}
               />
             ))}
             {pendingReminders.length > visiblePendingReminders.length && (
@@ -227,6 +253,16 @@ export function RemindersPage() {
             ))}
           </ReminderSection>
         )}
+        {cancelledReminders.length > 0 && (
+          <details className="border-b border-slate-200 py-2">
+            <summary className="flex min-h-12 cursor-pointer items-center justify-between text-sm font-medium text-slate-700">
+              <span>已取消</span><span className="text-slate-500">{cancelledReminders.length} 条</span>
+            </summary>
+            <div className="mt-2"><ReminderSection title="已取消的提醒" count={cancelledReminders.length}>
+              {cancelledReminders.slice(0, SENT_HISTORY_LIMIT).map((reminder) => <ReminderCard key={reminder.id} reminder={reminder} timezone={timezone} locale={locale} cancelling={false} onCancel={() => undefined} />)}
+            </ReminderSection></div>
+          </details>
+        )}
       </div>
     </section>
   );
@@ -244,13 +280,69 @@ function ReminderSection({ title, count, subtitle, children }: { title: string; 
   );
 }
 
+function ReminderCreateForm({
+  form,
+  timezone,
+  tasks,
+  events,
+  pending,
+  error,
+  onSubmit,
+  mobile,
+}: {
+  form: UseFormReturn<ReminderForm>;
+  timezone: string;
+  tasks: Array<{ id: string; title: string }>;
+  events: Array<{ id: string; title: string }>;
+  pending: boolean;
+  error: string;
+  onSubmit: FormEventHandler<HTMLFormElement>;
+  mobile: boolean;
+}) {
+  const targetType = form.watch("target_type");
+  const options = targetType === "task" ? tasks : events;
+  const inputClass = "mt-2 min-h-12 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-base text-slate-900 outline-none focus-visible:ring-2 focus-visible:ring-teal-700";
+  return (
+    <form onSubmit={onSubmit} className={mobile ? "grid gap-5" : "mt-8 grid gap-4 rounded-2xl border border-white/10 bg-slate-900 p-5 lg:grid-cols-[minmax(0,1fr)_220px_240px_auto] lg:items-end"}>
+      <label htmlFor="reminder-title" className="block text-sm font-medium text-slate-700">
+        提醒内容
+        <input id="reminder-title" aria-invalid={Boolean(form.formState.errors.title)} aria-describedby={form.formState.errors.title ? "reminder-title-error" : undefined} {...form.register("title")} className={inputClass} placeholder="例如：提交项目报告" />
+        {form.formState.errors.title && <span id="reminder-title-error" className="mt-1 block text-sm text-red-800">{form.formState.errors.title.message}</span>}
+      </label>
+      <label htmlFor="reminder-time" className="block text-sm font-medium text-slate-700">
+        提醒时间（{timezone}）
+        <input id="reminder-time" type="datetime-local" aria-invalid={Boolean(form.formState.errors.trigger_at)} aria-describedby={form.formState.errors.trigger_at ? "reminder-time-error" : undefined} {...form.register("trigger_at")} className={inputClass} />
+        {form.formState.errors.trigger_at && <span id="reminder-time-error" className="mt-1 block text-sm text-red-800">{form.formState.errors.trigger_at.message}</span>}
+      </label>
+      <fieldset className="min-w-0">
+        <legend className="text-sm font-medium text-slate-700">关联对象（可选）</legend>
+        <label htmlFor="reminder-target-type" className="sr-only">关联对象类型</label>
+        <select id="reminder-target-type" {...form.register("target_type")} className={inputClass}>
+          <option value="custom">不关联</option><option value="task">任务</option><option value="calendar_event">日程</option>
+        </select>
+        {targetType !== "custom" && <>
+          <label htmlFor="reminder-target-id" className="sr-only">选择关联的{targetType === "task" ? "任务" : "日程"}</label>
+          <select id="reminder-target-id" aria-invalid={Boolean(form.formState.errors.target_id)} aria-describedby={form.formState.errors.target_id ? "reminder-target-error" : undefined} {...form.register("target_id")} className={inputClass}>
+            <option value="">请选择</option>{options.map((item) => <option key={item.id} value={item.id}>{item.title}</option>)}
+          </select>
+        </>}
+        {form.formState.errors.target_id && <span id="reminder-target-error" className="mt-1 block text-sm text-red-800">{form.formState.errors.target_id.message}</span>}
+      </fieldset>
+      {error && <p role="alert" className="text-sm text-red-800">创建失败：{error}</p>}
+      <button type="submit" disabled={pending} className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-teal-700 px-5 text-base font-semibold text-white disabled:opacity-50 lg:w-auto">
+        <Plus size={18} aria-hidden="true" />{pending ? "创建中…" : mobile ? "创建提醒" : "新建提醒"}
+      </button>
+    </form>
+  );
+}
+
 function ReminderCard({ reminder, timezone, locale, cancelling, onCancel }: { reminder: Reminder; timezone: string; locale: string; cancelling: boolean; onCancel: (id: string) => void }) {
   const status = reminder.status ?? "pending";
   const canCancel = cancellableStatuses.has(status);
   const automaticOffset = reminder.offset_minutes;
   const offsetLabel = automaticOffset === 0 ? "准点" : automaticOffset === 1440 ? "提前一天" : automaticOffset === 15 ? "提前 15 分钟" : automaticOffset != null ? `提前 ${automaticOffset} 分钟` : "";
   return (
-    <article className="rounded-2xl border border-white/10 bg-slate-900 p-5">
+    <article className="border-b border-slate-200 py-4 last:border-b-0 lg:rounded-2xl lg:border lg:border-white/10 lg:bg-slate-900 lg:p-5">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h4 className="font-medium text-slate-100">{reminder.title}</h4>
@@ -259,7 +351,7 @@ function ReminderCard({ reminder, timezone, locale, cancelling, onCancel }: { re
         </div>
         <div className="flex items-center gap-2">
           <span className={`rounded-full px-3 py-1 text-xs ${statusStyles[status]}`}>{statusLabels[status]}</span>
-          {canCancel && <button type="button" aria-label={`取消提醒：${reminder.title}`} disabled={cancelling} onClick={() => onCancel(reminder.id)} className="rounded-lg p-2 text-slate-400 hover:bg-white/5 hover:text-white disabled:opacity-50"><X size={17} /></button>}
+          {canCancel && <button type="button" aria-label={`取消提醒：${reminder.title}`} disabled={cancelling} onClick={() => onCancel(reminder.id)} className="inline-flex min-h-11 min-w-11 items-center justify-center gap-1 rounded-lg px-2 text-sm text-red-800 hover:bg-red-50 disabled:opacity-50"><X size={17} aria-hidden="true" /><span className="sr-only">取消</span></button>}
         </div>
       </div>
       {(reminder.retry_count ?? 0) > 0 && <p className="mt-3 text-xs text-amber-200">已重试 {reminder.retry_count} 次</p>}

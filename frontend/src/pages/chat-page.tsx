@@ -11,7 +11,6 @@ import {
   Send,
   UserRound,
   Wrench,
-  X,
 } from "lucide-react";
 import {
   FormEvent,
@@ -42,6 +41,7 @@ import {
 } from "../api/action-proposals";
 import { ApprovalCard } from "../components/approvals/approval-card";
 import { ChatEmptyState } from "../components/chat/chat-empty-state";
+import { Drawer } from "../components/overlay/drawer";
 import { MarkdownMessage } from "../components/chat/markdown-message";
 import { PlanPreview, type PlanPreviewItem } from "../components/planning/plan-preview";
 import type { TodaySummary } from "../api/today";
@@ -350,10 +350,13 @@ export function ChatPage() {
   const controller = useRef<AbortController | null>(null);
   const runCursors = useRef(new Map<string, string>());
   const messagesEnd = useRef<HTMLDivElement | null>(null);
+  const messageViewport = useRef<HTMLDivElement | null>(null);
+  const shouldFollowLatest = useRef(true);
   const textarea = useRef<HTMLTextAreaElement | null>(null);
   const composer = useRef<HTMLFormElement | null>(null);
   const autoSendStarted = useRef(false);
   const [composerOffset, setComposerOffset] = useState(0);
+  const [showJumpToLatest, setShowJumpToLatest] = useState(false);
 
   useEffect(() => {
     const prompt = searchParams.get("prompt");
@@ -644,8 +647,33 @@ export function ChatPage() {
   }, [consumeRun, conversationId, loadPlanArtifact]);
 
   useEffect(() => {
-    messagesEnd.current?.scrollIntoView?.({ behavior: entries.length > 2 ? "smooth" : "auto" });
+    if (shouldFollowLatest.current) {
+      messagesEnd.current?.scrollIntoView?.({ behavior: "auto" });
+      setShowJumpToLatest(false);
+    } else if (busy) {
+      setShowJumpToLatest(true);
+    }
   }, [entries, busy]);
+
+  useEffect(() => {
+    setHistoryOpen(false);
+  }, [conversationId]);
+
+  const handleMessageScroll = () => {
+    const viewport = messageViewport.current;
+    if (!viewport) return;
+    const distanceToBottom = viewport.scrollHeight - viewport.clientHeight - viewport.scrollTop;
+    const isNearBottom = distanceToBottom <= 96;
+    shouldFollowLatest.current = isNearBottom;
+    if (isNearBottom) setShowJumpToLatest(false);
+    else if (busy) setShowJumpToLatest(true);
+  };
+
+  const jumpToLatest = () => {
+    shouldFollowLatest.current = true;
+    setShowJumpToLatest(false);
+    messagesEnd.current?.scrollIntoView?.({ behavior: "auto" });
+  };
 
   const groups = useMemo(
     () => groupConversations(conversations.filter((item) => item.kind === historyKind)),
@@ -660,6 +688,8 @@ export function ChatPage() {
   const sendMessage = useCallback(async (draft: string) => {
     const content = draft.trim();
     if (!content || busy) return;
+    shouldFollowLatest.current = true;
+    setShowJumpToLatest(false);
     setMessage("");
     setError("");
     setBusy(true);
@@ -748,13 +778,12 @@ export function ChatPage() {
   };
 
   const historyPanel = (
-    <div className="flex h-full flex-col">
-      <div className="flex items-center justify-between gap-2 border-b border-white/10 p-3">
-        <p className="flex items-center gap-2 text-sm font-medium text-slate-200"><History size={16} /> 对话历史</p>
-        <button type="button" onClick={() => setHistoryOpen(false)} aria-label="关闭对话历史" className="rounded-lg p-2 text-slate-400 hover:bg-white/5 hover:text-white lg:hidden"><X size={18} /></button>
+    <div className="flex min-h-[45dvh] max-h-[68dvh] flex-col lg:h-full lg:min-h-0 lg:max-h-none">
+      <div className="hidden items-center gap-2 border-b border-slate-200 p-3 lg:flex">
+        <p className="flex items-center gap-2 text-sm font-medium text-slate-700"><History size={16} /> 对话历史</p>
       </div>
       <div className="p-3">
-        <button type="button" onClick={startNewChat} className="flex w-full items-center justify-center gap-2 rounded-xl bg-cyan-300 px-3 py-2.5 text-sm font-medium text-slate-950 transition hover:bg-cyan-200">
+        <button type="button" onClick={startNewChat} className="mobile-on-brand flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-teal-700 px-3 text-sm font-semibold text-white transition hover:bg-teal-800">
           <Plus size={17} /> 新建聊天
         </button>
       </div>
@@ -768,18 +797,19 @@ export function ChatPage() {
             type="button"
             key={kind}
             onClick={() => setHistoryKind(kind)}
-            className={`rounded-lg px-2 py-2 text-[11px] ${historyKind === kind ? "bg-cyan-400/15 text-cyan-200" : "text-slate-500 hover:bg-white/5"}`}
+            aria-pressed={historyKind === kind}
+            className={`min-h-11 rounded-lg px-2 text-xs font-medium ${historyKind === kind ? "bg-teal-50 text-teal-800" : "text-slate-600 hover:bg-slate-100"}`}
           >
             {label}
           </button>
         ))}
       </div>
-      <nav aria-label="对话历史" className="min-h-0 flex-1 overflow-y-auto px-2 pb-3">
+      <nav aria-label="对话历史列表" className="min-h-0 flex-1 overflow-y-auto px-2 pb-3">
         {loadingConversations && <p className="px-3 py-4 text-xs text-slate-500">正在加载历史对话…</p>}
         {!loadingConversations && groups.length === 0 && <p className="px-3 py-4 text-xs leading-5 text-slate-500">此分类下还没有会话。</p>}
         {groups.map((group) => (
           <div key={group.label} className="mt-3 first:mt-0">
-            <p className="px-3 pb-1 text-[11px] font-medium uppercase tracking-wider text-slate-500">{group.label}</p>
+            <p className="px-3 pb-1 text-[11px] font-medium uppercase tracking-wider text-slate-600">{group.label}</p>
             <div className="space-y-1">
               {group.conversations.map((conversation) => (
                 <button
@@ -787,7 +817,7 @@ export function ChatPage() {
                   key={conversation.id}
                   onClick={() => navigate(`/chat/${conversation.id}`)}
                   aria-current={conversation.id === conversationId ? "page" : undefined}
-                  className={`group flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm transition ${conversation.id === conversationId ? "bg-cyan-400/10 text-cyan-100" : "text-slate-300 hover:bg-white/5 hover:text-white"}`}
+                  className={`group flex min-h-11 w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm transition ${conversation.id === conversationId ? "bg-teal-50 text-teal-800" : "text-slate-700 hover:bg-slate-100"}`}
                 >
                   {conversation.kind === "chat" ? <MessageSquare size={15} className="shrink-0 opacity-60" /> : <Newspaper size={15} className="shrink-0 opacity-60" />}
                   <span className="min-w-0 flex-1 truncate">{conversation.title || "新对话"}</span>
@@ -802,31 +832,31 @@ export function ChatPage() {
   );
 
   return (
-    <section className="-mx-5 flex h-[calc(100dvh-8.25rem)] min-h-[32rem] overflow-hidden bg-transparent lg:mx-auto lg:h-[calc(100vh-7rem)] lg:max-w-7xl lg:rounded-2xl lg:border lg:border-white/10 lg:bg-slate-900/40">
-      <aside className="hidden w-64 shrink-0 border-r border-white/10 bg-slate-950/40 lg:block">{historyPanel}</aside>
+    <section className="-mx-4 flex h-[calc(100dvh-8.25rem)] min-h-0 overflow-hidden bg-transparent lg:mx-auto lg:h-[calc(100vh-7rem)] lg:min-h-[32rem] lg:max-w-7xl lg:rounded-2xl lg:border lg:border-slate-200 lg:bg-white/70">
+      <aside className="hidden w-64 shrink-0 border-r border-slate-200 bg-slate-50 lg:block">{historyPanel}</aside>
       {historyOpen && (
-        <div className="fixed inset-0 z-40 lg:hidden">
-          <button type="button" aria-label="关闭对话历史" onClick={() => setHistoryOpen(false)} className="absolute inset-0 bg-slate-950/75 backdrop-blur-sm" />
-          <aside className="relative h-full w-[min(20rem,85vw)] border-r border-white/10 bg-slate-950 shadow-2xl">{historyPanel}</aside>
-        </div>
+        <Drawer title="对话历史" onClose={() => setHistoryOpen(false)}>
+          {historyPanel}
+        </Drawer>
       )}
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="flex items-center gap-3 border-b border-white/10 px-4 py-2.5 sm:px-6 lg:px-4">
-          <button type="button" onClick={() => setHistoryOpen(true)} aria-label="打开对话历史" className="rounded-xl bg-white/5 p-2.5 text-slate-300 hover:bg-white/10 hover:text-white lg:hidden"><Menu size={22} /></button>
-          <Bot className="shrink-0 text-cyan-300" size={24} />
+        <header className="flex min-h-14 items-center gap-3 border-b border-slate-200 px-4 py-2.5 sm:px-6 lg:px-4">
+          <button type="button" onClick={() => setHistoryOpen(true)} aria-label="打开对话历史" aria-haspopup="dialog" className="grid min-h-12 min-w-12 place-items-center rounded-xl text-slate-700 hover:bg-slate-100 lg:hidden"><Menu size={22} /></button>
+          <Bot className="shrink-0 text-teal-700" size={23} aria-hidden="true" />
           <div className="min-w-0">
-            <h2 className="truncate text-lg font-semibold text-slate-100">{activeConversation?.title || "智能时间助理"}</h2>
-            <p className="mt-0.5 text-sm text-slate-500">{activeConversation?.kind === "manual_briefing" ? "用户手动简报" : activeConversation?.kind === "scheduled_briefing" ? "自动简报" : "Time Steward"}</p>
+            <h2 className="truncate text-base font-semibold text-slate-900">{activeConversation?.title || "Time Steward"}</h2>
+            <p className="text-xs text-slate-600">{activeConversation?.kind === "manual_briefing" ? "用户手动简报" : activeConversation?.kind === "scheduled_briefing" ? "自动简报" : "私人时间助理"}</p>
           </div>
-          {conversationId && <button type="button" onClick={startNewChat} className="ml-auto hidden items-center gap-2 rounded-lg border border-white/10 px-3 py-2 text-xs text-slate-300 hover:bg-white/5 sm:flex"><Plus size={15} /> 新建聊天</button>}
+          {conversationId && <button type="button" onClick={startNewChat} className="ml-auto hidden min-h-11 items-center gap-2 rounded-lg border border-slate-300 px-3 text-sm text-slate-700 hover:bg-slate-50 sm:flex"><Plus size={15} /> 新建聊天</button>}
         </header>
 
-        <div aria-live="polite" aria-busy={loadingHistory || busy} className="min-h-0 flex-1 space-y-5 overflow-y-auto px-4 py-5 sm:px-8 lg:px-4">
+        <div className="relative min-h-0 flex-1">
+        <div ref={messageViewport} onScroll={handleMessageScroll} className="h-full space-y-5 overflow-y-auto px-4 py-5 sm:px-8 lg:px-4">
           {loadingHistory && <p className="flex items-center justify-center gap-2 py-16 text-sm text-slate-500"><LoaderCircle className="animate-spin" size={16} /> 正在加载对话…</p>}
           {!loadingHistory && entries.length === 0 && (
             <>
-              {todaySummary.data && <TodayContextSummary data={todaySummary.data} />}
+              {todaySummary.data && <div className="hidden lg:block"><TodayContextSummary data={todaySummary.data} /></div>}
               <ChatEmptyState onQuickAction={handleQuickAction} />
             </>
           )}
@@ -905,7 +935,7 @@ export function ChatPage() {
                 {entry.kind === "assistant" && <Bot className="mt-2 shrink-0 text-cyan-300" size={18} />}
                 {entry.kind === "user" ? (
                   <div className="max-w-[88%] sm:max-w-[85%]">
-                    <p className="whitespace-pre-wrap rounded-2xl bg-cyan-400/15 px-4 py-3 text-base leading-6 text-cyan-50">{entry.content}</p>
+                    <p className="whitespace-pre-wrap rounded-2xl bg-teal-50 px-4 py-3 text-base leading-6 text-slate-900">{entry.content}</p>
                     <time
                       dateTime={entry.timestamp}
                       title={formatInUserTimezone(entry.timestamp, timezone)}
@@ -916,7 +946,7 @@ export function ChatPage() {
                   </div>
                 ) : (
                   <div className="min-w-0 flex-1 lg:max-w-[85%]">
-                    <div className="rounded-2xl bg-white/5 px-4 py-3 lg:px-4 lg:py-3">
+                    <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 lg:px-4 lg:py-3">
                       <MarkdownMessage content={entry.content} />
                     </div>
                     <time
@@ -933,24 +963,30 @@ export function ChatPage() {
               </div>
             );
           })}
-          {busy && <p className="mx-auto flex max-w-3xl items-center gap-2 text-sm text-slate-400"><LoaderCircle className="animate-spin" size={16} /> Time Steward 正在处理…</p>}
+          {busy && <p role="status" className="mx-auto flex max-w-3xl items-center gap-2 text-sm text-slate-600"><LoaderCircle className="animate-spin" size={16} /> Time Steward 正在处理…</p>}
           {error && <p role="alert" className="mx-auto max-w-3xl rounded-xl border border-red-300 bg-red-50 p-3 text-sm font-medium leading-6 text-red-900 shadow-sm">{error}</p>}
           <div ref={messagesEnd} />
+        </div>
+        {showJumpToLatest && (
+          <button type="button" onClick={jumpToLatest} className="absolute bottom-2 left-1/2 z-10 min-h-11 -translate-x-1/2 rounded-full border border-slate-300 bg-white px-4 text-sm font-medium text-teal-800 shadow-sm">
+            回到最新消息
+          </button>
+        )}
         </div>
 
         <form
           ref={composer}
           onSubmit={submit}
           style={{ transform: composerOffset ? `translateY(-${composerOffset}px)` : undefined }}
-          className="border-t border-white/10 bg-slate-950/95 pb-[max(env(safe-area-inset-bottom),0.5rem)] pt-2 transition-transform sm:p-4 lg:p-3"
+          className="border-t border-slate-200 bg-white/95 pb-[max(env(safe-area-inset-bottom),0.5rem)] pt-2 transition-transform sm:p-4 lg:p-3"
         >
-          <div className="mx-3 flex max-w-none items-end gap-2 rounded-2xl border border-white/10 bg-slate-900 p-2 shadow-xl focus-within:border-cyan-300/40 sm:mx-auto sm:max-w-3xl sm:p-3">
+          <div className="mx-3 flex max-w-none items-end gap-2 rounded-2xl border border-slate-300 bg-white p-2 shadow-sm focus-within:border-teal-700 sm:mx-auto sm:max-w-3xl sm:p-3">
             <label className="sr-only" htmlFor="chat-message">消息</label>
-            <textarea ref={textarea} id="chat-message" rows={1} value={message} onChange={(event) => setMessage(event.target.value)} onKeyDown={handleComposerKeyDown} disabled={busy || loadingHistory} placeholder="输入你的时间管理请求…" className="max-h-40 min-h-11 flex-1 resize-none bg-transparent px-2.5 py-2.5 text-base outline-none disabled:opacity-60" />
+            <textarea ref={textarea} id="chat-message" rows={1} value={message} onChange={(event) => setMessage(event.target.value)} onKeyDown={handleComposerKeyDown} disabled={busy || loadingHistory} placeholder="输入你的时间管理请求…" className="max-h-40 min-h-12 flex-1 resize-none bg-transparent px-2.5 py-2.5 text-base text-slate-900 outline-none placeholder:text-slate-600 disabled:opacity-60" />
             {busy ? (
-              <button type="button" onClick={cancel} aria-label="停止运行" className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-red-400/15 text-red-200"><CircleStop size={21} /></button>
+              <button type="button" onClick={cancel} aria-label="停止运行" className="grid size-12 shrink-0 place-items-center rounded-xl bg-red-50 text-red-800"><CircleStop size={21} /></button>
             ) : (
-              <button type="submit" aria-label="发送消息" disabled={!message.trim() || loadingHistory} className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-cyan-300 text-slate-950 disabled:opacity-40"><Send size={21} /></button>
+              <button type="submit" aria-label="发送消息" disabled={!message.trim() || loadingHistory} className="mobile-on-brand grid size-12 shrink-0 place-items-center rounded-xl bg-teal-700 text-white disabled:opacity-40"><Send size={21} /></button>
             )}
           </div>
         </form>

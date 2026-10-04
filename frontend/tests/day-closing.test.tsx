@@ -44,7 +44,7 @@ describe("DayClosing", () => {
     renderClosing();
 
     const section = screen.getByRole("region", { name: "今天收尾与明日草案" });
-    expect(section).toHaveClass("from-amber-50", "via-white", "to-emerald-50");
+    expect(section).toHaveClass("bg-white", "border-amber-300");
     expect(within(section).getByText("今日收获")).toHaveClass("text-amber-950");
     expect(within(section).getByText("已完成 1 项")).toHaveClass("text-emerald-800", "bg-emerald-50");
   });

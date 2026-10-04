@@ -1,5 +1,4 @@
 import FullCalendar, {
-  type CalendarRef,
   type DateClickInfo,
   type DatesSetInfo,
   type EventClickInfo,
@@ -21,7 +20,7 @@ import {
   Unplug,
   X,
 } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import type { CalendarEvent } from "../api/events";
 import {
@@ -31,7 +30,7 @@ import {
   syncCalendarConnection,
 } from "../api/integrations";
 import { DayAgendaSheet } from "../components/mobile/day-agenda-sheet";
-import { MobileSegmentedControl } from "../components/mobile/mobile-segmented-control";
+import { MobileMonthCalendar } from "../components/mobile/mobile-month-calendar";
 import { EventEditor } from "../features/events/event-editor";
 import { ScheduleWorkspaceTabs } from "../features/workspace/schedule-workspace-tabs";
 import { useCancelEvent, useEvents } from "../features/events/hooks";
@@ -39,12 +38,21 @@ import { useCurrentUserPreference } from "../features/preferences/hooks";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { isNativePlatform } from "../platform";
 import { useSearchParams } from "react-router-dom";
-import { formatInUserTimezone, getLocalDateKey } from "../utils/datetime";
+import { formatInUserTimezone, getLocalDateKey, toUtcISOString } from "../utils/datetime";
+import { dateKeyAsUtcDate, expandedUtcDateRange } from "../utils/date-key";
 import { Button, PageHeader } from "../components/ui/primitives";
 
 const statusLabels = { tentative: "暂定", confirmed: "已确认", cancelled: "已取消" } as const;
 
-type CalendarView = "dayGridMonth" | "timeGridWeek" | "timeGridDay";
+function validDateKey(value: string | null): string | undefined {
+  if (!value) return undefined;
+  try {
+    dateKeyAsUtcDate(value);
+    return value;
+  } catch {
+    return undefined;
+  }
+}
 
 export function CalendarPage() {
   const queryClient = useQueryClient();
@@ -53,17 +61,18 @@ export function CalendarPage() {
   const preference = useCurrentUserPreference();
   const timezone = preference.data?.timezone ?? "Asia/Shanghai";
   const locale = preference.data?.locale ?? "zh-CN";
+  const requestedDateKey = validDateKey(searchParams.get("date"));
+  const todayKey = getLocalDateKey(new Date(), timezone);
   const defaultDurationMinutes = preference.data?.default_event_duration_minutes ?? 60;
   const [range, setRange] = useState(() => ({
     startsBefore: new Date(Date.now() + 45 * 24 * 60 * 60 * 1000).toISOString(),
     endsAfter: new Date(Date.now() - 45 * 24 * 60 * 60 * 1000).toISOString(),
   }));
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent>();
-  const [selectedDate, setSelectedDate] = useState<Date>();
+  const [selectedDateKey, setSelectedDateKey] = useState(() => requestedDateKey ?? todayKey);
+  const [agendaDateKey, setAgendaDateKey] = useState<string>();
   const [confirmCancelId, setConfirmCancelId] = useState<string>();
   const [createStart, setCreateStart] = useState<Date>();
-  const [view, setView] = useState<CalendarView>("dayGridMonth");
-  const calendarRef = useRef<CalendarRef | null>(null);
   const [isMobile, setIsMobile] = useState(
     () =>
       typeof window !== "undefined" && typeof window.matchMedia === "function"
@@ -110,6 +119,10 @@ export function CalendarPage() {
     return () => media.removeEventListener("change", sync);
   }, []);
 
+  useEffect(() => {
+    if (requestedDateKey) setSelectedDateKey(requestedDateKey);
+  }, [requestedDateKey]);
+
   const visibleEvents = useMemo(
     () => (events.data ?? []).filter((event) => event.status !== "cancelled"),
     [events.data],
@@ -122,36 +135,48 @@ export function CalendarPage() {
         title: event.title,
         start: event.start_at,
         end: event.end_at,
-        backgroundColor: event.source === "local" ? "#0891b2" : "#7c3aed",
+        backgroundColor: event.source === "local" ? "#0f766e" : "#6d28d9",
         borderColor: "transparent",
-        textColor: "#f8fafc",
+        textColor: "#ffffff",
       })),
     [visibleEvents],
   );
 
   const handleDatesSet = (info: DatesSetInfo) => {
     setRange({ startsBefore: info.end.toISOString(), endsAfter: info.start.toISOString() });
-    setView(info.view.type as CalendarView);
-  };
-
-  const changeView = (nextView: CalendarView) => {
-    calendarRef.current?.getApi().changeView(nextView);
-    setView(nextView);
   };
 
   const handleEventClick = (info: EventClickInfo) => {
-    setSelectedDate(info.event.start ?? undefined);
+    const dateKey = getLocalDateKey(info.event.start ?? new Date(), timezone);
+    setSelectedDateKey(dateKey);
+    setAgendaDateKey(dateKey);
   };
 
-  const handleDateClick = (info: DateClickInfo) => setSelectedDate(info.date);
-  const selectedDateEvents = selectedDate
-    ? visibleEvents.filter(
-        (event) => getLocalDateKey(event.start_at, timezone) === getLocalDateKey(selectedDate, timezone),
-      )
-    : [];
+  const handleDateClick = (info: DateClickInfo) => {
+    const dateKey = getLocalDateKey(info.date, timezone);
+    setSelectedDateKey(dateKey);
+    setAgendaDateKey(dateKey);
+  };
+  const selectedDateEvents = visibleEvents.filter(
+    (event) => getLocalDateKey(event.start_at, timezone) === (agendaDateKey ?? selectedDateKey),
+  );
+
+  const handleMobileMonthChange = useCallback((startDateKey: string, endDateKeyExclusive: string) => {
+    setRange(expandedUtcDateRange(startDateKey, endDateKeyExclusive));
+  }, []);
+
+  const handleMobileDateSelect = (dateKey: string) => {
+    setSelectedDateKey(dateKey);
+    setAgendaDateKey(dateKey);
+    setSearchParams((current) => {
+      const next = new URLSearchParams(current);
+      next.set("date", dateKey);
+      return next;
+    }, { replace: true });
+  };
 
   const editEvent = (event: CalendarEvent) => {
-    setSelectedDate(undefined);
+    setAgendaDateKey(undefined);
     setSelectedEvent(event);
   };
 
@@ -173,7 +198,9 @@ export function CalendarPage() {
         className="mt-4 lg:mt-7"
         icon={<CalendarDays className="text-teal-600" size={25} />}
         title="日程"
-        description={<>月、周、日视图统一按 {timezone} 展示。</>}
+        description={isMobile
+          ? <>按 {timezone} 查看月历，选择日期打开当天安排。</>
+          : <>月、周、日视图统一按 {timezone} 展示。</>}
         actions={(
           <Button
             onClick={() => setCreateStart(new Date())}
@@ -305,37 +332,27 @@ export function CalendarPage() {
       )}
 
       <div className="mt-5 pb-24 sm:mt-10 sm:grid sm:gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
-        <div
-          className={`calendar-shell min-w-0 bg-transparent px-0 py-2 sm:rounded-[2rem] sm:border sm:border-white/10 sm:bg-slate-900 sm:p-5 ${
-            isMobile && view === "timeGridWeek" ? "calendar-week-layout" : ""
-          }`}
-        >
+        <div className="calendar-shell min-w-0 bg-transparent px-0 py-2 sm:rounded-[2rem] sm:border sm:border-white/10 sm:bg-slate-900 sm:p-5">
           {events.isPending && <p className="mb-3 text-sm text-slate-400">正在读取当前日历范围…</p>}
-          {isMobile && (
-            <div className="mb-3">
-              <MobileSegmentedControl
-                ariaLabel="日历视图"
-                value={view}
-                onChange={changeView}
-                options={[
-                  { value: "dayGridMonth", label: "月" },
-                  { value: "timeGridWeek", label: "周" },
-                  { value: "timeGridDay", label: "日" },
-                ]}
-              />
-            </div>
-          )}
-          <FullCalendar
-            ref={calendarRef}
+          {isMobile ? (
+            <MobileMonthCalendar
+              todayKey={todayKey}
+              selectedDateKey={selectedDateKey}
+              locale={locale}
+              eventCounts={visibleEvents.reduce<Record<string, number>>((counts, event) => {
+                const key = getLocalDateKey(event.start_at, timezone);
+                counts[key] = (counts[key] ?? 0) + 1;
+                return counts;
+              }, {})}
+              onSelectDate={handleMobileDateSelect}
+              onMonthChange={handleMobileMonthChange}
+            />
+          ) : <FullCalendar
             plugins={[themePlugin, dayGridPlugin, timeGridPlugin, interactionPlugin]}
             locale={zhCnLocale}
             timeZone={timezone}
             initialView="dayGridMonth"
-            headerToolbar={
-              isMobile
-                ? { left: "prev,next", center: "title", right: "today" }
-                : { left: "prev,next today", center: "title", right: "dayGridMonth,timeGridWeek,timeGridDay" }
-            }
+            headerToolbar={{ left: "prev,next today", center: "title", right: "dayGridMonth,timeGridWeek,timeGridDay" }}
             events={calendarEvents}
             datesSet={handleDatesSet}
             eventClick={handleEventClick}
@@ -346,11 +363,11 @@ export function CalendarPage() {
             fixedWeekCount
             height="auto"
             contentHeight="auto"
-            dayMaxEvents={isMobile ? 2 : 3}
+            dayMaxEvents={3}
             slotDuration="00:30:00"
             slotMinTime="06:00:00"
             slotMaxTime="23:00:00"
-          />
+          />}
         </div>
 
         <aside className="hidden rounded-2xl border border-white/10 bg-slate-900 p-5 xl:block">
@@ -393,9 +410,9 @@ export function CalendarPage() {
         </aside>
       </div>
 
-      {selectedDate && (
+      {agendaDateKey && (
         <DayAgendaSheet
-          date={selectedDate}
+          dateKey={agendaDateKey}
           events={selectedDateEvents}
           timezone={timezone}
           locale={locale}
@@ -403,15 +420,15 @@ export function CalendarPage() {
           cancelPending={cancelEvent.isPending}
           cancelError={cancelEvent.error ?? null}
           onClose={() => {
-            setSelectedDate(undefined);
+            setAgendaDateKey(undefined);
             setConfirmCancelId(undefined);
           }}
           onEdit={editEvent}
           onConfirmCancel={confirmCancel}
           onCreateOnThisDay={() => {
-            const start = selectedDate;
-            setSelectedDate(undefined);
-            setCreateStart(start);
+            const selectedStart = new Date(toUtcISOString(`${agendaDateKey}T09:00`, timezone));
+            setAgendaDateKey(undefined);
+            setCreateStart(selectedStart);
           }}
         />
       )}

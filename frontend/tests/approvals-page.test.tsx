@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { MemoryRouter } from "react-router-dom";
@@ -100,6 +100,29 @@ describe("ApprovalsPage", () => {
     await user.click(screen.getByRole("button", { name: "模拟批准" }));
     expect(status).toHaveTextContent("第 2 项操作已完成");
     expect(status).toHaveFocus();
+  });
+
+  it("uses a mobile status drawer and applies the selected filter", async () => {
+    const user = userEvent.setup();
+    renderPage();
+
+    await user.click(screen.getByRole("button", { name: /状态：等待审批/ }));
+    const dialog = screen.getByRole("dialog", { name: "筛选审批状态" });
+    await user.click(within(dialog).getByRole("button", { name: "已执行" }));
+
+    expect(mocks.useActionProposals).toHaveBeenLastCalledWith("executed");
+    expect(screen.queryByRole("dialog", { name: "筛选审批状态" })).not.toBeInTheDocument();
+  });
+
+  it("offers a retry instead of showing an empty list after a load failure", async () => {
+    const refetch = vi.fn();
+    mocks.useActionProposals.mockReturnValue({ data: undefined, isPending: false, isError: true, isSuccess: false, refetch });
+    renderPage();
+
+    expect(screen.getByRole("alert")).toHaveTextContent("无法加载审批列表");
+    expect(screen.queryByText("当前没有符合条件的操作")).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "重试读取" }));
+    expect(refetch).toHaveBeenCalledOnce();
   });
 
   it("keeps an edited proposal described as awaiting approval", async () => {

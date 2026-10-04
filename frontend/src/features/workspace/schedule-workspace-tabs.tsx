@@ -12,7 +12,7 @@ export function ScheduleWorkspaceTabs() {
   return (
     <nav
       aria-label="时间管理工作区"
-      className="mt-3 grid w-full grid-cols-4 gap-1 rounded-xl border border-white/10 bg-slate-900/80 p-1 lg:mt-0 lg:w-fit lg:min-w-[36rem] lg:rounded-2xl"
+      className="mt-3 hidden w-full grid-cols-4 gap-1 rounded-xl border border-white/10 bg-slate-900/80 p-1 lg:mt-0 lg:grid lg:w-fit lg:min-w-[36rem] lg:rounded-2xl"
       style={{ minHeight: "3.25rem" }}
     >
       {tabs.map((tab) => (

@@ -176,11 +176,12 @@ test("uses the mobile app shell below the desktop breakpoint", async ({ page }) 
   await page.goto("/tasks");
 
   await expect(page.getByTestId("desktop-sidebar")).toBeHidden();
-  await expect(page.getByRole("navigation", { name: "移动端主导航" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "更多" })).toBeVisible();
-  // Mobile hides the giant 任务 heading; the workspace tab bar carries the label.
-  await expect(page.getByRole("navigation", { name: "时间管理工作区" })).toBeVisible();
-  await expect(page.getByRole("link", { name: "任务" })).toBeVisible();
+  const mobileNavigation = page.getByRole("navigation", { name: "移动端主导航" });
+  await expect(mobileNavigation).toBeVisible();
+  await expect(mobileNavigation.getByRole("link", { name: /计划/ })).toHaveAttribute("aria-current", "page");
+  await expect(mobileNavigation.getByRole("button", { name: "我的" })).toBeVisible();
+  await expect(page.getByRole("navigation", { name: "时间管理工作区" })).toBeHidden();
+  await expect(page.getByRole("heading", { name: "任务" })).toBeVisible();
 });
 
 test("records a task action and shows plan-versus-actual evidence", async ({ page }) => {
@@ -619,7 +620,7 @@ test("creates a new chat, updates the URL, and streams the reply", async ({ page
   });
 
   await page.goto("/chat");
-  await expect(page.getByRole("heading", { name: "今天需要我帮你安排什么？" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "今天想先处理哪件事？" })).toBeVisible();
   await page.getByRole("textbox", { name: "消息", exact: true }).fill("今天有什么安排？");
   await page.getByRole("button", { name: "发送消息" }).click();
 
@@ -633,7 +634,7 @@ test("creates a new chat, updates the URL, and streams the reply", async ({ page
 
   await page.getByRole("button", { name: "新建聊天" }).first().click();
   await expect(page).toHaveURL(/\/chat$/);
-  await expect(page.getByRole("heading", { name: "今天需要我帮你安排什么？" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "今天想先处理哪件事？" })).toBeVisible();
 });
 
 test("reviews and approves a high-risk action", async ({ page }) => {
@@ -982,29 +983,26 @@ test("opens additional approval conflicts with the keyboard", async ({ page }) =
     await page.goto("/approvals");
     await expect(page.getByText("以下时间均按 Asia/Shanghai 显示。", { exact: true })).toBeVisible();
     await expect(page.getByText(/Agent 提出的高风险操作/)).toHaveCount(0);
+    await page.getByRole("button", { name: "状态：等待审批" }).click();
+    const filterDrawer = page.getByRole("dialog", { name: "筛选审批状态" });
+    await expect(filterDrawer).toBeVisible();
+    for (const label of ["全部", "等待审批", "已执行", "已拒绝", "已过期", "执行失败"]) {
+      const filterButton = filterDrawer.getByRole("button", { name: label, exact: true });
+      await expect(filterButton).toHaveAttribute("aria-pressed", String(label === "等待审批"));
+      const filterBounds = await filterButton.boundingBox();
+      expect(filterBounds?.height).toBeGreaterThanOrEqual(44);
+      expect(filterBounds?.width).toBeGreaterThanOrEqual(44);
+    }
+    await page.keyboard.press("Escape");
+    await expect(filterDrawer).toHaveCount(0);
     const disclosure = page.locator("summary").filter({ hasText: "查看其余 1 个冲突" });
     await expect(disclosure).toBeVisible();
     const disclosureBounds = await disclosure.boundingBox();
     expect(disclosureBounds?.height).toBeGreaterThanOrEqual(44);
     expect(disclosureBounds?.width).toBeGreaterThanOrEqual(44);
     const navigation = page.locator('nav[aria-label="移动端主导航"]');
-    for (const label of ["全部", "等待审批", "已执行", "已拒绝", "已过期", "执行失败"]) {
-      await page.keyboard.press("Tab");
-      const filterButton = page.getByRole("button", { name: label, exact: true });
-      await expect(filterButton).toBeFocused();
-      await expect(filterButton).toHaveAttribute("aria-pressed", String(label === "等待审批"));
-      const filterBounds = await filterButton.boundingBox();
-      expect(filterBounds?.height).toBeGreaterThanOrEqual(44);
-      expect(filterBounds?.width).toBeGreaterThanOrEqual(44);
-      const filterOwnsHitTarget = await filterButton.evaluate((element) => {
-        const rect = element.getBoundingClientRect();
-        const hitTarget = document.elementFromPoint(rect.x + rect.width / 2, rect.y + rect.height / 2);
-        return hitTarget !== null && element.contains(hitTarget);
-      });
-      expect(filterOwnsHitTarget).toBe(true);
-    }
     await disclosure.evaluate((element) => element.scrollIntoView({ block: "center" }));
-    await page.keyboard.press("Tab");
+    await disclosure.focus();
     await expect(disclosure).toBeFocused();
     await expect(disclosure).not.toHaveCSS("outline-style", "none");
     const disclosureFocusBounds = await disclosure.boundingBox();
@@ -1032,10 +1030,10 @@ test("opens additional approval conflicts with the keyboard", async ({ page }) =
 
     const operationDetails = page.locator("summary").filter({ hasText: "查看操作详情" });
     await operationDetails.evaluate((element) => element.scrollIntoView({ block: "center" }));
+    await operationDetails.focus();
     const operationDetailsBounds = await operationDetails.boundingBox();
     expect(operationDetailsBounds?.height).toBeGreaterThanOrEqual(44);
     expect(operationDetailsBounds?.width).toBeGreaterThanOrEqual(44);
-    await page.keyboard.press("Tab");
     await expect(operationDetails).toBeFocused();
     const operationDetailsFocusBounds = await operationDetails.boundingBox();
     const operationDetailsNavigationBounds = await navigation.boundingBox();

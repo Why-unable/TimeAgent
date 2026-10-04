@@ -1,5 +1,9 @@
 import { X } from "lucide-react";
-import { useEffect, useRef, type ReactNode } from "react";
+import { App } from "@capacitor/app";
+import { createPortal } from "react-dom";
+import { useEffect, useId, useRef, type ReactNode } from "react";
+
+import { isNativePlatform } from "../../platform";
 
 interface DrawerProps {
   title: string;
@@ -11,6 +15,7 @@ interface DrawerProps {
 export function Drawer({ title, description, onClose, children }: DrawerProps) {
   const dialogRef = useRef<HTMLElement>(null);
   const closeRef = useRef(onClose);
+  const titleId = useId();
 
   useEffect(() => {
     closeRef.current = onClose;
@@ -23,11 +28,24 @@ export function Drawer({ title, description, onClose, children }: DrawerProps) {
       : null;
     if (!dialog) return;
 
+    const appRoot = document.getElementById("root");
+    const previousInert = appRoot?.inert ?? false;
+    const previousAriaHidden = appRoot?.getAttribute("aria-hidden") ?? null;
+    if (appRoot) {
+      appRoot.inert = true;
+      appRoot.setAttribute("aria-hidden", "true");
+    }
+
     dialog.focus();
 
     const focusableElements = () => Array.from(dialog.querySelectorAll<HTMLElement>(
-      'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
-    )).filter((element) => !element.hasAttribute("hidden") && element.getAttribute("aria-hidden") !== "true");
+      'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), summary, [tabindex]:not([tabindex="-1"])',
+    )).filter((element) =>
+      !element.hasAttribute("hidden")
+      && element.getAttribute("aria-hidden") !== "true"
+      && getComputedStyle(element).display !== "none"
+      && getComputedStyle(element).visibility !== "hidden",
+    );
 
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
@@ -56,44 +74,65 @@ export function Drawer({ title, description, onClose, children }: DrawerProps) {
     document.addEventListener("keydown", handleKeyDown);
     return () => {
       document.removeEventListener("keydown", handleKeyDown);
+      if (appRoot) {
+        appRoot.inert = previousInert;
+        if (previousAriaHidden === null) appRoot.removeAttribute("aria-hidden");
+        else appRoot.setAttribute("aria-hidden", previousAriaHidden);
+      }
       if (previousFocus?.isConnected) previousFocus.focus();
     };
   }, []);
 
-  return (
-    <div className="fixed inset-0 z-50 flex justify-end" role="presentation">
+  useEffect(() => {
+    if (!isNativePlatform()) return;
+    let disposed = false;
+    let listener: { remove: () => Promise<void> } | null = null;
+    void App.addListener("backButton", () => closeRef.current()).then((registered) => {
+      if (disposed) void registered.remove();
+      else listener = registered;
+    });
+    return () => {
+      disposed = true;
+      if (listener) void listener.remove();
+    };
+  }, []);
+
+  return createPortal((
+    <div className="fixed inset-0 z-50 flex items-end justify-center lg:items-stretch lg:justify-end" role="presentation">
       <button
         type="button"
         aria-label="关闭抽屉"
+        aria-hidden="true"
+        tabIndex={-1}
         onClick={onClose}
-        className="absolute inset-0 bg-slate-950/70 backdrop-blur-sm"
+        className="mobile-overlay-backdrop absolute inset-0"
       />
       <aside
         ref={dialogRef}
         role="dialog"
         aria-modal="true"
-        aria-labelledby="drawer-title"
+        aria-labelledby={titleId}
         tabIndex={-1}
-        className="relative h-full w-full overflow-y-auto bg-slate-900 px-6 pb-10 pt-[max(env(safe-area-inset-top),2rem)] shadow-2xl lg:max-w-xl lg:border-l lg:border-white/10 lg:p-6"
+        className="relative mt-auto h-[min(92dvh,48rem)] w-full overscroll-contain overflow-y-auto rounded-t-[var(--mobile-sheet-radius)] bg-white px-5 pb-[max(env(safe-area-inset-bottom),1rem)] pt-[max(env(safe-area-inset-top),1.25rem)] shadow-2xl lg:ml-auto lg:mt-0 lg:h-full lg:max-h-none lg:max-w-xl lg:rounded-none lg:border-l lg:border-slate-200 lg:p-6"
       >
         <div className="flex items-start justify-between gap-4">
           <div>
-            <h3 id="drawer-title" className="text-xl font-semibold text-white sm:text-2xl">
+            <h3 id={titleId} className="text-xl font-semibold text-slate-900 sm:text-2xl">
               {title}
             </h3>
-            {description && <p className="mt-2 text-base text-slate-400">{description}</p>}
+            {description && <p className="mt-1 text-sm text-slate-600">{description}</p>}
           </div>
           <button
             type="button"
             aria-label="关闭"
             onClick={onClose}
-            className="rounded-2xl p-3 text-slate-400 hover:bg-white/5 hover:text-white"
+            className="grid min-h-11 min-w-11 place-items-center rounded-xl text-slate-600 hover:bg-slate-100 hover:text-slate-900"
           >
             <X size={24} />
           </button>
         </div>
-        <div className="mt-5">{children}</div>
+        <div className="mt-4">{children}</div>
       </aside>
     </div>
-  );
+  ), document.body);
 }

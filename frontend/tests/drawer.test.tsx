@@ -1,9 +1,26 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { useState } from "react";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import { Drawer } from "../src/components/overlay/drawer";
+
+const nativeBack = vi.hoisted(() => ({
+  callback: null as null | (() => void),
+  remove: vi.fn(async () => undefined),
+  emit: (() => undefined) as () => void,
+}));
+
+vi.mock("../src/platform", () => ({ isNativePlatform: () => true }));
+vi.mock("@capacitor/app", () => ({
+  App: {
+    addListener: vi.fn(async (_event: string, callback: () => void) => {
+      nativeBack.callback = callback;
+      nativeBack.emit = () => nativeBack.callback?.();
+      return { remove: nativeBack.remove };
+    }),
+  },
+}));
 
 function DrawerHarness() {
   const [open, setOpen] = useState(false);
@@ -40,5 +57,19 @@ describe("Drawer", () => {
     await user.keyboard("{Escape}");
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     expect(trigger).toHaveFocus();
+  });
+
+  it("closes the topmost drawer on native Android Back and removes its listener", async () => {
+    nativeBack.callback = null;
+    nativeBack.remove.mockClear();
+    const user = userEvent.setup();
+    render(<DrawerHarness />);
+    await user.click(screen.getByRole("button", { name: "打开任务编辑" }));
+    await waitFor(() => expect(nativeBack.callback).toBeTypeOf("function"));
+
+    nativeBack.emit();
+
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+    expect(nativeBack.remove).toHaveBeenCalledOnce();
   });
 });

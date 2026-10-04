@@ -271,7 +271,7 @@ export function DayClosing({
   const outcome = createdPlan ? planOutcome(createdPlan) : null;
 
   return (
-    <section aria-label="今天收尾与明日草案" className="mt-6 overflow-hidden rounded-2xl border border-amber-200 bg-gradient-to-br from-amber-50 via-white to-emerald-50 shadow-sm">
+    <section aria-label="今天收尾与明日草案" className="mt-6 overflow-hidden rounded-2xl border border-amber-300 bg-white shadow-sm">
       <div className="flex flex-wrap items-start justify-between gap-4 p-5">
         <div>
           <p className="flex items-center gap-2 text-sm font-semibold text-amber-950">
