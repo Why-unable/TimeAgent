@@ -214,7 +214,7 @@ APK SHA-256：6a5a1a6fc4918a0708958c43de13c6dfdc7c9282757fcd879480990d052bfb9d
 发布时间：2026-10-04T14:57:47Z
 ```
 
-APK manifest 确认为 `com.timeagent.app / 16 / 1.1.12`；签名验证通过，且证书指纹与现有 `1.1.11` 一致。前端 lint、194 项测试和 Vite 生产构建通过；Android `assembleRelease` 成功。完成生产清单重载后，还需核对应用更新 API 返回值、公网 APK 下载哈希及 readiness。当前没有连接 Android 设备，手机实际安装和截图复验尚未完成。
+APK manifest 确认为 `com.timeagent.app / 16 / 1.1.12`；签名验证通过，且证书指纹与现有 `1.1.11` 一致。前端 lint、194 项测试和 Vite 生产构建通过；Android `assembleRelease` 成功。生产 Django 更新视图返回 `1.1.12 / 16` 与匹配的哈希、文件大小；公网 APK GET 返回 HTTP 200，下载内容的 SHA-256 和字节数均与清单一致。本机和公网 readiness 均返回 HTTP 200。当前没有连接 Android 设备，手机实际安装和截图复验尚未完成。
 
 ### 上一版本验证记录：1.1.11
 

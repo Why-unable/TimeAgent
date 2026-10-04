@@ -115,9 +115,9 @@ The Today harvest card now uses a solid white background and a clear amber outli
 - Django system check passed; `makemigrations --check --dry-run` found no model changes. Production `migrate --noinput` reported no pending migrations.
 - DeepSeek production release evaluation: **13/13 cases passed**.
 - `git diff --check`: passed. No API schema, database, Agent, Planner, or HITL policy changes were made.
-- Source commit `be35eb5` was pushed to `origin/main` and deployed to the current production host. Django, Celery worker, Celery Beat, and frontend image labels all resolve to that commit.
+- Mobile UX V1 commit `be35eb5` and Android release commit `1ec7cf4` were pushed to `origin/main`; the latest Django and frontend images report revision `1ec7cf4`.
 - Local and public `/health/ready` both returned HTTP 200 after deployment. Django, PostgreSQL, and Redis reported healthy.
-- Android production APK `1.1.12` (`versionCode 16`) built successfully and verified against the current production signing certificate. The package is staged at the production release path; public app-update metadata and download verification are being completed. No physical device was connected for install and screenshot review.
+- Android production APK `1.1.12` (`versionCode 16`) is published and verified against the current production signing certificate. The production update view returns matching version, SHA-256 and size; the public APK URL returns HTTP 200 with matching downloaded bytes. No physical device was connected for install and screenshot review.
 
 ### Explicitly out of scope
 
