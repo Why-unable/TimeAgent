@@ -105,16 +105,19 @@ The Today harvest card now uses a solid white background and a clear amber outli
 - The browser suite uses deterministic mocked API responses. It verifies interaction/API contract boundaries; it does not claim live production Agent behavior or native Android behavior.
 - The mobile plan editor now exposes server rejection and stale-plan refresh messages inside the open sheet, so a conflict remains visible while the background is inert.
 
-## Final Validation — 2026-10-04
+## Final Validation and Deployment — 2026-10-04
 
 - Vitest: **194 passed** across 38 files.
 - ESLint: passed.
 - Vite production build: passed. Existing warnings remain for the 610 KB main JavaScript chunk and the Capacitor App module being both statically and dynamically imported.
 - Playwright: **77 passed, 11 skipped, 0 failed** across desktop Chromium and mobile Chromium (88 collected). Skips follow the suite's project filters and missing staging/live-backend configuration. Deterministic mocked APIs cover the browser UX; this does not establish live Agent or production API behavior.
-- Android: `:app:assembleDebug` passed. `adb devices` listed no connected devices, so physical installation, OEM keyboard/IME, gesture Back, system bars, notification picker, and TalkBack remain **NOT EXECUTED**.
-- Django system check: passed with no issues. `makemigrations --check --dry-run` reported no model changes; PostgreSQL on localhost was unavailable, so Django could not verify migration-history consistency.
+- Backend pytest: **697 passed, 3 skipped**. Ruff and mypy passed.
+- Django system check passed; `makemigrations --check --dry-run` found no model changes. Production `migrate --noinput` reported no pending migrations.
+- DeepSeek production release evaluation: **13/13 cases passed**.
 - `git diff --check`: passed. No API schema, database, Agent, Planner, or HITL policy changes were made.
-- No commit, push, merge, production deployment, or release tag was performed.
+- Source commit `be35eb5` was pushed to `origin/main` and deployed to the current production host. Django, Celery worker, Celery Beat, and frontend image labels all resolve to that commit.
+- Local and public `/health/ready` both returned HTTP 200 after deployment. Django, PostgreSQL, and Redis reported healthy.
+- Android production APK `1.1.12` (`versionCode 16`) built successfully and verified against the current production signing certificate. The package is staged at the production release path; public app-update metadata and download verification are being completed. No physical device was connected for install and screenshot review.
 
 ### Explicitly out of scope
 
@@ -172,9 +175,9 @@ The Android activity now declares `windowSoftInputMode="adjustResize"`. While a 
 - Browser fixtures mock API responses. Real Backend → Agent → LLM → Tool → HITL behavior was not revalidated as part of this visual/mobile iteration.
 - No physical Android device was available; browser viewport checks cannot verify OEM keyboard, system bars, or TalkBack.
 - The desktop workspace Playwright suite passed **7/7** when run serially during Iteration 1. The final combined desktop/mobile suite passed **77 tests**, skipped 11 project/environment-filtered cases, and had no failures. Vitest passed **194/194**; ESLint and Vite build passed.
-- Django system check passed. `makemigrations --check --dry-run` found no model changes; PostgreSQL was unavailable, so migration-history consistency was not verified. No backend model or migration files changed.
+- Physical Android installation, OEM keyboard/IME behavior, system bars, gesture Back, and TalkBack remain open because no device was attached.
 - The production build succeeds. Vite still reports the existing large main chunk warning; no code-splitting work was included in the mobile UX scope.
-- No deployment, push, merge, commit, or release tag was performed.
+- Browser fixtures mock API responses; they do not establish live Agent or production API behavior.
 
 ## Next Iteration
 
