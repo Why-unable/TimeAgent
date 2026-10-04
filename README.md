@@ -4,7 +4,7 @@
 
 Phase 0–10 已完成。Phase 10 已交付账户体系、生产 Compose/Cloudflare 基线、结构化日志、
 完整观测配置、备份恢复工具、长期时间记忆、Android 自托管更新、同用户日程写串行化、
-双坐标天气和隔离游客空间。Web 已部署；Android `1.1.10 / versionCode 14` 已生成、签名并发布。
+双坐标天气和隔离游客空间。Web 已部署；Android `1.1.11 / versionCode 15` 已生成、签名并发布。
 
 当前 Phase 11 不再扩张基础功能面，而是补齐真实外部 Provider、告警送达、隔离恢复、负载与
 安全、Android 真机、真实模型和用户效果证据，并治理 Time Steward 的 44 个注册 Tool。
@@ -572,7 +572,7 @@ Phase 11 的验收工作：
 - Google Calendar 专用沙箱的授权、撤权、限流与长期增量同步；
 - SMTP/Web Push、天气 Provider 与 Alertmanager 的真实送达证据；
 - 隔离 PostgreSQL 恢复、应用回滚、分层负载和公开入口安全演练；
-- Android `1.1.10` 真机升级、离线恢复、进程被杀和失败反馈矩阵；
+- Android `1.1.11` 真机升级、离线恢复、进程被杀和失败反馈矩阵；
 - 真实模型发布评测、44 Tool 一致性/批量排程加固及用户效果指标。
 
 不属于 Phase 11、仍需另行立项的功能：

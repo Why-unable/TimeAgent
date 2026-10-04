@@ -40,6 +40,15 @@ function renderClosing(date = "2026-10-03", timezone = "Asia/Shanghai") {
 describe("DayClosing", () => {
   beforeEach(() => window.sessionStorage.clear());
 
+  it("keeps the harvest card and its text in a high-contrast light palette", () => {
+    renderClosing();
+
+    const section = screen.getByRole("region", { name: "今天收尾与明日草案" });
+    expect(section).toHaveClass("from-amber-50", "via-white", "to-emerald-50");
+    expect(within(section).getByText("今日收获")).toHaveClass("text-amber-950");
+    expect(within(section).getByText("已完成 1 项")).toHaveClass("text-emerald-800", "bg-emerald-50");
+  });
+
   it("creates a timezone-correct draft and asks before removing unplaced work", async () => {
     const requests: Array<{ url: string; method: string; body: Record<string, unknown> }> = [];
     vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
