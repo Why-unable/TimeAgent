@@ -26,6 +26,6 @@
 ## 当前发布环境
 
 - 网页入口：<https://steward.uresofa.me/>
-- Android 下载：<https://steward.uresofa.me/releases/timeagent-1.1.8.apk>
+- Android 下载：<https://steward.uresofa.me/releases/timeagent-1.1.9.apk>
 
 收到明确测试指令后，再按指令执行对应的手工或自动化测试；不默认运行真实模型、通知投递或其他可能产生外部副作用的测试。
