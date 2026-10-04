@@ -27,13 +27,13 @@ export function MorningBrief({ targetDate }: { targetDate: string }) {
   };
 
   return (
-    <section aria-label="晨间简报" className="mt-5 flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-orange-200/20 bg-gradient-to-r from-orange-200/[0.08] via-slate-900 to-amber-100/[0.04] p-4">
+    <section aria-label="晨间简报" className="mt-5 flex flex-col items-stretch justify-between gap-4 rounded-2xl border border-orange-200 bg-gradient-to-br from-orange-50 via-white to-amber-50 p-4 shadow-sm sm:flex-row sm:items-center sm:p-5">
       <div className="flex min-w-0 items-start gap-3">
-        <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-orange-200/10 text-orange-100">
+          <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-orange-100 text-orange-800">
           <Sun size={19} aria-hidden="true" />
         </span>
         <div className="min-w-0">
-          <h2 className="text-sm font-semibold text-orange-50">晨间简报</h2>
+          <h2 className="text-sm font-semibold text-orange-950">晨间简报</h2>
           {todayRun ? (
             <p className="mt-1 text-sm text-slate-300">
               {todayRun.status === "completed" ? "今日日程简报已准备好。" :
@@ -50,11 +50,11 @@ export function MorningBrief({ targetDate }: { targetDate: string }) {
         </div>
       </div>
       {todayRun ? (
-        <Link to={todayRun.conversation_id ? `/chat/${todayRun.conversation_id}` : "/briefings"} className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-orange-100/20 px-4 text-sm font-medium text-orange-50 hover:bg-orange-100/5">
+        <Link to={todayRun.conversation_id ? `/chat/${todayRun.conversation_id}` : "/briefings"} className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border border-orange-300 bg-white/80 px-4 text-sm font-semibold text-orange-900 hover:bg-orange-100 sm:w-auto">
           <BookOpenText size={16} /> 查看简报 <ArrowRight size={15} />
         </Link>
       ) : (
-        <button type="button" onClick={launchBriefing} disabled={launch.isPending} className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-orange-100 px-4 text-sm font-semibold text-slate-950 hover:bg-white disabled:opacity-60">
+        <button type="button" onClick={launchBriefing} disabled={launch.isPending} className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-orange-100 px-4 text-sm font-semibold text-slate-950 hover:bg-orange-200 disabled:opacity-60 sm:w-auto">
           <BookOpenText size={16} /> {launch.isPending ? "正在准备…" : "生成今日日程简报"}
         </button>
       )}

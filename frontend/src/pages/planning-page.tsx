@@ -390,8 +390,8 @@ export function PlanningPage() {
           <h3 className="text-lg font-semibold">你想安排什么？</h3>
           <p className="mt-1 text-sm text-slate-400">直接告诉助理你的目标。它会先给出计划供你检查，不会自动应用。</p>
           <label className="mt-4 block text-sm text-slate-300" htmlFor="planning-goal">安排目标</label>
-          <textarea id="planning-goal" value={planningGoal} onChange={(event) => setPlanningGoal(event.target.value)} rows={2} className="mt-2 w-full rounded-xl border border-white/10 bg-slate-950 px-4 py-3 text-sm text-slate-100" placeholder="例如：帮我安排明天，论文放在上午，下午轻松一点" />
-          <button type="button" disabled={!planningGoal.trim()} onClick={() => navigate(`/chat?prompt=${encodeURIComponent(planningGoal.trim())}&auto_send=1`)} className="mt-3 inline-flex min-h-11 items-center justify-center rounded-xl bg-cyan-300 px-5 text-sm font-semibold text-slate-950 disabled:opacity-50">让助理安排</button>
+          <textarea id="planning-goal" value={planningGoal} onChange={(event) => setPlanningGoal(event.target.value)} rows={5} className="mt-2 min-h-40 w-full resize-y rounded-xl border border-slate-300 bg-white px-4 py-3 text-base leading-6 text-slate-900 shadow-sm placeholder:text-slate-500" placeholder="例如：帮我安排明天，论文放在上午，下午轻松一点" />
+          <button type="button" disabled={!planningGoal.trim()} onClick={() => navigate(`/chat?prompt=${encodeURIComponent(planningGoal.trim())}&auto_send=1`)} className="mt-3 inline-flex min-h-11 w-full items-center justify-center rounded-xl bg-cyan-300 px-5 text-sm font-semibold text-slate-950 disabled:opacity-50 sm:w-auto">让助理安排</button>
         </section>
         <button type="button" aria-expanded={manualPlannerOpen} onClick={() => setManualPlannerOpen((open) => !open)} className="min-h-10 text-sm text-slate-400">{manualPlannerOpen ? "收起高级规划" : "高级规划设置"}</button>
         {manualPlannerOpen && <div className="grid gap-6 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">

@@ -50,10 +50,10 @@ const overflowFilters: { id: TaskFilter; label: string }[] = [
 
 const priorityLabels = { low: "低", medium: "中", high: "高", urgent: "紧急" } as const;
 const priorityStyles = {
-  low: "bg-slate-400/10 text-slate-300",
-  medium: "bg-sky-400/10 text-sky-200",
-  high: "bg-amber-400/10 text-amber-200",
-  urgent: "bg-red-400/10 text-red-200",
+  low: "bg-slate-100 text-slate-700",
+  medium: "bg-sky-100 text-sky-900",
+  high: "bg-amber-100 text-amber-900",
+  urgent: "bg-red-100 text-red-800",
 } as const;
 
 export function TasksPage() {
@@ -212,17 +212,17 @@ export function TasksPage() {
                 const canComplete = task.status === "pending" || task.status === "in_progress";
                 return (
                   <article key={task.id} className="rounded-xl border border-white/10 bg-slate-900 p-4">
-                    <div className="flex flex-wrap items-start justify-between gap-3">
-                      <div className="min-w-0 flex-1">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                      <div className="min-w-0 w-full flex-1 sm:w-auto">
                         <div className="flex flex-wrap items-center gap-2">
-                          <h4 className={`font-medium ${task.status === "completed" ? "text-slate-500 line-through" : "text-white"}`}>
+                          <h4 className={`min-w-0 break-words text-base leading-snug font-medium ${task.status === "completed" ? "text-slate-500 line-through" : "text-white"}`}>
                             {task.title}
                           </h4>
-                          <span className={`rounded-full px-2 py-1 text-[11px] ${priorityStyles[priority]}`}>
+                          <span className={`rounded-full px-2 py-1 text-xs font-medium ${priorityStyles[priority]}`}>
                             {priorityLabels[priority]}优先级
                           </span>
                           {task.status === "in_progress" && (
-                            <span className="rounded-full bg-violet-400/10 px-2 py-1 text-[11px] text-violet-200">进行中</span>
+                            <span className="rounded-full bg-violet-100 px-2 py-1 text-xs font-medium text-violet-800">进行中</span>
                           )}
                         </div>
                         {task.description && <p className="mt-2 text-sm text-slate-400">{task.description}</p>}
@@ -249,7 +249,7 @@ export function TasksPage() {
                           ))}
                         </div>
                       </div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex w-full flex-wrap items-center justify-end gap-1 sm:w-auto sm:gap-2">
                         {task.status === "pending" && (
                           <button
                             type="button"
@@ -258,7 +258,7 @@ export function TasksPage() {
                             onClick={() =>
                               executionMutation.mutate({ taskId: task.id, signalType: "started" })
                             }
-                            className="grid size-9 place-items-center rounded-lg p-2 text-cyan-300 hover:bg-cyan-400/10 disabled:opacity-50"
+                            className="grid size-11 shrink-0 place-items-center rounded-xl p-2 text-cyan-300 hover:bg-cyan-400/10 disabled:opacity-50"
                           >
                             <Play size={19} />
                           </button>
@@ -271,7 +271,7 @@ export function TasksPage() {
                             onClick={() =>
                               executionMutation.mutate({ taskId: task.id, signalType: "paused" })
                             }
-                            className="grid size-9 place-items-center rounded-lg p-2 text-amber-300 hover:bg-amber-400/10 disabled:opacity-50"
+                            className="grid size-11 shrink-0 place-items-center rounded-xl p-2 text-amber-300 hover:bg-amber-400/10 disabled:opacity-50"
                           >
                             <Pause size={19} />
                           </button>
@@ -284,7 +284,7 @@ export function TasksPage() {
                             onClick={() =>
                               executionMutation.mutate({ taskId: task.id, signalType: "skipped" })
                             }
-                            className="grid size-9 place-items-center rounded-lg p-2 text-slate-400 hover:bg-white/5 hover:text-white disabled:opacity-50"
+                            className="grid size-11 shrink-0 place-items-center rounded-xl p-2 text-slate-400 hover:bg-white/5 hover:text-white disabled:opacity-50"
                           >
                             <SkipForward size={19} />
                           </button>
@@ -295,7 +295,7 @@ export function TasksPage() {
                             aria-label={`完成任务：${task.title}`}
                             disabled={completeMutation.isPending}
                             onClick={() => completeMutation.mutate(task.id)}
-                            className="grid size-9 place-items-center rounded-lg p-2 text-emerald-300 hover:bg-emerald-400/10 disabled:opacity-50"
+                            className="grid size-11 shrink-0 place-items-center rounded-xl p-2 text-emerald-300 hover:bg-emerald-400/10 disabled:opacity-50"
                           >
                             <CircleCheck size={20} />
                           </button>
@@ -304,7 +304,7 @@ export function TasksPage() {
                           type="button"
                           aria-label={`编辑任务：${task.title}`}
                           onClick={() => setEditingTask(task)}
-                          className="grid size-9 place-items-center rounded-lg p-2 text-slate-400 hover:bg-white/5 hover:text-white"
+                          className="grid size-11 shrink-0 place-items-center rounded-xl p-2 text-slate-400 hover:bg-white/5 hover:text-white"
                         >
                           <Pencil size={18} />
                         </button>
@@ -314,7 +314,7 @@ export function TasksPage() {
                           onClick={() =>
                             setExecutionTaskId((current) => (current === task.id ? undefined : task.id))
                           }
-                          className="grid size-9 place-items-center rounded-lg p-2 text-slate-400 hover:bg-white/5 hover:text-white"
+                          className="grid size-11 shrink-0 place-items-center rounded-xl p-2 text-slate-400 hover:bg-white/5 hover:text-white"
                         >
                           <BarChart3 size={18} />
                         </button>

@@ -43,7 +43,7 @@ Agent **不**负责：时间数学、权限、冲突、状态机、审批、调�
 
 ### 1.4 上线、规模与使用边界
 
-- Web 已在本机生产 Compose + Nginx/Cloudflare Tunnel 上部署；Android `1.1.9 / versionCode 13` APK 已完成文件、兼容签名、发布和公网回下载验证，真机矩阵仍属于 Phase 11。
+- Web 已在本机生产 Compose + Nginx/Cloudflare Tunnel 上部署；Android `1.1.10 / versionCode 14` APK 已完成文件、兼容签名、发布和公网回下载验证，真机矩阵仍属于 Phase 11。
 - 仓库具备游客隔离空间、Session Web 认证和 Android Token 认证；“可公网访问”不等于有正式外部用户。
 - 当前没有可证明的 DAU、留存、正式用户量、生产 QPS、并发上限、长期通知行动率或用户效率提升数据，均标记为**需要补测**。
 - 代码与本地验证规模可引用：44 个实际注册且名称唯一的 Time Steward Tool、固定 Agent Eval 13 cases/14 turns、规划合成集 4 cases/11 tasks；这些是工程/测试规模，不是业务规模。

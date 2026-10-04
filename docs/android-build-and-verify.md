@@ -128,25 +128,22 @@ cd frontend/android
 
 ### 5.1 当前生产签名（兼容性关键）
 
-当前生产签名链（包括 `1.1.9 / versionCode 13`）实际使用以下签名；后续版本除非完成经过验证的签名迁移，也必须保持一致：
+当前生产签名链（包括 `1.1.10 / versionCode 14`）实际使用以下签名；后续版本除非完成经过验证的签名迁移，也必须保持一致：
 
-- keystore：`/home/hyj/.android/debug.keystore`
+- keystore：`C:\Users\quenl\.android\timeagent-production.keystore`（当前 Windows 主机，位于仓库外）
 - alias：`androiddebugkey`
 - 证书 SHA-256：`e7fb9f63eff74b44c3ec32dafdcb2c726ff2d031c5c7614f70dda486916a783e`
 - 凭据：Android debug keystore 的常规默认值（store/key password 均为 `android`）
 
-文件名虽然是 `debug.keystore`，但对当前生产安装而言，它已经成为不可替换的发布身份。应用内覆盖更新必须继续使用同一文件；删除、重新生成或改用新 keystore 都会导致 Android 拒绝覆盖安装。应立即将该文件备份到仓库外的加密存储，限制文件权限，并定期验证备份可读取。不得把 keystore 本体提交到 Git。
+该 keystore 是当前生产安装不可替换的发布身份。原 Linux 主机和 `/home/hyj/.android/debug.keystore` 路径已弃用；本机副本必须与已安装 APK 保持相同证书指纹。应用内覆盖更新必须继续使用同一密钥；删除、重新生成或改用新 keystore 都会导致 Android 拒绝覆盖安装。应将密钥备份到仓库外的加密存储，限制文件权限，并定期验证备份可读取。不得把 keystore 本体提交到 Git。
 
 构建前必须将当前线上 APK 与 keystore 的证书指纹进行比对：
 
-```bash
-keytool -list -v \
-  -keystore /home/hyj/.android/debug.keystore \
-  -storepass android \
-  -alias androiddebugkey
-
-/home/hyj/Android/Sdk/build-tools/36.0.0/apksigner \
-  verify --print-certs releases/timeagent-<当前版本>.apk
+```powershell
+$keystore = Join-Path $env:USERPROFILE '.android\timeagent-production.keystore'
+$buildTools = Join-Path $env:LOCALAPPDATA 'Android\Sdk\build-tools\36.0.0'
+keytool -list -v -keystore $keystore -storepass android -alias androiddebugkey
+& (Join-Path $buildTools 'apksigner.bat') verify --print-certs '.\releases\timeagent-<当前版本>.apk'
 ```
 
 两边的 SHA-256 指纹必须完全一致，才能继续发布。
@@ -155,17 +152,18 @@ keytool -list -v \
 
 先提高 `frontend/android/app/build.gradle` 中的 `versionCode` 和 `versionName`，再执行：
 
-```bash
-cd /home/hyj/Project/TimeAgent/frontend
-VITE_API_BASE_URL=https://steward.uresofa.me npm run build
+```powershell
+Set-Location 'C:\Users\quenl\projects\AgentProjects\TimeAgent\frontend'
+$env:VITE_API_BASE_URL = 'https://steward.uresofa.me'
+npm run build
 npx cap sync android
 
-cd android
-TIME_AGENT_ANDROID_KEYSTORE_PATH=/home/hyj/.android/debug.keystore \
-TIME_AGENT_ANDROID_KEYSTORE_PASSWORD=android \
-TIME_AGENT_ANDROID_KEY_ALIAS=androiddebugkey \
-TIME_AGENT_ANDROID_KEY_PASSWORD=android \
-./gradlew assembleRelease
+Set-Location android
+$env:TIME_AGENT_ANDROID_KEYSTORE_PATH = Join-Path $env:USERPROFILE '.android\timeagent-production.keystore'
+$env:TIME_AGENT_ANDROID_KEYSTORE_PASSWORD = 'android'
+$env:TIME_AGENT_ANDROID_KEY_ALIAS = 'androiddebugkey'
+$env:TIME_AGENT_ANDROID_KEY_PASSWORD = 'android'
+.\gradlew.bat assembleRelease
 ```
 
 产物为 `frontend/android/app/build/outputs/apk/release/app-release.apk`。构建脚本会在缺少任一签名变量时拒绝生成 release 包。
@@ -189,21 +187,35 @@ npx cap sync android
 
 包含应用内更新能力的 APK 需要先由用户手动安装一次。之后每个版本必须提高 `frontend/android/app/build.gradle` 的 `versionCode`，并使用 5.1 中同一份 keystore 签名。将 APK 放到 HTTPS 静态地址后计算：
 
-```bash
-sha256sum app-release.apk
-stat -c %s app-release.apk
+```powershell
+$apk = '.\frontend\android\app\build\outputs\apk\release\app-release.apk'
+Get-FileHash -Algorithm SHA256 $apk
+(Get-Item $apk).Length
 ```
 
-当前主机的 `/home/hyj/Project/TimeAgent` 就是运行中的生产 Compose checkout，不需要先寻找远程 SSH 主机。仓库网关将主机 `releases/` 只读发布到 `/releases/<文件名>.apk`，不提供目录列表。先执行 `install -d -m 0755 releases`，确保 Nginx 可以遍历只读挂载目录；再将正式签名包复制到 `releases/timeagent-<版本>.apk`，并保持 APK 为 `0644`。把版本号、`https://steward.uresofa.me/releases/...` URL、SHA-256、字节数、发布时间和更新说明写入服务器 `.env` 的 `ANDROID_UPDATE_*`，重建 Django、前端和 Nginx：
+当前 Windows checkout `C:\Users\quenl\projects\AgentProjects\TimeAgent` 是生产 Compose 项目目录；`releases\` 以只读方式挂载给 Nginx，公开地址为 `/releases/<文件名>.apk`，不提供目录列表。把正式签名包复制到主机 `releases\timeagent-<版本>.apk`。将版本号、`https://steward.uresofa.me/releases/...` URL、SHA-256、字节数、发布时间和更新说明写入仓库根目录已由 Git 忽略的 `.env` 中对应 `ANDROID_UPDATE_*` 配置；不要提交该文件。然后重建 Django、前端和 Nginx：
 
-```bash
-docker compose -f docker-compose.yml -f docker-compose.prod.yml \
-  up -d --build django frontend nginx
+```powershell
+docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build django frontend nginx
 ```
 
 随后确认 Django 已加载新版本、Nginx 挂载文件的 SHA-256 与 `.env` 一致，并检查 `/health/ready`。App 会在“应用设置 → 检查更新”中通过认证后的 `/api/v1/app-updates/android/latest/` 读取清单。Android 仍要求用户授权“安装未知应用”并确认安装，这是系统安全边界，不能静默绕过。
 
 ## 8. 最近一次仓库内验证
+
+2026-10-04 已生成并发布 `1.1.10`（`versionCode 14`），修复手机端任务卡片窄列布局、晨间简报对比度和规划输入框高度：
+
+```text
+仓库文件：releases/timeagent-1.1.10.apk
+公网地址：https://steward.uresofa.me/releases/timeagent-1.1.10.apk
+大小：4,227,069 bytes
+APK SHA-256：44f45c1b353d5e4fb1ac5f9665930134be427329a3e2bfa814fc4daf74e57adc
+签名证书 SHA-256：e7fb9f63eff74b44c3ec32dafdcb2c726ff2d031c5c7614f70dda486916a783e
+```
+
+APK manifest、正式签名和公网下载回读哈希与字节数均已核对。前端 lint、174 项测试和生产构建通过；Android 单元任务、lint 与正式包构建通过；Django system check 和迁移检查通过。生产 Django 已加载 `1.1.10 / 14` 更新清单，公网前端 CSS、APK 下载和 `/health/ready` 均返回 200。当前没有连接 Android 设备，手机实际安装和截图复验尚未完成。
+
+### 8.1 上一版本验证记录：1.1.9
 
 2026-10-04 已生成并发布 `1.1.9`（`versionCode 13`）：
 
@@ -217,7 +229,7 @@ APK SHA-256：c9a625fdf383540497faa9cf89cb586b186e678ef90b2aa6690a14f289adba7c
 
 APK manifest、正式签名、公开下载回读哈希与字节数均已核对。Android 构建的单元任务和 lint、前端 lint 与 174 项测试、更新接口 3 项测试、Django system check 和迁移检查通过；公网 `/health/ready` 返回 database/Redis `ok`。生产 Django 已加载 `1.1.9 / 13` 更新清单。当前没有连接 Android 设备，因此手机内检查更新、系统安装确认及升级后运行状态尚未真机验证。
 
-### 8.1 上一版本验证记录：1.1.8
+### 8.2 上一版本验证记录：1.1.8
 
 2026-09-15 已生成并发布 `1.1.8`（`versionCode 12`）：
 
@@ -233,7 +245,7 @@ Gradle manifest、兼容签名、仓库文件与公网回下载内容已核对�
 这证明构建、签名、发布和下载链路成立；Android 真机升级、进程恢复、离线动作和 OEM 差异
 仍属于 Phase 11，状态为 **NOT VERIFIED**。
 
-### 8.2 上一版本验证记录：1.1.7
+### 8.3 上一版本验证记录：1.1.7
 
 2026-08-25 在 JDK/Android SDK 已配置的本机为 `1.1.7`（`versionCode 11`）执行：
 
@@ -257,7 +269,7 @@ zipalign，签名证书 SHA-256 与 `1.1.6` 一致。正式文件已发布为 `r
 生产更新清单已加载 `1.1.7 / 11`，Django、前端和 Nginx 已切换，`/health/ready` 返回 database/Redis `ok`。
 这些证据证明构建、发布和下载链路成立，不代表真机行为已经验收。
 
-### 8.3 旧安装器版本显示缓存事件
+### 8.4 旧安装器版本显示缓存事件
 
 2026-08-25 收到真机反馈：App 已展示可下载 `1.1.6`，但系统安装界面仍显示 `1.1.5`。复查确认本地发布文件和公网回下载文件的
 manifest 均为 `1.1.6 / 10`，大小、SHA-256 和签名也一致，因此没有证据表明服务器实际发布了 1.1.5。旧更新器会把每次下载都覆盖到
