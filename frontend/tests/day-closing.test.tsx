@@ -19,7 +19,15 @@ const completedTasks = [
   { id: "41111111-1111-4111-8111-111111111111", title: "完成访谈纪要" },
 ] as Task[];
 
-function renderClosing(date = "2026-10-03", timezone = "Asia/Shanghai") {
+function renderClosing(
+  date = "2026-10-03",
+  timezone = "Asia/Shanghai",
+  completionActions: {
+    pendingCompletionTaskIds?: string[];
+    onReopenTask?: (taskId: string) => Promise<void>;
+    onOpenFeedbackTask?: (taskId: string) => void;
+  } = {},
+) {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   });
@@ -31,6 +39,7 @@ function renderClosing(date = "2026-10-03", timezone = "Asia/Shanghai") {
           timezone={timezone}
           unfinishedTasks={unfinishedTasks}
           completedTasks={completedTasks}
+          {...completionActions}
         />
       </QueryClientProvider>
     </MemoryRouter>,
@@ -40,13 +49,33 @@ function renderClosing(date = "2026-10-03", timezone = "Asia/Shanghai") {
 describe("DayClosing", () => {
   beforeEach(() => window.sessionStorage.clear());
 
-  it("keeps the harvest card and its text in a high-contrast light palette", () => {
+  it("keeps the mobile harvest section flat and its text readable", () => {
     renderClosing();
 
     const section = screen.getByRole("region", { name: "今天收尾与明日草案" });
-    expect(section).toHaveClass("bg-white", "border-amber-300");
+    expect(section).toHaveAttribute("data-surface", "none");
+    expect(section).toHaveClass("border-t", "border-slate-200");
+    expect(section).not.toHaveClass("bg-white");
     expect(within(section).getByText("今日收获")).toHaveClass("text-amber-950");
-    expect(within(section).getByText("已完成 1 项")).toHaveClass("text-emerald-800", "bg-emerald-50");
+    expect(within(section).getByText("1 项完成")).toHaveClass("text-emerald-800");
+  });
+
+  it("keeps completed task recovery collapsed until the user opens today's closeout", async () => {
+    const onReopenTask = vi.fn(async () => undefined);
+    const onOpenFeedbackTask = vi.fn();
+    renderClosing("2026-10-03", "Asia/Shanghai", {
+      pendingCompletionTaskIds: [completedTasks[0].id],
+      onReopenTask,
+      onOpenFeedbackTask,
+    });
+
+    expect(screen.queryByRole("region", { name: "今日已完成任务" })).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "整理明天" }));
+    const completedRegion = screen.getByRole("region", { name: "今日已完成任务" });
+    await userEvent.click(within(completedRegion).getByRole("button", { name: "恢复未完成" }));
+    await waitFor(() => expect(onReopenTask).toHaveBeenCalledWith(completedTasks[0].id));
+    await userEvent.click(within(completedRegion).getByRole("button", { name: "记录反馈" }));
+    expect(onOpenFeedbackTask).toHaveBeenCalledWith(completedTasks[0].id);
   });
 
   it("creates a timezone-correct draft and asks before removing unplaced work", async () => {
@@ -75,7 +104,7 @@ describe("DayClosing", () => {
     }));
 
     renderClosing();
-    expect(screen.getByText("已完成 1 项")).toBeInTheDocument();
+    expect(screen.getByText("1 项完成")).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "整理明天" }));
 
     const placedCheckbox = screen.getByRole("checkbox", { name: /准备产品复盘/ });

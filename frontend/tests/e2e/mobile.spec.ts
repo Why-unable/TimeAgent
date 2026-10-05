@@ -200,6 +200,24 @@ test.describe("mobile shell", () => {
     }
   });
 
+  test("chat quick actions wrap into visible rows on phone widths", async ({ page }) => {
+    for (const width of [320, 360, 393, 430]) {
+      await page.setViewportSize({ width, height: 844 });
+      await page.goto("/chat");
+      const group = page.getByRole("group", { name: "常用快捷操作" });
+      await expect(group.getByRole("button")).toHaveCount(4);
+      const viewportWidth = await page.evaluate(() => document.documentElement.clientWidth);
+      const buttonBoxes = await group.getByRole("button").evaluateAll((buttons) =>
+        buttons.map((button) => {
+          const rect = button.getBoundingClientRect();
+          return { left: rect.left, right: rect.right, top: rect.top };
+        }),
+      );
+      expect(buttonBoxes.every((box) => box.left >= 0 && box.right <= viewportWidth)).toBe(true);
+      expect(new Set(buttonBoxes.map((box) => box.top)).size).toBe(2);
+    }
+  });
+
   test("stage 1 Today and Assistant screenshots at required phone widths", async ({ page }, testInfo) => {
     for (const width of [360, 375, 393, 412, 430]) {
       await page.setViewportSize({ width, height: 844 });
@@ -207,6 +225,7 @@ test.describe("mobile shell", () => {
         await page.goto(path);
         await page.waitForLoadState("networkidle");
         await assertNoHorizontalScroll(page);
+        await expect(page.locator('[data-surface] [data-surface]')).toHaveCount(0);
         const screenshotPath = `test-results/mobile-v1-${name}-${width}.png`;
         await page.screenshot({ path: screenshotPath, fullPage: true });
         await testInfo.attach(`mobile-v1-${name}-${width}`, {
@@ -266,7 +285,7 @@ test.describe("mobile shell", () => {
     await assertNoHorizontalScroll(page);
   });
 
-  test("Today harvest keeps strong text contrast on a solid surface", async ({ page }) => {
+  test("Today harvest stays flat while its text keeps strong contrast", async ({ page }) => {
     await page.setViewportSize({ width: 360, height: 844 });
     await page.goto("/today");
     const harvest = page.getByRole("region", { name: "今天收尾与明日草案" });
@@ -275,13 +294,15 @@ test.describe("mobile shell", () => {
       const description = section.querySelector(".text-sm.text-slate-600");
       return {
         background: getComputedStyle(section).backgroundColor,
+        canvas: getComputedStyle(document.body).backgroundColor,
         heading: heading ? getComputedStyle(heading).color : "",
         description: description ? getComputedStyle(description).color : "",
       };
     });
-    expect(colors.background).toBe("rgb(255, 255, 255)");
-    expect(contrastRatio(colors.heading, colors.background)).toBeGreaterThanOrEqual(4.5);
-    expect(contrastRatio(colors.description, colors.background)).toBeGreaterThanOrEqual(4.5);
+    await expect(harvest).toHaveAttribute("data-surface", "none");
+    expect(colors.background).toBe("rgba(0, 0, 0, 0)");
+    expect(contrastRatio(colors.heading, colors.canvas)).toBeGreaterThanOrEqual(4.5);
+    expect(contrastRatio(colors.description, colors.canvas)).toBeGreaterThanOrEqual(4.5);
   });
 
   test("Assistant history uses a modal drawer and the composer clears space for the keyboard", async ({ page }) => {
@@ -307,6 +328,23 @@ test.describe("mobile shell", () => {
       const box = await page.getByRole("textbox", { name: "消息" }).boundingBox();
       return box ? box.y + box.height : Number.POSITIVE_INFINITY;
     }).toBeLessThan(viewportHeight - 280);
+  });
+
+  test("chat composer reaches the keyboard edge when Android resizes the viewport", async ({ page }) => {
+    await page.setViewportSize({ width: 393, height: 844 });
+    await page.goto("/chat");
+    const composer = page.getByRole("textbox", { name: "消息" });
+    const initialBottom = (await composer.boundingBox())!.y + (await composer.boundingBox())!.height;
+    await composer.focus();
+    await page.setViewportSize({ width: 393, height: 564 });
+    await expect.poll(async () => {
+      const box = await composer.boundingBox();
+      return box ? box.y + box.height : Number.POSITIVE_INFINITY;
+    }).toBeLessThanOrEqual(564);
+    const updatedBottom = (await composer.boundingBox())!.y + (await composer.boundingBox())!.height;
+    expect(564 - updatedBottom).toBeGreaterThanOrEqual(0);
+    expect(564 - updatedBottom).toBeLessThanOrEqual(24);
+    expect(updatedBottom).toBeGreaterThan(initialBottom - 200);
   });
 
   test("approval shows the planned change and primary action without horizontal overflow", async ({ page }) => {
@@ -337,7 +375,12 @@ test.describe("mobile shell", () => {
     }] }));
     await page.goto("/approvals");
     await expect(page.getByText("将要改变")).toBeVisible();
-    await expect(page.getByRole("button", { name: "确认并应用" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "确认并应用：项目评审" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "调整后批准：项目评审" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "拒绝：项目评审" })).toBeVisible();
+    await expect(page.locator("article[data-surface='decision-surface']")).toHaveCount(1);
+    await expect(page.locator("[data-surface] [data-surface]")).toHaveCount(0);
+    await page.screenshot({ path: "../docs/mobile-ui/evidence/v2/approvals-393.png" });
     await assertNoHorizontalScroll(page);
   });
 
@@ -405,7 +448,7 @@ test.describe("mobile shell", () => {
       await route.fulfill({ json: { proposal: { ...latestProposal, version: 3 }, resume_queued: false } });
     });
     await page.goto("/approvals");
-    await page.getByRole("button", { name: "调整后批准" }).click();
+    await page.getByRole("button", { name: /^调整后批准/ }).click();
     await page.getByRole("textbox", { name: "任务名称" }).fill("旧版本编辑");
 
     latestProposal = {
@@ -416,15 +459,15 @@ test.describe("mobile shell", () => {
     };
     await page.clock.fastForward("00:00:16");
     await expect(page.getByRole("alert").filter({ hasText: "旧内容不会提交" })).toBeVisible();
-    await expect(page.getByRole("button", { name: "保存修改并批准" })).toBeDisabled();
+    await expect(page.getByRole("button", { name: /^保存修改并批准/ })).toBeDisabled();
     expect(editBodies).toHaveLength(0);
 
     await page.getByRole("button", { name: "取消编辑" }).click();
-    await page.getByRole("button", { name: "调整后批准" }).click();
+    await page.getByRole("button", { name: /^调整后批准/ }).click();
     const taskName = page.getByRole("textbox", { name: "任务名称" });
     await expect(taskName).toHaveValue("最新任务");
     await taskName.fill("重新编辑");
-    await page.getByRole("button", { name: "保存修改并批准" }).click();
+    await page.getByRole("button", { name: /^保存修改并批准/ }).click();
     await expect.poll(() => editBodies.length).toBe(1);
     expect(editBodies[0]).toMatchObject({ expected_version: 2, action_payload: { tasks: [{ title: "重新编辑", priority: "high", estimated_minutes: 90 }] } });
   });
@@ -449,10 +492,12 @@ test.describe("mobile shell", () => {
     await page.getByRole("button", { name: "打开新建提醒" }).click();
     const drawer = page.getByRole("dialog", { name: "新建提醒" });
     await expect(drawer).toBeVisible();
+    const drawerBounds = await drawer.boundingBox();
+    expect(drawerBounds?.height).toBeLessThan(700);
     for (const width of [320, 360, 393, 430]) {
       await page.setViewportSize({ width, height: 844 });
       await expect(page.locator("body")).toHaveJSProperty("scrollWidth", width);
-      if (width === 393) await page.screenshot({ path: "../docs/mobile-ui/evidence/iteration-3-reminder-sheet-393.png" });
+      if (width === 393) await page.screenshot({ path: "../docs/mobile-ui/evidence/v2/reminder-create-393.png" });
     }
     await page.setViewportSize({ width: 393, height: 844 });
     await page.getByLabel("提醒内容").fill("提交项目报告");
@@ -467,6 +512,46 @@ test.describe("mobile shell", () => {
     });
     await expect(page.getByRole("status").filter({ hasText: "提醒已创建" })).toBeVisible();
     await expect(drawer).toHaveCount(0);
+  });
+
+  test("keeps V2 reminder records in status groups and divider rows", async ({ page }, testInfo) => {
+    await page.setViewportSize({ width: 393, height: 844 });
+    const reminder = (id: string, title: string, status: string, triggerAt: string) => ({
+      id,
+      target_type: "custom",
+      target_id: null,
+      title,
+      trigger_at: triggerAt,
+      timezone: "Asia/Shanghai",
+      channel: "console",
+      status,
+      deduplication_key: `mobile-v2-${id}`,
+      queued_at: null,
+      sent_at: status === "sent" ? "2026-10-04T04:00:00Z" : null,
+      retry_count: status === "failed" ? 2 : 0,
+      failure_reason: status === "failed" ? "连接暂时不可用" : "",
+      created_at: "2026-10-04T00:00:00Z",
+      updated_at: "2026-10-04T00:00:00Z",
+    });
+    await page.route("**/api/v1/reminders/**", (route) => route.fulfill({ json: [
+      reminder("reminder-pending", "提交项目报告", "pending", "2026-10-05T10:30:00Z"),
+      reminder("reminder-failed", "确认会议材料", "failed", "2026-10-05T08:00:00Z"),
+      reminder("reminder-sent", "准备周报", "sent", "2026-10-04T04:00:00Z"),
+      reminder("reminder-cancelled", "旧提醒", "cancelled", "2026-10-03T04:00:00Z"),
+    ] }));
+    await page.goto("/reminders");
+    await expect(page.getByRole("heading", { name: "提醒" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "需要处理" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "待发送" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "提醒记录" })).toBeVisible();
+    await expect(page.locator('[data-surface="divider-list"]')).toHaveCount(4);
+    await expect(page.locator('[data-surface] [data-surface]')).toHaveCount(0);
+    const screenshotPath = "../docs/mobile-ui/evidence/v2/reminders-list-393.png";
+    await page.screenshot({ path: screenshotPath, fullPage: true });
+    await testInfo.attach("v2-reminders-list-393", { path: screenshotPath, contentType: "image/png" });
+
+    await page.locator("summary").filter({ hasText: "已取消" }).click();
+    await expect(page.getByText("旧提醒")).toBeVisible();
   });
 
   test("memory proposals show a readable value and confirmation reason", async ({ page }) => {
@@ -717,7 +802,7 @@ test.describe("mobile shell", () => {
     await page.route("**/api/v1/events/**", (route) => route.fulfill({ json: [todayEvent, calendarEvent] }));
     await page.route("**/api/v1/tasks/**", (route) => route.fulfill({ json: [plannedTask, nextDayTask, unplannedTask] }));
 
-    for (const width of [360, 375, 393, 412, 430]) {
+    for (const width of [320, 360, 375, 393, 412, 430]) {
       await page.setViewportSize({ width, height: 844 });
       for (const [name, path] of [
         ["plan", "/schedule"],
@@ -727,9 +812,27 @@ test.describe("mobile shell", () => {
         await page.goto(path);
         await page.waitForLoadState("networkidle");
         await assertNoHorizontalScroll(page);
-        const imagePath = `../docs/mobile-ui/evidence/iteration-2-${name}-${width}.png`;
+        if (width === 320 && name === "plan") {
+          const dateRail = page.getByRole("group", { name: "本周日期" });
+          const monday = dateRail.getByRole("button").first();
+          const target = await monday.boundingBox();
+          const primaryAction = await page.getByRole("link", { name: "让助理起草安排" }).boundingBox();
+          const bottomNavigation = await page.getByRole("navigation", { name: "移动端主导航" }).boundingBox();
+          expect(target?.width).toBeGreaterThanOrEqual(44);
+          expect(target?.height).toBeGreaterThanOrEqual(44);
+          if (!primaryAction || !bottomNavigation) throw new Error("Plan primary action or bottom navigation is not visible");
+          expect(primaryAction.y + primaryAction.height).toBeLessThanOrEqual(bottomNavigation.y);
+          expect(page.getByText("左右滑动可查看其余日期")).toBeVisible();
+          expect(await dateRail.evaluate((element) => element.scrollWidth > element.clientWidth)).toBe(true);
+        }
+        if (width === 393 && name === "tasks") {
+          const moreActions = page.locator('summary[aria-label^="更多操作："]').first();
+          await expect(moreActions).toBeVisible();
+          await expect(moreActions).toHaveAttribute("aria-label", /更多操作：.+/);
+        }
+        const imagePath = `../docs/mobile-ui/evidence/v2/${name}-${width}.png`;
         await page.screenshot({ path: imagePath, fullPage: true });
-        await testInfo.attach(`iteration-2-${name}-${width}`, { path: imagePath, contentType: "image/png" });
+        await testInfo.attach(`v2-${name}-${width}`, { path: imagePath, contentType: "image/png" });
       }
     }
 
@@ -737,8 +840,65 @@ test.describe("mobile shell", () => {
     await page.goto("/calendar?date=2026-10-05");
     await page.getByRole("grid", { name: "选择日期" }).getByRole("button", { name: /2026年10月5日/ }).click();
     await expect(page.getByRole("dialog", { name: /2026年10月5日/ })).toBeVisible();
-    const sheetPath = "../docs/mobile-ui/evidence/iteration-2-calendar-agenda-393.png";
+    const sheetPath = "../docs/mobile-ui/evidence/v2/calendar-agenda-393.png";
     await page.screenshot({ path: sheetPath, fullPage: true });
-    await testInfo.attach("iteration-2-calendar-agenda-393", { path: sheetPath, contentType: "image/png" });
+    await testInfo.attach("v2-calendar-agenda-393", { path: sheetPath, contentType: "image/png" });
+  });
+
+  test("captures the V2 Today focus, alert, and harvest hierarchy", async ({ page }, testInfo) => {
+    const dueAt = "2026-10-02T15:45:00+00:00";
+    let showActiveAndAlert = true;
+    await page.setViewportSize({ width: 393, height: 844 });
+    await page.route("**/api/v1/today/", (route) => route.fulfill({
+      json: showActiveAndAlert ? {
+        ...emptyTodaySummary,
+        completed_tasks: [{ id: "completed-1", title: "完成周度复盘" }],
+        execution_next: [{
+          kind: "task",
+          id: "focus-1",
+          title: "准备产品评审材料",
+          start_at: "2026-10-05T02:00:00Z",
+          end_at: "2026-10-05T03:00:00Z",
+          status: "pending",
+          due_at: null,
+        }],
+      } : emptyTodaySummary,
+    }));
+    await page.route("**/api/v1/insights/", (route) => route.fulfill({
+      json: showActiveAndAlert ? [{
+        id: "insight-1",
+        kind: "task_overdue",
+        severity: "warning",
+        status: "open",
+        title: "一项任务已经逾期",
+        summary: "请检查是否需要调整后续安排。",
+        evidence: { due_at: dueAt },
+        deduplication_key: "mobile-v2-overdue",
+        detected_at: "2026-10-05T02:00:00Z",
+        expires_at: "2026-10-06T02:00:00Z",
+      }] : [],
+    }));
+
+    await page.goto("/today");
+    const alert = page.getByRole("region", { name: "需要留意" });
+    await expect(alert).toBeVisible();
+    await expect(alert).toContainText("截止：");
+    await expect(alert).not.toContainText(dueAt);
+    await expect(page.getByTestId("today-focus")).toContainText("准备产品评审材料");
+    await expect(page.getByRole("heading", { name: "今日收获" })).toBeVisible();
+    await expect(page.getByText("完成周度复盘")).toBeVisible();
+    await expect(page.locator('[data-surface] [data-surface]')).toHaveCount(0);
+
+    const imagePath = "../docs/mobile-ui/evidence/v2/today-393.png";
+    await page.screenshot({ path: imagePath, fullPage: true });
+    await testInfo.attach("v2-today-393", { path: imagePath, contentType: "image/png" });
+
+    showActiveAndAlert = false;
+    await page.reload();
+    await expect(page.getByText("今天还没有完成任务")).toBeVisible();
+    await expect(page.getByRole("heading", { name: "今日收获" })).toBeVisible();
+    const emptyImagePath = "../docs/mobile-ui/evidence/v2/today-empty-393.png";
+    await page.screenshot({ path: emptyImagePath, fullPage: true });
+    await testInfo.attach("v2-today-empty-393", { path: emptyImagePath, contentType: "image/png" });
   });
 });

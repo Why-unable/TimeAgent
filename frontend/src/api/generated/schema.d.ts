@@ -2842,10 +2842,11 @@ export interface components {
          *     * `paused` - Paused
          *     * `resumed` - Resumed
          *     * `completed` - Completed
+         *     * `reopened` - Reopened
          *     * `skipped` - Skipped
          * @enum {string}
          */
-        SignalTypeEnum: "started" | "paused" | "resumed" | "completed" | "skipped";
+        SignalTypeEnum: "started" | "paused" | "resumed" | "completed" | "reopened" | "skipped";
         /**
          * @description * `plan_tasks_only` - plan_tasks_only
          *     * `create_linked_event_blocks` - create_linked_event_blocks

@@ -113,13 +113,13 @@ export function Drawer({ title, description, onClose, children }: DrawerProps) {
         aria-modal="true"
         aria-labelledby={titleId}
         tabIndex={-1}
-        className="relative mt-auto h-[min(92dvh,48rem)] w-full overscroll-contain overflow-y-auto rounded-t-[var(--mobile-sheet-radius)] bg-white px-5 pb-[max(env(safe-area-inset-bottom),1rem)] pt-[max(env(safe-area-inset-top),1.25rem)] shadow-2xl lg:ml-auto lg:mt-0 lg:h-full lg:max-h-none lg:max-w-xl lg:rounded-none lg:border-l lg:border-slate-200 lg:p-6"
+        className="relative mt-auto max-h-[min(92dvh,48rem)] w-full overscroll-contain overflow-y-auto rounded-t-[var(--mobile-sheet-radius)] bg-white px-5 pb-[max(env(safe-area-inset-bottom),1rem)] pt-[max(env(safe-area-inset-top),1.25rem)] shadow-2xl lg:ml-auto lg:mt-0 lg:h-full lg:max-h-none lg:max-w-xl lg:rounded-none lg:border-l lg:border-slate-200 lg:p-6"
       >
         <div className="flex items-start justify-between gap-4">
           <div>
-            <h3 id={titleId} className="text-xl font-semibold text-slate-900 sm:text-2xl">
+            <h2 id={titleId} className="text-xl font-semibold text-slate-900 sm:text-2xl">
               {title}
-            </h3>
+            </h2>
             {description && <p className="mt-1 text-sm text-slate-600">{description}</p>}
           </div>
           <button

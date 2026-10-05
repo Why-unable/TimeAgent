@@ -201,6 +201,34 @@ describe("TodayPage", () => {
       .toContain(`event_id=${event.id}`);
   });
 
+  it("renders insight evidence as local time without exposing a raw timestamp or nested surface", async () => {
+    const rawDueAt = "2026-07-19T10:00:00+00:00";
+    const insight = {
+      id: "61111111-1111-4111-8111-111111111111",
+      kind: "task_overdue",
+      severity: "warning",
+      status: "open",
+      title: "任务已逾期",
+      summary: "请检查这项任务的后续安排。",
+      evidence: { due_at: rawDueAt },
+      deduplication_key: "overdue-test",
+      detected_at: "2026-07-20T04:00:00Z",
+      expires_at: "2026-07-21T04:00:00Z",
+    };
+    vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input);
+      return new Response(JSON.stringify(url.includes("/insights/") ? [insight] : summary));
+    }));
+
+    renderPage();
+
+    const alertSection = await screen.findByRole("region", { name: "需要留意" });
+    expect(alertSection).toHaveTextContent("截止：");
+    expect(alertSection).toHaveTextContent("18:00");
+    expect(alertSection).not.toHaveTextContent(rawDueAt);
+    expect(alertSection.querySelector("[data-surface] [data-surface]")).toBeNull();
+  });
+
   it("offers start, complete, and adjust actions for the next task", async () => {
     let signalUrl = "";
     const taskSummary = {
@@ -275,6 +303,75 @@ describe("TodayPage", () => {
       expect(completeUrl).toContain(`/tasks/${dueTask.id}/complete/`);
       expect(summaryReads).toBeGreaterThanOrEqual(2);
     });
+    expect(await screen.findByText("今日交付：已完成")).toBeInTheDocument();
+    expect(screen.queryByRole("dialog", { name: "任务完成反馈" })).not.toBeInTheDocument();
+  });
+
+  it("opens optional completion feedback only after the user asks for it", async () => {
+    const interaction = {
+      id: "71111111-1111-4111-8111-111111111111",
+      conversation_id: null,
+      agent_run_id: null,
+      plan_id: null,
+      plan_version: null,
+      task_id: dueTask.id,
+      type: "task_completion",
+      payload: {},
+      allowed_actions: ["submit_feedback", "dismiss"],
+      status: "pending",
+      expires_at: "2026-07-21T00:00:00Z",
+      version: 1,
+      created_at: "2026-07-20T10:00:00Z",
+      updated_at: "2026-07-20T10:00:00Z",
+    };
+    vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      if (url.includes("/api/v1/today/")) return new Response(JSON.stringify(summary));
+      if (url.includes("/api/v1/insights/")) return new Response("[]");
+      if (url.includes("/api/v1/interactions/")) {
+        if ((init?.method ?? "GET") === "POST" && url.endsWith("/interactions/")) {
+          return new Response(JSON.stringify(interaction));
+        }
+        return new Response("[]");
+      }
+      if (url.endsWith(`/tasks/${dueTask.id}/complete/`)) {
+        return new Response(JSON.stringify({ ...dueTask, status: "completed" }));
+      }
+      if (url.endsWith(`/tasks/${dueTask.id}/execution-summary/`)) {
+        return new Response(JSON.stringify({
+          task_id: dueTask.id,
+          signal_count: 1,
+          active_seconds: 0,
+          planned_seconds: null,
+          estimated_seconds: 1800,
+          variance_vs_plan_seconds: null,
+          variance_vs_estimate_seconds: null,
+          evidence_status: "no_execution_evidence",
+          open_started_at: null,
+          last_signal_type: null,
+        }));
+      }
+      if (url.endsWith(`/tasks/${dueTask.id}/`)) return new Response(JSON.stringify(dueTask));
+      return new Response("[]");
+    }));
+    const client = new QueryClient({
+      defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+    });
+    render(
+      <MemoryRouter>
+        <QueryClientProvider client={client}>
+          <TodayPage />
+        </QueryClientProvider>
+      </MemoryRouter>,
+    );
+
+    await userEvent.click((await screen.findAllByRole("button", { name: "完成任务：今日交付" }))[0]);
+    expect(await screen.findByText("今日交付：已完成")).toBeInTheDocument();
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+
+    await userEvent.click(await screen.findByRole("button", { name: "记录反馈" }));
+    expect(await screen.findByRole("dialog", { name: "任务完成反馈" })).toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "任务完成反馈" })).toBeInTheDocument();
   });
 
   it("shows an authenticated loading failure", async () => {
@@ -329,7 +426,7 @@ describe("TodayPage", () => {
     );
     renderPage();
 
-    await userEvent.click(await screen.findByRole("button", { name: "标记为不准确" }));
+    await userEvent.click(await screen.findByRole("button", { name: /标记为不准确：/ }));
     await waitFor(() => expect(actionBody).toEqual({
       action: "false_positive",
       disable_kind: false,

@@ -99,6 +99,10 @@ export function MobileNavigation() {
   useEffect(() => {
     const viewport = window.visualViewport;
     let isMounted = true;
+    // Some Android WebViews resize the app window together with the visual
+    // viewport when the IME opens. In that mode innerHeight - viewport.height
+    // stays near zero, so keep the last unobscured height as a second signal.
+    let closedViewportHeight = viewport?.height ?? window.innerHeight;
     const isTextEntry = (target: EventTarget | null) => {
       if (target instanceof HTMLTextAreaElement) return true;
       if (target instanceof HTMLElement && target.isContentEditable) return true;
@@ -107,10 +111,21 @@ export function MobileNavigation() {
     };
     const updateKeyboardState = () => {
       if (!isMounted) return;
-      const coveredHeight = viewport
-        ? window.innerHeight - viewport.height - viewport.offsetTop
-        : 0;
-      setKeyboardOpen(viewport ? coveredHeight > 160 : isTextEntry(document.activeElement));
+      const hasTextFocus = isTextEntry(document.activeElement);
+      const currentViewportHeight = viewport?.height ?? window.innerHeight;
+      if (!hasTextFocus) {
+        closedViewportHeight = currentViewportHeight;
+        setKeyboardOpen(false);
+        return;
+      }
+      if (!viewport) {
+        setKeyboardOpen(true);
+        return;
+      }
+
+      const coveredHeight = window.innerHeight - viewport.height - viewport.offsetTop;
+      const resizedHeight = closedViewportHeight - currentViewportHeight;
+      setKeyboardOpen(coveredHeight > 160 || resizedHeight > 160);
     };
     const onFocusIn = () => window.setTimeout(updateKeyboardState, 0);
     const onFocusOut = () => window.setTimeout(updateKeyboardState, 100);

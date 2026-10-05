@@ -35,3 +35,13 @@ Desktop keeps the current full task detail and all task actions visible. Task cr
 - All required actions have accessible names that include the task title; hitboxes are at least 44 × 44 CSS px and preferred primary actions are 48 px.
 - Verify 320/360/375/393/412/430 widths for no horizontal page overflow, long titles, empty/populated/filtered states, and expanded optional actions.
 - Existing test coverage for due-vs-planned distinction, timezone serialization, complete, start/pause/skip, execution summary, and feedback remains valid.
+
+## V2 — visual hierarchy pass
+
+### Before / After / Reason
+
+- **Before:** filters were visually nested in a panel, ordinary tasks had separate card boundaries and boxed timestamps, and the free-time recommendation appeared ahead of the task list.
+- **After:** filters sit directly in the page flow; selected filters use one fill and stronger text weight with `aria-pressed`. Tasks use project grouping and divider rows; time is plain labeled metadata in the user's timezone. Recommendations follow the tasks in a lightweight disclosure.
+- **Reason:** tasks are a list of comparable items, not independent dashboard panels. Keep a boundary only for a separate semantic focus/decision surface.
+
+After completion, the polite live announcement remains available to assistive technology and keyboard focus returns to the visible “任务列表” heading. The page description states its display timezone. V2 browser captures are under `../evidence/v2/`; Android/TalkBack review is still pending.

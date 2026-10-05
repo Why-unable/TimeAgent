@@ -15,17 +15,32 @@ The current product uses a light mobile palette in `frontend/src/styles/index.cs
 | `space-6` | 24 px | feature surface padding |
 | `space-8` | 32 px | page group separation |
 
+### Mobile rhythm roles
+
+| Role | Value | Use |
+|---|---:|---|
+| Page gutter | 16–20 px | outer content edge |
+| Section gap | 24 px | separate sibling content groups |
+| Row gap | 12 px | list row content and compact recommendations |
+| Inline gap | 8 px | icon/label and related inline metadata |
+| Control gap | 8 px | adjacent chips and buttons |
+| Divider | 1 px | section and list boundaries; do not add a card border as well |
+
+Use the spacing scale `4 / 8 / 12 / 16 / 20 / 24 / 32 px` for page gutter, section gap, row gap, inline gap, and control gap roles. The role-specific values live in `frontend/src/styles/index.css`; prefer the role token or an existing scale step over an arbitrary one-off margin.
+
 ## Radius
 
 | Token | Value | Use |
 |---|---:|---|
 | `radius-control` | 10–12 px | buttons, inputs, chips |
 | `radius-row` | 12 px | selected/interactive row surface |
-| `radius-surface` | 16 px | independent content surface |
-| `radius-feature` | 20 px | one prominent execution or feedback surface |
+| `radius-surface` | 16 px | independent semantic content surface |
+| `radius-feature` | 16–20 px | one prominent execution or feedback surface |
 | `radius-sheet` | 24 px top corners | modal bottom sheet |
 
 Do not use a large radius by default on every section.
+
+Ordinary sections and divider lists have no radius. A Surface must represent focus, input, decision, warning, or modal state. Avoid nested content Surfaces by default.
 
 ## Typography
 

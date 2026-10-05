@@ -68,6 +68,9 @@ describe("TasksPage", () => {
     renderPage();
 
     expect(await screen.findByText("准备发布报告")).toBeInTheDocument();
+    const taskRow = screen.getByText("准备发布报告").closest('[data-surface="divider-list"]');
+    expect(taskRow).not.toBeNull();
+    expect(taskRow?.querySelector("[data-surface]")).toBeNull();
     expect(screen.getByText("截止时间")).toBeInTheDocument();
     expect(screen.getByText("计划执行时间")).toBeInTheDocument();
     expect(screen.queryByText("归档旧报告")).not.toBeInTheDocument();
@@ -165,8 +168,10 @@ describe("TasksPage", () => {
     );
 
     await waitFor(() => expect(completeUrl).toContain(`/tasks/${pendingTask.id}/complete/`));
-    expect(await screen.findByRole("status")).toHaveTextContent("已完成任务：准备发布报告");
-    expect(screen.getByRole("group", { name: "任务筛选" })).toHaveFocus();
+    const completionStatus = await screen.findByRole("status");
+    expect(completionStatus).toHaveTextContent("已完成任务：准备发布报告");
+    await waitFor(() => expect(screen.getByRole("heading", { name: "任务列表" })).toHaveFocus());
+    expect(screen.getByRole("group", { name: "任务筛选" })).not.toHaveFocus();
   });
 
   it("records an explicit start signal for a pending task", async () => {

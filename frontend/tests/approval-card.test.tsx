@@ -48,7 +48,7 @@ describe("ApprovalCard", () => {
     expect(screen.getByText("需要你确认")).toBeInTheDocument();
     expect(screen.getByText(proposal.original_request)).toBeInTheDocument();
     expect(screen.getAllByText(/项目评审/).length).toBeGreaterThan(0);
-    await userEvent.click(screen.getByRole("button", { name: "确认并应用" }));
+    await userEvent.click(screen.getByRole("button", { name: /^确认并应用/ }));
 
     expect(onDecision).toHaveBeenCalledWith("approve", undefined);
   });
@@ -111,7 +111,7 @@ describe("ApprovalCard", () => {
     expect(screen.queryByText("安排任务 21")).not.toBeVisible();
     await userEvent.click(screen.getByText("查看其余 18 项"));
     expect(screen.getByText("安排任务 21")).toBeVisible();
-    expect(screen.getByRole("button", { name: "确认并应用" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /^确认并应用/ })).toBeInTheDocument();
   });
 
   it("blocks an edited stale version and reopens with the refreshed proposal", async () => {
@@ -124,7 +124,7 @@ describe("ApprovalCard", () => {
     };
     const { rerender } = render(<ApprovalCard proposal={firstVersion} onDecision={onDecision} />);
 
-    await userEvent.click(screen.getByRole("button", { name: "调整后批准" }));
+    await userEvent.click(screen.getByRole("button", { name: /^调整后批准/ }));
     fireEvent.change(screen.getByLabelText("任务名称"), { target: { value: "旧版本编辑" } });
     const refreshed: ActionProposal = {
       ...firstVersion,
@@ -135,14 +135,14 @@ describe("ApprovalCard", () => {
     rerender(<ApprovalCard proposal={refreshed} onDecision={onDecision} />);
 
     expect(screen.getByRole("alert")).toHaveTextContent("旧内容不会提交");
-    expect(screen.getByRole("button", { name: "保存修改并批准" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: /^保存修改并批准/ })).toBeDisabled();
     expect(onDecision).not.toHaveBeenCalled();
 
-    await userEvent.click(screen.getByRole("button", { name: "取消编辑" }));
-    await userEvent.click(screen.getByRole("button", { name: "调整后批准" }));
+    await userEvent.click(screen.getByRole("button", { name: /^取消编辑/ }));
+    await userEvent.click(screen.getByRole("button", { name: /^调整后批准/ }));
     expect(screen.getByLabelText("任务名称")).toHaveValue("最新任务");
     fireEvent.change(screen.getByLabelText("任务名称"), { target: { value: "重新编辑" } });
-    await userEvent.click(screen.getByRole("button", { name: "保存修改并批准" }));
+    await userEvent.click(screen.getByRole("button", { name: /^保存修改并批准/ }));
     expect(onDecision).toHaveBeenCalledWith("edit", expect.objectContaining({
       actionPayload: expect.objectContaining({ tasks: [{ title: "重新编辑", priority: "high", estimated_minutes: 90 }] }),
     }));
@@ -185,7 +185,7 @@ describe("ApprovalCard", () => {
     });
     render(<ApprovalCard proposal={refreshedProposal} onDecision={onDecision} />);
 
-    await userEvent.click(screen.getByRole("button", { name: "确认并应用" }));
+    await userEvent.click(screen.getByRole("button", { name: /^确认并应用/ }));
 
     expect(screen.getByText("计划在提出审批后已有更新。已载入当前版本，请重新核对后再次确认。")).toBeInTheDocument();
     expect(screen.getByText("计划内容已有更新，审批仍待处理；请核对上方最新预览。")).toBeInTheDocument();
@@ -227,7 +227,7 @@ describe("ApprovalCard", () => {
 
     for (const editableProposal of editableProposals) {
       const { unmount } = render(<ApprovalCard proposal={editableProposal} onDecision={vi.fn()} />);
-      expect(screen.getByRole("button", { name: "调整后批准" })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: /^调整后批准/ })).toBeInTheDocument();
       unmount();
     }
   });
@@ -248,9 +248,9 @@ describe("ApprovalCard", () => {
     };
     render(<ApprovalCard proposal={taskProposal} onDecision={onDecision} />);
 
-    await userEvent.click(screen.getByRole("button", { name: "调整后批准" }));
+    await userEvent.click(screen.getByRole("button", { name: /^调整后批准/ }));
     fireEvent.change(screen.getByLabelText("任务名称"), { target: { value: "准备最终材料" } });
-    await userEvent.click(screen.getByRole("button", { name: "保存修改并批准" }));
+    await userEvent.click(screen.getByRole("button", { name: /^保存修改并批准/ }));
 
     expect(onDecision).toHaveBeenCalledWith(
       "edit",
@@ -289,13 +289,13 @@ describe("ApprovalCard", () => {
       </QueryClientProvider>,
     );
 
-    await userEvent.click(screen.getByRole("button", { name: "调整后批准" }));
+    await userEvent.click(screen.getByRole("button", { name: /^调整后批准/ }));
     await screen.findByRole("status");
     const targetSelect = await screen.findByRole("combobox", { name: "提醒关联对象" });
     expect(targetSelect).toHaveValue(`task:${taskId}`);
     expect(screen.getByRole("status")).toHaveTextContent("当前关联对象不在可选列表中");
     await waitFor(() => expect(targetSelect).toHaveFocus());
-    await userEvent.click(screen.getByRole("button", { name: "保存修改并批准" }));
+    await userEvent.click(screen.getByRole("button", { name: /^保存修改并批准/ }));
     expect(onDecision).toHaveBeenCalledWith("edit", expect.objectContaining({
       actionPayload: expect.objectContaining({ target_type: "task", target_id: taskId }),
     }));
@@ -326,11 +326,11 @@ describe("ApprovalCard", () => {
     expect(screen.getByText("已占用：2026/07/20 15:30 – 16:30")).toBeInTheDocument();
     expect(screen.getByText("与你的提议重叠：2026/07/20 15:30 – 16:00")).toBeInTheDocument();
     expect(screen.getByText("在你确认前，这项操作不会执行。")).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "确认并应用" })).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "先调整时间" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /^确认并应用/ })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /^先调整时间/ })).toBeInTheDocument();
     expect(screen.getByText(/当前时间与已有日程冲突/)).toBeInTheDocument();
-    await userEvent.click(screen.getByRole("button", { name: "先调整时间" }));
-    expect(screen.getByRole("button", { name: "重新检查并批准" })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: /^先调整时间/ }));
+    expect(screen.getByRole("button", { name: /^重新检查并批准/ })).toBeInTheDocument();
     expect(screen.getByText("当前冲突信息对应原安排。保存后会重新检查；无冲突时才批准。")).toBeInTheDocument();
   });
 
@@ -383,10 +383,10 @@ describe("ApprovalCard", () => {
     const onDecision = vi.fn().mockResolvedValue(undefined);
     render(<ApprovalCard proposal={proposal} onDecision={onDecision} />);
 
-    await userEvent.click(screen.getByRole("button", { name: "调整后批准" }));
+    await userEvent.click(screen.getByRole("button", { name: /^调整后批准/ }));
     const editor = screen.getByLabelText("日程标题");
     fireEvent.change(editor, { target: { value: "新标题" } });
-    await userEvent.click(screen.getByRole("button", { name: "保存修改并批准" }));
+    await userEvent.click(screen.getByRole("button", { name: /^保存修改并批准/ }));
 
     expect(onDecision).toHaveBeenCalledWith(
       "edit",
@@ -398,11 +398,11 @@ describe("ApprovalCard", () => {
     const onDecision = vi.fn().mockResolvedValue(undefined);
     render(<ApprovalCard proposal={proposal} onDecision={onDecision} />);
 
-    await userEvent.click(screen.getByRole("button", { name: "调整后批准" }));
+    await userEvent.click(screen.getByRole("button", { name: /^调整后批准/ }));
     fireEvent.change(screen.getByLabelText(/开始时间（Asia\/Shanghai）/), {
       target: { value: "2026-07-20T17:00" },
     });
-    await userEvent.click(screen.getByRole("button", { name: "保存修改并批准" }));
+    await userEvent.click(screen.getByRole("button", { name: /^保存修改并批准/ }));
 
     expect(screen.getByRole("alert")).toHaveTextContent("结束时间必须晚于开始时间");
     expect(onDecision).not.toHaveBeenCalled();
@@ -435,11 +435,11 @@ describe("ApprovalCard", () => {
     };
     render(<ApprovalCard proposal={updateProposal} onDecision={onDecision} />);
 
-    await userEvent.click(screen.getByRole("button", { name: "调整后批准" }));
+    await userEvent.click(screen.getByRole("button", { name: /^调整后批准/ }));
     expect(screen.getByLabelText("日程标题")).toHaveValue("现有评审");
     expect(screen.getByLabelText(/开始时间（Asia\/Shanghai）/)).toHaveValue("2026-07-20T15:00");
     expect(screen.getByLabelText(/结束时间（Asia\/Shanghai）/)).toHaveValue("2026-07-20T16:00");
-    await userEvent.click(screen.getByRole("button", { name: "保存修改并批准" }));
+    await userEvent.click(screen.getByRole("button", { name: /^保存修改并批准/ }));
 
     expect(onDecision).toHaveBeenCalledWith("edit", expect.objectContaining({
       actionPayload: expect.objectContaining({
@@ -477,12 +477,12 @@ describe("ApprovalCard", () => {
     };
     const { rerender } = render(<ApprovalCard proposal={completeProposal} onDecision={onDecision} />);
 
-    await userEvent.click(screen.getByRole("button", { name: "调整后批准" }));
-    await userEvent.click(screen.getByRole("button", { name: "保存修改并批准" }));
+    await userEvent.click(screen.getByRole("button", { name: /^调整后批准/ }));
+    await userEvent.click(screen.getByRole("button", { name: /^保存修改并批准/ }));
 
     expect(screen.getByRole("alert")).toHaveTextContent("暂时无法完整核对这项修改");
     expect(screen.getByLabelText("日程标题")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "保存修改并批准" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /^保存修改并批准/ })).toBeInTheDocument();
     rerender(<ApprovalCard proposal={incompleteProposal} onDecision={onDecision} />);
     expect(screen.getByLabelText("日程标题")).toBeInTheDocument();
   });
@@ -529,19 +529,19 @@ describe("ApprovalCard", () => {
     };
     render(<ApprovalCard proposal={mutationProposal} onDecision={onDecision} />);
 
-    const editButton = screen.getByRole("button", { name: "调整后批准" });
+    const editButton = screen.getByRole("button", { name: /^调整后批准/ });
     expect(screen.getByRole("status")).toHaveTextContent("提出审批后已有更新");
     await userEvent.click(editButton);
-    const details = screen.getByText("查看操作详情").closest("details");
+    const details = screen.getByText(/^查看操作详情：/).closest("details");
     expect(details).toHaveAttribute("open");
     const title = screen.getByLabelText("日程标题");
     expect(title).toHaveFocus();
-    await userEvent.click(screen.getByRole("button", { name: "取消编辑" }));
+    await userEvent.click(screen.getByRole("button", { name: /^取消编辑/ }));
     expect(editButton).toHaveFocus();
 
     await userEvent.click(editButton);
     fireEvent.change(screen.getByLabelText("日程标题"), { target: { value: "新时间的论文讨论" } });
-    await userEvent.click(screen.getByRole("button", { name: "保存修改并批准" }));
+    await userEvent.click(screen.getByRole("button", { name: /^保存修改并批准/ }));
 
     expect(onDecision).toHaveBeenCalledWith("edit", expect.objectContaining({
       actionPayload: {
@@ -594,11 +594,11 @@ describe("ApprovalCard", () => {
     };
     render(<ApprovalCard proposal={titleOnlyProposal} onDecision={onDecision} />);
 
-    await userEvent.click(screen.getByRole("button", { name: "调整后批准" }));
+    await userEvent.click(screen.getByRole("button", { name: /^调整后批准/ }));
     expect(screen.getByLabelText(/开始时间（Asia\/Shanghai）/)).toHaveValue("2026-07-20T15:00");
     expect(screen.getByLabelText(/结束时间（Asia\/Shanghai）/)).toHaveValue("2026-07-20T16:00");
     fireEvent.change(screen.getByLabelText("日程标题"), { target: { value: "新评审标题" } });
-    await userEvent.click(screen.getByRole("button", { name: "保存修改并批准" }));
+    await userEvent.click(screen.getByRole("button", { name: /^保存修改并批准/ }));
 
     expect(onDecision).toHaveBeenCalledWith("edit", expect.objectContaining({
       actionPayload: {
@@ -647,11 +647,11 @@ describe("ApprovalCard", () => {
     };
     render(<ApprovalCard proposal={titleOnlyProposal} onDecision={onDecision} />);
 
-    await userEvent.click(screen.getByRole("button", { name: "调整后批准" }));
+    await userEvent.click(screen.getByRole("button", { name: /^调整后批准/ }));
     fireEvent.change(screen.getByLabelText(/开始时间（Asia\/Shanghai）/), {
       target: { value: "2026-07-20T14:00" },
     });
-    await userEvent.click(screen.getByRole("button", { name: "保存修改并批准" }));
+    await userEvent.click(screen.getByRole("button", { name: /^保存修改并批准/ }));
 
     expect(onDecision).toHaveBeenCalledWith("edit", expect.objectContaining({
       actionPayload: {
@@ -674,14 +674,14 @@ describe("ApprovalCard", () => {
     const onDecision = vi.fn().mockResolvedValue(undefined);
     render(<ApprovalCard proposal={proposal} timezone="America/New_York" onDecision={onDecision} />);
 
-    await userEvent.click(screen.getByRole("button", { name: "调整后批准" }));
-    await userEvent.click(screen.getByText("查看操作详情"));
+    await userEvent.click(screen.getByRole("button", { name: /^调整后批准/ }));
+    await userEvent.click(screen.getByText(/^查看操作详情：/));
     fireEvent.change(screen.getByLabelText(/开始时间（America\/New_York）/), {
       target: { value: "2026-11-01T01:30" },
     });
 
     expect(await screen.findByText(/这个时间在 America\/New_York 会出现两次/)).toBeInTheDocument();
-    await userEvent.click(screen.getByRole("button", { name: "保存修改并批准" }));
+    await userEvent.click(screen.getByRole("button", { name: /^保存修改并批准/ }));
     expect(onDecision).not.toHaveBeenCalled();
   });
 
@@ -712,8 +712,8 @@ describe("ApprovalCard", () => {
     render(<ApprovalCard proposal={cancellation} onDecision={vi.fn()} />);
 
     expect(screen.getByText("取消日程")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "确认并应用" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "拒绝" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /^确认并应用/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /^拒绝/ })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "编辑后批准" })).not.toBeInTheDocument();
     expect(screen.queryByText(/冲突检查/)).not.toBeInTheDocument();
   });
@@ -734,8 +734,8 @@ describe("ApprovalCard", () => {
     render(<ApprovalCard proposal={incomplete} onDecision={vi.fn()} />);
 
     expect(screen.getByRole("status")).toHaveTextContent("暂时无法读取完整变化，因此不能确认这项操作");
-    expect(screen.queryByRole("button", { name: "确认并应用" })).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "拒绝" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /^确认并应用/ })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /^拒绝/ })).toBeInTheDocument();
   });
 
   it("lets a recurring-event proposal preview every occurrence", async () => {
@@ -765,7 +765,7 @@ describe("ApprovalCard", () => {
     render(<ApprovalCard proposal={recurring} onDecision={vi.fn()} />);
 
     expect(screen.getByText(/第 1 \/ 3 次/)).toBeInTheDocument();
-    await userEvent.click(screen.getByRole("button", { name: "查看下一个日程实例" }));
+    await userEvent.click(screen.getByRole("button", { name: /^查看下一个日程实例/ }));
     expect(screen.getByText(/第 2 \/ 3 次/)).toBeInTheDocument();
   });
 

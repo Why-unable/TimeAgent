@@ -78,10 +78,10 @@ export function PageHeader({
   return (
     <header className={`flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between ${className}`}>
       <div className="min-w-0">
-        <h2 className="flex items-center gap-2 text-2xl font-semibold tracking-tight text-slate-900 lg:text-4xl">
+        <h1 className="flex items-center gap-2 text-2xl font-semibold tracking-tight text-slate-900 lg:text-4xl">
           {icon}
           {title}
-        </h2>
+        </h1>
         {description && <p className="mt-2 text-sm leading-6 text-slate-500 lg:mt-3 lg:text-base">{description}</p>}
       </div>
       {actions && <div className="w-full shrink-0 lg:w-auto">{actions}</div>}

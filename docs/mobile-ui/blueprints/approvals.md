@@ -22,3 +22,13 @@ Status: Iteration 3 implemented; preserve existing ActionProposal + HITL lifecyc
 - E2E: 21-item plan expands all items and shows count; conflict and stale states remain reviewable; edit version changes block stale submission; list failure retry works; approve/edit/reject continue through the existing proposal API only.
 - Test narrow screens at 320, 360 and 393 px for no page overflow and decision controls reachable without excessive repeated scrolling.
 - Physical TalkBack, IME, Android Back and system bars remain `NOT EXECUTED` without an Android device.
+
+## V2 — visual hierarchy pass
+
+### Before / After / Reason
+
+- **Before:** the independent high-risk proposal was visually correct as a decision card, but change preview rows, details, and batch editor fieldsets also acquired pale backgrounds or borders on mobile. Repeated generic action labels were ambiguous across proposals.
+- **After:** one amber decision surface represents one ActionProposal. Change previews, disclosures, and batch editor groups use divider rows; form inputs retain their own control boundaries. Approve, edit, reject, and recurring-instance navigation names include the proposal object name where available.
+- **Reason:** the decision itself needs a strong boundary; its supporting details do not. Contextual action names make repeated cards distinguishable to assistive technology.
+
+Browser evidence: `../evidence/v2/approvals-393.png`. The mobile E2E verifies one decision surface, no nested `data-surface`, contextual action names, and no horizontal overflow. Physical Android/TalkBack acceptance remains pending.

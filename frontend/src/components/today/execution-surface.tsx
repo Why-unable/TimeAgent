@@ -300,7 +300,7 @@ export function MobileTodayExecutionSurface({
   return (
     <section aria-label="今日执行重点" className="space-y-5">
       {focus ? (
-        <article data-testid="today-focus" className="rounded-2xl border border-teal-200 bg-white p-4 shadow-[0_8px_24px_-20px_rgba(15,23,42,0.35)]">
+        <article data-testid="today-focus" data-surface="focus-card" className="rounded-2xl border border-teal-200 bg-white p-4 shadow-[0_8px_24px_-20px_rgba(15,23,42,0.35)]">
           <p className="text-xs font-semibold uppercase tracking-wide text-teal-800">
             {current ? (current.kind === "task" && current.status === "in_progress" ? "正在进行" : "现在") : "接下来"}
           </p>

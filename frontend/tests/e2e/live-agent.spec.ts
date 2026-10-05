@@ -289,8 +289,8 @@ test("real browser completes Agent plan edit, HITL apply, Task API and Today", a
     await send(`请应用计划 ${planId} 当前版本 ${plan.version}。它只包含测试任务「${title}」；请先提交正式审批，不要绕过确认流程。`);
     const approval = page.locator("article").filter({ hasText: "需要你确认" }).last();
     await expect(approval).toBeVisible({ timeout: 240_000 });
-    await expect(approval.getByRole("button", { name: "确认并应用" })).toBeEnabled();
-    await approval.getByRole("button", { name: "确认并应用" }).click();
+    await expect(approval.getByRole("button", { name: /^确认并应用/ })).toBeEnabled();
+    await approval.getByRole("button", { name: /^确认并应用/ }).click();
 
     await expect.poll(async () => {
       const proposals = await api<Array<{ conversation_id: string; status: string }>>(

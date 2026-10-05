@@ -37,3 +37,14 @@ List failed reminders under “需要处理”; pending/queued/sending under “
 - Primary and row actions are at least 48 px; icon cancel has a visible text equivalent or a 44 px named target.
 - E2E covers Me and Today entry, create-sheet open/close, local timezone serialization, success, invalid time, list retry, failed/cancelled grouping, cancel failure, 320 px no overflow, and 360–430 px screenshots.
 - Android notification permission, system alarm and native picker behavior are `NOT EXECUTED` without a connected device.
+
+## V2 — visual hierarchy pass
+
+### Before / After / Reason
+
+- **Before:** reminder records inherited a pale background from a desktop-only slate card class, so each mobile list row read as a separate surface despite its divider-list structure.
+- **After:** mobile reminder records use divider rows with readable status badges; desktop retains its dark row surface. The create flow stays in one modal Drawer, with labels and native input controls directly on the sheet and no inner form card.
+- **Reason:** a reminder row is one item in a status group, while the create form is an input task that deserves the single modal surface. Remove responsive-class compatibility leakage that made the mobile list look card-based.
+- The shared Drawer sizes to its content up to the viewport limit, so the short reminder form does not leave a large empty sheet. Drawer and reminder-group headings follow `h1 → h2 → h3`; fields remain individually outlined controls.
+
+Mobile list and create-sheet evidence is stored under `../evidence/v2/`. Browser checks do not verify Android alarm delivery, notification permission, or native picker behavior.

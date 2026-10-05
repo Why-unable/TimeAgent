@@ -356,6 +356,7 @@ export function ChatPage() {
   const composer = useRef<HTMLFormElement | null>(null);
   const autoSendStarted = useRef(false);
   const [composerOffset, setComposerOffset] = useState(0);
+  const [keyboardResizesViewport, setKeyboardResizesViewport] = useState(false);
   const [showJumpToLatest, setShowJumpToLatest] = useState(false);
 
   useEffect(() => {
@@ -379,9 +380,22 @@ export function ChatPage() {
   useEffect(() => {
     const vv = window.visualViewport;
     if (!vv) return;
+    let unobscuredHeight = vv.height;
     const handler = () => {
-      const delta = window.innerHeight - vv.height - vv.offsetTop;
-      setComposerOffset(delta > 24 ? delta : 0);
+      const isComposerFocused = document.activeElement === textarea.current;
+      const currentHeight = vv.height;
+      if (!isComposerFocused) {
+        unobscuredHeight = currentHeight;
+        setComposerOffset(0);
+        setKeyboardResizesViewport(false);
+        return;
+      }
+
+      const coveredHeight = window.innerHeight - currentHeight - vv.offsetTop;
+      const resizedHeight = unobscuredHeight - currentHeight;
+      const resizesViewport = resizedHeight > 160 && coveredHeight <= 24;
+      setKeyboardResizesViewport(resizesViewport);
+      setComposerOffset(!resizesViewport && coveredHeight > 24 ? coveredHeight : 0);
     };
     vv.addEventListener("resize", handler);
     vv.addEventListener("scroll", handler);
@@ -832,7 +846,7 @@ export function ChatPage() {
   );
 
   return (
-    <section className="-mx-4 flex h-[calc(100dvh-8.25rem)] min-h-0 overflow-hidden bg-transparent lg:mx-auto lg:h-[calc(100vh-7rem)] lg:min-h-[32rem] lg:max-w-7xl lg:rounded-2xl lg:border lg:border-slate-200 lg:bg-white/70">
+    <section className={`-mx-4 flex ${keyboardResizesViewport ? "h-[calc(100dvh-2rem)]" : "h-[calc(100dvh-8.25rem)]"} min-h-0 overflow-hidden bg-transparent lg:mx-auto lg:h-[calc(100vh-7rem)] lg:min-h-[32rem] lg:max-w-7xl lg:rounded-2xl lg:border lg:border-slate-200 lg:bg-white/70`}>
       <aside className="hidden w-64 shrink-0 border-r border-slate-200 bg-slate-50 lg:block">{historyPanel}</aside>
       {historyOpen && (
         <Drawer title="对话历史" onClose={() => setHistoryOpen(false)}>

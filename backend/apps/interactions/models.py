@@ -140,7 +140,7 @@ class InteractionSubmission(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     expected_version = models.PositiveIntegerField()
     action = models.CharField(max_length=32)
-    values = models.JSONField(default=dict)
+    values = models.JSONField(default=dict, blank=True)
     result = models.JSONField(default=dict)
     idempotency_key = models.CharField(max_length=128)
     created_at = models.DateTimeField(auto_now_add=True)

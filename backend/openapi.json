@@ -8747,10 +8747,11 @@
                     "paused",
                     "resumed",
                     "completed",
+                    "reopened",
                     "skipped"
                 ],
                 "type": "string",
-                "description": "* `started` - Started\n* `paused` - Paused\n* `resumed` - Resumed\n* `completed` - Completed\n* `skipped` - Skipped"
+                "description": "* `started` - Started\n* `paused` - Paused\n* `resumed` - Resumed\n* `completed` - Completed\n* `reopened` - Reopened\n* `skipped` - Skipped"
             },
             "StrategyEnum": {
                 "enum": [

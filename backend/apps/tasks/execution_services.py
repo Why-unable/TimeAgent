@@ -5,6 +5,7 @@ from uuid import UUID
 
 from django.contrib.auth.models import User
 from django.db import transaction
+from django.utils import timezone
 
 from apps.tasks.models import (
     Task,
@@ -13,6 +14,7 @@ from apps.tasks.models import (
     TaskStatus,
 )
 from apps.tasks.services import TaskService
+from common.database_locks import lock_user_schedule_writes
 from common.time import to_utc
 
 
@@ -58,12 +60,17 @@ class TaskExecutionSignalService:
             raise ValueError("idempotency_key cannot be blank")
         occurred_at = to_utc(command.occurred_at)
         signal_type = TaskExecutionSignalType(command.signal_type)
+        lock_user_schedule_writes(command.user)
         task = Task.objects.select_for_update().get(pk=command.task_id, user=command.user)
 
-        existing = TaskExecutionSignal.objects.select_for_update().filter(
-            user=command.user,
-            idempotency_key=key,
-        ).first()
+        existing = (
+            TaskExecutionSignal.objects.select_for_update()
+            .filter(
+                user=command.user,
+                idempotency_key=key,
+            )
+            .first()
+        )
         if existing is not None:
             metadata = command.metadata or {}
             if (
@@ -99,6 +106,38 @@ class TaskExecutionSignalService:
         return signal
 
     @staticmethod
+    @transaction.atomic
+    def record_completion(
+        *, user: User, task_id: UUID, source: str = "web", now: datetime | None = None
+    ) -> TaskExecutionSignal:
+        """Record one idempotent completion per task-state version."""
+
+        if user.pk is None:
+            raise ValueError("Execution signal user must be persisted")
+        lock_user_schedule_writes(user)
+        task = Task.objects.select_for_update().get(pk=task_id, user=user)
+        occurred_at = task.completed_at or to_utc(now or timezone.now())
+        if task.status == TaskStatus.COMPLETED:
+            current_completion = TaskExecutionSignal.objects.filter(
+                user=user,
+                task=task,
+                signal_type=TaskExecutionSignalType.COMPLETED,
+                occurred_at=occurred_at,
+            ).first()
+            if current_completion is not None:
+                return current_completion
+        return TaskExecutionSignalService.record(
+            RecordExecutionSignalCommand(
+                user=user,
+                task_id=task_id,
+                signal_type=TaskExecutionSignalType.COMPLETED,
+                occurred_at=occurred_at,
+                idempotency_key=f"complete-endpoint:{task_id}:{task.version}",
+                source=source,
+            )
+        )
+
+    @staticmethod
     def list(*, user: User, task_id: UUID) -> list[TaskExecutionSignal]:
         if user.pk is None:
             raise ValueError("Execution signal user must be persisted")
@@ -125,6 +164,7 @@ class TaskExecutionSignalService:
             elif signal.signal_type in {
                 TaskExecutionSignalType.PAUSED,
                 TaskExecutionSignalType.COMPLETED,
+                TaskExecutionSignalType.REOPENED,
             }:
                 if open_started_at is not None:
                     active_seconds += max(
@@ -134,9 +174,7 @@ class TaskExecutionSignalService:
                     open_started_at = None
         if open_started_at is not None:
             active_seconds += max(0, int((anchor - open_started_at).total_seconds()))
-        last_signal_type = (
-            TaskExecutionSignalType(signals[-1].signal_type) if signals else None
-        )
+        last_signal_type = TaskExecutionSignalType(signals[-1].signal_type) if signals else None
         planned_seconds = (
             int((task.planned_end_at - task.planned_start_at).total_seconds())
             if task.planned_start_at is not None and task.planned_end_at is not None
@@ -179,21 +217,31 @@ class TaskExecutionSignalService:
         source: str,
     ) -> None:
         target_status: TaskStatus | None = None
-        if signal_type in {
-            TaskExecutionSignalType.STARTED,
-            TaskExecutionSignalType.RESUMED,
-        } and task.status == TaskStatus.PENDING:
+        if (
+            signal_type
+            in {
+                TaskExecutionSignalType.STARTED,
+                TaskExecutionSignalType.RESUMED,
+            }
+            and task.status == TaskStatus.PENDING
+        ):
             target_status = TaskStatus.IN_PROGRESS
         elif (
-            signal_type == TaskExecutionSignalType.PAUSED
-            and task.status == TaskStatus.IN_PROGRESS
+            signal_type == TaskExecutionSignalType.PAUSED and task.status == TaskStatus.IN_PROGRESS
         ):
             target_status = TaskStatus.PENDING
         elif (
-            signal_type == TaskExecutionSignalType.COMPLETED
-            and task.status != TaskStatus.COMPLETED
+            signal_type == TaskExecutionSignalType.COMPLETED and task.status != TaskStatus.COMPLETED
         ):
             target_status = TaskStatus.COMPLETED
+        elif signal_type == TaskExecutionSignalType.REOPENED:
+            TaskService.reopen_task(
+                user=user,
+                task_id=task.pk,
+                occurred_at=occurred_at,
+                origin=source,
+            )
+            return
         if target_status is not None:
             TaskService.change_task_state(
                 user=user,

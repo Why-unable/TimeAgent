@@ -7,13 +7,15 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.models import User
 from django.test import Client
 
+from apps.interactions.models import InteractionArtifact, InteractionStatus
 from apps.tasks.execution_services import (
     ExecutionSignalIdempotencyConflictError,
     RecordExecutionSignalCommand,
     TaskExecutionSignalService,
 )
-from apps.tasks.models import Task, TaskExecutionSignalType, TaskStatus
+from apps.tasks.models import Task, TaskExecutionSignal, TaskExecutionSignalType, TaskStatus
 from apps.tasks.services import CreateTaskCommand, TaskService
+from apps.time_memory.models import ScheduleChange
 
 pytestmark = pytest.mark.django_db
 
@@ -108,7 +110,6 @@ def test_idempotency_key_cannot_change_source_or_metadata() -> None:
                 metadata={"screen": "tasks"},
             )
         )
-
     with pytest.raises(ExecutionSignalIdempotencyConflictError):
         TaskExecutionSignalService.record(
             RecordExecutionSignalCommand(
@@ -121,6 +122,56 @@ def test_idempotency_key_cannot_change_source_or_metadata() -> None:
                 metadata={"screen": "today"},
             )
         )
+
+
+def test_reopening_a_completed_task_is_audited_and_idempotent() -> None:
+    user = create_user("execution-reopen")
+    task = create_task(user)
+    TaskService.complete_task(task_id=task.pk, user=user, occurred_at=NOW)
+    interaction = InteractionArtifact.objects.get(task=task, status=InteractionStatus.PENDING)
+
+    first = record(
+        user, task, TaskExecutionSignalType.REOPENED, NOW + timedelta(minutes=1), "undo-1"
+    )
+    repeated = record(
+        user, task, TaskExecutionSignalType.REOPENED, NOW + timedelta(minutes=1), "undo-1"
+    )
+
+    task.refresh_from_db()
+    interaction.refresh_from_db()
+    assert first.pk == repeated.pk
+    assert first.signal_type == TaskExecutionSignalType.REOPENED
+    assert task.status == TaskStatus.PENDING
+    assert task.completed_at is None
+    assert interaction.status == InteractionStatus.ABANDONED
+    change = ScheduleChange.objects.filter(entity_id=task.pk).latest("created_at")
+    assert change.operation == "updated"
+    assert change.old_snapshot["status"] == TaskStatus.COMPLETED
+    assert change.new_snapshot["status"] == TaskStatus.PENDING
+
+
+def test_task_can_be_completed_again_after_reopen_with_a_new_signal() -> None:
+    user = create_user("execution-recomplete")
+    task = create_task(user)
+    first = TaskExecutionSignalService.record_completion(user=user, task_id=task.pk, now=NOW)
+    replay = TaskExecutionSignalService.record_completion(
+        user=user, task_id=task.pk, now=NOW + timedelta(minutes=5)
+    )
+    record(user, task, TaskExecutionSignalType.REOPENED, NOW + timedelta(minutes=10), "undo-2")
+    second = TaskExecutionSignalService.record_completion(
+        user=user, task_id=task.pk, now=NOW + timedelta(minutes=20)
+    )
+
+    task.refresh_from_db()
+    assert first.pk == replay.pk
+    assert second.pk != first.pk
+    assert task.status == TaskStatus.COMPLETED
+    assert (
+        TaskExecutionSignal.objects.filter(
+            task=task, signal_type=TaskExecutionSignalType.COMPLETED
+        ).count()
+        == 2
+    )
 
 
 def test_execution_summary_reconstructs_active_seconds() -> None:
@@ -178,6 +229,34 @@ def test_execution_summary_compares_planned_block_and_estimate() -> None:
     assert summary.variance_vs_estimate_seconds == 5 * 60
 
 
+def test_reopened_signal_closes_the_previous_active_execution_segment() -> None:
+    user = create_user("execution-reopen-summary")
+    task = create_task(user)
+    record(user, task, TaskExecutionSignalType.STARTED, NOW, "reopen-summary-start")
+    TaskExecutionSignalService.record_completion(
+        user=user,
+        task_id=task.pk,
+        now=NOW + timedelta(minutes=20),
+    )
+    record(
+        user,
+        task,
+        TaskExecutionSignalType.REOPENED,
+        NOW + timedelta(minutes=25),
+        "reopen-summary-undo",
+    )
+
+    summary = TaskExecutionSignalService.summary(
+        user=user,
+        task_id=task.pk,
+        now=NOW + timedelta(hours=2),
+    )
+
+    assert summary.active_seconds == 20 * 60
+    assert summary.open_started_at is None
+    assert summary.last_signal_type == TaskExecutionSignalType.REOPENED
+
+
 def test_execution_signal_api_is_user_scoped_and_returns_summary() -> None:
     user = create_user("execution-api-user")
     other = create_user("execution-api-other")
@@ -215,3 +294,28 @@ def test_execution_signal_api_is_user_scoped_and_returns_summary() -> None:
     assert summary.status_code == 200
     assert summary.json()["signal_count"] == 1
     assert hidden.status_code == 404
+
+
+def test_execution_signal_api_can_restore_a_completed_task_idempotently() -> None:
+    user = create_user("execution-api-reopen")
+    client = Client()
+    client.force_login(user)
+    task = create_task(user)
+    TaskService.complete_task(task_id=task.pk, user=user, occurred_at=NOW)
+    url = SIGNALS_URL.format(task.pk)
+    payload = {
+        "signal_type": "reopened",
+        "occurred_at": "2026-08-23T09:01:00+08:00",
+        "idempotency_key": "api-reopen-1",
+        "source": "web",
+    }
+
+    response = client.post(url, data=payload, content_type="application/json")
+    repeated = client.post(url, data=payload, content_type="application/json")
+    task.refresh_from_db()
+
+    assert response.status_code == 200
+    assert response.json()["signal_type"] == "reopened"
+    assert repeated.json()["id"] == response.json()["id"]
+    assert task.status == TaskStatus.PENDING
+    assert task.completed_at is None

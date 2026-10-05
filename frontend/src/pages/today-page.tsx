@@ -4,8 +4,6 @@ import {
   Bell,
   CheckCircle2,
   Clock3,
-  Flag,
-  Ban,
   Timer,
 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -20,6 +18,7 @@ import { MobileSectionHeader } from "../components/mobile/mobile-section-header"
 import { DayClosing } from "../components/today/day-closing";
 import { MorningBrief } from "../components/today/morning-brief";
 import { MobileTodayExecutionSurface, TodayExecutionSurface } from "../components/today/execution-surface";
+import { Drawer } from "../components/overlay/drawer";
 import {
   formatCountdown,
 } from "../features/today/derive";
@@ -28,6 +27,7 @@ import { interactionComponentRegistry } from "../components/planning/interaction
 import { useRecordTaskExecutionSignal } from "../features/tasks/hooks";
 import {
   formatDateKey,
+  formatInUserTimezone,
   formatTimeInUserTimezone,
 } from "../utils/datetime";
 import { PageHeader } from "../components/ui/primitives";
@@ -107,10 +107,17 @@ function TodayTaskProgress({ completed, unfinished }: { completed: number; unfin
 export function TodayPage() {
   const queryClient = useQueryClient();
   const [focusInteractionId, setFocusInteractionId] = useState<string | null>(null);
-  const [feedbackDismissed, setFeedbackDismissed] = useState(false);
   const [activeCompletionId, setActiveCompletionId] = useState<string | null>(null);
+  const [feedbackDrawerOpen, setFeedbackDrawerOpen] = useState(false);
+  const [completionNotice, setCompletionNotice] = useState<{
+    taskId: string;
+    title: string;
+    state: "completed" | "reopened";
+  } | null>(null);
+  const [completionNoticeError, setCompletionNoticeError] = useState("");
   const [feedbackRetryTaskIds, setFeedbackRetryTaskIds] = useState<string[]>(readCompletionFeedbackRetryIds);
   const retryingFeedbackIds = useRef(new Set<string>());
+  const reopenAttempts = useRef(new Map<string, { occurred_at: string; idempotency_key: string }>());
   const summary = useTodaySummary();
   const completeTask = useCompleteTodayTask();
   const completionInteractions = useQuery({
@@ -137,9 +144,7 @@ export function TodayPage() {
   const installCompletionInteraction = useCallback(async (interaction: InteractionArtifact) => {
     if (interaction.status !== "pending") return;
     await queryClient.cancelQueries({ queryKey: ["interactions", "task_completion"] });
-    setFeedbackDismissed(false);
     setActiveCompletionId(interaction.id);
-    setFocusInteractionId(interaction.id);
     queryClient.setQueryData<InteractionArtifact[]>(["interactions", "task_completion"], (current = []) => [
       interaction,
       ...current.filter((entry) => entry.id !== interaction.id),
@@ -149,7 +154,7 @@ export function TodayPage() {
   const retryCompletionFeedback = useCallback(async (taskId: string) => {
     try {
       const interaction = await ensureInteraction({ type: "task_completion", task_id: taskId });
-      installCompletionInteraction(interaction);
+      await installCompletionInteraction(interaction);
       updateFeedbackRetryQueue((current) => current.filter((id) => id !== taskId));
     } catch {
       // Keep the task ID queued so the user can retry without repeating completion.
@@ -180,12 +185,6 @@ export function TodayPage() {
     }
   }, [focusInteractionId]);
 
-  useEffect(() => {
-    if (feedbackDismissed) {
-      document.getElementById("today-completion-feedback-dismissed")?.focus();
-    }
-  }, [feedbackDismissed]);
-
   if (summary.isPending) {
     return <p role="status" className="mx-auto flex min-h-24 max-w-6xl items-center text-sm text-slate-600">正在整理今天的安排…</p>;
   }
@@ -210,6 +209,7 @@ export function TodayPage() {
   const data = summary.data;
   const CompletionRenderer = interactionComponentRegistry.task_completion;
   const complete = async (taskId: string) => {
+    const task = [...data.unfinished_tasks, ...data.completed_tasks].find((entry) => entry.id === taskId);
     try {
       await completeTask.mutateAsync(taskId);
     } catch {
@@ -217,19 +217,19 @@ export function TodayPage() {
     }
     try {
       const interaction = await ensureInteraction({ type: "task_completion", task_id: taskId });
-      installCompletionInteraction(interaction);
+      await installCompletionInteraction(interaction);
     } catch {
       updateFeedbackRetryQueue((current) => current.includes(taskId) ? current : [...current, taskId]);
     }
+    setCompletionNotice({ taskId, title: task?.title ?? "任务", state: "completed" });
+    setCompletionNoticeError("");
   };
   const closeCompletionInteraction = (interaction: InteractionArtifact) => {
     setFocusInteractionId(null);
-    setFeedbackDismissed(true);
+    setFeedbackDrawerOpen(false);
     const remaining = (completionInteractions.data ?? []).filter((entry) => entry.id !== interaction.id);
     if (remaining.length > 0) {
-      setFeedbackDismissed(false);
       setActiveCompletionId(remaining[0].id);
-      setFocusInteractionId(remaining[0].id);
     } else {
       setActiveCompletionId(null);
     }
@@ -237,6 +237,46 @@ export function TodayPage() {
       current.filter((entry) => entry.id !== interaction.id),
     );
     void queryClient.invalidateQueries({ queryKey: ["interactions", "task_completion"] });
+  };
+  const reopenTask = async (taskId: string) => {
+    const attempt = reopenAttempts.current.get(taskId) ?? {
+      occurred_at: new Date().toISOString(),
+      idempotency_key: globalThis.crypto?.randomUUID?.()
+        ?? `reopen-${taskId}-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+    };
+    reopenAttempts.current.set(taskId, attempt);
+    setCompletionNoticeError("");
+    try {
+      await startTask.mutateAsync({ taskId, signalType: "reopened", options: attempt });
+      reopenAttempts.current.delete(taskId);
+      updateFeedbackRetryQueue((current) => current.filter((id) => id !== taskId));
+      const task = [...data.completed_tasks, ...data.unfinished_tasks].find((entry) => entry.id === taskId);
+      setCompletionNotice({ taskId, title: task?.title ?? "任务", state: "reopened" });
+      setFeedbackDrawerOpen(false);
+    } catch (error) {
+      setCompletionNoticeError(error instanceof Error ? error.message : "恢复失败，请稍后重试。");
+      throw error;
+    }
+  };
+  const pendingCompletionTaskIds = (completionInteractions.data ?? [])
+    .filter((interaction) => interaction.status === "pending" && interaction.task_id)
+    .map((interaction) => interaction.task_id as string);
+  const openCompletionFeedback = async (taskId: string) => {
+    let interaction = completionInteractions.data?.find((entry) => entry.task_id === taskId);
+    if (!interaction) {
+      try {
+        interaction = await ensureInteraction({ type: "task_completion", task_id: taskId });
+        await installCompletionInteraction(interaction);
+        updateFeedbackRetryQueue((current) => current.filter((id) => id !== taskId));
+      } catch {
+        updateFeedbackRetryQueue((current) => current.includes(taskId) ? current : [...current, taskId]);
+        setCompletionNoticeError("反馈暂时无法载入，请重试");
+        return;
+      }
+    }
+    setActiveCompletionId(interaction.id);
+    setFocusInteractionId(interaction.id);
+    setFeedbackDrawerOpen(true);
   };
 
   return (
@@ -247,8 +287,7 @@ export function TodayPage() {
         title="今天"
         description={(
           <>
-            {formatDateKey(data.date)}
-            <span className="hidden lg:inline"> · {data.timezone}</span>
+            {formatDateKey(data.date)} · 时间按 {data.timezone} 显示
           </>
         )}
         actions={(
@@ -273,29 +312,51 @@ export function TodayPage() {
           <button type="button" onClick={() => void Promise.all(feedbackRetryTaskIds.map(retryCompletionFeedback))} className="ml-2 min-h-10 underline">重试</button>
         </div>
       )}
-      {completionInteractions.data?.filter((interaction) => interaction.id === activeCompletionId).map((interaction) => (
-        <CompletionRenderer
-          key={interaction.id}
-          interaction={interaction}
-          autoFocus={focusInteractionId === interaction.id}
-          onClose={closeCompletionInteraction}
-        />
-      ))}
-      {(completionInteractions.data?.length ?? 0) > 1 && (
-        <p className="mt-2 flex flex-wrap items-center gap-2 text-xs text-slate-400">
-          尚有 {completionInteractions.data!.length} 项可选反馈。
-          <button type="button" onClick={() => {
-            const rows = completionInteractions.data ?? [];
-            if (rows.length < 2) return;
-            const index = rows.findIndex((entry) => entry.id === activeCompletionId);
-            const next = rows[(index + 1) % rows.length];
-            setFeedbackDismissed(false);
-            setActiveCompletionId(next.id);
-            setFocusInteractionId(next.id);
-          }} className="min-h-10 underline">查看下一项</button>
-        </p>
+      {completionNotice && (
+        <div role="status" aria-live="polite" className="fixed inset-x-3 bottom-[calc(env(safe-area-inset-bottom)+5.25rem)] z-40 mx-auto flex max-w-xl flex-wrap items-center gap-x-3 gap-y-2 rounded-2xl border border-teal-200 bg-white p-3 text-sm text-slate-800 shadow-xl sm:inset-x-auto sm:bottom-6 sm:right-6 sm:mx-0">
+          <CheckCircle2 size={18} className="shrink-0 text-teal-700" aria-hidden="true" />
+          <span className="min-w-0 flex-1">{completionNotice.state === "completed" ? `${completionNotice.title}：已完成` : `${completionNotice.title}：已恢复为未完成`}</span>
+          {completionNotice.state === "completed" ? (
+            <>
+              <button
+                type="button"
+                disabled={startTask.isPending}
+                onClick={() => void reopenTask(completionNotice.taskId).catch(() => undefined)}
+                className="min-h-10 rounded-lg px-3 font-medium text-teal-800 underline underline-offset-2 disabled:opacity-50"
+              >恢复未完成</button>
+              {pendingCompletionTaskIds.includes(completionNotice.taskId) && (
+                <button type="button" onClick={() => void openCompletionFeedback(completionNotice.taskId)} className="min-h-10 rounded-lg bg-teal-700 px-3 font-semibold text-white">记录反馈</button>
+              )}
+            </>
+          ) : null}
+          <button type="button" aria-label="关闭提示" onClick={() => setCompletionNotice(null)} className="min-h-10 min-w-10 rounded-lg text-slate-500 hover:bg-slate-100">×</button>
+          {completionNoticeError && <span role="alert" className="basis-full text-xs text-rose-700">操作失败：{completionNoticeError}。可安全重试。</span>}
+        </div>
       )}
-      {feedbackDismissed && <p id="today-completion-feedback-dismissed" tabIndex={-1} role="status" className="mt-3 rounded-lg border border-emerald-300/20 bg-emerald-300/5 p-3 text-sm text-emerald-100">任务已完成，可选反馈已关闭。</p>}
+      {feedbackDrawerOpen && completionInteractions.data?.find((interaction) => interaction.id === activeCompletionId) && (
+        <Drawer
+          title="任务完成反馈"
+          description="这是可选反馈；任务状态已保存，你可以随时关闭。"
+          onClose={() => setFeedbackDrawerOpen(false)}
+        >
+          <CompletionRenderer
+            key={activeCompletionId}
+            interaction={completionInteractions.data.find((interaction) => interaction.id === activeCompletionId)!}
+            autoFocus={focusInteractionId === activeCompletionId}
+            onClose={closeCompletionInteraction}
+            onUndoCompletion={reopenTask}
+          />
+          {(completionInteractions.data?.length ?? 0) > 1 && (
+            <button type="button" onClick={() => {
+              const rows = completionInteractions.data ?? [];
+              const index = rows.findIndex((entry) => entry.id === activeCompletionId);
+              const next = rows[(index + 1) % rows.length];
+              setActiveCompletionId(next.id);
+              setFocusInteractionId(next.id);
+            }} className="mt-3 min-h-11 rounded-lg px-3 text-sm font-medium text-teal-800 underline">查看下一项反馈（共 {completionInteractions.data.length} 项）</button>
+          )}
+        </Drawer>
+      )}
 
       <div className="mt-4 lg:hidden">
         <MobileTodayExecutionSurface
@@ -376,65 +437,80 @@ export function TodayPage() {
       </div>
 
       {insights.data && insights.data.length > 0 && (
-        <section className="mt-5 rounded-2xl border border-amber-300/20 bg-amber-300/5 p-5">
+        <section aria-labelledby="today-insights-heading" data-surface="none" className="mt-5 border-y border-slate-200 py-4 lg:rounded-2xl lg:border lg:border-amber-300/20 lg:bg-amber-300/5 lg:p-5">
           <div className="flex items-center justify-between gap-3">
             <div>
-              <h3 className="font-semibold text-amber-100">需要留意</h3>
-              <p className="mt-1 text-xs text-slate-400">只展示有确定事实依据、仍未过期的时间风险。</p>
+              <h2 id="today-insights-heading" className="font-semibold text-amber-900 lg:text-amber-100">需要留意</h2>
+              <p className="mt-1 text-xs text-slate-600 lg:text-slate-400">只展示有确定事实依据、仍未过期的时间风险。</p>
             </div>
-            <span className="text-xs text-slate-500">{insights.data.length} 条</span>
+            <span className="text-xs text-slate-600 lg:text-slate-500">{insights.data.length} 条</span>
           </div>
-          <div className="mt-4 space-y-3">
+          <div className="mt-2 divide-y divide-slate-200 lg:mt-4 lg:space-y-3 lg:divide-y-0">
             {insights.data.slice(0, 3).map((insight) => (
-              <article key={insight.id} className="rounded-xl bg-slate-950/50 p-4">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <h4 className="font-medium text-slate-100">{insight.title}</h4>
-                    <p className="mt-1 text-sm leading-6 text-slate-300">{insight.summary}</p>
-                    <p className="mt-2 text-xs text-slate-500">依据：{String((insight.evidence as { due_at?: unknown }).due_at ?? "任务截止时间")}</p>
-                  </div>
-                  <div className="flex shrink-0 gap-1">
+              <article key={insight.id} className="border-l-2 border-amber-500 py-3 pl-3">
+                <div className="min-w-0">
+                    <h3 className="font-medium text-slate-900 lg:text-slate-100">{insight.title}</h3>
+                    <p className="mt-1 text-sm leading-6 text-slate-700 lg:text-slate-300">{insight.summary}</p>
+                    <p className="mt-2 text-xs text-slate-600 lg:text-slate-500">
+                      {(() => {
+                        const evidence = insight.evidence;
+                        const dueAt = evidence && typeof evidence === "object" && !Array.isArray(evidence)
+                          ? (evidence as { due_at?: unknown }).due_at
+                          : undefined;
+                        if (typeof dueAt !== "string") return "依据：任务截止时间";
+                        try {
+                          return `截止：${formatInUserTimezone(dueAt, data.timezone)}`;
+                        } catch {
+                          return "依据：任务截止时间";
+                        }
+                      })()}
+                    </p>
+                </div>
+                <div className="mt-2 flex flex-wrap items-center gap-2">
                     <button
                       type="button"
-                      title="稍后提醒"
-                      aria-label="稍后提醒"
+                      aria-label={`稍后提醒：${insight.title}`}
                       disabled={actOnInsight.isPending}
                       onClick={() => actOnInsight.mutate({ insightId: insight.id, input: { action: "snooze", disable_kind: false } })}
-                      className="rounded-lg p-2 text-amber-200 hover:bg-amber-300/10 disabled:opacity-50"
+                      className="inline-flex min-h-11 items-center gap-2 rounded-lg px-3 text-sm font-medium text-amber-900 hover:bg-amber-50 disabled:opacity-50 lg:text-amber-200 lg:hover:bg-amber-300/10"
                     >
-                      <Clock3 size={17} />
+                      <Clock3 size={17} aria-hidden="true" />
+                      稍后提醒
                     </button>
-                    <button
-                      type="button"
-                      title="关闭此条"
-                      aria-label="关闭此条"
-                      disabled={actOnInsight.isPending}
-                      onClick={() => actOnInsight.mutate({ insightId: insight.id, input: { action: "dismiss", disable_kind: false } })}
-                      className="rounded-lg p-2 text-slate-400 hover:bg-white/10 disabled:opacity-50"
-                    >
-                      <CheckCircle2 size={17} />
-                    </button>
-                    <button
-                      type="button"
-                      title="标记为不准确"
-                      aria-label="标记为不准确"
-                      disabled={actOnInsight.isPending}
-                      onClick={() => actOnInsight.mutate({ insightId: insight.id, input: { action: "false_positive", disable_kind: false } })}
-                      className="rounded-lg p-2 text-rose-300 hover:bg-rose-300/10 disabled:opacity-50"
-                    >
-                      <Flag size={17} />
-                    </button>
-                    <button
-                      type="button"
-                      title="关闭此类洞察"
-                      aria-label="关闭此类洞察"
-                      disabled={actOnInsight.isPending}
-                      onClick={() => actOnInsight.mutate({ insightId: insight.id, input: { action: "false_positive", disable_kind: true } })}
-                      className="rounded-lg p-2 text-slate-400 hover:bg-white/10 disabled:opacity-50"
-                    >
-                      <Ban size={17} />
-                    </button>
-                  </div>
+                  <details className="min-w-0">
+                    <summary className="inline-flex min-h-11 cursor-pointer list-none items-center rounded-lg px-3 text-sm font-medium text-slate-700 hover:bg-slate-100 lg:text-slate-300 lg:hover:bg-white/10">
+                      更多操作
+                    </summary>
+                    <div className="flex flex-wrap gap-2 border-t border-slate-200 pt-2 lg:border-white/10">
+                      <button
+                        type="button"
+                        aria-label={`关闭此条：${insight.title}`}
+                        disabled={actOnInsight.isPending}
+                        onClick={() => actOnInsight.mutate({ insightId: insight.id, input: { action: "dismiss", disable_kind: false } })}
+                        className="min-h-11 rounded-lg px-3 text-sm text-slate-700 hover:bg-slate-100 disabled:opacity-50 lg:text-slate-300 lg:hover:bg-white/10"
+                      >
+                        关闭此条
+                      </button>
+                      <button
+                        type="button"
+                        aria-label={`标记为不准确：${insight.title}`}
+                        disabled={actOnInsight.isPending}
+                        onClick={() => actOnInsight.mutate({ insightId: insight.id, input: { action: "false_positive", disable_kind: false } })}
+                        className="min-h-11 rounded-lg px-3 text-sm text-rose-700 hover:bg-rose-50 disabled:opacity-50 lg:text-rose-300 lg:hover:bg-rose-300/10"
+                      >
+                        标记为不准确
+                      </button>
+                      <button
+                        type="button"
+                        aria-label={`关闭此类洞察：${insight.title}`}
+                        disabled={actOnInsight.isPending}
+                        onClick={() => actOnInsight.mutate({ insightId: insight.id, input: { action: "false_positive", disable_kind: true } })}
+                        className="min-h-11 rounded-lg px-3 text-sm text-slate-700 hover:bg-slate-100 disabled:opacity-50 lg:text-slate-300 lg:hover:bg-white/10"
+                      >
+                        关闭此类洞察
+                      </button>
+                    </div>
+                  </details>
                 </div>
               </article>
             ))}
@@ -444,9 +520,9 @@ export function TodayPage() {
 
       {/* Mobile conflicts */}
       {data.conflicts.length > 0 && (
-        <section className="mt-5 rounded-2xl border border-red-400/30 bg-red-400/10 p-4 lg:hidden">
-          <div className="flex items-center gap-2 font-semibold text-red-100">
-            <AlertTriangle size={18} className="text-red-300" />
+        <section role="status" className="mt-5 border-l-2 border-red-600 py-2 pl-3 lg:hidden">
+          <div className="flex items-center gap-2 font-semibold text-red-800">
+            <AlertTriangle size={18} className="text-red-700" aria-hidden="true" />
             发现 {data.conflicts.length} 个时间冲突
           </div>
         </section>
@@ -454,32 +530,32 @@ export function TodayPage() {
 
       {/* Mobile pending reminders */}
       {data.pending_reminders.length > 0 && (
-        <section className="mt-5 rounded-2xl border border-violet-300/15 bg-slate-900 p-4 lg:hidden">
+        <section className="mt-5 border-t border-slate-200 pt-4 lg:hidden">
           <MobileSectionHeader
-            icon={<Bell size={18} className="text-violet-300" />}
+            icon={<Bell size={18} className="text-violet-800" />}
             title="待处理提醒"
             meta={`${data.pending_reminders.length} 项`}
           />
-          <div className="mt-3 space-y-2">
+          <div className="mt-2 divide-y divide-slate-200">
             {data.pending_reminders.slice(0, 3).map((reminder) => (
               <Link
                 key={reminder.id}
                 to="/reminders"
-                className="flex items-center justify-between gap-3 rounded-xl bg-slate-950/60 px-3 py-3"
+                className="flex min-h-14 items-center justify-between gap-3 py-3"
               >
                 <div className="min-w-0">
-                  <p className="truncate text-base font-medium text-slate-100">{reminder.title}</p>
-                  <p className="mt-1 text-xs text-slate-500">
+                  <p className="truncate text-base font-medium text-slate-900">{reminder.title}</p>
+                  <p className="mt-1 text-xs text-slate-600">
                     {formatTimeInUserTimezone(reminder.trigger_at, data.timezone)}
                   </p>
                 </div>
-                <ArrowRight size={16} className="shrink-0 text-slate-500" />
+                <ArrowRight size={16} className="shrink-0 text-slate-600" />
               </Link>
             ))}
             {data.pending_reminders.length > 3 && (
               <Link
                 to="/reminders"
-                className="block w-full rounded-xl border border-white/10 px-3 py-3 text-center text-sm font-medium text-cyan-200"
+                className="inline-flex min-h-11 items-center text-sm font-medium text-teal-800"
               >
                 查看全部
               </Link>
@@ -517,6 +593,9 @@ export function TodayPage() {
         timezone={data.timezone}
         unfinishedTasks={data.unfinished_tasks}
         completedTasks={data.completed_tasks}
+        pendingCompletionTaskIds={pendingCompletionTaskIds}
+        onReopenTask={reopenTask}
+        onOpenFeedbackTask={(taskId) => void openCompletionFeedback(taskId)}
       />
 
       {completeTask.isError && (

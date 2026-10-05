@@ -1,5 +1,5 @@
 import { CalendarDays, ChevronLeft, ChevronRight, Clock3, ListTodo, Sparkles } from "lucide-react";
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 
 import { useEvents } from "../features/events/hooks";
@@ -36,8 +36,6 @@ export function ScheduleHubPage() {
   const [todayKey, setTodayKey] = useState(() => getLocalDateKey(new Date(), timezone));
   const [selectedDateKey, setSelectedDateKey] = useState(todayKey);
   const [weekStartKey, setWeekStartKey] = useState(() => mondayOfDateKey(todayKey));
-  const dateRailRef = useRef<HTMLDivElement>(null);
-  const selectedDateButtonRef = useRef<HTMLButtonElement>(null);
   const weekEndKey = addDaysToDateKey(weekStartKey, 7);
   const eventRange = useMemo(
     () => expandedUtcDateRange(weekStartKey, weekEndKey),
@@ -55,19 +53,6 @@ export function ScheduleHubPage() {
     setSelectedDateKey(localToday);
     setWeekStartKey(mondayOfDateKey(localToday));
   }, [timezone]);
-
-  useLayoutEffect(() => {
-    const rail = dateRailRef.current;
-    const selectedButton = selectedDateButtonRef.current;
-    if (!rail || !selectedButton) return;
-    const railBounds = rail.getBoundingClientRect();
-    const buttonBounds = selectedButton.getBoundingClientRect();
-    if (buttonBounds.left < railBounds.left) {
-      rail.scrollLeft -= railBounds.left - buttonBounds.left + 8;
-    } else if (buttonBounds.right > railBounds.right) {
-      rail.scrollLeft += buttonBounds.right - railBounds.right + 8;
-    }
-  }, [selectedDateKey, weekStartKey]);
 
   const dates = Array.from({ length: 7 }, (_, index) => addDaysToDateKey(weekStartKey, index));
   const selectedEvents = (events.data ?? []).filter(
@@ -108,7 +93,7 @@ export function ScheduleHubPage() {
   const selectedDateQuery = new URLSearchParams({ date: selectedDateKey }).toString();
 
   return (
-    <section className="mx-auto max-w-4xl space-y-6">
+    <section className="mx-auto max-w-4xl space-y-6 max-[360px]:space-y-4">
       <PageHeader
         className="mt-2 lg:mt-6"
         icon={<CalendarDays className="text-teal-700" size={25} />}
@@ -116,7 +101,7 @@ export function ScheduleHubPage() {
         description="查看每天的日程与已计划任务，再决定下一步。"
       />
 
-      <section aria-label="选择日期" className="min-w-0 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+      <section aria-label="选择日期" data-surface="none" className="min-w-0">
         <div className="flex items-center justify-between gap-2">
           <button
             type="button"
@@ -138,7 +123,7 @@ export function ScheduleHubPage() {
             <ChevronRight size={20} />
           </button>
         </div>
-        <div ref={dateRailRef} className="mt-3 flex min-w-0 w-full max-w-full gap-2 overflow-x-auto overscroll-x-contain pb-1" role="group" aria-label="本周日期">
+        <div className="plan-date-rail mt-3 grid w-full min-w-0 grid-cols-7 gap-0.5" role="group" aria-label="本周日期">
           {dates.map((dateKey) => {
             const selected = dateKey === selectedDateKey;
             const dateEvents = eventsByDate.filter(
@@ -152,13 +137,12 @@ export function ScheduleHubPage() {
               <button
                 key={dateKey}
                 type="button"
-                ref={selected ? selectedDateButtonRef : undefined}
                 aria-pressed={selected}
                 aria-label={`${formatDateKey(dateKey, locale)}${dateKey === todayKey ? "，今天" : ""}，${count} 项安排`}
                 onClick={() => setSelectedDateKey(dateKey)}
-                className={`flex min-h-12 min-w-12 shrink-0 flex-col items-center justify-center rounded-xl border px-2 text-xs transition ${selected
-                  ? "border-teal-800 bg-teal-800 font-semibold text-white ring-2 ring-teal-800 ring-offset-1 mobile-on-brand"
-                  : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+                className={`flex min-h-12 min-w-0 flex-col items-center justify-center rounded-lg px-0.5 text-xs transition ${selected
+                  ? "bg-teal-800 font-bold text-white mobile-on-brand"
+                  : "text-slate-700 hover:bg-slate-100"
                 }`}
               >
                 <span>{shortWeekday(dateKey, locale)}</span>
@@ -168,6 +152,7 @@ export function ScheduleHubPage() {
             );
           })}
         </div>
+        <p className="plan-date-scroll-hint mt-1 text-right text-xs text-slate-500">左右滑动可查看其余日期</p>
         <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 pt-3">
           <p className="text-sm font-medium text-slate-700" aria-live="polite">{formatDateKey(selectedDateKey, locale)}</p>
           <div className="flex items-center gap-2">
@@ -191,10 +176,10 @@ export function ScheduleHubPage() {
         </div>
       </section>
 
-      <section aria-labelledby="schedule-day-heading" className="rounded-2xl border border-slate-200 bg-white p-4 sm:p-5">
+      <section aria-labelledby="schedule-day-heading" data-surface="none" className="border-t border-slate-200 pt-4">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <h3 id="schedule-day-heading" className="text-lg font-semibold text-slate-900">当天安排</h3>
+            <h2 id="schedule-day-heading" className="text-lg font-semibold text-slate-900">当天安排</h2>
             <p className="mt-1 text-sm text-slate-600">日程和计划任务按 {timezone} 显示</p>
           </div>
           <Link
@@ -206,20 +191,20 @@ export function ScheduleHubPage() {
         </div>
         {events.isPending && <p className="mt-4 text-sm text-slate-600">正在读取当天日程…</p>}
         {events.isError && (
-          <div role="alert" className="mt-4 rounded-xl border border-amber-300 bg-amber-50 p-3 text-sm text-amber-950">
+          <div role="alert" className="mt-4 border-l-2 border-amber-600 py-2 pl-3 text-sm text-amber-950">
             <p>当天日程暂时无法读取。</p>
             <button type="button" onClick={() => void events.refetch()} className="mt-2 min-h-11 font-semibold text-teal-800">重试</button>
           </div>
         )}
         {tasks.isPending && <p className="mt-3 text-sm text-slate-600">正在读取已计划任务…</p>}
         {tasks.isError && (
-          <div role="alert" className="mt-3 rounded-xl border border-amber-300 bg-amber-50 p-3 text-sm text-amber-950">
+          <div role="alert" className="mt-3 border-l-2 border-amber-600 py-2 pl-3 text-sm text-amber-950">
             <p>已计划任务暂时无法读取。</p>
             <button type="button" onClick={() => void tasks.refetch()} className="mt-2 min-h-11 font-semibold text-teal-800">重试</button>
           </div>
         )}
         {!events.isPending && !events.isError && !tasks.isPending && !tasks.isError && agendaItems.length === 0 && (
-          <p className="mt-4 rounded-xl border border-dashed border-slate-300 bg-slate-50 p-4 text-sm text-slate-700">这一天还没有日程或计划任务。</p>
+          <p className="mt-4 text-sm text-slate-600">这一天还没有日程或计划任务。</p>
         )}
         {!events.isError && !tasks.isError && agendaItems.length > 0 && (
           <ul className="mt-3 divide-y divide-slate-100">
@@ -253,11 +238,11 @@ export function ScheduleHubPage() {
         )}
       </section>
 
-      <section aria-labelledby="unplanned-tasks-heading" className="rounded-2xl border border-slate-200 bg-white p-4 sm:p-5">
+      <section aria-labelledby="unplanned-tasks-heading" data-surface="none" className="border-t border-slate-200 pt-4">
         <div className="flex items-center justify-between gap-3">
           <div className="flex min-w-0 items-center gap-2">
             <ListTodo size={20} className="shrink-0 text-teal-800" />
-            <h3 id="unplanned-tasks-heading" className="text-lg font-semibold text-slate-900">待安排任务</h3>
+            <h2 id="unplanned-tasks-heading" className="text-lg font-semibold text-slate-900">待安排任务</h2>
             {!tasks.isPending && !tasks.isError && <span className="text-sm text-slate-600">{unplannedTasks.length} 项</span>}
           </div>
           <Link to="/tasks" className="inline-flex min-h-11 shrink-0 items-center px-2 text-sm font-semibold text-teal-800">全部任务</Link>
@@ -284,7 +269,7 @@ export function ScheduleHubPage() {
       </section>
 
       <section className="pb-4">
-        <Link to="/planning" className="ui-button ui-button-primary inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-teal-700 px-5 py-3 text-base font-semibold text-white shadow-sm hover:bg-teal-800">
+        <Link to="/planning" className="ui-button ui-button-primary inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-teal-700 px-5 py-3 text-base font-semibold text-white hover:bg-teal-800">
           <Sparkles size={19} />让助理起草安排
         </Link>
         <p className="mt-2 text-center text-xs text-slate-600">计划会先作为草案供你检查，不会自动应用。</p>

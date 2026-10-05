@@ -297,7 +297,7 @@ test("real Agent apply rejection preserves task schedule after a calendar confli
   await send(`请将计划 ${plan?.id} 当前版本提交正式应用审批，等待我在页面上确认。`);
   const approval = page.locator("article").filter({ hasText: "需要你确认" }).last();
   await expect(approval).toBeVisible({ timeout: 240_000 });
-  await expect(approval.getByRole("button", { name: "确认并应用" })).toBeEnabled();
+  await expect(approval.getByRole("button", { name: /^确认并应用/ })).toBeEnabled();
 
   const event = await page.evaluate(async (conflict) => {
     const csrf = document.cookie
@@ -326,7 +326,7 @@ test("real Agent apply rejection preserves task schedule after a calendar confli
   expect(event.status).toBe(201);
   expect(event.body.id).toBeTruthy();
 
-  await approval.getByRole("button", { name: "确认并应用" }).click();
+  await approval.getByRole("button", { name: /^确认并应用/ }).click();
   await expect.poll(async () => {
     const proposals = await getJson<Array<{ action_type: string; conversation_id: string; status: string }>>(
       page,

@@ -57,7 +57,7 @@ The `execution_now`/`execution_next` precedence is a render choice over server-o
 - Error: state that Today could not load and offer retry; do not display stale data as current without marking it.
 - Offline: retain cached data only when visibly labeled stale; hide unsafe writes or let the API reject them clearly.
 - Conflict/risk: inline summary opens the affected item or Insight; only immediate blockers receive a prominent alert.
-- Completion: completion is saved first, then optional Harvest; failure in Harvest never reverses task completion.
+- Completion: completion is saved first and confirmed in a fixed, non-layout-shifting notice. Optional Harvest opens only when the user selects “记录反馈”; closing the Drawer preserves the pending interaction, while “跳过” explicitly dismisses it. A completed task can be restored from the notice or the expanded Today closeout section.
 
 ## Interaction and dimensions
 
@@ -65,8 +65,19 @@ Primary actions use 48 px targets. Secondary icons use 44 px minimum. Place the 
 
 ## Accessibility
 
-Use a single h1 and ordered section headings. Actions name the task. Loading/error/completion status is announced once. Focus moves to the optional Harvest only after completion saves and returns to a stable status on dismissal. Text contrast follows `accessibility.md`.
+Use a single h1 and ordered section headings. Actions name the task. Loading/error/completion status is announced once. Completion feedback does not expand or reorder Today; focus enters the Drawer only after the user opens it. Text contrast follows `accessibility.md`.
 
 ## Browser and Android checks
 
 Exercise idle day, active task, next event, conflict, completion + Harvest, error, five target widths and desktop >=1024 px. Physical Android keyboard/system bars/TalkBack are tracked separately and never inferred from Playwright.
+
+## V2 — visual hierarchy pass
+
+### Before / After / Reason
+
+- **Before:** actionable risks sat inside a large warning surface with icon-only actions competing for the title and evidence text; deadline evidence could appear as raw ISO/UTC.
+- **After:** risks are a plain section with left-accent divider rows. The full title, summary, and localized deadline come first; the common “稍后提醒” action has a visible label and low-frequency actions sit under “更多操作”. The page states the timezone used for displayed times.
+- **Reason:** preserve room for the product fact and make touch actions understandable without hover; timezone formatting belongs to the user's locale, not the wire representation.
+- **Harvest:** the zero-completion state remains a lightweight section and plain status row; completed work can add content, while one current execution focus remains the only prominent focus card.
+
+The V2 screenshot set is in `../evidence/v2/`. Browser viewport captures verify layout and behavior only; Android visual acceptance is still pending.

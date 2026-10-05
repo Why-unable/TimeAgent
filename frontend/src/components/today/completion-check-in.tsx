@@ -42,12 +42,14 @@ function reasonText(reason: unknown) {
 export type CompletionHarvestProps = {
   interaction: InteractionArtifact;
   onClose: (interaction: InteractionArtifact) => void;
+  onUndoCompletion?: (taskId: string) => Promise<void>;
   autoFocus?: boolean;
 };
 
 export function CompletionHarvest({
   interaction: initialInteraction,
   onClose,
+  onUndoCompletion,
   autoFocus = false,
 }: CompletionHarvestProps) {
   const client = useQueryClient();
@@ -72,6 +74,9 @@ export function CompletionHarvest({
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [startedAt, setStartedAt] = useState<number | null>(null);
+  const [dismissing, setDismissing] = useState(false);
+  const [undoing, setUndoing] = useState(false);
+  const dismissIdempotencyKey = useRef<string | null>(null);
   const feedbackStatusRef = useRef<HTMLParagraphElement>(null);
   const wasFeedbackSaved = useRef(false);
   const feedbackSaved = Boolean(interaction.payload.completion_feedback);
@@ -151,18 +156,35 @@ export function CompletionHarvest({
   };
 
   const dismiss = async () => {
+    if (dismissing) return;
+    setDismissing(true);
     try {
       const result = await submitInteraction(interaction.id, {
         expected_version: interaction.version,
         action: "dismiss",
         values: {},
-        idempotency_key: key(),
+        idempotency_key: dismissIdempotencyKey.current ?? (dismissIdempotencyKey.current = key()),
       });
       if (result.accepted) {
         onClose(result.interaction);
       }
-    } catch {
-      setError("暂时无法关闭反馈卡，请稍后重试。");
+    } catch (caught) {
+      setError(interactionRequestError(caught, "跳过反馈"));
+    } finally {
+      setDismissing(false);
+    }
+  };
+
+  const undoCompletion = async () => {
+    if (!onUndoCompletion || undoing) return;
+    setUndoing(true);
+    setError("");
+    try {
+      await onUndoCompletion(taskId);
+    } catch (caught) {
+      setError(interactionRequestError(caught, "恢复任务"));
+    } finally {
+      setUndoing(false);
     }
   };
 
@@ -219,7 +241,8 @@ export function CompletionHarvest({
           </label> : null}
           <div className="mt-4 flex flex-wrap gap-2">
             <button type="button" onClick={submitFeedback} className="min-h-11 rounded-xl bg-emerald-300 px-4 font-semibold text-slate-950">记录反馈</button>
-            <button type="button" onClick={dismiss} className="min-h-11 rounded-xl border border-white/10 px-4 text-sm text-slate-300">跳过</button>
+            <button type="button" onClick={dismiss} disabled={dismissing || undoing} className="min-h-11 rounded-xl border border-white/10 px-4 text-sm text-slate-300 disabled:opacity-50">{dismissing ? "正在跳过…" : "跳过"}</button>
+            {onUndoCompletion && <button type="button" onClick={() => void undoCompletion()} disabled={dismissing || undoing} className="min-h-11 rounded-xl border border-amber-200/30 px-4 text-sm font-medium text-amber-200 disabled:opacity-50">{undoing ? "正在恢复…" : "撤销完成"}</button>}
           </div>
         </>
       ) : (
@@ -242,6 +265,18 @@ export function CompletionHarvest({
       {error && <p role="alert" className="mt-3 text-xs text-amber-200">{error}</p>}
     </section>
   );
+}
+
+function interactionRequestError(error: unknown, action: string) {
+  if (error instanceof ApiError) {
+    const requestId = error.requestId ? `，请求编号 ${error.requestId}` : "";
+    if (error.status === 409) return `${action}遇到状态冲突：${error.message}。请刷新后确认任务状态${requestId}。`;
+    return `${action}失败：${error.message}（HTTP ${error.status}${requestId}）。可安全重试。`;
+  }
+  if (error instanceof Error && error.name === "AbortError") {
+    return `${action}请求超时或网络中断。可重试，任务状态不会因本次反馈操作改变。`;
+  }
+  return `${action}暂时失败，检查网络后重试。任务完成状态不会因反馈请求改变。`;
 }
 
 export type MemorySuggestionProps = {

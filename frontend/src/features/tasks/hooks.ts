@@ -7,6 +7,8 @@ import {
   recordTaskExecutionSignal,
   getTaskExecutionSummary,
   type CreateTask,
+  type CreateTaskExecutionSignal,
+  type TaskExecutionSignal,
   type UpdateTask,
   updateTask,
 } from "../../api/tasks";
@@ -53,15 +55,18 @@ export function useRecordTaskExecutionSignal() {
     mutationFn: ({
       taskId,
       signalType,
+      options,
     }: {
       taskId: string;
-      signalType: "started" | "paused" | "resumed" | "skipped";
-    }) => recordTaskExecutionSignal(taskId, signalType),
+      signalType: Exclude<TaskExecutionSignal["signal_type"], "completed">;
+      options?: Pick<CreateTaskExecutionSignal, "occurred_at" | "idempotency_key">;
+    }) => recordTaskExecutionSignal(taskId, signalType, options),
     onSuccess: async () => {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: taskQueryKey }),
         queryClient.invalidateQueries({ queryKey: ["today"] }),
         queryClient.invalidateQueries({ queryKey: ["task-execution-summary"] }),
+        queryClient.invalidateQueries({ queryKey: ["interactions", "task_completion"] }),
       ]);
     },
   });

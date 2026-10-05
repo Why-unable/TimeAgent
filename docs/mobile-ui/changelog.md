@@ -81,3 +81,35 @@
 - Android `:app:assembleDebug` passed. `adb devices` was empty, so physical IME, Back, notification picker, system bars and TalkBack remain `NOT EXECUTED`.
 - A deterministic Asia/Shanghai timezone-boundary fixture passes; live account/staging timezone behavior remains unverified. No API schema, database, Agent, Planner, or HITL policy changed. No commit, push, merge, production deployment, or tag was performed.
 - No API schema, database, Agent, Planner, or HITL policy changes were made. No commit, push, merge, production deployment, or tag was performed.
+
+## 2026-10-05 — Mobile UX V2 visual hierarchy pass
+
+### Changes
+
+- Today Alerts use flat left-accent rows with risk text before actions; “稍后提醒” is visible and low-frequency actions sit under “更多操作”. Deadlines render in the profile timezone. Today Harvest is a lightweight section when empty; the current execution object remains the only focus card.
+- Plan Hub uses plain sections and divider rows. All seven dates fit at 360 px and wider; at 320 px the date rail scrolls horizontally with a visible hint and 44 px targets. The primary planning action remains above bottom navigation.
+- Tasks use divider rows, a single filled filter state, timezone disclosure, and a visible “任务列表” focus heading. More-action names include their task title.
+- Reminder creation stays in one content-sized Drawer surface with labeled fields. Status groups use divider rows; section and item headings are ordered. Desktop reminder row surfaces remain intact.
+- Approval keeps one amber decision surface for each independent high-risk proposal. Change previews, details and batch-editor groups are flat/divider-based; decision controls include the proposal object name when available.
+- Mobile UX V1 navigation and routes are unchanged. No API, backend business rules, scheduling, Agent, or HITL semantics changed.
+
+### Evidence and review
+
+- Browser screenshots in `evidence/v2/` include Today populated/empty, Plan and Tasks at 320/360/375/393/412/430 px, Calendar/agenda, Reminder create/list and Approval at 393 px.
+- Mobile Visual, Product UX and Accessibility reviewers independently checked Today/Plan/Tasks and the final Reminder/Approval checkpoint. The Product UX reviewer’s P2 drawer whitespace finding and Accessibility reviewer’s P2 heading-level finding were fixed and rechecked. Final Reminder/Approval review had no P0–P2 findings.
+- Three user-provided baseline Android captures were reviewed as the source of the card-density/contrast findings. Their PNG resolution is 1272 × 2800; device model and Android version were not included. Updated native screenshots could not be captured because `adb devices -l` reported no connected device.
+- Physical Android visual acceptance, TalkBack, IME, system bars and native Back remain `NOT EXECUTED`. Playwright mobile screenshots are regression evidence, not a replacement for device review.
+
+### Validation
+
+- Vitest: 195/195 passed across 38 files; ESLint passed; Vite production build passed.
+- Playwright desktop Chromium: 39 passed, 9 skipped, 0 failed. Playwright mobile Chromium: 40 passed, 2 skipped, 0 failed. Skips follow the existing live-backend/configuration filters.
+- Django `manage.py check` passed. `makemigrations --check --dry-run` found no model changes; PostgreSQL on localhost:5432 was unavailable, so migration-history consistency could not be verified.
+- Vite reported the existing Capacitor mixed static/dynamic import warning and large main-chunk warning; the build completed successfully.
+- No commit, push, merge, deployment, release tag, or Android package was produced in this pass.
+# 2026-10-05 — Today completion recovery and feedback Drawer
+
+- Optional completion feedback no longer renders inline on Today. A fixed completion notice leaves page flow stable; the user opens the feedback Drawer on demand.
+- Failed “跳过” requests keep the pending feedback available for a safe retry and show the API status/request ID. Empty submission values are now valid for explicit dismiss actions.
+- Completion can be undone from the notice or the expanded Today closeout section. Reopening restores the task to pending, abandons only its pending feedback interaction, resynchronizes reminders, and records an audit change.
+- Validation: focused Today/DayClosing/Harvest tests and task API/interaction tests; frontend production build, ESLint, Django system check, Ruff and migration drift check.

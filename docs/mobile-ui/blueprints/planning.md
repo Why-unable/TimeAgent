@@ -89,3 +89,13 @@ Capacity is secondary and must show the selected time range beside the capacity 
 - A failed interaction restore remains retryable. Stale plan versions block repeated submission until refreshed.
 - E2E covers tap-to-edit without drag, local-to-UTC serialization, step buttons, successful save, locked/split/unplaced item affordances, 409 recovery, and no apply/approve request from the timeline editor.
 - Loading/error/offline states remain owned by existing hooks and API; no planning or apply logic moves client-side.
+
+## V2 — Plan Hub visual hierarchy
+
+### Before / After / Reason
+
+- **Before:** the week selector, selected-day agenda, and unplanned tasks each used a bordered rounded container, with the date buttons nested inside the week card.
+- **After:** these are plain sections separated by spacing and dividers. All seven dates fit in a single grid; the selected date uses a single filled state and `aria-pressed`. Agenda and unplanned items use divider rows; the planning CTA remains the only filled primary action.
+- **Reason:** the date buttons need an interactive selected state, but their section does not need a separate physical boundary. Showing all seven dates also makes the end of the week discoverable without implying horizontal scroll.
+
+Empty agenda states use concise text rather than a dashed card. V2 browser captures are stored under `../evidence/v2/`; this is not a substitute for Android device review.

@@ -45,6 +45,7 @@ def active_minutes(signals: list[TaskExecutionSignal]) -> float | None:
             in {
                 TaskExecutionSignalType.PAUSED,
                 TaskExecutionSignalType.COMPLETED,
+                TaskExecutionSignalType.REOPENED,
             }
             and open_started is not None
         ):

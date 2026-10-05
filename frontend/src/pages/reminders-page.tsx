@@ -48,13 +48,13 @@ const statusLabels: Record<NonNullable<Reminder["status"]>, string> = {
 };
 
 const statusStyles: Record<NonNullable<Reminder["status"]>, string> = {
-  pending: "bg-sky-400/10 text-sky-200",
-  queued: "bg-violet-400/10 text-violet-200",
-  sending: "bg-amber-400/10 text-amber-200",
-  sent: "bg-emerald-400/10 text-emerald-200",
-  failed: "bg-red-400/10 text-red-200",
-  cancelled: "bg-slate-400/10 text-slate-300",
-  missed: "bg-orange-400/10 text-orange-200",
+  pending: "bg-sky-100 text-sky-900 lg:bg-sky-400/10 lg:text-sky-200",
+  queued: "bg-violet-100 text-violet-900 lg:bg-violet-400/10 lg:text-violet-200",
+  sending: "bg-amber-100 text-amber-900 lg:bg-amber-400/10 lg:text-amber-200",
+  sent: "bg-emerald-100 text-emerald-900 lg:bg-emerald-400/10 lg:text-emerald-200",
+  failed: "bg-red-100 text-red-900 lg:bg-red-400/10 lg:text-red-200",
+  cancelled: "bg-slate-100 text-slate-700 lg:bg-slate-400/10 lg:text-slate-300",
+  missed: "bg-orange-100 text-orange-900 lg:bg-orange-400/10 lg:text-orange-200",
 };
 
 const cancellableStatuses = new Set<Reminder["status"]>(["pending", "queued", "failed"]);
@@ -103,6 +103,7 @@ export function RemindersPage() {
     const problem = getLocalDateTimeProblem(values.trigger_at, timezone);
     if (problem) {
       form.setError("trigger_at", { type: "validate", message: localDateTimeProblemMessage(problem, timezone) });
+      form.setFocus("trigger_at");
       return;
     }
     createMutation.mutate(
@@ -142,11 +143,11 @@ export function RemindersPage() {
       {/* Desktop heading */}
       <div className="mt-2 hidden items-center gap-3 lg:flex">
         <Bell className="text-cyan-300" />
-        <h2 className="text-3xl font-semibold">提醒</h2>
+        <h1 className="text-3xl font-semibold">提醒</h1>
       </div>
       <header className="mt-4 flex items-center justify-between gap-3 lg:hidden">
         <div>
-          <h2 className="text-2xl font-semibold text-slate-900">提醒</h2>
+          <h1 className="text-2xl font-semibold text-slate-900">提醒</h1>
           <p className="mt-1 text-sm text-slate-600">时间按 {timezone} 显示。</p>
         </div>
         <button
@@ -158,7 +159,7 @@ export function RemindersPage() {
             setCreatedNotice("");
             setCreateOpen(true);
           }}
-          className="inline-flex min-h-12 shrink-0 items-center gap-2 rounded-xl bg-teal-700 px-4 text-sm font-semibold text-white"
+          className="inline-flex min-h-12 shrink-0 items-center gap-2 rounded-xl bg-teal-700 px-4 text-sm font-semibold text-white mobile-on-brand"
         >
           <Plus size={18} aria-hidden="true" /> 新建提醒
         </button>
@@ -272,7 +273,7 @@ function ReminderSection({ title, count, subtitle, children }: { title: string; 
   return (
     <section className="space-y-3">
       <div className="flex items-baseline justify-between gap-3 px-1">
-        <div><h3 className="text-lg font-semibold text-slate-100">{title}</h3>{subtitle && <p className="mt-1 text-xs text-slate-500">{subtitle}</p>}</div>
+        <div><h2 className="text-lg font-semibold text-slate-100">{title}</h2>{subtitle && <p className="mt-1 text-xs text-slate-500">{subtitle}</p>}</div>
         <span className="text-sm text-slate-400">{count} 条</span>
       </div>
       {children}
@@ -342,10 +343,10 @@ function ReminderCard({ reminder, timezone, locale, cancelling, onCancel }: { re
   const automaticOffset = reminder.offset_minutes;
   const offsetLabel = automaticOffset === 0 ? "准点" : automaticOffset === 1440 ? "提前一天" : automaticOffset === 15 ? "提前 15 分钟" : automaticOffset != null ? `提前 ${automaticOffset} 分钟` : "";
   return (
-    <article className="border-b border-slate-200 py-4 last:border-b-0 lg:rounded-2xl lg:border lg:border-white/10 lg:bg-slate-900 lg:p-5">
+    <article data-surface="divider-list" className="reminder-list-row border-b border-slate-200 py-4 last:border-b-0 lg:rounded-2xl lg:border lg:border-white/10 lg:p-5">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h4 className="font-medium text-slate-100">{reminder.title}</h4>
+          <h3 className="font-medium text-slate-100">{reminder.title}</h3>
           <p className="mt-2 text-sm text-slate-400">{formatInUserTimezone(reminder.trigger_at, timezone, locale)}</p>
           {reminder.target_type !== "custom" && <p className="mt-2 text-xs text-cyan-200">关联{reminder.target_type === "task" ? "任务" : "日程"}{offsetLabel ? ` · ${offsetLabel}` : ""}</p>}
         </div>

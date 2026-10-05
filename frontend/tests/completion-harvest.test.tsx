@@ -5,6 +5,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { InteractionArtifact } from "../src/api/interactions";
 import { ensureInteraction, submitInteraction } from "../src/api/interactions";
+import { ApiError } from "../src/api/client";
 import { CompletionHarvest } from "../src/components/today/completion-check-in";
 
 vi.mock("../src/api/interactions", async (importOriginal) => {
@@ -234,5 +235,36 @@ describe("CompletionHarvest", () => {
       values: {},
     });
     expect(onClose).toHaveBeenCalledOnce();
+  });
+
+  it("keeps the task complete and lets the user safely retry a failed skip", async () => {
+    const original = completionInteraction();
+    const onClose = vi.fn();
+    vi.mocked(submitInteraction)
+      .mockRejectedValueOnce(new ApiError("temporarily unavailable", 503, "req-123"))
+      .mockResolvedValueOnce({
+        accepted: true,
+        detail: null,
+        interaction: { ...original, status: "abandoned" },
+        plan: null,
+        reason_codes: [],
+        conflicts: [],
+        candidate: null,
+        replayed: false,
+      });
+    renderCheckIn(original, onClose);
+
+    const skipButton = await screen.findByRole("button", { name: "跳过" });
+    await userEvent.click(skipButton);
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("HTTP 503");
+    expect(screen.getByRole("alert")).toHaveTextContent("req-123");
+    expect(screen.getByRole("button", { name: "跳过" })).toBeInTheDocument();
+    expect(onClose).not.toHaveBeenCalled();
+
+    await userEvent.click(screen.getByRole("button", { name: "跳过" }));
+    await waitFor(() => expect(onClose).toHaveBeenCalledOnce());
+    expect(vi.mocked(submitInteraction).mock.calls[0][1].idempotency_key)
+      .toBe(vi.mocked(submitInteraction).mock.calls[1][1].idempotency_key);
   });
 });

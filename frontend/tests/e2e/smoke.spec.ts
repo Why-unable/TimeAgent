@@ -181,7 +181,7 @@ test("uses the mobile app shell below the desktop breakpoint", async ({ page }) 
   await expect(mobileNavigation.getByRole("link", { name: /计划/ })).toHaveAttribute("aria-current", "page");
   await expect(mobileNavigation.getByRole("button", { name: "我的" })).toBeVisible();
   await expect(page.getByRole("navigation", { name: "时间管理工作区" })).toBeHidden();
-  await expect(page.getByRole("heading", { name: "任务" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "任务", exact: true })).toBeVisible();
 });
 
 test("records a task action and shows plan-versus-actual evidence", async ({ page }) => {
@@ -704,8 +704,8 @@ test("reviews and approves a high-risk action", async ({ page }) => {
   await expect(page.getByText("以下时间均按 Asia/Shanghai 显示。", { exact: true })).toBeVisible();
   await expect(page.getByText(/Agent 提出的高风险操作/)).toHaveCount(0);
   await expect(page.getByText("未发现日程冲突。")).toBeVisible();
-  await page.getByRole("button", { name: "确认并应用", exact: true }).click();
-  await expect(page.getByRole("button", { name: "确认并应用", exact: true })).toHaveCount(0);
+  await page.getByRole("button", { name: /^确认并应用/ }).click();
+  await expect(page.getByRole("button", { name: /^确认并应用/ })).toHaveCount(0);
 });
 
 test("shows the conflict context before a user decides on approval", async ({ page }) => {
@@ -774,8 +774,8 @@ test("shows the conflict context before a user decides on approval", async ({ pa
   await expect(page.getByText("在你确认前，这项操作不会执行。")).toBeVisible();
   await expect(page.getByText("重复操作")).toHaveCount(0);
   await expect(page.getByText("提出时间")).not.toBeVisible();
-  await expect(page.getByRole("button", { name: "确认并应用", exact: true })).toHaveCount(0);
-  await expect(page.getByRole("button", { name: "先调整时间", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: /^确认并应用/ })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: /^先调整时间/ })).toBeVisible();
   await page.screenshot({
     path: "../docs/experiments/agent-ux-evaluation/screenshots/approval-conflict-after.png",
     fullPage: true,
@@ -884,8 +884,8 @@ test("shows the old and proposed time for a conflicting event move", async ({ pa
   await expect(page.getByText("发现 1 个时间冲突。请核对重叠时段，调整到无冲突时间，或拒绝这项操作。"))
     .toBeVisible();
   await expect(page.getByText("与你的提议重叠：2026/10/01 15:30 – 16:00")).toBeVisible();
-  await expect(page.getByRole("button", { name: "确认并应用", exact: true })).toHaveCount(0);
-  await expect(page.getByRole("button", { name: "先调整时间", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: /^确认并应用/ })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: /^先调整时间/ })).toBeVisible();
   const conflictSummary = page.getByText("发现 1 个时间冲突。请核对重叠时段，调整到无冲突时间，或拒绝这项操作。");
   await conflictSummary.evaluate((element) => element.scrollIntoView({ block: "center" }));
   const conflictBounds = await page.getByText("与你的提议重叠：2026/10/01 15:30 – 16:00").boundingBox();
@@ -896,7 +896,7 @@ test("shows the old and proposed time for a conflicting event move", async ({ pa
   await page.screenshot({
     path: "../docs/experiments/agent-ux-evaluation/screenshots/approval-reschedule-holdout-mobile-320.png",
   });
-  const adjustmentButton = page.getByRole("button", { name: "先调整时间", exact: true });
+  const adjustmentButton = page.getByRole("button", { name: /^先调整时间/ });
   await adjustmentButton.evaluate((element) => element.scrollIntoView({ block: "center" }));
   const actionViewOverlapBounds = await page.getByText("与你的提议重叠：2026/10/01 15:30 – 16:00").boundingBox();
   const actionViewButtonBounds = await adjustmentButton.boundingBox();
@@ -922,7 +922,7 @@ test("shows the old and proposed time for a conflicting event move", async ({ pa
   await page.screenshot({
     path: "../docs/experiments/agent-ux-evaluation/screenshots/approval-reschedule-context-only-mobile-320.png",
   });
-  await page.getByRole("button", { name: "先调整时间", exact: true })
+  await page.getByRole("button", { name: /^先调整时间/ })
     .evaluate((element) => element.scrollIntoView({ block: "center" }));
   await page.screenshot({
     path: "../docs/experiments/agent-ux-evaluation/screenshots/approval-reschedule-context-only-action-mobile-320.png",
@@ -1049,8 +1049,8 @@ test("opens additional approval conflicts with the keyboard", async ({ page }) =
     expect(operationDetailsOwnsHitTarget).toBe(true);
 
     const decisionControls = [
-      page.getByRole("button", { name: "先调整时间", exact: true }),
-      page.getByRole("button", { name: "拒绝", exact: true }),
+      page.getByRole("button", { name: /^先调整时间/ }),
+      page.getByRole("button", { name: /^拒绝/ }),
     ];
     for (const control of decisionControls) {
       await page.keyboard.press("Tab");
@@ -1097,7 +1097,7 @@ test("opens additional approval conflicts with the keyboard", async ({ page }) =
     await expect(navigation).not.toHaveAttribute("inert", "");
     await expect(rejectionReason).toBeFocused();
 
-    const editButton = page.getByRole("button", { name: "先调整时间", exact: true });
+    const editButton = page.getByRole("button", { name: /^先调整时间/ });
     await editButton.focus();
     await page.keyboard.press("Enter");
     const reopenedDetails = page.locator("details").filter({ hasText: "查看操作详情" });
@@ -1236,7 +1236,7 @@ test("continues the chat stream after approving an interrupted run", async ({ pa
   });
 
   await page.goto(`/chat/${conversationId}`);
-  await page.getByRole("button", { name: "确认并应用", exact: true }).click();
+  await page.getByRole("button", { name: /^确认并应用/ }).click();
 
   await expect(page.getByText("日程已创建。")).toBeVisible();
   expect(cursors).toEqual(["0", "3"]);

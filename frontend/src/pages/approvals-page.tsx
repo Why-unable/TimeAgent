@@ -1,4 +1,4 @@
-import { ChevronDown, ShieldCheck } from "lucide-react";
+import { Check, ChevronDown, ShieldCheck } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 import type { ActionProposalStatus } from "../api/action-proposals";
@@ -76,7 +76,7 @@ export function ApprovalsPage() {
     <section className="mx-auto max-w-5xl">
       <div className="mt-2 flex items-center gap-3">
         <ShieldCheck className="shrink-0 text-teal-700" />
-        <h2 className="text-2xl font-semibold text-slate-900 lg:text-3xl">操作审批</h2>
+        <h1 className="text-2xl font-semibold text-slate-900 lg:text-3xl">操作审批</h1>
       </div>
       <p className="mt-3 text-sm leading-6 text-slate-700 lg:text-slate-400">这里列出需要你确认的更改。请先查看影响，再决定是否继续。</p>
       <p className="mt-2 text-sm text-slate-600">以下时间均按 {timezone} 显示。</p>
@@ -102,15 +102,26 @@ export function ApprovalsPage() {
         ))}
       </div>
       {filterOpen && <Drawer title="筛选审批状态" description="选择要查看的操作状态。" onClose={() => setFilterOpen(false)}>
-        <div className="grid gap-2" role="group" aria-label="审批状态筛选">
-          {filters.map((item) => <button key={item.label} type="button" aria-pressed={filter === item.value} onClick={() => { setFilter(item.value); setFilterOpen(false); }} className={`min-h-12 rounded-xl border px-4 text-left font-medium ${filter === item.value ? "border-teal-700 bg-teal-50 text-teal-900" : "border-slate-200 bg-white text-slate-800"}`}>{item.label}</button>)}
+        <div className="divide-y divide-slate-200" role="group" aria-label="审批状态筛选">
+          {filters.map((item) => (
+            <button
+              key={item.label}
+              type="button"
+              aria-pressed={filter === item.value}
+              onClick={() => { setFilter(item.value); setFilterOpen(false); }}
+              className={`flex min-h-12 w-full items-center justify-between px-3 text-left ${filter === item.value ? "bg-teal-50 font-semibold text-teal-900" : "font-medium text-slate-800"}`}
+            >
+              {item.label}
+              {filter === item.value && <Check size={18} aria-hidden="true" />}
+            </button>
+          ))}
         </div>
       </Drawer>}
 
       <div className="mt-6 space-y-4">
         {proposals.isPending && <p role="status" className="text-slate-600">正在加载审批…</p>}
         {proposals.isError && <div role="alert" className="rounded-xl border border-red-300 bg-red-50 p-4 text-red-950"><p>无法加载审批列表。</p><button type="button" onClick={() => void proposals.refetch()} className="mt-2 inline-flex min-h-11 items-center font-medium underline underline-offset-2">重试读取</button></div>}
-        {proposals.isSuccess && visibleProposals.length === 0 && <div className="rounded-2xl border border-dashed border-slate-300 p-8 text-center text-slate-600">当前没有符合条件的操作</div>}
+        {proposals.isSuccess && visibleProposals.length === 0 && <p className="py-6 text-sm text-slate-600">当前没有符合条件的操作</p>}
         {visibleProposals.map((proposal) => (
           <ApprovalCard
             key={proposal.id}

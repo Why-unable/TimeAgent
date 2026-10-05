@@ -63,7 +63,7 @@ test("runs the Phase A-E write path against a real backend", async ({ page }) =>
   await expect(page).toHaveURL(/\/chat\/[0-9a-f-]+$/);
   const approvalCard = page.locator("article").filter({ hasText: "需要你确认" }).last();
   await expect(approvalCard).toBeVisible({ timeout: 90_000 });
-  await approvalCard.getByRole("button", { name: "确认并应用" }).click();
+  await approvalCard.getByRole("button", { name: /^确认并应用/ }).click();
   await expect.poll(async () => page.evaluate(async (planId) => {
     const response = await fetch(`/api/v1/planning/plans/${planId}/`);
     if (!response.ok) return null;

@@ -97,16 +97,9 @@ class CompleteTaskView(APIView):
     def post(self, request: Request, task_id: UUID) -> Response:
         user = _authenticated_user(request)
         try:
-            current_task = _get_task(request, task_id)
-            signal = TaskExecutionSignalService.record(
-                RecordExecutionSignalCommand(
-                    user=user,
-                    task_id=task_id,
-                    signal_type="completed",
-                    occurred_at=current_task.completed_at or timezone.now(),
-                    idempotency_key=f"complete-endpoint:{task_id}",
-                    source="web",
-                )
+            _get_task(request, task_id)
+            signal = TaskExecutionSignalService.record_completion(
+                user=user, task_id=task_id, now=timezone.now()
             )
             task = signal.task
             task.refresh_from_db()

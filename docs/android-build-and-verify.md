@@ -203,6 +203,18 @@ docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build dj
 
 ## 8. 最近一次仓库内验证
 
+2026-10-05 已构建正式候选包 `1.1.13`（`versionCode 17`），包含 Mobile UX V2 页面结构调整、聊天快捷入口换行，以及 Today 完成反馈抽屉、跳过和恢复未完成流程：
+
+```text
+候选文件：releases/timeagent-1.1.13.apk
+大小：4,241,534 bytes
+APK SHA-256：16f99dd36832aa63987e2abdcb71198be8f94d5495329da9a3aa4cf56f1b3c
+签名证书 SHA-256：e7fb9f63eff74b44c3ec32dafdcb2c726ff2d031c5c7614f70dda486916a783e
+签名、manifest 与 zipalign 校验：通过
+```
+
+APK manifest 为 `com.timeagent.app / 17 / 1.1.13`；签名证书与 `1.1.12` 一致，APK v2 签名、zipalign 检查通过。Android Studio 的 Medium Phone（Android 16/API 36）模拟器使用隔离 staging debug 包验证了聊天快捷入口、键盘布局，以及 Today 的“完成 → 打开反馈抽屉 → 跳过 → 恢复未完成”；跳过没有报错，任务恢复为未完成。此设备证据来自模拟器，不代表实体手机验收。正式发布和公网回下载验证将在部署后记录。
+
 2026-10-04 已生成 `1.1.12`（`versionCode 16`），包含 Mobile UX V1 页面与 Capacitor 静态资源更新：
 
 ```text

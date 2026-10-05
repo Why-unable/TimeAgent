@@ -29,6 +29,7 @@ class TaskExecutionSignalType(models.TextChoices):
     PAUSED = "paused", "Paused"
     RESUMED = "resumed", "Resumed"
     COMPLETED = "completed", "Completed"
+    REOPENED = "reopened", "Reopened"
     SKIPPED = "skipped", "Skipped"
 
 

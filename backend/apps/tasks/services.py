@@ -9,7 +9,7 @@ from django.db import transaction
 from django.utils import timezone
 
 from apps.accounts.services import GuestAccountPolicyService
-from apps.tasks.models import Task, TaskPriority, TaskStatus
+from apps.tasks.models import InvalidTaskTransitionError, Task, TaskPriority, TaskStatus
 from common.database_locks import lock_user_schedule_writes
 from common.time import to_utc
 
@@ -183,6 +183,49 @@ class TaskService:
             occurred_at=task.completed_at,
         )
         TaskService._ensure_completion_feedback(task)
+        return task
+
+    @staticmethod
+    @transaction.atomic
+    def reopen_task(
+        *,
+        task_id: UUID,
+        user: User,
+        occurred_at: datetime,
+        origin: str = "web",
+    ) -> Task:
+        """Restore a mistakenly completed task while preserving its audit history."""
+
+        TaskService._ensure_persisted_user(user)
+        lock_user_schedule_writes(user)
+        task = Task.objects.select_for_update().get(pk=task_id, user=user)
+        if task.status != TaskStatus.COMPLETED:
+            raise InvalidTaskTransitionError("Only completed tasks can be restored")
+
+        old_snapshot = TaskService._snapshot(task)
+        task.status = TaskStatus.PENDING
+        task.completed_at = None
+        task.version += 1
+        task.full_clean()
+        task.save(update_fields=["status", "completed_at", "version", "updated_at"])
+
+        from apps.interactions.models import InteractionArtifact, InteractionStatus, InteractionType
+        from apps.reminders.scheduling import ReminderScheduleService
+
+        ReminderScheduleService.sync_task_reminders(task=task)
+        InteractionArtifact.objects.select_for_update().filter(
+            user=user,
+            task=task,
+            type=InteractionType.TASK_COMPLETION,
+            status=InteractionStatus.PENDING,
+        ).update(status=InteractionStatus.ABANDONED, resolved_at=occurred_at)
+        TaskService._record_change(
+            task=task,
+            operation="updated",
+            origin=origin,
+            old_snapshot=old_snapshot,
+            occurred_at=occurred_at,
+        )
         return task
 
     @staticmethod

@@ -16,6 +16,15 @@
 
 Card 只标记独立状态、重要选择或明确边界。普通分区使用标题、留白、列表和分隔线；避免卡片嵌卡片。
 
+## Surface Budget
+
+- 普通手机首屏通常只保留 1–2 个高强调 Surface；超过 2 个时，说明每个 Surface 承载的独立语义。
+- Section 默认不是 Card。优先依次使用 Typography、Spacing、Divider、List/Row、Subtle surface、Bordered Card。
+- 每个 Surface 都要表达 focus、input、decision、warning 或 modal 等语义，不能只用来排版。
+- 默认禁止 `Surface → Surface` 嵌套。必要的嵌套只用于独立、可操作的警告/决策，并记录在 `docs/mobile-ui/decisions/`。
+- 列表项、普通统计和空状态使用分隔行或纯文本；避免同时叠加背景、边框、圆角和阴影。
+- 卡片密度审查记录首屏可见的有边界 Surface、嵌套 Surface 和主要动作；普通信息页目标是 0 个嵌套 Surface、大型有边界 Surface 不超过 2 个。
+
 ## Direct Manipulation
 
 完成、排序、选项和明确的时间调整优先由控件直接完成。Drag 只作增强，始终提供 tap、button 或 sheet 替代。

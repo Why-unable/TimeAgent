@@ -18,14 +18,14 @@ export function ChatEmptyState({ onQuickAction }: { onQuickAction: (prompt: stri
       <div
         role="group"
         aria-label="常用快捷操作"
-        className="mt-3 flex w-full gap-2 overflow-x-auto pb-1 lg:mt-6 lg:flex-wrap lg:justify-center lg:overflow-visible"
+        className="mt-3 grid w-full grid-cols-2 gap-2 lg:mt-6 lg:flex lg:flex-wrap lg:justify-center"
       >
         {quickActions.map((action) => (
           <button
             key={action.id}
             type="button"
             onClick={() => onQuickAction(action.prompt)}
-            className="min-h-11 shrink-0 rounded-full border border-slate-300 bg-white px-4 text-sm font-medium text-slate-700 transition hover:border-teal-600 hover:bg-teal-50 hover:text-teal-800"
+            className="min-h-11 w-full rounded-full border border-slate-300 bg-white px-4 text-sm font-medium text-slate-700 transition hover:border-teal-600 hover:bg-teal-50 hover:text-teal-800 lg:w-auto"
           >
             {action.label}
           </button>

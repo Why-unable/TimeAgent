@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, useNavigate } from "react-router-dom";
 import { describe, expect, it, vi } from "vitest";
@@ -71,6 +71,41 @@ describe("MobileNavigation", () => {
     renderNav("/chat/123");
     expect(screen.getByText("助理").closest("a")).toHaveAttribute("aria-current", "page");
     expect(screen.getByText("计划").closest("a")).not.toHaveAttribute("aria-current", "page");
+  });
+
+  it("hides the mobile navigation when the IME resizes the visual viewport", async () => {
+    const originalViewport = window.visualViewport;
+    const viewport = Object.assign(new EventTarget(), { height: 800, offsetTop: 0 });
+    Object.defineProperty(window, "visualViewport", { configurable: true, value: viewport });
+
+    function KeyboardHarness() {
+      return <><input aria-label="消息输入" /><MobileNavigation /></>;
+    }
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const view = render(
+      <MemoryRouter initialEntries={["/chat"]}>
+        <QueryClientProvider client={client}><KeyboardHarness /></QueryClientProvider>
+      </MemoryRouter>,
+    );
+
+    try {
+      const nav = screen.getByRole("navigation", { name: "移动端主导航" });
+      await userEvent.click(screen.getByRole("textbox", { name: "消息输入" }));
+      act(() => {
+        viewport.height = 470;
+        viewport.dispatchEvent(new Event("resize"));
+      });
+      await waitFor(() => expect(nav).toHaveAttribute("aria-hidden", "true"));
+
+      act(() => {
+        viewport.height = 800;
+        viewport.dispatchEvent(new Event("resize"));
+      });
+      await waitFor(() => expect(nav).toHaveAttribute("aria-hidden", "false"));
+    } finally {
+      view.unmount();
+      Object.defineProperty(window, "visualViewport", { configurable: true, value: originalViewport });
+    }
   });
 
   it("exposes grouped low-frequency destinations from the Me drawer", async () => {

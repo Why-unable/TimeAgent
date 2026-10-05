@@ -79,11 +79,17 @@ export function DayClosing({
   timezone,
   unfinishedTasks,
   completedTasks,
+  pendingCompletionTaskIds = [],
+  onReopenTask,
+  onOpenFeedbackTask,
 }: {
   date: string;
   timezone: string;
   unfinishedTasks: Task[];
   completedTasks: Task[];
+  pendingCompletionTaskIds?: string[];
+  onReopenTask?: (taskId: string) => Promise<void>;
+  onOpenFeedbackTask?: (taskId: string) => void;
 }) {
   const [open, setOpen] = useState(false);
   const [selectedTaskIds, setSelectedTaskIds] = useState<string[]>([]);
@@ -92,6 +98,8 @@ export function DayClosing({
   const [keptUnplaced, setKeptUnplaced] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [taskEditsSaved, setTaskEditsSaved] = useState(false);
+  const [reopeningTaskId, setReopeningTaskId] = useState<string | null>(null);
+  const [reopenError, setReopenError] = useState("");
   const createPlan = useCreateSchedulePlan();
   const abandonPlan = useAbandonSchedulePlan();
   const operationRef = useRef<{ fingerprint: string; id: string } | null>(null);
@@ -101,6 +109,19 @@ export function DayClosing({
   const availableTaskIds = useRef(new Set(unfinishedTasks.map((task) => task.id)));
   availableTaskIds.current = new Set(unfinishedTasks.map((task) => task.id));
   const selected = new Set(selectedTaskIds);
+
+  const reopenTask = async (taskId: string) => {
+    if (!onReopenTask || reopeningTaskId) return;
+    setReopeningTaskId(taskId);
+    setReopenError("");
+    try {
+      await onReopenTask(taskId);
+    } catch (error) {
+      setReopenError(error instanceof Error ? error.message : "恢复失败，请重试。");
+    } finally {
+      setReopeningTaskId(null);
+    }
+  };
 
   useEffect(() => {
     let active = true;
@@ -271,19 +292,17 @@ export function DayClosing({
   const outcome = createdPlan ? planOutcome(createdPlan) : null;
 
   return (
-    <section aria-label="今天收尾与明日草案" className="mt-6 overflow-hidden rounded-2xl border border-amber-300 bg-white shadow-sm">
-      <div className="flex flex-wrap items-start justify-between gap-4 p-5">
+    <section aria-label="今天收尾与明日草案" data-surface="none" className="mt-6 border-t border-slate-200 pt-4 lg:overflow-hidden lg:rounded-2xl lg:border lg:border-amber-300 lg:bg-white lg:pt-0 lg:shadow-sm">
+      <div className="flex flex-wrap items-start justify-between gap-3 lg:gap-4 lg:p-5">
         <div>
-          <p className="flex items-center gap-2 text-sm font-semibold text-amber-950">
+          <h2 className="flex items-center gap-2 text-base font-semibold text-amber-950">
             <Sprout size={18} aria-hidden="true" /> 今日收获
-            <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-xs text-emerald-800">
-              已完成 {completedTasks.length} 项
-            </span>
-          </p>
+            <span className="text-xs font-medium text-emerald-800">{completedTasks.length} 项完成</span>
+          </h2>
           {completedTasks.length ? (
-            <ul className="mt-3 flex flex-wrap gap-2">
+            <ul className="mt-2 divide-y divide-slate-200 lg:mt-3 lg:flex lg:flex-wrap lg:gap-2 lg:divide-y-0">
               {completedTasks.slice(0, 4).map((task) => (
-                <li key={task.id} className="inline-flex max-w-full items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-sm text-emerald-800">
+                <li key={task.id} className="flex min-h-11 max-w-full items-center gap-2 py-2 text-sm text-emerald-900 lg:inline-flex lg:rounded-full lg:border lg:border-emerald-200 lg:bg-emerald-50 lg:px-3 lg:py-1.5 lg:text-emerald-800">
                   <Check size={14} aria-hidden="true" /> <span className="truncate">{task.title}</span>
                 </li>
               ))}
@@ -292,7 +311,7 @@ export function DayClosing({
               )}
             </ul>
           ) : (
-            <p className="mt-2 text-sm text-slate-600">今天完成的任务会收在这里。</p>
+            <p className="mt-1 text-sm text-slate-600">今天还没有完成任务。</p>
           )}
         </div>
         <button
@@ -300,7 +319,7 @@ export function DayClosing({
           aria-expanded={open}
           aria-controls="day-closing-panel"
           onClick={() => setOpen((current) => !current)}
-          className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-amber-300 bg-white px-4 text-sm font-medium text-amber-900 shadow-sm hover:bg-amber-50"
+          className="inline-flex min-h-11 items-center gap-2 rounded-lg px-2 text-sm font-semibold text-teal-800 hover:bg-teal-50 lg:rounded-xl lg:border lg:border-amber-300 lg:bg-white lg:px-4 lg:shadow-sm lg:hover:bg-amber-50"
         >
           {open ? "收起今日收尾" : "整理明天"}
           <ChevronDown size={16} className={open ? "rotate-180 transition-transform" : "transition-transform"} />
@@ -308,7 +327,32 @@ export function DayClosing({
       </div>
 
       {open && (
-        <div id="day-closing-panel" className="border-t border-slate-200 p-5">
+        <div id="day-closing-panel" className="mt-4 border-t border-slate-200 pt-4 lg:mt-0 lg:p-5">
+          {completedTasks.length > 0 && (
+            <section aria-label="今日已完成任务" className="mb-5 border-b border-slate-200 pb-4">
+              <h3 className="text-base font-semibold text-slate-900">今日已完成</h3>
+              <p className="mt-1 text-sm text-slate-600">误触完成时，可以在这里恢复任务。</p>
+              <ul className="mt-2 divide-y divide-slate-200">
+                {completedTasks.map((task) => (
+                  <li key={task.id} className="flex min-h-12 flex-wrap items-center gap-x-3 gap-y-1 py-2">
+                    <span className="min-w-0 flex-1 truncate text-sm text-slate-800">{task.title}</span>
+                    {pendingCompletionTaskIds.includes(task.id) && onOpenFeedbackTask && (
+                      <button type="button" onClick={() => onOpenFeedbackTask(task.id)} className="min-h-10 rounded-lg px-2 text-sm font-medium text-teal-800 underline underline-offset-2">记录反馈</button>
+                    )}
+                    {onReopenTask && (
+                      <button
+                        type="button"
+                        disabled={Boolean(reopeningTaskId)}
+                        onClick={() => void reopenTask(task.id)}
+                        className="min-h-10 rounded-lg border border-slate-300 px-3 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+                      >{reopeningTaskId === task.id ? "正在恢复…" : "恢复未完成"}</button>
+                    )}
+                  </li>
+                ))}
+              </ul>
+              {reopenError && <p role="alert" className="mt-2 text-sm text-rose-700">恢复失败：{reopenError}。可以重试。</p>}
+            </section>
+          )}
           <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(260px,0.8fr)]">
             <div>
               <h3 className="text-base font-semibold text-slate-900">还没完成的事</h3>
@@ -317,7 +361,7 @@ export function DayClosing({
                 <fieldset className="mt-3 space-y-2">
                   <legend className="sr-only">选择带入明日草案的任务</legend>
                   {unfinishedTasks.map((task) => (
-                    <label key={task.id} className="flex min-h-12 cursor-pointer items-center gap-3 rounded-xl border border-slate-200 bg-white px-3 py-2 hover:border-amber-300">
+                    <label key={task.id} className="flex min-h-12 cursor-pointer items-center gap-3 border-b border-slate-200 py-2 hover:bg-amber-50/50 lg:rounded-xl lg:border lg:bg-white lg:px-3">
                       <input
                         type="checkbox"
                         checked={selected.has(task.id)}
@@ -331,7 +375,7 @@ export function DayClosing({
                   ))}
                 </fieldset>
               ) : (
-                <p className="mt-3 rounded-xl bg-slate-50 p-3 text-sm text-slate-600">目前没有今日待收尾的任务。</p>
+                <p className="mt-3 text-sm text-slate-600">目前没有今日待收尾的任务。</p>
               )}
               {createPlan.isError && <p role="alert" className="mt-3 rounded-lg border border-rose-200 bg-rose-50 p-3 text-sm text-rose-800">明日草案暂时没有生成。任务状态和日程没有因此改变，请重试。</p>}
               {draftAbandoned && <p role="status" className="mt-3 text-sm text-emerald-800">草案已放弃；任务仍保留在任务列表中。</p>}
@@ -346,13 +390,13 @@ export function DayClosing({
               </button>
             </div>
 
-            <aside className="rounded-xl border border-slate-200 bg-white p-4">
+            <aside className="border-t border-slate-200 pt-4 lg:border-l lg:border-t-0 lg:pl-5 lg:pt-0">
               <h3 className="text-sm font-semibold text-slate-900">明日安排先由你检查</h3>
               <p className="mt-2 text-sm leading-6 text-slate-600">
                 这里只创建任务计划草案。任务不会被标记为完成，正式日程也不会改变；你可以继续调整，再单独提交应用审批。
               </p>
               {createdPlan && outcome && (
-                <div role="status" className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 p-3">
+                <div role="status" className="mt-4 border-l-2 border-emerald-600 pl-3">
                   <p className="text-sm font-medium text-emerald-800">明日草案已生成</p>
                   <p className="mt-1 text-xs text-slate-700">已安排 {outcome.placed} 项，未安排 {outcome.unplaced.length} 项。</p>
                   {outcome.unplaced.length > 0 && (
@@ -367,7 +411,7 @@ export function DayClosing({
                     </>
                   )}
                   {outcome.unplaced.length > 0 && (
-                    <section aria-label="明日安排取舍" className="mt-3 rounded-xl border border-amber-200 bg-amber-50 p-3">
+                    <section aria-label="明日安排取舍" className="mt-3 border-l-2 border-amber-600 pl-3">
                       <h4 className="text-sm font-medium text-amber-900">有任务放不进明天的安排</h4>
                       <p className="mt-1 text-xs leading-5 text-slate-600">你来决定下一步。系统不会自动缩短预计时长、减少缓冲或改截止时间。</p>
                       <div className="mt-2 flex flex-wrap gap-2">

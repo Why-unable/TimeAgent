@@ -73,7 +73,7 @@ export function TasksPage() {
   const [creating, setCreating] = useState(false);
   const [recommendationRequested, setRecommendationRequested] = useState(false);
   const [completionAnnouncement, setCompletionAnnouncement] = useState("");
-  const filterGroupRef = useRef<HTMLDivElement>(null);
+  const taskListHeadingRef = useRef<HTMLHeadingElement>(null);
   const [desktopLayout, setDesktopLayout] = useState(
     () => typeof window !== "undefined" && typeof window.matchMedia === "function"
       ? window.matchMedia("(min-width: 1024px)").matches
@@ -97,6 +97,10 @@ export function TasksPage() {
     });
     return [...groups.entries()];
   }, [visibleTasks]);
+
+  useEffect(() => {
+    if (completionAnnouncement) taskListHeadingRef.current?.focus();
+  }, [completionAnnouncement]);
 
   useEffect(() => {
     if (typeof window.matchMedia !== "function") return undefined;
@@ -130,7 +134,7 @@ export function TasksPage() {
         className="mt-4 lg:mt-7"
         icon={<ListTodo className="text-teal-600" size={25} />}
         title="任务"
-        description="明确区分截止时间与计划执行区间。"
+        description={`明确区分截止时间与计划执行区间。时间按 ${timezone} 显示。`}
         actions={(
           <Button onClick={() => setCreating(true)} size="lg" className="w-full font-semibold lg:w-auto">
             <CirclePlus size={19} />
@@ -139,7 +143,7 @@ export function TasksPage() {
         )}
       />
 
-      <div ref={filterGroupRef} tabIndex={-1} className="mt-5 rounded-xl outline-none focus-visible:outline-2 focus-visible:outline-teal-700" role="group" aria-label="任务筛选">
+      <div className="mt-5" role="group" aria-label="任务筛选">
         <div className="flex gap-2 overflow-x-auto pb-1">
           {primaryFilters.map((item) => (
             <button
@@ -147,10 +151,10 @@ export function TasksPage() {
               key={item.id}
               aria-pressed={filter === item.id}
               onClick={() => setFilter(item.id)}
-              className={`min-h-11 shrink-0 rounded-full border px-4 py-2 text-sm font-medium transition ${
+              className={`min-h-11 shrink-0 rounded-full px-4 py-2 text-sm font-medium transition ${
                 filter === item.id
-                  ? "border-teal-800 bg-teal-800 text-white ring-2 ring-teal-800 ring-offset-2 mobile-on-brand"
-                  : "border-slate-300 bg-white text-slate-700 hover:border-teal-700"
+                  ? "bg-teal-800 font-semibold text-white mobile-on-brand"
+                  : "text-slate-700 hover:bg-slate-100"
               }`}
             >
               {item.label}
@@ -158,7 +162,7 @@ export function TasksPage() {
           ))}
         </div>
         <details className="mt-1">
-          <summary className="inline-flex min-h-11 cursor-pointer list-none items-center gap-2 rounded-full border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition hover:border-teal-700">
+          <summary className="inline-flex min-h-11 cursor-pointer list-none items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-100">
             <Filter size={14} />
             更多筛选
             {overflowFilters.some((item) => item.id === filter) && (
@@ -167,17 +171,17 @@ export function TasksPage() {
               </span>
             )}
           </summary>
-          <div className="mt-2 flex flex-wrap gap-2 rounded-2xl border border-slate-200 bg-white p-3">
+          <div className="mt-2 flex flex-wrap gap-2 border-t border-slate-200 py-3">
             {overflowFilters.map((item) => (
               <button
                 type="button"
                 key={item.id}
                 aria-pressed={filter === item.id}
                 onClick={() => setFilter(item.id)}
-                className={`min-h-11 rounded-full border px-3 py-2 text-sm transition ${
+                className={`min-h-11 rounded-full px-3 py-2 text-sm transition ${
                   filter === item.id
-                    ? "border-teal-800 bg-teal-800 text-white ring-2 ring-teal-800 ring-offset-2 mobile-on-brand"
-                    : "border-slate-300 bg-white text-slate-700 hover:border-teal-700"
+                    ? "bg-teal-800 font-semibold text-white mobile-on-brand"
+                    : "text-slate-700 hover:bg-slate-100"
                 }`}
               >
                 {item.label}
@@ -196,48 +200,22 @@ export function TasksPage() {
       {completionAnnouncement && <p className="sr-only" role="status" aria-live="polite">{completionAnnouncement}</p>}
       {!tasks.isPending && !tasks.isError && visibleTasks.length === 0 && <TaskEmptyState />}
 
-      <div className="mt-8 space-y-7">
-        <details className="rounded-2xl border border-slate-200 bg-white p-4 sm:p-5">
-          <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 rounded-lg text-left">
-            <span>
-              <span className="block font-medium text-slate-900">查找未来空闲时间</span>
-              <span className="mt-1 block text-xs text-slate-600">只查看候选时间，不会自动创建安排</span>
-            </span>
-            <Filter size={18} className="shrink-0 text-teal-800" />
-          </summary>
-          <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <h3 className="font-medium text-slate-900">未来空闲时间</h3>
-              <p className="mt-1 text-xs text-slate-600">按工作时间、日程和已计划任务寻找 30 分钟候选。</p>
-            </div>
-            <button type="button" onClick={() => setRecommendationRequested(true)} disabled={recommendations.isFetching} className="min-h-11 rounded-lg border border-teal-700 px-3 py-2 text-sm font-medium text-teal-900 hover:bg-teal-50 disabled:opacity-50">
-              {recommendations.isFetching ? "查找中…" : "查找候选"}
-            </button>
-          </div>
-          {recommendations.data && (
-            <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-              {recommendations.data.slots.map((slot) => (
-                <div key={`${slot.start_at}-${slot.end_at}`} className="rounded-xl bg-slate-50 p-3 text-sm text-slate-800">
-                  {formatInUserTimezone(slot.start_at, timezone, locale)} — {formatInUserTimezone(slot.end_at, timezone, locale)}
-                </div>
-              ))}
-              {recommendations.data.slots.length === 0 && <p className="text-sm text-amber-200">未来范围内没有满足约束的候选时间。</p>}
-            </div>
-          )}
-          {recommendations.isError && <p role="alert" className="mt-3 text-xs text-red-200">空闲时间推荐暂时不可用。</p>}
-        </details>
+      <h2 ref={taskListHeadingRef} tabIndex={-1} className="mt-8 text-lg font-semibold text-slate-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-teal-700">
+        任务列表
+      </h2>
+      <div className="mt-3 space-y-7">
         {groupedTasks.map(([project, projectTasks]) => (
           <section key={project}>
-            <div className="mb-3 flex items-center gap-3">
-              <h3 className="font-medium text-slate-200">{project}</h3>
+            <div className="mb-1 flex items-center gap-3">
+              <h3 className="font-medium text-slate-900">{project}</h3>
               <span className="text-xs text-slate-500">{projectTasks.length} 项</span>
             </div>
-            <div className="space-y-3">
+            <div className="divide-y divide-slate-200">
               {projectTasks.map((task) => {
                 const priority = task.priority ?? "medium";
                 const canComplete = task.status === "pending" || task.status === "in_progress";
                 return (
-              <article key={task.id} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+              <article key={task.id} data-surface="divider-list" className="py-4 lg:rounded-2xl lg:border lg:border-slate-200 lg:bg-white lg:p-4 lg:shadow-sm">
                     <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                       <div className="min-w-0 w-full flex-1 sm:w-auto">
                         <div className="flex flex-wrap items-center gap-2">
@@ -252,19 +230,19 @@ export function TasksPage() {
                           )}
                         </div>
                         {task.description && <p className="mt-2 text-sm text-slate-700">{task.description}</p>}
-                        <div className="mt-3 flex flex-wrap gap-2 text-xs">
-                          <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-amber-950">
-                            <span className="mr-1 text-[11px] font-medium text-amber-900">截止时间</span>
+                        <div className="mt-2 grid gap-y-1 text-xs text-slate-700 sm:flex sm:flex-wrap sm:gap-2">
+                          <p className="lg:rounded-lg lg:border lg:border-amber-200 lg:bg-amber-50 lg:px-3 lg:py-2">
+                            <span className="mr-1 font-medium text-slate-600">截止时间</span>
                             {task.due_at
                               ? formatInUserTimezone(task.due_at, timezone, locale)
                               : "未设置"}
-                          </div>
-                          <div className="rounded-lg border border-teal-100 bg-teal-50 px-3 py-2 text-teal-950">
-                            <span className="mr-1 text-[11px] font-medium text-teal-900">计划执行时间</span>
+                          </p>
+                          <p className="lg:rounded-lg lg:border lg:border-teal-100 lg:bg-teal-50 lg:px-3 lg:py-2">
+                            <span className="mr-1 font-medium text-slate-600">计划执行时间</span>
                             {task.planned_start_at && task.planned_end_at
                               ? `${formatInUserTimezone(task.planned_start_at, timezone, locale)} — ${formatInUserTimezone(task.planned_end_at, timezone, locale)}`
                               : "未计划"}
-                          </div>
+                          </p>
                         </div>
                         <div className="mt-3 flex flex-wrap gap-3 text-xs text-slate-500">
                           {task.estimated_minutes && (
@@ -301,14 +279,13 @@ export function TasksPage() {
                             disabled={completeMutation.isPending}
                             onClick={() => completeMutation.mutate(task.id, { onSuccess: () => {
                               setCompletionAnnouncement(`已完成任务：${task.title}`);
-                              filterGroupRef.current?.focus();
                             } })}
                             className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-emerald-700 bg-white px-4 text-sm font-semibold text-emerald-900 hover:bg-emerald-50 disabled:opacity-50"
                           ><CircleCheck size={17} />完成</button>
                         )}
                         {!desktopLayout && <details className="relative w-full">
-                          <summary className="inline-flex min-h-11 cursor-pointer list-none items-center rounded-lg border border-slate-300 bg-white px-3 text-sm font-medium text-slate-700">更多操作</summary>
-                          <div className="mt-2 flex flex-wrap gap-2 rounded-xl border border-slate-200 bg-slate-50 p-2">
+                          <summary aria-label={`更多操作：${task.title}`} className="inline-flex min-h-11 cursor-pointer list-none items-center rounded-lg px-3 text-sm font-medium text-teal-800 hover:bg-teal-50">更多操作</summary>
+                          <div className="mt-2 flex flex-wrap gap-2 border-t border-slate-200 py-2">
                             {canComplete && <button type="button" aria-label={`跳过任务：${task.title}`} disabled={executionMutation.isPending} onClick={() => executionMutation.mutate({ taskId: task.id, signalType: "skipped" })} className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-800 disabled:opacity-50"><SkipForward size={16} />跳过</button>}
                             <button type="button" aria-label={`编辑任务：${task.title}`} onClick={() => setEditingTask(task)} className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-800"><Pencil size={16} />编辑</button>
                             <button type="button" aria-label={`查看执行摘要：${task.title}`} onClick={() => setExecutionTaskId((current) => current === task.id ? undefined : task.id)} className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-800"><BarChart3 size={16} />执行摘要</button>
@@ -324,7 +301,7 @@ export function TasksPage() {
                       </div>
                     </div>
                     {executionTaskId === task.id && (
-                      <div className="mt-4 rounded-xl border border-white/10 bg-slate-950/50 p-3 text-sm text-slate-300">
+                      <div className="mt-4 border-t border-slate-200 pt-3 text-sm text-slate-700 lg:rounded-xl lg:border lg:border-white/10 lg:bg-slate-950/50 lg:p-3 lg:text-slate-300">
                         {executionSummary.isPending && <p>正在读取执行摘要…</p>}
                         {executionSummary.isError && <p className="text-amber-200">暂时无法读取执行摘要。</p>}
                         {executionSummary.data && (
@@ -350,7 +327,7 @@ export function TasksPage() {
                       </div>
                     )}
                     {recommendationTaskId === task.id && (
-                      <div className="mt-4 rounded-xl border border-cyan-300/20 bg-cyan-300/5 p-4 text-sm">
+                      <div className="mt-4 border-t border-slate-200 pt-3 text-sm lg:rounded-xl lg:border lg:border-cyan-300/20 lg:bg-cyan-300/5 lg:p-4">
                         {durationRecommendation.isPending && <p className="text-slate-400">正在读取估时建议…</p>}
                         {durationRecommendation.isError && <p className="text-amber-200">估时建议暂时不可用。</p>}
                         {durationRecommendation.data && (
@@ -391,6 +368,36 @@ export function TasksPage() {
           </section>
         ))}
       </div>
+
+      <details className="mt-6 border-y border-slate-200 py-3">
+        <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between gap-3 text-left">
+          <span>
+            <span className="block font-medium text-slate-900">查找未来空闲时间</span>
+            <span className="mt-1 block text-xs text-slate-600">只查看候选时间，不会自动创建安排</span>
+          </span>
+          <Filter size={18} className="shrink-0 text-slate-600" aria-hidden="true" />
+        </summary>
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 pt-3">
+          <div>
+            <h3 className="font-medium text-slate-900">未来空闲时间</h3>
+            <p className="mt-1 text-xs text-slate-600">按工作时间、日程和已计划任务寻找 30 分钟候选。</p>
+          </div>
+          <button type="button" onClick={() => setRecommendationRequested(true)} disabled={recommendations.isFetching} className="min-h-11 rounded-lg border border-teal-700 px-3 py-2 text-sm font-medium text-teal-900 hover:bg-teal-50 disabled:opacity-50">
+            {recommendations.isFetching ? "查找中…" : "查找候选"}
+          </button>
+        </div>
+        {recommendations.data && (
+          <ul className="mt-2 divide-y divide-slate-200">
+            {recommendations.data.slots.map((slot) => (
+              <li key={`${slot.start_at}-${slot.end_at}`} className="py-3 text-sm text-slate-800">
+                {formatInUserTimezone(slot.start_at, timezone, locale)} — {formatInUserTimezone(slot.end_at, timezone, locale)}
+              </li>
+            ))}
+            {recommendations.data.slots.length === 0 && <li className="py-3 text-sm text-amber-900">未来范围内没有满足约束的候选时间。</li>}
+          </ul>
+        )}
+        {recommendations.isError && <p role="alert" className="mt-3 text-xs text-red-800">空闲时间推荐暂时不可用。</p>}
+      </details>
 
       {completeMutation.isError && (
         <div role="alert" className="fixed bottom-24 right-6 rounded-xl border border-red-400/30 bg-slate-900 p-4 text-sm text-red-200 shadow-xl">

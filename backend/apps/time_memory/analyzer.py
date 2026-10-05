@@ -256,6 +256,7 @@ class TimeMemoryAnalyzer:
                 elif signal.signal_type in {
                     TaskExecutionSignalType.PAUSED,
                     TaskExecutionSignalType.COMPLETED,
+                    TaskExecutionSignalType.REOPENED,
                 }:
                     if open_started_at is not None:
                         active_seconds += max(
@@ -301,21 +302,16 @@ class TimeMemoryAnalyzer:
             if change.entity_type == MemoryEntityType.TASK
             and change.operation == MemoryOperation.UPDATED
         ]
-        automated = [
-            change for change in task_updates if change.source == "adaptive_local_replan"
-        ]
+        automated = [change for change in task_updates if change.source == "adaptive_local_replan"]
         reverted = [
-            change
-            for change in task_updates
-            if change.source == "adaptive_local_replan_revert"
+            change for change in task_updates if change.source == "adaptive_local_replan_revert"
         ]
         user_modified = 0
         for move in automated:
             if any(
                 later.entity_id == move.entity_id
                 and later.occurred_at > move.occurred_at
-                and later.source
-                not in {"adaptive_local_replan", "adaptive_local_replan_revert"}
+                and later.source not in {"adaptive_local_replan", "adaptive_local_replan_revert"}
                 for later in task_updates
             ):
                 user_modified += 1

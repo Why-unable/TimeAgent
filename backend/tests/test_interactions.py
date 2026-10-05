@@ -474,6 +474,31 @@ def test_completion_feedback_is_optional_structured_and_does_not_recomplete_task
         )
 
 
+def test_skipping_completion_feedback_closes_only_the_feedback_interaction() -> None:
+    user = _make_user("interaction-completion-dismiss")
+    task = TaskService.create_task(
+        CreateTaskCommand(user=user, title="Write paper", estimated_minutes=60)
+    )
+    completed = TaskService.complete_task(task_id=task.pk, user=user, occurred_at=NOW)
+    interaction = InteractionArtifact.objects.get(task=task, status=InteractionStatus.PENDING)
+
+    result = InteractionArtifactService.submit(
+        user=user,
+        interaction_id=interaction.pk,
+        expected_version=interaction.version,
+        action="dismiss",
+        values={},
+        idempotency_key="completion-feedback-dismiss-001",
+        now=NOW,
+    )
+
+    completed.refresh_from_db()
+    assert result.accepted is True
+    assert result.interaction.status == InteractionStatus.ABANDONED
+    assert completed.status == TaskStatus.COMPLETED
+    assert completed.completed_at == NOW
+
+
 def test_task_completion_succeeds_and_retries_optional_feedback_creation() -> None:
     user = _make_user("interaction-completion-retry")
     task = TaskService.create_task(

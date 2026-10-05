@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
@@ -257,6 +257,10 @@ describe("ChatPage", () => {
     renderChatPage();
     const empty = await screen.findByRole("heading", { name: "今天想先处理哪件事？" });
     expect(empty).toBeInTheDocument();
+    const quickActions = screen.getByRole("group", { name: "常用快捷操作" });
+    expect(quickActions).toHaveClass("grid-cols-2");
+    expect(within(quickActions).getAllByRole("button")).toHaveLength(4);
+    expect(quickActions).not.toHaveClass("overflow-x-auto");
     expect(screen.getByRole("region", { name: "今日上下文" })).toHaveTextContent("0 个日程");
     await userEvent.click(screen.getByRole("button", { name: "看今天安排" }));
     const composer = screen.getByLabelText("消息") as HTMLTextAreaElement;
@@ -527,7 +531,7 @@ describe("ChatPage", () => {
     vi.stubGlobal("fetch", fetchMock);
 
     renderChatPage(`/chat/${conversation.id}`);
-    const approve = await screen.findByRole("button", { name: "确认并应用" });
+    const approve = await screen.findByRole("button", { name: /^确认并应用/ });
     await userEvent.click(approve);
 
     expect(await screen.findByText("日程已创建。")).toBeInTheDocument();

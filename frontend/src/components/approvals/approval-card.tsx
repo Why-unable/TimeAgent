@@ -133,7 +133,7 @@ function ActionReviewPreview({ items, timezone }: { items: ActionReviewItem[]; t
   const visibleItems = items.slice(0, 3);
   const remainingItems = items.slice(3);
   const renderItems = (rows: ActionReviewItem[], offset = 0) => rows.map((item, index) => (
-    <li key={`${item.title}-${offset + index}`} className="rounded-lg border border-white/10 bg-slate-950/50 px-3 py-2 text-sm text-slate-200">
+    <li key={`${item.title}-${offset + index}`} className="approval-preview-item py-3 text-sm text-slate-800 lg:rounded-lg lg:border lg:border-white/10 lg:px-3 lg:py-2 lg:text-slate-200">
       <p className="font-medium">{item.title}</p>
       {item.detail && <p className="mt-1 text-slate-300">{item.detail}</p>}
       {item.start_at && (
@@ -152,11 +152,11 @@ function ActionReviewPreview({ items, timezone }: { items: ActionReviewItem[]; t
     </li>
   ));
   return (
-    <div className="mt-3 space-y-2">
-      <ul className="space-y-2">{renderItems(visibleItems)}</ul>
-      {remainingItems.length > 0 && <details className="rounded-lg border border-white/10 px-3">
+    <div className="mt-3">
+      <ul className="divide-y divide-slate-200 lg:space-y-2 lg:divide-y-0">{renderItems(visibleItems)}</ul>
+      {remainingItems.length > 0 && <details className="border-t border-slate-200 lg:rounded-lg lg:border lg:border-white/10 lg:px-3">
         <summary className="flex min-h-11 cursor-pointer items-center text-sm font-medium text-cyan-100">查看其余 {remainingItems.length} 项</summary>
-        <ul className="space-y-2 pb-3">{renderItems(remainingItems, visibleItems.length)}</ul>
+        <ul className="divide-y divide-slate-200 pb-3 lg:space-y-2 lg:divide-y-0">{renderItems(remainingItems, visibleItems.length)}</ul>
       </details>}
     </div>
   );
@@ -381,7 +381,7 @@ function PayloadSummary({ actionType, payload, timezone }: { actionType: string;
           const action = String(operation.action ?? "update");
           const actionLabel = mutationActionLabels[action] ?? "调整";
           const title = operation.display_title ?? operation.title ?? "已有日程";
-          return <div key={index} className="rounded-lg bg-slate-950/60 px-3 py-2 text-sm text-slate-200"><p>{`${index + 1}. ${actionLabel}：${String(title)}`}</p>{typeof operationTime.start_at === "string" && <p className="mt-1 text-xs text-slate-400">{formatInUserTimezone(operationTime.start_at, timezone)}{typeof operationTime.end_at === "string" ? ` – ${formatTimeInUserTimezone(operationTime.end_at, timezone)}` : ""}</p>}</div>;
+          return <div key={index} className="border-b border-slate-200 py-3 text-sm text-slate-800 last:border-b-0 lg:rounded-lg lg:border lg:border-slate-200 lg:bg-slate-50 lg:px-3 lg:py-2"><p>{`${index + 1}. ${actionLabel}：${String(title)}`}</p>{typeof operationTime.start_at === "string" && <p className="mt-1 text-xs text-slate-600">{formatInUserTimezone(operationTime.start_at, timezone)}{typeof operationTime.end_at === "string" ? ` – ${formatTimeInUserTimezone(operationTime.end_at, timezone)}` : ""}</p>}</div>;
         })}
       </div>
     );
@@ -503,7 +503,7 @@ function ApprovalEditor({
     return (
       <div className="space-y-3">
         {tasks.map((task, index) => (
-          <fieldset key={index} className="grid gap-3 rounded-xl border border-white/10 bg-slate-950/40 p-3 sm:grid-cols-2">
+          <fieldset key={index} className="grid gap-3 border-t border-slate-200 py-3 first:border-t-0 sm:grid-cols-2">
             <legend className="px-1 text-xs font-medium text-cyan-200">第 {index + 1} 项任务</legend>
             <label className="sm:col-span-2 text-xs text-slate-400">任务名称<input value={String(task.title ?? "")} onChange={(event) => setTask(index, "title", event.target.value)} className={inputClass} /></label>
             <label className="sm:col-span-2 text-xs text-slate-400">任务说明<textarea value={String(task.description ?? "")} onChange={(event) => setTask(index, "description", event.target.value)} className={`${inputClass} min-h-20`} /></label>
@@ -553,7 +553,7 @@ function ApprovalEditor({
               ? operation.editor_existing_time as Record<string, unknown>
               : {};
           return (
-            <fieldset key={index} className="rounded-xl border border-white/10 bg-slate-950/40 p-3">
+            <fieldset key={index} className="border-t border-slate-200 py-3 first:border-t-0">
               <legend className="px-1 text-xs font-medium text-cyan-200">第 {index + 1} 项：{mutationActionLabels[action] ?? "调整"}</legend>
               {action !== "cancel" && <label className="block text-xs text-slate-400">日程标题<input value={String(operation.title ?? "")} onChange={(event) => setOperation(index, "title", event.target.value)} className={inputClass} /></label>}
               {action !== "cancel" && <div className="mt-3 grid gap-3 sm:grid-cols-2">
@@ -668,6 +668,10 @@ export function ApprovalCard({ proposal, timezone = "Asia/Shanghai", busy = fals
     && proposal.display_context.action_title.trim()
     ? proposal.display_context.action_title.trim()
     : actionLabels[proposal.action_type] ?? "需要你确认的操作";
+  const accessibleActionName = typeof proposal.display_context.object_name === "string"
+    && proposal.display_context.object_name.trim()
+    ? proposal.display_context.object_name.trim()
+    : actionTitle;
   const actionSummary = typeof proposal.display_context.action_summary === "string"
     && proposal.display_context.action_summary.trim()
     ? proposal.display_context.action_summary.trim()
@@ -800,15 +804,15 @@ export function ApprovalCard({ proposal, timezone = "Asia/Shanghai", busy = fals
   };
 
   return (
-    <article className="rounded-2xl border border-amber-300/25 bg-amber-300/5 p-5 shadow-lg shadow-black/10">
+    <article data-surface="decision-surface" className="rounded-xl border border-amber-300/50 bg-amber-50 p-4 lg:rounded-2xl lg:border-amber-300/25 lg:bg-amber-300/5 lg:p-5 lg:shadow-sm">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="flex gap-3">
           <span className="rounded-xl bg-amber-300/10 p-2 text-amber-200"><ShieldAlert size={20} /></span>
           <div>
             <p className="text-xs font-semibold uppercase tracking-wider text-amber-200">需要你确认</p>
-            <h3 className="mt-1 font-semibold text-slate-100">
+            <h2 className="mt-1 font-semibold text-slate-100">
               {actionTitle}
-            </h3>
+            </h2>
           </div>
         </div>
         <span className="rounded-full bg-white/5 px-3 py-1 text-xs text-slate-300">
@@ -823,10 +827,10 @@ export function ApprovalCard({ proposal, timezone = "Asia/Shanghai", busy = fals
         </p>
       )}
       {selectedOccurrence && (
-        <section className="relative mt-4 rounded-xl border border-cyan-300/20 bg-cyan-300/5 px-12 py-4" aria-label="周期日程实例预览">
+        <section className="relative mt-4 border-y border-slate-200 py-3 pl-12 pr-12 lg:rounded-xl lg:border lg:border-cyan-300/20 lg:bg-cyan-300/5 lg:px-12 lg:py-4" aria-label="周期日程实例预览">
           <button
             type="button"
-            aria-label="查看上一个日程实例"
+            aria-label={`查看上一个日程实例：${accessibleActionName}`}
             disabled={occurrenceIndex === 0}
             onClick={() => setOccurrenceIndex((current) => Math.max(0, current - 1))}
             className="absolute inset-y-0 left-1 grid w-11 place-items-center text-cyan-200 disabled:text-slate-700"
@@ -834,7 +838,7 @@ export function ApprovalCard({ proposal, timezone = "Asia/Shanghai", busy = fals
             <ChevronLeft size={26} />
           </button>
           <div className="text-center">
-            <p className="text-xs font-medium text-cyan-200">周期日程 · 第 {selectedOccurrence.index} / {displayedOccurrences.length} 次</p>
+          <h3 className="text-xs font-medium text-cyan-800 lg:text-cyan-200">周期日程 · 第 {selectedOccurrence.index} / {displayedOccurrences.length} 次</h3>
           <p className="mt-2 text-base font-semibold text-slate-100">{formatInUserTimezone(selectedOccurrence.start_at, timezone)} — {formatTimeInUserTimezone(selectedOccurrence.end_at, timezone)}</p>
             <p className={`mt-1 text-xs ${selectedOccurrence.conflicts.length > 0 ? "text-red-200" : "text-emerald-200"}`}>
               {selectedOccurrence.conflicts.length > 0 ? `此实例有 ${selectedOccurrence.conflicts.length} 个时间冲突` : "此实例暂无时间冲突"}
@@ -842,7 +846,7 @@ export function ApprovalCard({ proposal, timezone = "Asia/Shanghai", busy = fals
           </div>
           <button
             type="button"
-            aria-label="查看下一个日程实例"
+            aria-label={`查看下一个日程实例：${accessibleActionName}`}
             disabled={occurrenceIndex >= displayedOccurrences.length - 1}
             onClick={() => setOccurrenceIndex((current) => Math.min(displayedOccurrences.length - 1, current + 1))}
             className="absolute inset-y-0 right-1 grid w-11 place-items-center text-cyan-200 disabled:text-slate-700"
@@ -852,9 +856,9 @@ export function ApprovalCard({ proposal, timezone = "Asia/Shanghai", busy = fals
         </section>
       )}
       {proposal.action_type === "create_recurring_event" && !displayedOccurrences.length && <p className="mt-4 text-sm text-slate-300">共 {String(proposal.action_payload.occurrence_count ?? "多")} 次；详细日期暂不可用。</p>}
-      {!editing && <section aria-label="变化预览" className="mt-4 rounded-xl border border-cyan-300/20 bg-cyan-300/5 p-4">
+      {!editing && <section aria-label="变化预览" className="mt-4 border-t border-slate-200 pt-3 lg:rounded-xl lg:border lg:border-cyan-300/20 lg:bg-cyan-300/5 lg:p-4">
         <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-          <p className="text-xs font-semibold text-cyan-200">将要改变</p>
+          <h3 className="text-xs font-semibold text-cyan-800 lg:text-cyan-200">将要改变</h3>
           <p className="text-xs text-slate-500">时间按 {timezone} 显示</p>
         </div>
         <ActionReviewPreview items={reviewItems} timezone={timezone} />
@@ -879,8 +883,8 @@ export function ApprovalCard({ proposal, timezone = "Asia/Shanghai", busy = fals
       {showsConflictCheck && editing && <p className="mt-2 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-900">
         当前冲突信息对应原安排。保存后会重新检查；无冲突时才批准。
       </p>}
-      <details ref={editorDetailsRef} open={editing} className="mt-4 rounded-xl border border-white/10 bg-slate-950/60 p-4">
-        <summary className="min-h-11 cursor-pointer text-sm font-medium text-slate-300">查看操作详情</summary>
+      <details ref={editorDetailsRef} open={editing} className="approval-details mt-4 border-t border-slate-200 pt-3 lg:rounded-xl lg:border lg:border-white/10 lg:p-4">
+        <summary className="min-h-11 cursor-pointer text-sm font-medium text-slate-300">查看操作详情：{accessibleActionName}</summary>
         <div ref={editorRootRef} tabIndex={-1} role="group" aria-label="编辑操作参数" className="mt-3 outline-none">
         <p className="text-xs text-slate-700">用户原始请求</p>
         <p className="mt-1 text-sm text-slate-200">{proposal.original_request}</p>
@@ -947,18 +951,18 @@ export function ApprovalCard({ proposal, timezone = "Asia/Shanghai", busy = fals
         <div className="mt-5">
           {editing ? (
             <div className="flex flex-wrap gap-2">
-              <button type="button" disabled={busy || hasInvalidTime || !targetEditorReady || staleEdit} onClick={submitEdit} className="min-h-11 rounded-lg bg-amber-200 px-4 py-2 text-sm font-medium text-slate-950 disabled:opacity-50">{conflicts.length > 0 ? "重新检查并批准" : "保存修改并批准"}</button>
-              <button type="button" onClick={() => { setEditedPayload(resolvedReviewPayload(proposal)); setEditBaseVersion(proposal.version); setError(""); setHasInvalidTime(false); setTargetEditorReady(true); returnFocusToEditEntry.current = true; setEditing(false); }} className="min-h-11 rounded-lg border border-white/10 px-4 py-2 text-sm text-slate-300">取消编辑</button>
+              <button type="button" aria-label={`${conflicts.length > 0 ? "重新检查并批准" : "保存修改并批准"}：${accessibleActionName}`} disabled={busy || hasInvalidTime || !targetEditorReady || staleEdit} onClick={submitEdit} className="min-h-11 rounded-lg bg-amber-200 px-4 py-2 text-sm font-medium text-slate-950 disabled:opacity-50">{conflicts.length > 0 ? "重新检查并批准" : "保存修改并批准"}</button>
+              <button type="button" aria-label={`取消编辑：${accessibleActionName}`} onClick={() => { setEditedPayload(resolvedReviewPayload(proposal)); setEditBaseVersion(proposal.version); setError(""); setHasInvalidTime(false); setTargetEditorReady(true); returnFocusToEditEntry.current = true; setEditing(false); }} className="min-h-11 rounded-lg border border-white/10 px-4 py-2 text-sm text-slate-300">取消编辑</button>
             </div>
           ) : (
             <div className="flex flex-wrap gap-2">
-              {canApprove && <button type="button" disabled={busy} onClick={() => void submitDecision("approve")} className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-emerald-300 px-4 py-2 text-sm font-medium text-slate-950 disabled:opacity-50"><Check size={16} />确认并应用</button>}
-              {canEdit && <button ref={editEntryButtonRef} type="button" disabled={busy} onClick={() => { setEditedPayload(resolvedReviewPayload(proposal)); setEditBaseVersion(proposal.version); setTargetEditorReady(proposal.action_type !== "set_reminder_target"); returnFocusToEditEntry.current = false; setEditing(true); }} className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-amber-300/30 px-4 py-2 text-sm text-amber-100 disabled:opacity-50"><Pencil size={16} />{conflicts.length > 0 ? "先调整时间" : "调整后批准"}</button>}
-              {canReject && <button type="button" disabled={busy} onClick={() => void submitDecision("reject")} className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-red-300/25 px-4 py-2 text-sm text-red-200 disabled:opacity-50"><X size={16} />拒绝</button>}
+              {canApprove && <button type="button" aria-label={`确认并应用：${accessibleActionName}`} disabled={busy} onClick={() => void submitDecision("approve")} className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-emerald-300 px-4 py-2 text-sm font-medium text-slate-950 disabled:opacity-50"><Check size={16} />确认并应用</button>}
+              {canEdit && <button ref={editEntryButtonRef} type="button" aria-label={`${conflicts.length > 0 ? "先调整时间" : "调整后批准"}：${accessibleActionName}`} disabled={busy} onClick={() => { setEditedPayload(resolvedReviewPayload(proposal)); setEditBaseVersion(proposal.version); setTargetEditorReady(proposal.action_type !== "set_reminder_target"); returnFocusToEditEntry.current = false; setEditing(true); }} className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-amber-300/30 px-4 py-2 text-sm text-amber-100 disabled:opacity-50"><Pencil size={16} />{conflicts.length > 0 ? "先调整时间" : "调整后批准"}</button>}
+              {canReject && <button type="button" aria-label={`拒绝：${accessibleActionName}`} disabled={busy} onClick={() => void submitDecision("reject")} className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-red-300/25 px-4 py-2 text-sm text-red-200 disabled:opacity-50"><X size={16} />拒绝</button>}
             </div>
           )}
           {!editing && canReject && (
-            <input value={reason} onChange={(event) => setReason(event.target.value)} aria-label="拒绝原因" placeholder="拒绝原因（可选）" className="mt-3 min-h-11 w-full rounded-lg border border-white/10 bg-slate-950/60 px-3 py-2 text-sm outline-none focus:border-red-300/40" />
+            <input value={reason} onChange={(event) => setReason(event.target.value)} aria-label={`拒绝原因：${accessibleActionName}`} placeholder="拒绝原因（可选）" className="mt-3 min-h-11 w-full rounded-lg border border-white/10 bg-slate-950/60 px-3 py-2 text-sm outline-none focus:border-red-300/40" />
           )}
         </div>
       )}

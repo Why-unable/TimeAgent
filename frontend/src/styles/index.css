@@ -22,13 +22,49 @@
   --mobile-page-gutter: 1.25rem;
   --mobile-bottom-nav-height: 4rem;
   --mobile-control-height: 3.5rem;
-  --mobile-card-radius: 1.25rem;
+  --mobile-section-gap: 1.5rem;
+  --mobile-row-gap: 0.75rem;
+  --mobile-inline-gap: 0.5rem;
+  --mobile-control-gap: 0.5rem;
+  --mobile-divider: #dce3ec;
+  --mobile-card-radius: 1rem;
   --mobile-sheet-radius: 1.5rem;
 }
 
 @media (max-width: 360px) {
   :root {
     --mobile-page-gutter: 1rem;
+  }
+}
+
+.plan-date-scroll-hint {
+  display: none;
+}
+
+@media (min-width: 1024px) {
+  .reminder-list-row {
+    background-color: #0f172a;
+  }
+}
+
+@media (max-width: 359px) {
+  .plan-date-rail {
+    display: flex;
+    gap: 0.25rem;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    padding: 0.25rem 0.125rem 0.5rem;
+    scroll-padding-inline: 0.5rem;
+  }
+
+  .plan-date-rail > button {
+    flex: 0 0 44px;
+    width: 44px;
+    min-width: 44px;
+  }
+
+  .plan-date-scroll-hint {
+    display: block;
   }
 }
 
@@ -170,6 +206,12 @@ body::-webkit-scrollbar {
 .mobile-overlay-backdrop {
   background: rgb(15 23 42 / 56%);
   backdrop-filter: blur(2px);
+}
+
+@media (min-width: 1024px) {
+  .approval-preview-item {
+    background-color: #f8fafc;
+  }
 }
 
 /* Desktop uses the same calm, bright product language as the installed app,

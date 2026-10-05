@@ -127,6 +127,50 @@ def test_task_complete_endpoint_is_idempotent() -> None:
     assert repeated_response.json()["completed_at"] == response.json()["completed_at"]
 
 
+def test_task_completion_can_be_reopened_and_completed_again() -> None:
+    client = authenticated_client(create_user("task-reopen-api"))
+    created = create_task(client)
+    task_id = created["id"]
+    complete_url = f"{TASKS_URL}{task_id}/complete/"
+    signals_url = f"{TASKS_URL}{task_id}/execution-signals/"
+
+    first_completion = client.post(complete_url)
+    reopened = client.post(
+        signals_url,
+        data={
+            "signal_type": "reopened",
+            "occurred_at": "2026-07-20T12:00:00Z",
+            "idempotency_key": "task-reopen-api-1",
+            "source": "web",
+        },
+        content_type="application/json",
+    )
+    repeated_reopen = client.post(
+        signals_url,
+        data={
+            "signal_type": "reopened",
+            "occurred_at": "2026-07-20T12:00:00Z",
+            "idempotency_key": "task-reopen-api-1",
+            "source": "web",
+        },
+        content_type="application/json",
+    )
+    assert first_completion.json()["status"] == TaskStatus.COMPLETED
+    assert reopened.status_code == 200
+    assert reopened.json()["signal_type"] == "reopened"
+    assert repeated_reopen.json()["id"] == reopened.json()["id"]
+    assert Task.objects.get(pk=task_id).status == TaskStatus.PENDING
+
+    second_completion = client.post(complete_url)
+    repeated_second_completion = client.post(complete_url)
+    assert second_completion.status_code == 200
+    assert second_completion.json()["status"] == TaskStatus.COMPLETED
+    assert (
+        repeated_second_completion.json()["completed_at"]
+        == second_completion.json()["completed_at"]
+    )
+
+
 def test_task_complete_endpoint_is_user_scoped() -> None:
     owner_client = authenticated_client(create_user())
     other_client = authenticated_client(create_user("task-complete-other"))
